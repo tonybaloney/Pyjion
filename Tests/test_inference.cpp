@@ -30,14 +30,11 @@
  set of tests should write their own testing code that would be easier to work
  with.
 */
-#include "stdafx.h"
 #include <catch2/catch.hpp>
 #include "testing_util.h"
 #include <Python.h>
 #include <absint.h>
-#include <util.h>
 #include <memory>
-#include <vector>
 
 class InferenceTest {
 private:
@@ -4446,7 +4443,7 @@ TEST_CASE("Function unary op type inference", "[function][unary op][inference]")
         REQUIRE(t.kind(2, 0) == AVK_Undefined);   // STORE_FAST 0
 		REQUIRE(t.kind(8, 0) == AVK_Function);   // LOAD_FAST 0
 		REQUIRE(t.kind(12, 1) == AVK_Undefined);  // STORE_FAST 1
-		REQUIRE(t.kind(14, 1) == AVK_Bool);       // LOAD_CONST 0
+		REQUIRE(t.kind(14, 1) == AVK_Any);       // LOAD_CONST 0
     }
 }
 

@@ -27,7 +27,6 @@
   Testing utility code.
 */
 
-#include "stdafx.h"
 #include <catch2/catch.hpp>
 #include "testing_util.h"
 #include <Python.h>
@@ -44,10 +43,36 @@ PyCodeObject* CompileCode(const char* code) {
     PyRun_String(code, Py_file_input, globals.get(), locals.get());
     if (PyErr_Occurred()) {
         PyErr_Print();
+        PyErr_Clear();
         FAIL("error occurred during Python compilation");
         return nullptr;
     }
     auto func = PyObject_ptr(PyObject_GetItem(locals.get(), PyUnicode_FromString("f")));
+    auto codeObj = (PyCodeObject*)PyObject_GetAttrString(func.get(), "__code__");
+
+    return codeObj;
+}
+
+PyCodeObject* CompileCode(const char* code, vector<const char*> locals, vector<const char*> globals) {
+    auto globals_dict = PyObject_ptr(PyDict_New());
+
+    auto builtins = PyEval_GetBuiltins();
+    PyDict_SetItemString(globals_dict.get(), "__builtins__", builtins);
+    for (auto & local: globals)
+        PyDict_SetItemString(globals_dict.get(), local, Py_None);
+
+    auto locals_dict = PyObject_ptr(PyDict_New());
+    for (auto & local: locals)
+        PyDict_SetItemString(locals_dict.get(), local, Py_None);
+
+    PyRun_String(code, Py_file_input, globals_dict.get(), locals_dict.get());
+    if (PyErr_Occurred()) {
+        PyErr_Print();
+        PyErr_Clear();
+        FAIL("error occurred during Python compilation");
+        return nullptr;
+    }
+    auto func = PyObject_ptr(PyObject_GetItem(locals_dict.get(), PyUnicode_FromString("f")));
     auto codeObj = (PyCodeObject*)PyObject_GetAttrString(func.get(), "__code__");
 
     return codeObj;
@@ -74,7 +99,7 @@ StackVerifier::StackVerifier(size_t byteCodeIndex, size_t stackIndex, AbstractVa
 };
 
 void StackVerifier::verify(AbstractInterpreter& interpreter) {
-    auto info = interpreter.get_stack_info(m_byteCodeIndex);
+    auto info = interpreter.getStackInfo(m_byteCodeIndex);
     CHECK(m_kind == info[info.size() - m_stackIndex - 1].Value->kind());
 };
 
@@ -88,7 +113,7 @@ VariableVerifier::VariableVerifier(size_t byteCodeIndex, size_t localIndex, Abst
 };
 
 void VariableVerifier::verify(AbstractInterpreter& interpreter) {
-    auto local = interpreter.get_local_info(m_byteCodeIndex, m_localIndex);
+    auto local = interpreter.getLocalInfo(m_byteCodeIndex, m_localIndex);
     CHECK(local.IsMaybeUndefined == m_undefined);
     CHECK(local.ValueInfo.Value->kind() == m_kind);
 };
@@ -99,18 +124,8 @@ ReturnVerifier::ReturnVerifier(AbstractValueKind kind) {
 };
 
 void ReturnVerifier::verify(AbstractInterpreter& interpreter) {
-    CHECK(m_kind == interpreter.get_return_info()->kind());
+    CHECK(m_kind == interpreter.getReturnInfo()->kind());
 };
-
-BoxVerifier::BoxVerifier(size_t byteCodeIndex, bool shouldBox) {
-    m_byteCodeIndex = byteCodeIndex;
-    m_shouldBox = shouldBox;
-};
-
-void BoxVerifier::verify(AbstractInterpreter& interpreter) {
-    CHECK(m_shouldBox == interpreter.should_box(m_byteCodeIndex));
-};
-
 
 PyObject* Incremented(PyObject*o) {
     Py_INCREF(o);
