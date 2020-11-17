@@ -21,7 +21,7 @@ Prerequisites:
 - .NET 5
 
 ```console
- $ git clone git@github.com:Microsoft/pyjion --recurse-submodules
+ $ git clone git@github.com:tonybaloney/pyjion --recurse-submodules
  $ cd pyjion
  $ python -m pip install .
 ```
