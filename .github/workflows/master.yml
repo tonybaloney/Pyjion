@@ -82,7 +82,7 @@ jobs:
       - name: Configure CMake
         shell: bash
         working-directory: ${{runner.workspace}}/build
-        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCODE_COVERAGE=ON
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
@@ -97,6 +97,9 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         shell: bash
         run: ./unit_tests
+
+      - name: Codecov
+        uses: codecov/codecov-action@v1.0.15
 
       - name: Run smoke tests
         shell: bash

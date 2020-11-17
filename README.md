@@ -1,6 +1,10 @@
 # Pyjion
 
-Designing a JIT API for CPython
+A JIT extension for CPython that compiles your Python code into native CIL and executes it using the .NET 5 CLR.
+
+![Compile and test C++ package](https://github.com/tonybaloney/Pyjion/workflows/Compile%20and%20test%20C++%20package/badge.svg)
+[![Documentation Status](https://readthedocs.org/projects/pyjion/badge/?version=latest)](https://pyjion.readthedocs.io/en/latest/?badge=latest)
+
 
 ## Installing
 
@@ -16,55 +20,79 @@ Prerequisites:
  $ python -m pip install .
 ```
 
-## Using
+## Using Pyjion
 
-Once you have installed the Python package, at the REPL you can enable the JIT by using `pyjion.enable()`:
+To get started, you need to have .NET 5 installed, with Python 3.9 and the Pyjion package (I also recommend using a virtual environment).
 
-```console
- $ python
- >>> import pyjion
- >>> pyjion.enable()
- >>> a = 1
- ```
+After importing pyjion, enable it by calling `pyjion.enable()` which sets a compilation threshold to 0 (the code only needs to be run once to be compiled by the JIT):
 
-All code executed after `pyjion.enable()` will go through the JIT.
+```
+>>> import pyjion
+>>> pyjion.enable()
+```
 
-In a script, call `pyjion.enable()` before any code you want to JIT and disable using `pyjion.disable()` to stop JITting.
+Any Python code you define or import after enabling pyjion will be JIT compiled. You don't need to execute functions in any special API, its completely transparent:
 
-## A note on development
-This is a side project at work for the project maintainers, and so progress can be
-sporadic. In spite of that we do accept contributions at any time and will attempt
-to respond to them promptly.
+```
+>>> def half(x):
+...    return x/2
+>>> half(2)
+1.0
+```
+
+Pyjion will have compiled the `half` function into machine code on-the-fly and stored a cached version of that compiled function inside the function object.
+You can see some basic stats by running `pyjion.info(f)`, where `f` is the function object:
+
+```
+>>> pyjion.info(half)
+{'failed': False, 'compiled': True, 'run_count': 1}
+```
+
+You can see the machine code for the compiled function by disassembling it in the Python REPL.
+Pyjion has essentially compiled your small Python function into a small, standalone application.
+Install `distorm3` first to disassemble x86-64 assembly and run `pyjion.dis.dis_native(f)`:
+
+```
+>>> import pyjion.dis
+>>> pyjion.dis.dis_native(half)
+00000000: PUSH RBP
+00000001: MOV RBP, RSP
+00000004: PUSH R14
+00000006: PUSH RBX
+00000007: MOV RBX, RSI
+0000000a: MOV R14, [RDI+0x40]
+0000000e: CALL 0x1b34
+00000013: CMP DWORD [RAX+0x30], 0x0
+00000017: JZ 0x31
+00000019: CMP QWORD [RAX+0x40], 0x0
+0000001e: JZ 0x31
+00000020: MOV RDI, RAX
+00000023: MOV RSI, RBX
+00000026: XOR EDX, EDX
+00000028: POP RBX
+00000029: POP R14
+...
+```
+
+The complex logic of converting a portable instruction set into low-level machine instructions is done by .NET's CLR JIT compiler.
+
+All Python code executed after the JIT is enabled will be compiled into native machine code at runtime and cached on disk. For example, to enable the JIT on a simple `app.py` for a Flask web app:
+
+```python
+import pyjion
+pyjion.enable()
+
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def hello_world():
+    return 'Hello, World!'
+
+app.run()
+```
 
 ## FAQ
-
-### What are the goals of this project?
-There are three goals for this project.
-
-1. Add a C API to CPython for plugging in a JIT
-2. Develop a JIT module using [CoreCLR](https://github.com/dotnet/coreclr) utilizing the C API mentioned in goal #1
-3. Develop a C++ framework that any JIT targeting the API in goal #1 can use to make development easier
-
-Goal #1 is to make it so that CPython can have a JIT plugged in as desired (CPython
-is the Python implementation you download from https://www.python.org/). That
-would allow for an ecosystem of JIT implementations for Python where users can
-choose the JIT that works best for their use-case. And by using CPython we hope
-to have compatibility with all code that it can run (both Python code as well
-as C extension modules).
-
-Goal #2 is to develop a JIT for CPython using the JIT provided by the
-[CoreCLR](https://github.com/dotnet/coreclr). It's cross-platform, liberally
-licensed, and the original creator of Pyjion has a lot of experience with it.
-
-Goal #3 is to abstract out all of the common bits required to write a JIT
-implementation for CPython. The idea is to create a framework where JIT
-implementations only have to worry about JIT-specific stuff like _how_ to do
-addition and not _when_ to do addition.
-
-### Is there a Python Enhancement Proposal (PEP) for this?
-We have written a
-[PEP](https://github.com/python/peps/blob/master/pep-0523.txt),
-it was accepted by the Python development team, and will be implemented in Python 3.6.
 
 ### How do you pronounce "Pyjion"?
 Like the word "pigeon". @DinoV wanted a name that had something with "Python"
@@ -72,6 +100,7 @@ Like the word "pigeon". @DinoV wanted a name that had something with "Python"
 pronounceable.
 
 ### How do this compare to ...
+
 #### [PyPy](http://pypy.org/)?
 [PyPy](http://pypy.org/) is an implementation of Python with its own JIT. The
 biggest difference compared to Pyjion is that PyPy doesn't support all C extension
