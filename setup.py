@@ -11,15 +11,28 @@ try:
 except SKBuildError:
     setup_requires.append('cmake')
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 setup(
     name='pyjion',
-    version='1.0',
+    version='0.0.1',
     description='A JIT compiler wrapper for CPython',
-    author='Microsoft',
+    author='Anthony Shaw and Microsoft',
+    author_email='anthonyshaw@apache.org',
+    url='https://github.com/tonybaloney/Pyjion',
     license='MIT',
     packages=['pyjion'],
     setup_requires=setup_requires,
+    python_requires='>=3.9',
     include_package_data=True,
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
     #cmake_args=['-DDUMP_TRACES=1']
 )

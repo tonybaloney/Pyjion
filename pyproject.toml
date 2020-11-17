@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "scikit-build", "cmake", "ninja"]
+requires = ["setuptools", "wheel", "scikit-build @ https://github.com/tonybaloney/scikit-build/archive/vs2019.zip", "cmake", "ninja"]
 
 [tool.tox]
 legacy_tox_ini = """

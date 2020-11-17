@@ -103,7 +103,7 @@ jobs:
       - name: Codecov
         uses: codecov/codecov-action@v1.0.15
         with:
-          verbose: true
+          directory: Tests/
 
       - name: Run smoke tests
         shell: bash
