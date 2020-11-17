@@ -29,6 +29,7 @@ Prerequisites:
 - .NET 5
 
 .. code-block::
+
     $ git clone git@github.com:Microsoft/pyjion --recurse-submodules
     $ cd pyjion
     $ python -m pip install .

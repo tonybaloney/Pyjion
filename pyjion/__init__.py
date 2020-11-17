@@ -3,6 +3,8 @@ import pathlib
 import os
 import platform
 
+__version__ = '0.0.2'
+
 
 def _no_dotnet(path):
     print(f"Can't find a .NET 5 installation in {path}, "

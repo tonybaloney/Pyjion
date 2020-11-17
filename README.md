@@ -4,9 +4,15 @@ A JIT extension for CPython that compiles your Python code into native CIL and e
 
 ![Compile and test C++ package](https://github.com/tonybaloney/Pyjion/workflows/Compile%20and%20test%20C++%20package/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/pyjion/badge/?version=latest)](https://pyjion.readthedocs.io/en/latest/?badge=latest)
+[![PyPI](https://img.shields.io/pypi/v/pyjion?label=pypi%20package)](https://pypi.org/p/pyjion)
 
+## Installing 
 
-## Installing
+```console
+$ pip install pyjion
+```
+
+## Compiling from source
 
 Prerequisites: 
 
