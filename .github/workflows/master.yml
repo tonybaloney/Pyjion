@@ -62,6 +62,7 @@ jobs:
       - name: Build Python Wheel
         shell: bash
         run: |
+          python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
           python setup.py bdist_wheel
           WHEEL=$(find ./dist -name "*.whl" -printf "%p")
           echo "WHEEL=$WHEEL" >> $GITHUB_ENV
@@ -71,8 +72,8 @@ jobs:
           name: dist
           path: ${{ env.WHEEL }}
 
-  build-mac:
-    runs-on: macos-latest
+  build-macos-10:
+    runs-on: macos-10.15
     strategy:
       matrix:
         python-version: [3.9]
@@ -130,6 +131,76 @@ jobs:
       - name: Build Python Wheel
         shell: bash
         run: |
+          python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
+          python setup.py bdist_wheel
+          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
+          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: dist
+          path: ${{ env.WHEEL }}
+
+  build-macos-11:
+    runs-on: macos-11.0
+    strategy:
+      matrix:
+        python-version: [3.9]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '5.0.100'
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
+      - name: Configure CMake
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCODE_COVERAGE=ON
+
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: cmake --build . --config $BUILD_TYPE
+
+      - name: Build Python Package
+        shell: bash
+        run: pip install .
+
+      - name: Run unit tests
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: ./unit_tests
+
+      - name: Run gcov
+        shell: bash
+        run: gcov Tests/
+
+      - name: Codecov
+        uses: codecov/codecov-action@v1.0.15
+        with:
+          directory: Tests/
+
+      - name: Run smoke tests
+        shell: bash
+        run: python -X dev Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j1
+
+      - name: Run full test suite
+        shell: bash
+        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests.txt -j1
+
+      - name: Build Python Wheel
+        shell: bash
+        run: |
+          python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
           python setup.py bdist_wheel
           WHEEL=$(find ./dist -name "*.whl" -printf "%p")
           echo "WHEEL=$WHEEL" >> $GITHUB_ENV
