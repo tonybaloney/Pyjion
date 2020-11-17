@@ -96,10 +96,14 @@ jobs:
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build
         shell: bash
-        run: ./unit_tests
+        run: |
+          ./unit_tests
+          gcov Tests/
 
       - name: Codecov
         uses: codecov/codecov-action@v1.0.15
+        with:
+          verbose: true
 
       - name: Run smoke tests
         shell: bash
