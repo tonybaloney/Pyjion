@@ -59,6 +59,18 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests.txt -j1
 
+      - name: Build Python Wheel
+        shell: bash
+        run: |
+          python setup.py bdist_wheel
+          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
+          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: dist
+          path: ${{ env.WHEEL }}
+
   build-mac:
     runs-on: macos-latest
     strategy:
@@ -115,6 +127,18 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests.txt -j1
 
+      - name: Build Python Wheel
+        shell: bash
+        run: |
+          python setup.py bdist_wheel
+          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
+          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: dist
+          path: ${{ env.WHEEL }}
+
   build-windows:
     runs-on: windows-latest
     strategy:
@@ -169,3 +193,15 @@ jobs:
       - name: Run full test suite
         shell: bash
         run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests_win.txt -j1
+
+      - name: Build Python Wheel
+        shell: bash
+        run: |
+          python setup.py bdist_wheel --generator "Visual Studio 16 2019"
+          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
+          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: dist
+          path: ${{ env.WHEEL }}
