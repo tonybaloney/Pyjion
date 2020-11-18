@@ -119,6 +119,8 @@ if (WIN32)
     message(STATUS "Found .NET 5 in " ${DOTNETPATH})
 endif()
 
+add_definitions(-DGIL)  # use Python GIL on sub function calls
+
 if (UNIX AND NOT APPLE)
     set(CLR_OS_BUILD Linux.x64.Debug)
     set(CLR_JIT_LIB "libclrjit.so")
