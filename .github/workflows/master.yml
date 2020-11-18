@@ -67,6 +67,7 @@ jobs:
       - name: Python wheels manylinux build
         uses: RalfG/python-wheels-manylinux-build@v0.3.1
         with:
+          build-requirements: 'cmake https://github.com/tonybaloney/scikit-build/archive/vs2019.zip'
           python-versions: 'cp39-cp39'
         env:
           # Temporary fix for LD_LIBRARY_PATH issue. See
