@@ -20,3 +20,5 @@ test_sys_setprofile
 test_sys_settrace
 # TODO: https://github.com/Microsoft/Pyjion/issues/93
 test_traceback
+
+test__xxsubinterpreters

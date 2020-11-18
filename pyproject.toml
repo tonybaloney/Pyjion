@@ -10,5 +10,5 @@ envlist = py39
 deps = scikit-build
 
 commands =
-    python Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j1
+    python Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j4
 """
