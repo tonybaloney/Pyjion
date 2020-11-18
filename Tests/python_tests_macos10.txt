@@ -222,7 +222,8 @@ test_list
 test_listcomps
 test_lltrace
 test_locale
-test_logging
+# TODO: Causes sporadic failures (1/10 times). hard to reproduce.
+## test_logging
 test_long
 test_longexp
 test_lzma
