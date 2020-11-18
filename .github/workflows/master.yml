@@ -59,18 +59,20 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests.txt -j1
 
-      - name: Build Python Wheel
+      - name: Install scikit-build for wheel
         shell: bash
         run: |
           python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
-          python setup.py bdist_wheel
-          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
-          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
+
+      - name: Python wheels manylinux build
+        uses: RalfG/python-wheels-manylinux-build@v0.3.1
+        with:
+          python-versions: 'cp39-cp39m'
 
       - uses: actions/upload-artifact@v1
         with:
           name: dist
-          path: ${{ env.WHEEL }}
+          path: dist
 
   build-macos-10:
     runs-on: macos-10.15
@@ -133,13 +135,11 @@ jobs:
         run: |
           python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
           python setup.py bdist_wheel
-          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
-          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
 
       - uses: actions/upload-artifact@v1
         with:
           name: dist
-          path: ${{ env.WHEEL }}
+          path: dist
 
   build-macos-11:
     runs-on: macos-11.0
@@ -202,13 +202,11 @@ jobs:
         run: |
           python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
           python setup.py bdist_wheel
-          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
-          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
 
       - uses: actions/upload-artifact@v1
         with:
           name: dist
-          path: ${{ env.WHEEL }}
+          path: dist
 
   build-windows:
     runs-on: windows-latest
