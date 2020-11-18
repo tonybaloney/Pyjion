@@ -67,7 +67,7 @@ jobs:
       - name: Python wheels manylinux build
         uses: RalfG/python-wheels-manylinux-build@v0.3.1
         with:
-          python-versions: 'cp39-cp39m'
+          python-versions: 'cp39-cp39'
 
       - uses: actions/upload-artifact@v1
         with:
@@ -128,7 +128,7 @@ jobs:
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests.txt -j1
+        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests_macos10.txt -j1
 
       - name: Build Python Wheel
         shell: bash
@@ -195,7 +195,7 @@ jobs:
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests.txt -j1
+        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests_macos11.txt -j1
 
       - name: Build Python Wheel
         shell: bash
