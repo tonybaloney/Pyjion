@@ -608,7 +608,10 @@ PyObject* PyJit_ImportName(PyObject*level, PyObject*from, PyObject* name, PyFram
     stack[2] = f->f_locals == nullptr ? Py_None : f->f_locals;
     stack[3] = from;
     stack[4] = level;
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
     res = _PyObject_FastCall(imp_func, stack, 5);
+    PyGILState_Release(gstate);
     Py_DECREF(imp_func);
     return res;
 }
@@ -815,7 +818,10 @@ PyObject* PyJit_CallKwArgs(PyObject* func, PyObject*callargs, PyObject*kwargs) {
 		callargs = tmp;
 	}
 
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
 	result = PyObject_Call(func, callargs, kwargs);
+	PyGILState_Release(gstate);
 error:
 	Py_DECREF(func);
 	Py_DECREF(callargs);
@@ -844,8 +850,10 @@ PyObject* PyJit_CallArgs(PyObject* func, PyObject*callargs) {
 		Py_DECREF(callargs);
 		callargs = tmp;
 	}
-
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
 	result = PyObject_Call(func, callargs, nullptr);
+	PyGILState_Release(gstate);
 error:
 	Py_DECREF(func);
 	Py_DECREF(callargs);
@@ -1134,7 +1142,10 @@ int PyJit_DeleteSubscr(PyObject *container, PyObject *index) {
 
 PyObject* PyJit_CallN(PyObject *target, PyObject* args) {
     // we stole references for the tuple...
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
     auto res = PyObject_Call(target, args, nullptr);
+    PyGILState_Release(gstate);
     Py_DECREF(target);
     Py_DECREF(args);
     return res;
@@ -1640,7 +1651,10 @@ PyObject* Call(PyObject *target, Args...args) {
         return nullptr;
     if (PyCFunction_Check(target)) {
         PyObject* _args[sizeof...(args)] = {args...};
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
         res = PyObject_Vectorcall(target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+        PyGILState_Release(gstate);
     }
     else {
         auto t_args = PyTuple_New(sizeof...(args));
@@ -1657,7 +1671,10 @@ PyObject* Call(PyObject *target, Args...args) {
         for (int i = 0; i < args_v.size() ; i ++)
             PyTuple_SET_ITEM(t_args, i, args_v[i]);
 
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
         res = PyObject_Call(target, t_args, nullptr);
+        PyGILState_Release(gstate);
         Py_DECREF(t_args);
     }
     error:
@@ -1669,12 +1686,15 @@ PyObject* Call0(PyObject *target) {
     PyObject* res = nullptr;
     if (target == nullptr)
         return nullptr;
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
     if (PyCFunction_Check(target)) {
         res = PyObject_Vectorcall(target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
     }
     else {
         res = PyObject_CallNoArgs(target);
     }
+    PyGILState_Release(gstate);
     Py_DECREF(target);
     return res;
 }
@@ -1767,7 +1787,10 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         for (int i = 0 ; i < PyTuple_Size(args) ; i ++){
             PyTuple_SetItem(args_tuple, i+1, PyTuple_GetItem(args, i));
         }
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
         res = PyObject_Call(target, args_tuple, nullptr);
+        PyGILState_Release(gstate);
         if (res == nullptr){
             Py_DECREF(args_tuple);
             Py_DECREF(args);
@@ -1785,7 +1808,10 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
     }
     else {
         auto target = method_info->method;
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
         res = PyObject_Call(target, args, nullptr);
+        PyGILState_Release(gstate);
         if (res == nullptr){
             Py_DECREF(args);
             Py_DECREF(target);
@@ -1829,7 +1855,10 @@ PyObject* PyJit_KwCallN(PyObject *target, PyObject* args, PyObject* names) {
 		);
 	}
 
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
 	result = PyObject_Call(target, posArgs, kwArgs);
+	PyGILState_Release(gstate);
 error:
 	Py_XDECREF(kwArgs);
 	Py_XDECREF(posArgs);
