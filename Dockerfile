@@ -19,7 +19,5 @@ RUN apt-get -y update && apt-get install -y software-properties-common && apt-ge
 RUN wget https://dotnetcli.azureedge.net/dotnet/Sdk/${DOTNET_VERSION}/dotnet-sdk-${DOTNET_VERSION}-linux-x64.tar.gz
 RUN mkdir -p dotnet && tar zxf dotnet-sdk-${DOTNET_VERSION}-linux-x64.tar.gz -C dotnet
 ENV DOTNET_ROOT=/src/dotnet
-RUN python3.9 -m pip install .
-RUN python3.9 -m pip wheel . -w ./dist --no-deps && \
- find . -type f -iname "*-linux*.whl" -execdir sh -c "auditwheel repair '{}' -w ./ --plat 'manylinux2014_x86_64' || { echo 'Repairing wheels failed.'; auditwheel show '{}'; exit 1; }" \;
-RUN echo "Succesfully built wheels:" && find . -type f -iname "*-manylinux*.whl"
+COPY .github/build-manylinux.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

@@ -69,9 +69,9 @@ jobs:
 
       - name: Build manylinux wheel
         run: |
-          docker container run \
+          docker run \
             --rm \
-            -v "$(pwd):/src" pyjion
+            -v "$(pwd):/github/workspace" pyjion
 
       - uses: actions/upload-artifact@v1
         with:
