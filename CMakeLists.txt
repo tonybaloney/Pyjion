@@ -12,14 +12,21 @@ if (UNIX AND NOT APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
 endif()
 
-find_package (Python3 3.9 COMPONENTS Interpreter Development)
-message(STATUS "Using Python libraries " ${Python3_LIBRARIES})
-message(STATUS "Using Python headers " ${Python3_INCLUDE_DIRS})
 if (SKBUILD)
     find_package(PythonExtensions REQUIRED)
     message(STATUS "Using Python libraries for skbuild " ${PYTHON_LIBRARIES})
     message(STATUS "Using Python headers for skbuild " ${PYTHON_INCLUDE_DIRS})
 endif (SKBUILD)
+
+if (NOT PYTHON_LIBRARIES)
+    find_package (Python3 3.9 COMPONENTS Interpreter Development)
+else()
+    set(Python3_LIBRARIES ${PYTHON_LIBRARIES})
+    set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
+endif()
+
+message(STATUS "Using Python libraries " ${Python3_LIBRARIES})
+message(STATUS "Using Python headers " ${Python3_INCLUDE_DIRS})
 
 include_directories(${Python3_INCLUDE_DIRS})
 
