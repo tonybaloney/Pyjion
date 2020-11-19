@@ -64,17 +64,14 @@ jobs:
         run: |
           python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
 
-      - name: Python wheels manylinux build
-        uses: tonybaloney/python-wheels-manylinux-build@master
-        with:
-          build-requirements: 'cmake https://github.com/tonybaloney/scikit-build/archive/vs2019.zip'
-          python-versions: 'cp39-cp39'
-        env:
-          # Temporary fix for LD_LIBRARY_PATH issue. See
-          # https://github.com/RalfG/python-wheels-manylinux-build/issues/26
-          LD_LIBRARY_PATH: /usr/local/lib:${{ env.LD_LIBRARY_PATH }}
-          PYTHON_LIBRARY: /usr/lib64/libpython3.so
-          PYTHON_INCLUDE_DIR: /opt/_internal/cpython-3.9.0/include/python3.9/
+      - name: Build Linux Docker image
+        run: docker build -f ./Dockerfile -t pyjion
+
+      - name: Build manylinux wheel
+        run: |
+          docker container run \
+            --rm \
+            -v "$(pwd):/src" pyjion
 
       - uses: actions/upload-artifact@v1
         with:
