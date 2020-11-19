@@ -2,7 +2,7 @@
 set -e -x
 
 cd /github/workspace/
-
+alias python3.9=/opt/python/cp39-cp39/bin/python
 python3.9 -m pip install --upgrade --no-cache-dir pip
 python3.9 -m pip install auditwheel
 python3.9 -m pip install .
