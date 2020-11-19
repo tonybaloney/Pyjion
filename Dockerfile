@@ -19,4 +19,5 @@ RUN apt-get -y update && apt-get install -y software-properties-common && apt-ge
 RUN wget https://dotnetcli.azureedge.net/dotnet/Sdk/${DOTNET_VERSION}/dotnet-sdk-${DOTNET_VERSION}-linux-x64.tar.gz
 RUN mkdir -p dotnet && tar zxf dotnet-sdk-${DOTNET_VERSION}-linux-x64.tar.gz -C dotnet
 ENV DOTNET_ROOT=/src/dotnet
+RUN chmod +x /src/.github/build-manylinux.sh
 ENTRYPOINT ["/src/.github/build-manylinux.sh"]
