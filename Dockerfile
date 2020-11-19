@@ -10,7 +10,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt-get -y update && apt-get install -y software-properties-common && apt-get -y update \
     && add-apt-repository ppa:deadsnakes/ppa && apt-get -y update \
-    && apt-get install -y wget cmake llvm-9 clang-9 autoconf automake \
+    && apt-get install -y wget bison unzip bzip2 cmake llvm-9 clang-9 autoconf automake \
      libtool build-essential curl python3-pip ninja-build git lldb-6.0 liblldb-6.0-dev \
      libunwind8 libunwind8-dev gettext libicu-dev liblttng-ust-dev \
      libssl-dev libnuma-dev libkrb5-dev zlib1g-dev \
