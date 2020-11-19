@@ -26,6 +26,7 @@ jobs:
           architecture: x64
       - name: Install CLR requirements
         run: |
+          sudo apt-get -y update
           sudo apt-get install -y cmake llvm-9 clang-9 autoconf automake \
           libtool build-essential python curl git lldb-6.0 liblldb-6.0-dev \
           libunwind8 libunwind8-dev gettext libicu-dev liblttng-ust-dev \
