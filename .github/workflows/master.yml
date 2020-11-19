@@ -66,7 +66,7 @@ jobs:
           python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
 
       - name: Build Linux Docker image
-        run: docker build -t pyjion -f Dockerfile.manylinux .github
+        run: docker build -t pyjion -f .github/Dockerfile.manylinux .
 
       - name: Build manylinux wheel
         run: |
