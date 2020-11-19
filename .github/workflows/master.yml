@@ -65,7 +65,7 @@ jobs:
           python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
 
       - name: Build Linux Docker image
-        run: docker build -f ./Dockerfile -t pyjion
+        run: docker build -t pyjion .
 
       - name: Build manylinux wheel
         run: |
@@ -128,7 +128,7 @@ jobs:
 
       - name: Run smoke tests
         shell: bash
-        run: python -X dev Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j4
+        run: python -X dev Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j1
 
       - name: Run full test suite
         shell: bash
@@ -195,7 +195,7 @@ jobs:
 
       - name: Run smoke tests
         shell: bash
-        run: python -X dev Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j4
+        run: python -X dev Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j1
 
       - name: Run full test suite
         shell: bash
