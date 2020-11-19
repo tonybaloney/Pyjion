@@ -13,9 +13,12 @@ if (UNIX AND NOT APPLE)
 endif()
 
 find_package (Python3 3.9 COMPONENTS Interpreter Development)
-message(STATUS "Use Python libraries " ${Python3_LIBRARIES})
+message(STATUS "Using Python libraries " ${Python3_LIBRARIES})
+message(STATUS "Using Python headers " ${Python3_INCLUDE_DIRS})
 if (SKBUILD)
     find_package(PythonExtensions REQUIRED)
+    message(STATUS "Using Python libraries for wheel " ${Python3_LIBRARIES})
+    message(STATUS "Using Python headers for wheel " ${Python3_INCLUDE_DIRS})
 endif (SKBUILD)
 
 include_directories(${Python3_INCLUDE_DIRS})
@@ -97,8 +100,6 @@ else()
 endif()
 
 include_directories(CoreCLR/src/coreclr/src/inc CoreCLR/src/coreclr/src/jit)
-
-
 
 if (UNIX)
     if(DEFINED ENV{DOTNET_ROOT})
