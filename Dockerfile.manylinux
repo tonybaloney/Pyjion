@@ -2,7 +2,7 @@ ARG DOTNET_VERSION=5.0.100
 FROM quay.io/pypa/manylinux2014_x86_64
 ARG DOTNET_VERSION
 RUN echo "Building Pyjion with .NET  $DOTNET_VERSION"
-COPY .. /src
+COPY . /src
 WORKDIR /src
 
 ENV TZ=Europe/London
