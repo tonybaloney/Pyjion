@@ -44,7 +44,7 @@ def _which_dotnet():
             _no_dotnet(_dotnet_root)
     elif platform.system() == "Windows":
         if not _dotnet_root:
-            _dotnet_root = pathlib.WindowsPath(os.path.expandvars(r'%LocalAppData%\Microsoft\dotnet'))
+            _dotnet_root = pathlib.WindowsPath(os.path.expandvars(r'%ProgramFiles%\dotnet'))
             if not _dotnet_root.exists():
                 _no_dotnet(_dotnet_root)
         lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/5.0.0*/clrjit.dll'))
