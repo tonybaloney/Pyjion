@@ -14,9 +14,12 @@ except SKBuildError:
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+with open("CHANGELOG.md", "r") as fh:
+    long_description += "\n\n" + fh.read()
+
 setup(
     name='pyjion',
-    version='0.0.2',
+    version='0.0.3',
     description='A JIT compiler wrapper for CPython',
     author='Anthony Shaw and Microsoft',
     author_email='anthonyshaw@apache.org',
