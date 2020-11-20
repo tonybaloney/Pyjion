@@ -1469,7 +1469,11 @@ public:
 
     // Returns name of the JIT timer log
     LPCWSTR getJitTimeLogFilename() override {
-        return reinterpret_cast<LPCWSTR>("pyjion.log");
+#ifdef DEBUG
+        return u"pyjion_timings.log";
+#else
+        return nullptr;
+#endif
     }
 
     /*********************************************************************************/
