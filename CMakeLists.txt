@@ -184,7 +184,9 @@ set_target_properties(
         LINKER_LANGUAGE C
 )
 
-target_link_libraries(_pyjion ${Python3_LIBRARIES})
+if (NOT SKBUILD)
+    target_link_libraries(_pyjion ${Python3_LIBRARIES})
+endif()
 
 if (DO_TESTS)
     # Testing
