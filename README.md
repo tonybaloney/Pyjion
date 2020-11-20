@@ -1,6 +1,6 @@
-# Pyjion
+![](https://github.com/tonybaloney/Pyjion/raw/master/Docs/source/_static/pyjion_logo.png)
 
-A JIT extension for CPython that compiles your Python code into native CIL and executes it using the .NET 5 CLR.
+Pyjion, a JIT extension for CPython that compiles your Python code into native CIL and executes it using the .NET 5 CLR.
 
 ![Compile and test C++ package](https://github.com/tonybaloney/Pyjion/workflows/Compile%20and%20test%20C++%20package/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/pyjion/badge/?version=latest)](https://pyjion.readthedocs.io/en/latest/?badge=latest)
