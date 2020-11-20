@@ -2,3 +2,15 @@ cmake-build-*
 CoreCLR/artifacts
 .git
 CoreCLR/.git
+CoreCLR/src/coreclr/tests
+CoreCLR/src/coreclr/cmake-build-*
+CoreCLR/src/tests
+CoreCLR/src/installer
+CoreCLR/src/libraries
+CoreCLR/src/mono
+CoreCLR/src/tests
+CoreCLR/src/eng
+*venv*/
+.tox
+*.egg-info/
+Tests/
