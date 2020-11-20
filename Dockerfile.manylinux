@@ -1,10 +1,8 @@
-ARG DOTNET_VERSION=5.0.100
 FROM quay.io/pypa/manylinux2014_x86_64
-ARG DOTNET_VERSION
+ENV DOTNET_VERSION=5.0.100
 RUN echo "Building Pyjion with .NET  $DOTNET_VERSION"
 COPY . /src
 WORKDIR /src
-
 ENV TZ=Europe/London
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN wget https://dotnetcli.azureedge.net/dotnet/Sdk/${DOTNET_VERSION}/dotnet-sdk-${DOTNET_VERSION}-linux-x64.tar.gz
