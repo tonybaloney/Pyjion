@@ -52,6 +52,12 @@ jobs:
         shell: bash
         run: pip install .
 
+      - name: Test IPython REPL
+        shell: bash
+        run: |
+          pip install ipython
+          python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
+
       - name: Run smoke tests
         shell: bash
         run: python -X dev -q Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j4
@@ -129,6 +135,12 @@ jobs:
         with:
           directory: Tests/
 
+      - name: Test IPython REPL
+        shell: bash
+        run: |
+          pip install ipython
+          python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
+
       - name: Run smoke tests
         shell: bash
         run: python -X dev Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j1
@@ -196,6 +208,12 @@ jobs:
         with:
           directory: Tests/
 
+      - name: Test IPython REPL
+        shell: bash
+        run: |
+          pip install ipython
+          python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
+
       - name: Run smoke tests
         shell: bash
         run: python -X dev Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j1
@@ -261,6 +279,12 @@ jobs:
       - name: Install Python Package
         shell: bash
         run: python setup.py install --generator "Visual Studio 16 2019"
+
+      - name: Test IPython REPL
+        shell: bash
+        run: |
+          pip install ipython
+          python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
 
       - name: Run smoke tests
         shell: bash
