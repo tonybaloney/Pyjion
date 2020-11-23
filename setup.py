@@ -36,7 +36,7 @@ setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-    ],
+    ]
     # Uncomment and reinstall for super-verbose tracing
     # cmake_args=['-DDUMP_TRACES=1']
 )

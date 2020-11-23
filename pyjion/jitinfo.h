@@ -52,9 +52,7 @@
 
 using namespace std;
 
-#ifdef WINDOWS
 extern "C" void JIT_StackProbe(); // Implemented in helpers.asm
-#endif
 
 const CORINFO_CLASS_HANDLE PYOBJECT_PTR_TYPE = (CORINFO_CLASS_HANDLE)0x11;
 
@@ -1697,8 +1695,7 @@ public:
     }
 #else
     void* getHelperFtn(CorInfoHelpFunc ftnNum, void** ppIndirection) override {
-        if (ppIndirection != nullptr)
-            ppIndirection = nullptr;
+        *ppIndirection = nullptr;
         assert(ftnNum < CORINFO_HELP_COUNT);
         switch (ftnNum) {
         case CORINFO_HELP_USER_BREAKPOINT:
@@ -1707,6 +1704,8 @@ public:
             return (void*)newArrayHelperFtn;
         case CORINFO_HELP_ARRADDR_ST:
             return (void*)stArrayHelperFtn;
+        case CORINFO_HELP_STACK_PROBE:
+            return nullptr;
         }
         return (void*)helperFtn;
     }

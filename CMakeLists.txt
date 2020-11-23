@@ -173,6 +173,11 @@ if (WIN32)
     set(SOURCES ${SOURCES} pyjion/helpers.asm)
 endif()
 
+if (UNIX)
+    enable_language(ASM)
+    set(SOURCES ${SOURCES} pyjion/helpers.S)
+endif()
+
 add_library(pyjionlib OBJECT ${SOURCES})
 add_library(_pyjion MODULE $<TARGET_OBJECTS:pyjionlib>)
 
