@@ -37,5 +37,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    #cmake_args=['-DDUMP_TRACES=1']
+    # Uncomment and reinstall for super-verbose tracing
+    # cmake_args=['-DDUMP_TRACES=1']
 )

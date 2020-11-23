@@ -33,9 +33,14 @@ def _which_dotnet():
             _no_dotnet(_dotnet_root)
     elif platform.system() == "Linux":
         if not _dotnet_root:
-            _dotnet_root = pathlib.Path('/usr/local/share/dotnet/')
-            if not _dotnet_root.exists():
-                _no_dotnet(_dotnet_root)
+            search_paths = [pathlib.Path('/usr/local/share/dotnet/'), pathlib.Path('/usr/share/dotnet/')]
+            for path in search_paths:
+                if not path.exists():
+                    continue
+                else:
+                    _dotnet_root = path
+        if not _dotnet_root:
+            _no_dotnet(_dotnet_root)
         lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/5.0.0*/libclrjit.so'))
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
