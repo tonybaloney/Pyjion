@@ -1669,7 +1669,6 @@ public:
     }
 
 
-#ifdef WINDOWS
     void *getHelperFtn(CorInfoHelpFunc ftnNum, void **ppIndirection) override {
         static void* helperAddr = (void*)0xfefefe;
         assert(ftnNum < CORINFO_HELP_COUNT);
@@ -1693,23 +1692,6 @@ public:
         *ppIndirection = &helperAddr;
         return nullptr;
     }
-#else
-    void* getHelperFtn(CorInfoHelpFunc ftnNum, void** ppIndirection) override {
-        *ppIndirection = nullptr;
-        assert(ftnNum < CORINFO_HELP_COUNT);
-        switch (ftnNum) {
-        case CORINFO_HELP_USER_BREAKPOINT:
-            return (void*)breakpointFtn;
-        case CORINFO_HELP_NEWARR_1_VC:
-            return (void*)newArrayHelperFtn;
-        case CORINFO_HELP_ARRADDR_ST:
-            return (void*)stArrayHelperFtn;
-        case CORINFO_HELP_STACK_PROBE:
-            return nullptr;
-        }
-        return (void*)helperFtn;
-    }
-#endif
 
     void getLocationOfThisType(CORINFO_METHOD_HANDLE context, CORINFO_LOOKUP_KIND *pLookupKind) override {
 

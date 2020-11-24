@@ -145,6 +145,7 @@ if (UNIX AND NOT APPLE)
     add_definitions(-DFEATURE_SIMD)
     add_definitions(-DFEATURE_HW_INTRINSICS)
     add_compile_options(-fPIC)
+    add_compile_options(-fpermissive)
 endif()
 
 if (APPLE)

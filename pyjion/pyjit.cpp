@@ -94,7 +94,7 @@ PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame) {
         if (res_repr != nullptr)
             printf("Returning from %s, value %s\r\n", PyUnicode_AsUTF8(frame->f_code->co_name), PyUnicode_AsUTF8(res_repr));
         else
-            printf("Bad result from %s, value %s\r\n", PyUnicode_AsUTF8(frame->f_code->co_name), res);
+            printf("Bad result from %s, value %p\r\n", PyUnicode_AsUTF8(frame->f_code->co_name), res);
     }
 #endif
 
