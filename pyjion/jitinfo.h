@@ -1668,33 +1668,47 @@ public:
         return false;
     }
 
-
+#ifdef INDIRECT_HELPERS
     void *getHelperFtn(CorInfoHelpFunc ftnNum, void **ppIndirection) override {
-        static void* helperAddr = (void*)0xfefefe;
         assert(ftnNum < CORINFO_HELP_COUNT);
         switch (ftnNum){
             case CORINFO_HELP_USER_BREAKPOINT:
-                helperAddr = &breakpointFtn;
+                *ppIndirection = (void*)&breakpointFtn;
                 break;
             case CORINFO_HELP_NEWARR_1_VC:
-                helperAddr = &newArrayHelperFtn;
+                *ppIndirection = (void*)&newArrayHelperFtn;
                 break;
             case CORINFO_HELP_ARRADDR_ST:
-                helperAddr = &stArrayHelperFtn;
+                *ppIndirection = (void*)&stArrayHelperFtn;
                 break;
-            case CORINFO_HELP_STACK_PROBE: 
-                helperAddr = &JIT_StackProbe;
+            case CORINFO_HELP_STACK_PROBE:
+                *ppIndirection = (void*)&JIT_StackProbe;
                 break;
             default:
-                helperAddr = &helperFtn;
+                *ppIndirection = (void*)&helperFtn;
                 break;
         }
-        *ppIndirection = &helperAddr;
         return nullptr;
     }
-
+#else
+    void *getHelperFtn(CorInfoHelpFunc ftnNum, void **ppIndirection) override {
+        *ppIndirection = nullptr;
+        assert(ftnNum < CORINFO_HELP_COUNT);
+        switch (ftnNum){
+            case CORINFO_HELP_USER_BREAKPOINT:
+                return (void*)breakpointFtn;
+            case CORINFO_HELP_NEWARR_1_VC:
+                return (void*)newArrayHelperFtn;
+            case CORINFO_HELP_ARRADDR_ST:
+                return (void*)stArrayHelperFtn;
+            case CORINFO_HELP_STACK_PROBE:
+                return (void*)JIT_StackProbe;
+            default:
+                return (void*)helperFtn;
+        }
+    }
+#endif
     void getLocationOfThisType(CORINFO_METHOD_HANDLE context, CORINFO_LOOKUP_KIND *pLookupKind) override {
-
     }
 
     CORINFO_CLASS_HANDLE getStaticFieldCurrentClass(CORINFO_FIELD_HANDLE field, bool *pIsSpeculative) override {

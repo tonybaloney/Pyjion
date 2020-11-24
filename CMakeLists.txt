@@ -168,13 +168,12 @@ set(SOURCES pyjion/absint.cpp pyjion/absvalue.cpp pyjion/intrins.cpp pyjion/jiti
 
 if (WIN32)
     enable_language(ASM_MASM)
+    add_definitions(-DINDIRECT_HELPERS)
     if (IS_64)
         set(HOST_ASM_MASM_X86_64 true)
     endif()
     set(SOURCES ${SOURCES} pyjion/helpers.asm)
-endif()
-
-if (UNIX)
+else()
     enable_language(ASM)
     set(SOURCES ${SOURCES} pyjion/helpers.S)
 endif()
