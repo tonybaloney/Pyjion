@@ -1824,7 +1824,7 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         if (res == nullptr){
             Py_DECREF(args_tuple);
             Py_DECREF(args);
-            Py_DECREF(target);
+            Py_XDECREF(target);
             Py_DECREF(obj);
             delete method_info;
             return nullptr;

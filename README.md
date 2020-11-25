@@ -85,7 +85,8 @@ The complex logic of converting a portable instruction set into low-level machin
 All Python code executed after the JIT is enabled will be compiled into native machine code at runtime and cached on disk. For example, to enable the JIT on a simple `app.py` for a Flask web app:
 
 ```python
-import pyjion
+
+from src import pyjion
 pyjion.enable()
 
 from flask import Flask

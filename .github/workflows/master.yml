@@ -46,7 +46,12 @@ jobs:
       - name: Build
         working-directory: ${{runner.workspace}}/build
         shell: bash
-        run: cmake --build . --config $BUILD_TYPE --target _pyjion
+        run: cmake --build . --config $BUILD_TYPE
+
+      - name: Run unit tests
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: ./unit_tests
 
       - name: Build Python Package
         shell: bash

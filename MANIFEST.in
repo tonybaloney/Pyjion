@@ -1,5 +1,5 @@
 include *.md
-recursive-include pyjion *.cpp *.h *.py
+recursive-include src/pyjion *.cpp *.h *.py
 prune CoreCLR
 prune Tests
 prune Perf

@@ -26,6 +26,7 @@ setup(
     url='https://github.com/tonybaloney/Pyjion',
     license='MIT',
     packages=['pyjion'],
+    package_dir={'': 'src'},
     setup_requires=setup_requires,
     python_requires='>=3.9',
     include_package_data=True,
@@ -36,6 +37,7 @@ setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-    ],
-    #cmake_args=['-DDUMP_TRACES=1']
+    ]
+    # Uncomment and reinstall for super-verbose tracing
+    # cmake_args=['-DDUMP_TRACES=1']
 )
