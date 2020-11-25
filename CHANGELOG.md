@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.0.4
+
+* Added a stack probe helper for Linux (will use JIT in more scenarios)
+* Enabled support for running unit tests in Linux
+* Fixed a bug where JIT would crash when a method call failed because of a bad-lookup
+* Implemented helper method redirection for Linux to support PIC compiled symbols
+* Has around 35% chance of working and not causing your computer to explode, or worse, segmentation fault
+* Improved discovery of .NET libraries on Linux
+* Fixed a bug where a garble-named log file would be generated (should be JIT timings log)
+
 ## 0.0.3
 
 * Installable bdist_wheel for Ubuntu, Debian, macOS 10.15, 11 (10.16) and Windows x64
