@@ -1,4 +1,4 @@
-from src.pyjion.dis import print_il
+from pyjion.dis import print_il
 import unittest
 import io
 import contextlib

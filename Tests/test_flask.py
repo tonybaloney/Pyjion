@@ -1,4 +1,4 @@
-from src import pyjion
+import pyjion
 
 pyjion.enable()
 
