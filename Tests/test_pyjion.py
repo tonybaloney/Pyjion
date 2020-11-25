@@ -1,4 +1,4 @@
-import pyjion
+from src import pyjion
 import gc
 pyjion.enable()
 from test.libregrtest import main

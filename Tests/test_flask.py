@@ -1,4 +1,5 @@
-import pyjion
+from src import pyjion
+
 pyjion.enable()
 
 from flask import Flask
