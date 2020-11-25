@@ -1670,24 +1670,27 @@ public:
 
 #ifdef INDIRECT_HELPERS
     void *getHelperFtn(CorInfoHelpFunc ftnNum, void **ppIndirection) override {
+        *ppIndirection = nullptr;
+        static void* helper = nullptr;
         assert(ftnNum < CORINFO_HELP_COUNT);
         switch (ftnNum){
             case CORINFO_HELP_USER_BREAKPOINT:
-                *ppIndirection = (void*)&breakpointFtn;
+                helper = (void*)&breakpointFtn;
                 break;
             case CORINFO_HELP_NEWARR_1_VC:
-                *ppIndirection = (void*)&newArrayHelperFtn;
+                helper = (void*)&newArrayHelperFtn;
                 break;
             case CORINFO_HELP_ARRADDR_ST:
-                *ppIndirection = (void*)&stArrayHelperFtn;
+                helper = (void*)&stArrayHelperFtn;
                 break;
             case CORINFO_HELP_STACK_PROBE:
-                *ppIndirection = (void*)&JIT_StackProbe;
+                helper = (void*)&JIT_StackProbe;
                 break;
             default:
-                *ppIndirection = (void*)&helperFtn;
+                helper = (void*)&helperFtn;
                 break;
         }
+        *ppIndirection = &helper;
         return nullptr;
     }
 #else
