@@ -26,6 +26,7 @@ setup(
     url='https://github.com/tonybaloney/Pyjion',
     license='MIT',
     packages=['pyjion'],
+    package_dir={'': 'src'},
     setup_requires=setup_requires,
     python_requires='>=3.9',
     include_package_data=True,
