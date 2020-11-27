@@ -13,3 +13,6 @@
 *.sdf
 *.opendb
 *.VC.db
+.eggs/
+_skbuild/
+dist/
