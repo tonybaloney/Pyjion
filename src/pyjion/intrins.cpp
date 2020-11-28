@@ -1848,12 +1848,6 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
 #ifdef GIL
         PyGILState_Release(gstate);
 #endif
-        if (res == nullptr){
-            Py_DECREF(args);
-            Py_DECREF(target);
-            delete method_info;
-            return nullptr;
-        }
         Py_DECREF(args);
         Py_DECREF(target);
         delete method_info;
