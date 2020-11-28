@@ -1468,7 +1468,11 @@ public:
     // Returns name of the JIT timer log
     LPCWSTR getJitTimeLogFilename() override {
 #ifdef DEBUG
+#ifndef WINDOWS
         return u"pyjion_timings.log";
+#else
+        return L"pyjion_timings.log";
+#endif
 #else
         return nullptr;
 #endif

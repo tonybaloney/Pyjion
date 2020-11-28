@@ -16,3 +16,8 @@
 .eggs/
 _skbuild/
 dist/
+build/
+_cmake_test_compile/
+pyjion.egg-info
+.vscode
+.idea
