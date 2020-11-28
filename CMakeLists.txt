@@ -45,6 +45,11 @@ if(DUMP_TRACES)
     add_definitions(-DDUMP_TRACES)
 endif()
 
+if(TRACK_TUPLES)
+    message(STATUS "Enabling tuple tracing messages")
+    add_definitions(-DTRACK_TUPLES)
+endif()
+
 if(DUMP_JIT_TRACES)
     message(STATUS "Enabling very-very-verbose messages")
     add_definitions(-DDUMP_JIT_TRACES)
