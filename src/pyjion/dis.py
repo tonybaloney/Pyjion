@@ -1,6 +1,6 @@
 from enum import Enum
 
-from ._pyjion import *
+from pyjion import dump_il, dump_native
 from collections import namedtuple
 
 # Pre stack effect
