@@ -1687,8 +1687,10 @@ PyObject* Call(PyObject *target, Args...args) {
             goto error;
         }
         std::vector<PyObject*> args_v = {args...};
-        for (int i = 0; i < args_v.size() ; i ++)
+        for (int i = 0; i < args_v.size() ; i ++) {
+            Py_INCREF(args_v[i]);
             PyTuple_SET_ITEM(t_args, i, args_v[i]);
+        }
 #ifdef GIL
         PyGILState_STATE gstate;
         gstate = PyGILState_Ensure();
@@ -1804,14 +1806,22 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
     if (method_info->object != nullptr)
     {
         auto target = method_info->method;
+        if (target == nullptr)
+        {
+            Py_DECREF(args);
+            delete method_info;
+            return nullptr;
+        }
         auto obj =  method_info->object;
         auto args_tuple = PyTuple_New(PyTuple_Size(args) + 1);
 #ifdef DUMP_TRACES
         fprintf(g_traceLog, "Tuple <%lu> at %p (MethCallN)\n", PyTuple_Size(args) + 1, args_tuple);
 #endif
-        PyTuple_SetItem(args_tuple, 0, obj);
+        PyTuple_SET_ITEM(args_tuple, 0, obj);
+        Py_INCREF(obj);
         for (int i = 0 ; i < PyTuple_Size(args) ; i ++){
-            PyTuple_SetItem(args_tuple, i+1, PyTuple_GetItem(args, i));
+            PyTuple_SET_ITEM(args_tuple, i+1, PyTuple_GET_ITEM(args, i));
+            Py_INCREF(PyTuple_GET_ITEM(args, i));
         }
 #ifdef GIL
         PyGILState_STATE gstate;
@@ -1821,14 +1831,6 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
 #ifdef GIL
         PyGILState_Release(gstate);
 #endif
-        if (res == nullptr){
-            Py_DECREF(args_tuple);
-            Py_DECREF(args);
-            Py_XDECREF(target);
-            Py_DECREF(obj);
-            delete method_info;
-            return nullptr;
-        }
         Py_DECREF(args_tuple);
         Py_DECREF(args);
         Py_DECREF(target);
@@ -1846,12 +1848,6 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
 #ifdef GIL
         PyGILState_Release(gstate);
 #endif
-        if (res == nullptr){
-            Py_DECREF(args);
-            Py_DECREF(target);
-            delete method_info;
-            return nullptr;
-        }
         Py_DECREF(args);
         Py_DECREF(target);
         delete method_info;
