@@ -63,13 +63,17 @@ jobs:
           pip install ipython
           python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
 
+      - name: Run Python tests
+        shell: bash
+        run: python -m unittest discover Tests/
+
       - name: Run smoke tests
         shell: bash
-        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j4
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -j4
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests.txt -j4
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests.txt -j4
 
       - name: Install scikit-build for wheel
         shell: bash
@@ -146,13 +150,17 @@ jobs:
           pip install ipython
           python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
 
+      - name: Run Python tests
+        shell: bash
+        run: python -m unittest discover Tests/
+
       - name: Run smoke tests
         shell: bash
-        run: python -X dev Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j1
+        run: python -X dev Tests/runlibregr.py -f Tests/python_smoke_tests.txt -j1
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests_macos10.txt -j4
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_macos10.txt -j4
 
       - name: Build Python Wheel
         shell: bash
@@ -219,13 +227,17 @@ jobs:
           pip install ipython
           python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
 
+      - name: Run Python tests
+        shell: bash
+        run: python -m unittest discover Tests/
+
       - name: Run smoke tests
         shell: bash
-        run: python -X dev Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j1
+        run: python -X dev Tests/runlibregr.py -f Tests/python_smoke_tests.txt -j1
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests_macos11.txt -j4
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_macos11.txt -j4
 
       - name: Build Python Wheel
         shell: bash
@@ -291,13 +303,17 @@ jobs:
           pip install ipython
           python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
 
+      - name: Run Python tests
+        shell: bash
+        run: python -m unittest discover Tests/
+
       - name: Run smoke tests
         shell: bash
-        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j4
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -j4
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/test_pyjion.py -f Tests/python_tests_win.txt -j4
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_win.txt -j4
 
       - name: Build Python Wheel
         shell: bash
