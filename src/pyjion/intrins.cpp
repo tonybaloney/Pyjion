@@ -1089,13 +1089,13 @@ PyObject* PyJit_LoadAssertionError() {
 PyObject* PyJit_DictUpdate(PyObject* other, PyObject* dict) {
     assert(dict != nullptr);
     int res ;
-    if (!PyDict_CheckExact(dict)) {
+    if (!PyDict_Check(dict)) {
         PyErr_Format(PyExc_TypeError,
                      "argument must be a dict, not %.200s",
                      dict->ob_type->tp_name);
         goto error;
     }
-    if (!PyDict_CheckExact(other)) {
+    if (!PyDict_Check(other)) {
         PyErr_Format(PyExc_TypeError,
                      "argument must be a dict, not %.200s",
                      other->ob_type->tp_name);
@@ -1114,13 +1114,13 @@ error:
 PyObject* PyJit_DictMerge(PyObject* dict, PyObject* other) {
     assert(dict != nullptr);
     int res ;
-    if (!PyDict_CheckExact(dict)) {
+    if (!PyDict_Check(dict)) {
         PyErr_Format(PyExc_TypeError,
                      "argument must be a dict, not %.200s",
                      dict->ob_type->tp_name);
         goto error;
     }
-    if (!PyDict_CheckExact(other)) {
+    if (!PyDict_Check(other)) {
         PyErr_Format(PyExc_TypeError,
                      "argument must be a dict, not %.200s",
                      other->ob_type->tp_name);
