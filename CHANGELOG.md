@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.0.6
+
+* Implemented supported for disassembling "large" methods into CIL (#27)
+* Added type stubs for the pyjion C extension
+* Fix a bug where merging or updating a subclassed dictionary would fail with a type error. (#28)
+
 ## 0.0.5
 
 * Fixed a critical bug where method calls with large numbers of arguments, and the argument was a tuple could cause a segmentation fault on GC collection.
