@@ -62,7 +62,6 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     PyCodeObject *m_code;
     UserModule* m_module;
     vector<BYTE> m_il;
-    unsigned int m_ilLen;
     ULONG m_nativeSize;
 #ifdef WINDOWS
     HANDLE m_winHeap;
@@ -75,7 +74,6 @@ public:
         m_code = code;
         m_module = module;
         m_il = vector<BYTE>(0);
-        m_ilLen = 0;
 #ifdef WINDOWS
         m_winHeap = HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, 0, 0);
 #endif
@@ -122,7 +120,7 @@ public:
     }
 
     unsigned int get_il_len() override {
-        return m_ilLen;
+        return m_il.size();
     }
 
     unsigned long get_native_size() override {

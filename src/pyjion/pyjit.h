@@ -88,6 +88,8 @@ public:
 		j_evalfunc = nullptr;
 		j_specialization_threshold = HOT_CODE;
 		j_generic = nullptr;
+		j_il = nullptr;
+		j_ilLen = 0;
 	}
 
 	~PyjionJittedCode();
