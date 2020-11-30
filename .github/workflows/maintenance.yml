@@ -1,0 +1,9 @@
+name: "Maintenance"
+on: ["push"]
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@master"
+      - name: TODO to Issue
+        uses: alstr/todo-to-issue-action@v2.3
