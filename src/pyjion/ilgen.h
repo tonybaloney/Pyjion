@@ -53,11 +53,6 @@
 
 using namespace std;
 
-#define INC_CEE_STACK(c) \
-    m_stackSize += (c);
-#define DEC_CEE_STACK(c) \
-    m_stackSize -= (c); \
-
 class LabelInfo {
 public:
     int m_location;
@@ -162,7 +157,7 @@ public:
     }
 
     void ret(int size) {
-        push_back(CEE_RET); DEC_CEE_STACK(size); // VarPop (size)
+        push_back(CEE_RET); // VarPop (size)
     }
 
     void ld_r8(double i) {
@@ -192,7 +187,7 @@ public:
                 }
                 else {
                     m_il.push_back(CEE_LDC_I4);
-                    m_il.push_back((BYTE)CEE_STLOC); DEC_CEE_STACK(1); // Pop1 + Push0
+                    m_il.push_back((BYTE)CEE_STLOC); // Pop1 + Push0
                     emit_int(i);
                 }
         }
@@ -221,7 +216,6 @@ public:
          */
         ld_i4(len);
         m_il.push_back(CEE_NEWARR);
-        INC_CEE_STACK(1);
     }
 
     void st_elem(Local array, int index, Local value){
@@ -259,39 +253,39 @@ public:
         ld_loc(array);
         ld_i4(index);
         ld_loc(value);
-        m_il.push_back(CEE_STELEM); DEC_CEE_STACK(1);
+        m_il.push_back(CEE_STELEM);
         //ld_i(0x11); // PYOBJECT_PTR type token.
     }
 
     void st_elem_i(int index){
         emit_int(index);
-        m_il.push_back(CEE_STELEM); DEC_CEE_STACK(1);
+        m_il.push_back(CEE_STELEM);
 
     }
 
     void st_elem_i4(int index){
         emit_int(index);
-        m_il.push_back(CEE_STELEM_I4); DEC_CEE_STACK(1);
+        m_il.push_back(CEE_STELEM_I4);
     }
 
     void ld_elem(int index){
         emit_int(index);
-        m_il.push_back(CEE_LDELEM); INC_CEE_STACK(1);
+        m_il.push_back(CEE_LDELEM);
     }
 
     void ld_elem_i4(int index){
         emit_int(index);
-        m_il.push_back(CEE_LDELEM_I4); INC_CEE_STACK(1);
+        m_il.push_back(CEE_LDELEM_I4);
     }
 
     void ld_elem_r8(int index){
         emit_int(index);
-        m_il.push_back(CEE_LDELEM_R8); INC_CEE_STACK(1);
+        m_il.push_back(CEE_LDELEM_R8);
     }
 
     void load_null() {
         ld_i4(0);
-        m_il.push_back(CEE_CONV_I); DEC_CEE_STACK(1); // Pop1 + PushI
+        m_il.push_back(CEE_CONV_I); // Pop1 + PushI
     }
 
     void st_ind_i() {
@@ -341,13 +335,13 @@ public:
                     m_il.push_back(CEE_BRFALSE_S);  // PopI, Push0
                     break;
                 case BranchEqual:
-                    m_il.push_back(CEE_BEQ_S); DEC_CEE_STACK(2); // Pop1+Pop1, Push0
+                    m_il.push_back(CEE_BEQ_S); // Pop1+Pop1, Push0
                     break;
                 case BranchNotEqual:
-                    m_il.push_back(CEE_BNE_UN_S); DEC_CEE_STACK(2); // Pop1+Pop1, Push0
+                    m_il.push_back(CEE_BNE_UN_S); // Pop1+Pop1, Push0
                     break;
                 case BranchLessThanEqual:
-                    m_il.push_back(CEE_BLE_S); DEC_CEE_STACK(2); // Pop1+Pop1, Push0
+                    m_il.push_back(CEE_BLE_S); // Pop1+Pop1, Push0
                     break;
             }
             m_il.push_back((BYTE)offset - 2);
@@ -367,13 +361,13 @@ public:
                     m_il.push_back(CEE_BRFALSE); // PopI, Push0
                     break;
                 case BranchEqual:
-                    m_il.push_back(CEE_BEQ); DEC_CEE_STACK(2); //  Pop1+Pop1, Push0
+                    m_il.push_back(CEE_BEQ); //  Pop1+Pop1, Push0
                     break;
                 case BranchNotEqual:
-                    m_il.push_back(CEE_BNE_UN); DEC_CEE_STACK(2); //  Pop1+Pop1, Push0
+                    m_il.push_back(CEE_BNE_UN); //  Pop1+Pop1, Push0
                     break;
                 case BranchLessThanEqual:
-                    m_il.push_back(CEE_BLE); DEC_CEE_STACK(2); // Pop1+Pop1, Push0
+                    m_il.push_back(CEE_BLE); // Pop1+Pop1, Push0
                     break;
             }
             emit_int(offset - 5);
@@ -381,24 +375,24 @@ public:
     }
 
     void neg() {
-        m_il.push_back(CEE_NEG); DEC_CEE_STACK(1); INC_CEE_STACK(1) //  Pop1, Push1
+        m_il.push_back(CEE_NEG); //  Pop1, Push1
     }
 
     void dup() {
-        m_il.push_back(CEE_DUP); DEC_CEE_STACK(1); INC_CEE_STACK(2) //  Pop1, Push1+Push1
+        m_il.push_back(CEE_DUP); //  Pop1, Push1+Push1
     }
 
     void bitwise_and() {
-        m_il.push_back(CEE_AND); DEC_CEE_STACK(2); INC_CEE_STACK(1) //  Pop1+Pop1, Push1
+        m_il.push_back(CEE_AND); //  Pop1+Pop1, Push1
     }
 
     void pop() {
-        m_il.push_back(CEE_POP); DEC_CEE_STACK(1); //  Pop1, Push0
+        m_il.push_back(CEE_POP); //  Pop1, Push0
     }
 
     void compare_eq() {
         m_il.push_back(CEE_PREFIX1); // NIL SE
-        m_il.push_back((BYTE)CEE_CEQ); DEC_CEE_STACK(2); //  Pop1+Pop1, PushI
+        m_il.push_back((BYTE)CEE_CEQ); //  Pop1+Pop1, PushI
     }
 
     void compare_ne() {
@@ -409,38 +403,38 @@ public:
 
     void compare_gt() {
         m_il.push_back(CEE_PREFIX1);  // NIL SE
-        m_il.push_back((BYTE)CEE_CGT); DEC_CEE_STACK(2); //  Pop1+Pop1, PushI
+        m_il.push_back((BYTE)CEE_CGT); //  Pop1+Pop1, PushI
     }
 
     void compare_lt() {
         m_il.push_back(CEE_PREFIX1); // NIL
-        m_il.push_back((BYTE)CEE_CLT); DEC_CEE_STACK(2); //  Pop1+Pop1, PushI
+        m_il.push_back((BYTE)CEE_CLT); //  Pop1+Pop1, PushI
     }
 
     void compare_ge() {
         m_il.push_back(CEE_PREFIX1); // NIL
-        m_il.push_back((BYTE)CEE_CLT); DEC_CEE_STACK(2); //  Pop1+Pop1, PushI
+        m_il.push_back((BYTE)CEE_CLT); //  Pop1+Pop1, PushI
         ld_i4(0);
         compare_eq();
     }
 
     void compare_le() {
         m_il.push_back(CEE_PREFIX1); // NIL
-        m_il.push_back((BYTE)CEE_CGT); DEC_CEE_STACK(2); //  Pop1+Pop1, PushI
+        m_il.push_back((BYTE)CEE_CGT); //  Pop1+Pop1, PushI
         ld_i4(0);
         compare_eq();
     }
 
     void compare_ge_float() {
         m_il.push_back(CEE_PREFIX1); // NIL
-        m_il.push_back((BYTE)CEE_CLT_UN); DEC_CEE_STACK(2); //  Pop1+Pop1, PushI
+        m_il.push_back((BYTE)CEE_CLT_UN); //  Pop1+Pop1, PushI
         ld_i4(0);
         compare_eq();
     }
 
     void compare_le_float() {
         m_il.push_back(CEE_PREFIX1); // NIL
-        m_il.push_back((BYTE)CEE_CGT_UN); DEC_CEE_STACK(2); //  Pop1+Pop1, PushI
+        m_il.push_back((BYTE)CEE_CGT_UN); //  Pop1+Pop1, PushI
         ld_i4(0);
         compare_eq();
     }
@@ -448,7 +442,7 @@ public:
     void ld_i(int i) {
         m_il.push_back(CEE_LDC_I4); // Pop0, PushI
         emit_int(i);
-        m_il.push_back(CEE_CONV_I); DEC_CEE_STACK(1); // Pop1, PushI
+        m_il.push_back(CEE_CONV_I); // Pop1, PushI
     }
 
     void ld_i(size_t i) {
@@ -471,7 +465,7 @@ public:
             m_il.push_back((value >> 40) & 0xff);
             m_il.push_back((value >> 48) & 0xff);
             m_il.push_back((value >> 56) & 0xff);
-            m_il.push_back(CEE_CONV_I); // DEC_CEE_STACK(1); // Pop1, PushI
+            m_il.push_back(CEE_CONV_I); // Pop1, PushI
         }
 #else
         ld_i(value);
@@ -480,7 +474,7 @@ public:
     }
 
     void emit_call(int token, int nargs) {
-        m_il.push_back(CEE_CALL); DEC_CEE_STACK(nargs); INC_CEE_STACK(1); // VarPop, VarPush
+        m_il.push_back(CEE_CALL); // VarPop, VarPush
         emit_int(token);
     }
 
@@ -512,18 +506,18 @@ public:
     void st_loc(int index) {
         assert(index != -1);
         switch (index) {
-            case 0: m_il.push_back(CEE_STLOC_0); DEC_CEE_STACK(1); break;
-            case 1: m_il.push_back(CEE_STLOC_1); DEC_CEE_STACK(1); break;
-            case 2: m_il.push_back(CEE_STLOC_2); DEC_CEE_STACK(1); break;
-            case 3: m_il.push_back(CEE_STLOC_3); DEC_CEE_STACK(1); break;
+            case 0: m_il.push_back(CEE_STLOC_0); break;
+            case 1: m_il.push_back(CEE_STLOC_1); break;
+            case 2: m_il.push_back(CEE_STLOC_2); break;
+            case 3: m_il.push_back(CEE_STLOC_3); break;
             default:
                 if (index < 256) {
-                    m_il.push_back(CEE_STLOC_S); DEC_CEE_STACK(1);
+                    m_il.push_back(CEE_STLOC_S); 
                     m_il.push_back(index);
                 }
                 else {
                     m_il.push_back(CEE_PREFIX1); // NIL
-                    m_il.push_back((BYTE)CEE_STLOC); DEC_CEE_STACK(1);
+                    m_il.push_back((BYTE)CEE_STLOC); 
                     m_il.push_back(index & 0xff);
                     m_il.push_back((index >> 8) & 0xff);
                 }
@@ -533,18 +527,18 @@ public:
     void ld_loc(int index) {
         assert(index != -1);
         switch (index) {
-            case 0: m_il.push_back(CEE_LDLOC_0); INC_CEE_STACK(1); break;
-            case 1: m_il.push_back(CEE_LDLOC_1); INC_CEE_STACK(1); break;
-            case 2: m_il.push_back(CEE_LDLOC_2); INC_CEE_STACK(1); break;
-            case 3: m_il.push_back(CEE_LDLOC_3); INC_CEE_STACK(1); break;
+            case 0: m_il.push_back(CEE_LDLOC_0); break;
+            case 1: m_il.push_back(CEE_LDLOC_1); break;
+            case 2: m_il.push_back(CEE_LDLOC_2); break;
+            case 3: m_il.push_back(CEE_LDLOC_3); break;
             default:
                 if (index < 256) {
-                    m_il.push_back(CEE_LDLOC_S); INC_CEE_STACK(1);
+                    m_il.push_back(CEE_LDLOC_S); 
                     m_il.push_back(index);
                 }
                 else {
                     m_il.push_back(CEE_PREFIX1); // NIL
-                    m_il.push_back((BYTE)CEE_LDLOC); INC_CEE_STACK(1);
+                    m_il.push_back((BYTE)CEE_LDLOC); 
                     m_il.push_back(index & 0xff);
                     m_il.push_back((index >> 8) & 0xff);
                 }
@@ -566,47 +560,47 @@ public:
     }
 
     void add() {
-        push_back(CEE_ADD); DEC_CEE_STACK(2); INC_CEE_STACK(1); // Pop1+Pop1, Push1
+        push_back(CEE_ADD);   // Pop1+Pop1, Push1
     }
 
     void sub() {
-        push_back(CEE_SUB_OVF); DEC_CEE_STACK(2); INC_CEE_STACK(1); // Pop1+Pop1, Push1
+        push_back(CEE_SUB_OVF);   // Pop1+Pop1, Push1
     }
 
     void div() {
-        push_back(CEE_DIV); DEC_CEE_STACK(2); INC_CEE_STACK(1); // Pop1+Pop1, Push1
+        push_back(CEE_DIV);   // Pop1+Pop1, Push1
     }
 
     void mod() {
-        push_back(CEE_REM); DEC_CEE_STACK(2); INC_CEE_STACK(1); // Pop1+Pop1, Push1
+        push_back(CEE_REM);   // Pop1+Pop1, Push1
     }
 
     void mul() {
-        push_back(CEE_MUL); DEC_CEE_STACK(2); INC_CEE_STACK(1); // Pop1+Pop1, Push1
+        push_back(CEE_MUL);   // Pop1+Pop1, Push1
     }
 
     void ld_arg(int index) {
         assert(index != -1);
         switch (index) {
             case 0:
-                push_back(CEE_LDARG_0); INC_CEE_STACK(1); // Pop0, Push1
+                push_back(CEE_LDARG_0);  // Pop0, Push1
                 break;
             case 1:
-                push_back(CEE_LDARG_1); INC_CEE_STACK(1); // Pop0, Push1
+                push_back(CEE_LDARG_1);  // Pop0, Push1
                 break;
             case 2:
-                push_back(CEE_LDARG_2); INC_CEE_STACK(1); // Pop0, Push1
+                push_back(CEE_LDARG_2);  // Pop0, Push1
                 break;
             case 3:
-                push_back(CEE_LDARG_3); INC_CEE_STACK(1); // Pop0, Push1
+                push_back(CEE_LDARG_3);  // Pop0, Push1
                 break;
             default:
                 if (index < 256) {
-                    push_back(CEE_LDARG_3); INC_CEE_STACK(1); // Pop0, Push1
+                    push_back(CEE_LDARG_3);  // Pop0, Push1
                     m_il.push_back(index);
                 } else {
                     m_il.push_back(CEE_PREFIX1); // NIL
-                    m_il.push_back((BYTE) CEE_LDARG); INC_CEE_STACK(1); // Pop0, Push1
+                    m_il.push_back((BYTE) CEE_LDARG);  // Pop0, Push1
                     m_il.push_back(index & 0xff);
                     m_il.push_back((index >> 8) & 0xff);
                 }
@@ -639,10 +633,9 @@ public:
     Method compile(CorJitInfo* jitInfo, ICorJitCompiler* jit, int stackSize) {
         BYTE* nativeEntry;
         ULONG nativeSizeOfCode;
+        jitInfo->assignIL(m_il);
         auto res = Method(m_module, m_retType, m_params, nullptr);
-
         CORINFO_METHOD_INFO methodInfo = to_method(&res, stackSize);
-        jitInfo->assignIL(methodInfo.ILCode, methodInfo.ILCodeSize);
         CorJitResult result = jit->compileMethod(
                 jitInfo,
                 &methodInfo,

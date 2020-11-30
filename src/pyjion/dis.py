@@ -543,6 +543,21 @@ def print_il(il):
                 print(f"[IL_{pc:04x}] SB {op.name:15} -> {target}")
                 pc += 2
                 continue
+            elif op.size == ShortInlineVar:
+                target = int.from_bytes((next(i),), byteorder='little', signed=True)
+                print(f"[IL_{pc:04x}] SV {op.name:15} ({target})")
+                pc += 2
+                continue
+            elif op.size == ShortInlineI:
+                target = int.from_bytes((next(i),), byteorder='little', signed=True)
+                print(f"[IL_{pc:04x}] SI {op.name:15} ({target})")
+                pc += 2
+                continue
+            elif op.size == ShortInlineR:
+                target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
+                print(f"[IL_{pc:04x}] SR {op.name:15} ({target})")
+                pc += 5
+                continue
             elif op.size == InlineBrTarget:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
                 print(f"[IL_{pc:04x}] B {op.name:15} -> {target}")
@@ -574,15 +589,15 @@ def print_il(il):
                 print(f"[IL_{pc:04x}] S {op.name:15} ({target})")
                 pc += 5
                 continue
-            elif op.size == InlineString:
+            elif op.size == InlineTok:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] M {op.name:15} ({target})")
+                print(f"[IL_{pc:04x}] T {op.name:15} ({target})")
                 pc += 5
                 continue
-            elif op.size == ShortInlineVar:
-                target = int.from_bytes((next(i),), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] SV {op.name:15} ({target})")
-                pc += 2
+            elif op.size == InlineString:
+                target = bytearray((next(i), next(i), next(i), next(i))).decode('utf-8')
+                print(f"[IL_{pc:04x}] X {op.name:15} ({target})")
+                pc += 5
                 continue
             elif op.size == InlineVar:
                 target = int.from_bytes((next(i), next(i)), byteorder='little', signed=True)
