@@ -496,7 +496,7 @@ bool AbstractInterpreter::interpret() {
                     lastState.pop();
                     break;
                 case LOAD_ATTR:
-                    // @TODO: Add support for resolving known members of known types
+                    // TODO: Add support for resolving known members of known types
                     // @body: Implement resolving types into abstract value types for LOAD_ATTR
                     lastState.pop();
                     lastState.push(&Any);
@@ -545,7 +545,7 @@ bool AbstractInterpreter::interpret() {
                     lastState.push(&Any);
                     break;
                 case CALL_FUNCTION: {
-                    // @TODO: Implement abstract value types for CALL_FUNCTION
+                    // TODO: Implement abstract value types for CALL_FUNCTION
                     // @body: Known functions could return known return types.
                     int argCnt = oparg & 0xff;
                     int kwArgCnt = (oparg >> 8) & 0xff;
@@ -643,7 +643,7 @@ bool AbstractInterpreter::interpret() {
                     }
                     break;
                 case UNPACK_SEQUENCE:
-                    // @TODO: Implement abstract value types for UNPACK_SEQUENCE
+                    // TODO: Implement abstract value types for UNPACK_SEQUENCE
                     // @body: If the sequence is a known type we could know what types we're pushing here.
                     lastState.pop();
                     for (int i = 0; i < oparg; i++) {
@@ -683,7 +683,7 @@ bool AbstractInterpreter::interpret() {
                     // about their deletion.
                     break;
                 case GET_ITER:
-                    // @TODO: Push iterable type on GET_ITER
+                    // TODO: Push iterable type on GET_ITER
                     lastState.pop();
                     lastState.push(&Any);
                     break;
@@ -809,7 +809,7 @@ bool AbstractInterpreter::interpret() {
                     lastState.push(&Bool);
                     break;
                 case WITH_EXCEPT_START: {
-                    // @TODO: Implement WITH_EXCEPT_START
+                    // TODO: Implement WITH_EXCEPT_START
                     /* At the top of the stack are 7 values:
                        - (TOP, SECOND, THIRD) = exc_info()
                        - (FOURTH, FIFTH, SIXTH) = previous exception for EXCEPT_HANDLER
@@ -2378,7 +2378,7 @@ JittedCode* AbstractInterpreter::compile() {
 }
 
 bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
-    // @TODO : Check list of opcodes that can skip lasti_update is up to date with ceval.
+    // TODO : Check list of opcodes that can skip lasti_update is up to date with ceval.
     switch (GET_OPCODE(opcodeIndex)) {
         case DUP_TOP:
         case NOP:
