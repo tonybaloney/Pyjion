@@ -77,7 +77,7 @@ public:
 	PyObject* j_code;
 	std::vector<SpecializedTreeNode*> j_optimized;
 	Py_EvalFunc j_generic;
-    uint8_t *j_il;
+    BYTE *j_il;
     unsigned int j_ilLen;
     unsigned long j_nativeSize;
 
