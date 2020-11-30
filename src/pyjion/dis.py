@@ -543,6 +543,16 @@ def print_il(il):
                 print(f"[IL_{pc:04x}] SB {op.name:15} -> {target}")
                 pc += 2
                 continue
+            elif op.size == ShortInlineVar:
+                target = int.from_bytes((next(i),), byteorder='little', signed=True)
+                print(f"[IL_{pc:04x}] SV {op.name:15} ({target})")
+                pc += 2
+                continue
+            elif op.size == ShortInlineI:
+                target = int.from_bytes((next(i),), byteorder='little', signed=True)
+                print(f"[IL_{pc:04x}] SI {op.name:15} ({target})")
+                pc += 2
+                continue
             elif op.size == InlineBrTarget:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
                 print(f"[IL_{pc:04x}] B {op.name:15} -> {target}")
@@ -578,11 +588,6 @@ def print_il(il):
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
                 print(f"[IL_{pc:04x}] M {op.name:15} ({target})")
                 pc += 5
-                continue
-            elif op.size == ShortInlineVar:
-                target = int.from_bytes((next(i),), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] SV {op.name:15} ({target})")
-                pc += 2
                 continue
             elif op.size == InlineVar:
                 target = int.from_bytes((next(i), next(i)), byteorder='little', signed=True)
