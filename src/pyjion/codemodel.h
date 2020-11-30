@@ -103,7 +103,6 @@ public:
     virtual void findSig(CORINFO_SIG_INFO  *sig) = 0;
     virtual void* get_addr() = 0;
     virtual void getFunctionEntryPoint(CORINFO_CONST_LOOKUP *  pResult) = 0;
-    virtual CORINFO_CLASS_HANDLE getClass() = 0;
 };
 
 class Method : public BaseMethod {
@@ -126,7 +125,6 @@ public:
 
     void get_call_info(CORINFO_CALL_INFO *pResult) override {
         pResult->codePointerLookup.lookupKind.needsRuntimeLookup = false;
-        // TODO: If we use IAT_VALUE we need to generate a jump stub
         pResult->codePointerLookup.constLookup.accessType = IAT_PVALUE;
         pResult->codePointerLookup.constLookup.addr = &m_addr;
         pResult->verMethodFlags = pResult->methodFlags = CORINFO_FLG_STATIC;
@@ -143,14 +141,8 @@ public:
         sig->numArgs = m_params.size();
     }
     void getFunctionEntryPoint(CORINFO_CONST_LOOKUP *  pResult) override {
-        // TODO: If we use IAT_VALUE we need to generate a jump stub
         pResult->accessType = IAT_PVALUE;
         pResult->addr = &m_addr;
-    }
-
-    CORINFO_CLASS_HANDLE getClass() override {
-        // TODO: Implement
-        return nullptr;
     }
 };
 
@@ -179,14 +171,6 @@ public:
     void getFunctionEntryPoint(CORINFO_CONST_LOOKUP *  pResult) override {
         pResult->accessType = IAT_PVALUE;
         pResult->addr = &m_addr;
-    }
-    CORINFO_CLASS_HANDLE getClass() override {
-        CORINFO_CLASS_HANDLE result = nullptr;
-        // TODO : Infer type from method, currently it uses NATIVEINT for everything so there is no class
-//        MethodDesc* method = GetMethod(methodHnd);
-//        TypeHandle th = TypeHandle(method->GetMethodTable());
-//        result = CORINFO_CLASS_HANDLE(th.AsPtr());
-        return result;
     }
 };
 

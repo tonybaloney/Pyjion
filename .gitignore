@@ -21,3 +21,10 @@ _cmake_test_compile/
 pyjion.egg-info
 .vscode
 .idea
+cmake-build-*/
+.tox/
+venv*/
+.venv/
+*.pyc
+MANIFEST
+src/pyjion/*.so

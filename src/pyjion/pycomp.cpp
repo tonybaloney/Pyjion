@@ -71,7 +71,6 @@ Module g_module;
 ICorJitCompiler* g_jit;
 
 PythonCompiler::PythonCompiler(PyCodeObject *code) :
-    // TODO : This shows f(long, long) -> long as a hardcoded value, but no introspection is done on the types.
     m_il(m_module = new UserModule(g_module),
         CORINFO_TYPE_NATIVEINT,
         std::vector < Parameter > {Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT) }) {
@@ -169,8 +168,8 @@ Local PythonCompiler::emit_allocate_stack_array(size_t bytes) {
  */
 
 void PythonCompiler::emit_unbound_local_check() {
-    //// TODO: Remove this check for definitely assigned values (e.g. params w/ no dels, 
-    //// locals that are provably assigned)
+    // @TODO: Remove the unbound_local check for definitely assigned values 
+    // @body: (e.g. params w/ no dels, locals that are provably assigned)
     m_il.emit_call(METHOD_UNBOUND_LOCAL, 1);
 }
 
@@ -190,7 +189,7 @@ CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
 
 
 void PythonCompiler::emit_store_fast(int local) {
-    // TODO: Move locals out of the Python frame object and into real locals
+    // @TODO: Move locals out of the Python frame object and into real locals
 
     auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     m_il.st_loc(valueTmp);
@@ -502,7 +501,7 @@ void PythonCompiler::emit_build_vector(size_t argCnt){
     for (int i = argCnt ; i > 0; i -- ){
         m_il.st_elem(array, i, values[i]);
     }
-    ///  TODO : free local vars
+    ///  @TODO: free local vars in emit_build_vector
     for (int i = 0 ; i < argCnt; i++){
         emit_free_local(values[i]);
     }
@@ -1175,10 +1174,11 @@ void PythonCompiler::emit_not_in() {
 }
 
 void PythonCompiler::emit_compare_float(int compareType) {
-    // TODO: If we know we're followed by the pop jump we could combine
+    // @TODO: Optimize compare and POP_JUMP
+    // @body: If we know we're followed by the pop jump we could combine
     // and do a single branch comparison.
     switch (compareType) {
-        case Py_EQ:  m_il.compare_eq(); break;
+        case Py_EQ: m_il.compare_eq(); break;
         case Py_LT: m_il.compare_lt(); break;
         case Py_LE: m_il.compare_le_float(); break;
         case Py_NE: m_il.compare_ne(); break;
@@ -1189,7 +1189,7 @@ void PythonCompiler::emit_compare_float(int compareType) {
 
 void PythonCompiler::emit_compare_tagged_int(int compareType) {
     switch (compareType) {
-        case Py_EQ:  m_il.emit_call(METHOD_EQUALS_INT_TOKEN, 2); break;
+        case Py_EQ: m_il.emit_call(METHOD_EQUALS_INT_TOKEN, 2); break;
         case Py_LT: m_il.emit_call(METHOD_LESS_THAN_INT_TOKEN, 2); break;
         case Py_LE: m_il.emit_call(METHOD_LESS_THAN_EQUALS_INT_TOKEN, 2); break;
         case Py_NE: m_il.emit_call(METHOD_NOT_EQUALS_INT_TOKEN, 2); break;

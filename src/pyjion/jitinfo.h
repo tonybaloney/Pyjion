@@ -128,7 +128,7 @@ public:
     }
 
     void freeMem(PVOID code) {
-        // TODO: Validate
+        // @TODO: Validate memory free for CorJitInfo
         PyMem_Free(code);
     }
 
@@ -183,9 +183,9 @@ public:
     }
 
     int doAssert(const char* szFile, int iLine, const char* szExpr) override {
+#ifdef DEBUG
         printf(".NET failed assertion: %s %d\n", szFile, iLine);
-        // TODO : Use native warnings when it doesn't cause a recursive error.
-        // PyErr_WarnFormat(PyExc_RuntimeWarning, 1, ".NET failed assertion: %s %d", szFile, iLine);
+#endif
         return 1;
     }
 
@@ -193,7 +193,7 @@ public:
 #ifdef DEBUG
         printf("Fatal error from .NET JIT %X\r\n", result);
 #endif
-        // TODO : Enable when successful
+        // @TODO : Handle/report fatal JIT errors as Python exceptions
         // PyErr_Format(PyExc_ValueError, "Fatal error from .NET JIT %X\r\n", result);
     }
 
@@ -661,8 +661,7 @@ public:
     CORINFO_CLASS_HANDLE getMethodClass(
         CORINFO_METHOD_HANDLE       method
         ) override {
-        auto meth = (BaseMethod*)method;
-        return meth->getClass();
+        return nullptr; // Pyjion does not use CLR classes
     }
 
     // return module it belongs to
@@ -763,7 +762,7 @@ public:
         GSCookie * pCookieVal,                     // OUT
         GSCookie ** ppCookieVal                    // OUT
         ) override {
-        *pCookieVal = 0x1234; // TODO: Should be a secure value
+        *pCookieVal = 0x1234; // @TODO: Implement secure GS cookie values
         *ppCookieVal = nullptr;
         //printf("getGSCookie\r\n");
     }
@@ -897,7 +896,6 @@ public:
     DWORD getClassAttribs(
         CORINFO_CLASS_HANDLE    cls
         ) override {
-        // TODO : Load from a base class and establish correct attribs.
         if (cls == PYOBJECT_PTR_TYPE)
             return CORINFO_FLG_NATIVE;
         return CORINFO_FLG_VALUECLASS;
@@ -1382,8 +1380,6 @@ public:
         CORINFO_SIG_INFO*           sig,            /* IN */
         CORINFO_ARG_LIST_HANDLE     args            /* IN */
         ) override {
-        // TODO: Work out correct return type
-        //return PYOBJECT_PTR_TYPE;
         return nullptr;
     }
 
@@ -1542,7 +1538,7 @@ public:
 
     void getMethodVTableOffset(CORINFO_METHOD_HANDLE method, unsigned int *offsetOfIndirection,
                                unsigned int *offsetAfterIndirection, bool *isRelative) override {
-        // TODO : API added isRelative flag, this doesn't inspect that.
+        // @TODO : API added isRelative flag, getMethodVTableOffset doesn't inspect that.
         *offsetOfIndirection = 0x1234;
         *offsetAfterIndirection = 0x2468;
         printf("getMethodVTableOffset\r\n");
