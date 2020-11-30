@@ -61,7 +61,7 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     void* m_dataAddr;
     PyCodeObject *m_code;
     UserModule* m_module;
-    uint8_t* m_il;
+    vector<BYTE> m_il;
     unsigned int m_ilLen;
     ULONG m_nativeSize;
 #ifdef WINDOWS
@@ -74,7 +74,7 @@ public:
         m_codeAddr = m_dataAddr = nullptr;
         m_code = code;
         m_module = module;
-        m_il = nullptr;
+        m_il = vector<BYTE>(0);
         m_ilLen = 0;
 #ifdef WINDOWS
         m_winHeap = HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, 0, 0);
@@ -117,8 +117,8 @@ public:
         return m_codeAddr;
     }
 
-    uint8_t* get_il() override {
-        return m_il;
+    unsigned char* get_il() override {
+        return (unsigned char *)m_il.data();
     }
 
     unsigned int get_il_len() override {
@@ -1798,9 +1798,8 @@ public:
                         CORINFO_METHOD_HANDLE methodHandle) override {
     }
 
-    void assignIL(uint8_t *il, unsigned int ilLen) {
+    void assignIL(vector<BYTE>il) {
         m_il = il;
-        m_ilLen = ilLen;
     }
 
     void setNativeSize(ULONG i) {

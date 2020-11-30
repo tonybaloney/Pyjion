@@ -97,6 +97,10 @@ public:
         PyErr_Clear();
         return excType;
     }
+
+    BYTE* il (){
+        return m_jittedcode->j_il;
+    }
 };
 TEST_CASE("test imports"){
     SECTION("import this") {
@@ -137,6 +141,24 @@ TEST_CASE("Test math errors") {
         CHECK(t.raises() == PyExc_ZeroDivisionError);
     }
 }
+
+TEST_CASE("Test IL dump") {
+    SECTION("test short") {
+        auto t = CompilerTest(
+                "def f(): return 3 / 1"
+        );
+        CHECK(t.returns() == "3.0");
+        CHECK(t.il()[0] =='\003');
+    }
+    SECTION("test long") {
+        auto t = CompilerTest(
+                "def f():\n    abc = 0\n    i = 0\n    n = 0\n    if i == n and not abc:\n        return 42\n    return 23"
+        );
+        CHECK(t.returns() == "42");
+        CHECK(t.il()[0] =='\003');
+    }
+}
+
 TEST_CASE("Test f-strings") {
     SECTION("test3") {
         auto t = CompilerTest(

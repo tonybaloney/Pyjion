@@ -633,8 +633,7 @@ public:
     Method compile(CorJitInfo* jitInfo, ICorJitCompiler* jit, int stackSize) {
         BYTE* nativeEntry;
         ULONG nativeSizeOfCode;
-        auto m_il_copy = m_il;
-        jitInfo->assignIL(m_il_copy.data(), m_il_copy.size());
+        jitInfo->assignIL(m_il);
         auto res = Method(m_module, m_retType, m_params, nullptr);
         CORINFO_METHOD_INFO methodInfo = to_method(&res, stackSize);
         CorJitResult result = jit->compileMethod(
