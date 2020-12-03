@@ -12,5 +12,8 @@ jobs:
       - uses: "actions/checkout@master"
       - name: C++ code linter (clang-tidy and cppcheck)
         uses: tonybaloney/cpp-linter-action@master
+        with:
+          level: warning
+          path: src
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
