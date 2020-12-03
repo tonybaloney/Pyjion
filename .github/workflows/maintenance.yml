@@ -10,10 +10,7 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@master"
+      - name: Install tools
+        run: apt-get -y update && apt-get install -y cppcheck
       - name: C++ code linter (clang-tidy and cppcheck)
-        uses: tonybaloney/cpp-linter-action@master
-        with:
-          level: warning
-          path: src
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cppcheck --language=c++ --template="::{severity} file={file},line={line},col={column}::{message}" src
