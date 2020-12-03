@@ -108,7 +108,7 @@ public:
     }
 
     static void stArrayHelperFtn(std::vector<PyObject*>* array, INT_PTR idx, PyObject* ref) {
-        // TODO : Implement vector allocation and assignment logic for CIL_STELEM.x
+        // TODX : Implement vector allocation and assignment logic for CIL_STELEM.x
     }
 
     void* get_code_addr() override {
@@ -128,7 +128,7 @@ public:
     }
 
     void freeMem(PVOID code) {
-        // TODO: Validate memory free for CorJitInfo
+        // TODX: Validate memory free for CorJitInfo
         PyMem_Free(code);
     }
 
@@ -193,7 +193,7 @@ public:
 #ifdef DEBUG
         printf("Fatal error from .NET JIT %X\r\n", result);
 #endif
-        // TODO : Handle/report fatal JIT errors as Python exceptions
+        // TODX : Handle/report fatal JIT errors as Python exceptions
         // PyErr_Format(PyExc_ValueError, "Fatal error from .NET JIT %X\r\n", result);
     }
 
@@ -762,7 +762,7 @@ public:
         GSCookie * pCookieVal,                     // OUT
         GSCookie ** ppCookieVal                    // OUT
         ) override {
-        *pCookieVal = 0x1234; // TODO: Implement secure GS cookie values
+        *pCookieVal = 0x1234; // TODX: Implement secure GS cookie values
         *ppCookieVal = nullptr;
         //printf("getGSCookie\r\n");
     }
@@ -791,7 +791,7 @@ public:
         ) override {
         printf("findSig %d\r\n", sigTOK);
         auto mod = (Module*)module;
-        // TODO : ResolveMethod is signed, sigTok is unsigned.
+        // TODX : ResolveMethod is signed, sigTok is unsigned.
         auto method = mod->ResolveMethod(sigTOK);
         method->findSig(sig);
     }
@@ -1538,7 +1538,7 @@ public:
 
     void getMethodVTableOffset(CORINFO_METHOD_HANDLE method, unsigned int *offsetOfIndirection,
                                unsigned int *offsetAfterIndirection, bool *isRelative) override {
-        // TODO : API added isRelative flag, getMethodVTableOffset doesn't inspect that.
+        // TODX : API added isRelative flag, getMethodVTableOffset doesn't inspect that.
         *offsetOfIndirection = 0x1234;
         *offsetAfterIndirection = 0x2468;
         printf("getMethodVTableOffset\r\n");

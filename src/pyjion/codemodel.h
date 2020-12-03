@@ -87,12 +87,6 @@ public:
     }
 };
 
-
-struct VTableInfo {
-    WORD indirections;
-    SIZE_T                  offsets[CORINFO_MAXINDIRECTIONS];
-};
-
 class BaseMethod {
 public:
 
@@ -143,58 +137,6 @@ public:
     void getFunctionEntryPoint(CORINFO_CONST_LOOKUP *  pResult) override {
         pResult->accessType = IAT_PVALUE;
         pResult->addr = &m_addr;
-    }
-};
-
-class IndirectDispatchMethod : public BaseMethod {
-    BaseMethod* m_coreMethod;
-public:
-    void* m_addr;
-
-    IndirectDispatchMethod(BaseMethod* coreMethod) : m_coreMethod(coreMethod) {
-        m_addr = m_coreMethod->get_addr();
-    }
-
-public:
-    void* get_addr() override {
-        return m_addr;
-    }
-
-    void get_call_info(CORINFO_CALL_INFO *pResult) override {
-        m_coreMethod->get_call_info(pResult);
-        pResult->codePointerLookup.constLookup.addr = &m_addr;
-    }
-
-    void findSig(CORINFO_SIG_INFO  *sig) override {
-        m_coreMethod->findSig(sig);
-    }
-    void getFunctionEntryPoint(CORINFO_CONST_LOOKUP *  pResult) override {
-        pResult->accessType = IAT_PVALUE;
-        pResult->addr = &m_addr;
-    }
-};
-
-// Not currently used...
-class VirtualMethod : public Method {
-    VTableInfo* m_vtableInfo;
-    VirtualMethod(Module* module, CorInfoType returnType, std::vector<Parameter> params, void* addr, VTableInfo* vtableInfo) :
-        Method(module, returnType, params, addr),
-        m_vtableInfo(vtableInfo) {
-    }
-
-    void get_call_info(CORINFO_CALL_INFO *pResult) override {
-        pResult->codePointerLookup.lookupKind.needsRuntimeLookup = true;
-        pResult->codePointerLookup.lookupKind.runtimeLookupKind = CORINFO_LOOKUP_THISOBJ;
-        pResult->codePointerLookup.runtimeLookup.testForNull = false;
-        pResult->codePointerLookup.runtimeLookup.testForFixup = false;
-        //pResult->codePointerLookup.runtimeLookup.helper = CORINFO_HELP_USER_BREAKPOINT;
-        pResult->verMethodFlags = pResult->methodFlags = CORINFO_FLG_VIRTUAL;
-        pResult->kind = CORINFO_VIRTUALCALL_VTABLE;
-        pResult->methodFlags = CORINFO_FLG_VIRTUAL;
-    }
-
-    DWORD get_method_attrs() override {
-        return CORINFO_FLG_VIRTUAL | CORINFO_FLG_NATIVE;
     }
 };
 

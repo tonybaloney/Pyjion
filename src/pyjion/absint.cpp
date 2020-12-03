@@ -35,11 +35,10 @@
 #define GET_OPARG(index)  _Py_OPARG(mByteCode[(index)/sizeof(_Py_CODEUNIT)])
 #define GET_OPCODE(index) _Py_OPCODE(mByteCode[(index)/sizeof(_Py_CODEUNIT)])
 
-AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mCode(code), m_comp(comp) {
+AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
-
     mSize = PyBytes_Size(code->co_code);
-    mReturnValue = &Undefined;
+
     if (comp != nullptr) {
         m_retLabel = comp->emit_define_label();
         m_retValue = comp->emit_define_local();
@@ -132,7 +131,7 @@ bool AbstractInterpreter::preprocess() {
             case SETUP_ASYNC_WITH:
             case SETUP_FINALLY:
             case FOR_ITER:
-                blockStarts.emplace_back(opcodeIndex, oparg + curByte + sizeof(_Py_CODEUNIT), false);
+                blockStarts.emplace_back(opcodeIndex, oparg + curByte + sizeof(_Py_CODEUNIT));
                 ehKind.push_back(true);
                 break;
             case LOAD_GLOBAL:
@@ -180,7 +179,7 @@ void AbstractInterpreter::initStartingState() {
     int localIndex = 0;
     for (int i = 0; i < mCode->co_argcount + mCode->co_kwonlyargcount; i++) {
         // all parameters are initially definitely assigned
-        // TODO: Populate this with type information from profiling...
+        // TODX: Populate this with type information from profiling...
         lastState.replaceLocal(localIndex++, AbstractLocalInfo(&Any));
     }
 
@@ -496,7 +495,7 @@ bool AbstractInterpreter::interpret() {
                     lastState.pop();
                     break;
                 case LOAD_ATTR:
-                    // TODO: Add support for resolving known members of known types
+                    // TODX: Add support for resolving known members of known types
                     // @body: Implement resolving types into abstract value types for LOAD_ATTR
                     lastState.pop();
                     lastState.push(&Any);
@@ -515,7 +514,6 @@ bool AbstractInterpreter::interpret() {
                     lastState.push(&List);
                     break;
                 case BUILD_TUPLE: {
-                    vector<AbstractValueWithSources> sources;
                     for (int i = 0; i < oparg; i++) {
                         lastState.pop();
                     }
@@ -545,7 +543,7 @@ bool AbstractInterpreter::interpret() {
                     lastState.push(&Any);
                     break;
                 case CALL_FUNCTION: {
-                    // TODO: Implement abstract value types for CALL_FUNCTION
+                    // TODX: Implement abstract value types for CALL_FUNCTION
                     // @body: Known functions could return known return types.
                     int argCnt = oparg & 0xff;
                     int kwArgCnt = (oparg >> 8) & 0xff;
@@ -643,7 +641,7 @@ bool AbstractInterpreter::interpret() {
                     }
                     break;
                 case UNPACK_SEQUENCE:
-                    // TODO: Implement abstract value types for UNPACK_SEQUENCE
+                    // TODX: Implement abstract value types for UNPACK_SEQUENCE
                     // @body: If the sequence is a known type we could know what types we're pushing here.
                     lastState.pop();
                     for (int i = 0; i < oparg; i++) {
@@ -683,7 +681,7 @@ bool AbstractInterpreter::interpret() {
                     // about their deletion.
                     break;
                 case GET_ITER:
-                    // TODO: Push iterable type on GET_ITER
+                    // TODX: Push iterable type on GET_ITER
                     lastState.pop();
                     lastState.push(&Any);
                     break;
@@ -710,7 +708,7 @@ bool AbstractInterpreter::interpret() {
                     skipEffect = true;
                     break;
                 case LOAD_BUILD_CLASS:
-                    // TODO: if we know this is __builtins__.__build_class__ we can push a special value
+                    // TODX: if we know this is __builtins__.__build_class__ we can push a special value
                     // to optimize the call.f
                     lastState.push(&Any);
                     break;
@@ -756,7 +754,7 @@ bool AbstractInterpreter::interpret() {
                 case SETUP_FINALLY: {
                     auto ehState = lastState;
                     // Except is entered with the exception object, traceback, and exception
-                    // type.  TODO: We could type these stronger then they currently are typed
+                    // type.  TODX: We could type these stronger then they currently are typed
                     ehState.push(&Any);
                     ehState.push(&Any);
                     ehState.push(&Any);
@@ -809,7 +807,7 @@ bool AbstractInterpreter::interpret() {
                     lastState.push(&Bool);
                     break;
                 case WITH_EXCEPT_START: {
-                    // TODO: Implement WITH_EXCEPT_START
+                    // TODX: Implement WITH_EXCEPT_START
                     /* At the top of the stack are 7 values:
                        - (TOP, SECOND, THIRD) = exc_info()
                        - (FOURTH, FIFTH, SIXTH) = previous exception for EXCEPT_HANDLER
@@ -823,7 +821,7 @@ bool AbstractInterpreter::interpret() {
                     auto second = lastState.pop(); // val
                     auto third = lastState.pop(); // tb
                     auto seventh = lastState[lastState.stackSize() - 7]; // exit_func
-                    // TODO : Vectorcall (exit_func, stack+1, 3, ..)
+                    // TODX : Vectorcall (exit_func, stack+1, 3, ..)
                     lastState.push(&Any); // res
                     break;
                 }
@@ -980,95 +978,6 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
 
 
     return &Any;
-}
-
-AbstractValue* AbstractInterpreter::toAbstract(AbstractValueKind kind) {
-    switch (kind) {
-        case AVK_None:
-            return &None;
-        case AVK_Integer:
-            return &Integer;
-        case AVK_String:
-            return &String;
-        case AVK_List:
-            return &List;
-        case AVK_Dict:
-            return &Dict;
-        case AVK_Tuple:
-            return &Tuple;
-        case AVK_Bool:
-            return &Bool;
-        case AVK_Float:
-            return &Float;
-        case AVK_Bytes:
-            return &Bytes;
-        case AVK_Set:
-            return &Set;
-        case AVK_Complex:
-            return &Complex;
-        case AVK_Function:
-            return &Function;
-        case AVK_Slice:
-            return &Slice;
-    }
-
-    return &Any;
-}
-
-bool AbstractInterpreter::shouldBox(size_t opcodeIndex) {
-    auto boxInfo = m_opcodeSources.find(opcodeIndex);
-    if (boxInfo != m_opcodeSources.end()) {
-        if (boxInfo->second == nullptr) {
-            return true;
-        }
-        return boxInfo->second->needsBoxing();
-    }
-    return true;
-}
-
-bool AbstractInterpreter::canSkipLastiUpdate(size_t opcodeIndex) {
-    switch (GET_OPCODE(opcodeIndex)) {
-        case BINARY_TRUE_DIVIDE:
-        case BINARY_FLOOR_DIVIDE:
-        case BINARY_POWER:
-        case BINARY_MODULO:
-        case BINARY_MATRIX_MULTIPLY:
-        case BINARY_LSHIFT:
-        case BINARY_RSHIFT:
-        case BINARY_AND:
-        case BINARY_XOR:
-        case BINARY_OR:
-        case BINARY_MULTIPLY:
-        case BINARY_SUBTRACT:
-        case BINARY_ADD:
-        case INPLACE_POWER:
-        case INPLACE_MULTIPLY:
-        case INPLACE_MATRIX_MULTIPLY:
-        case INPLACE_TRUE_DIVIDE:
-        case INPLACE_FLOOR_DIVIDE:
-        case INPLACE_MODULO:
-        case INPLACE_ADD:
-        case INPLACE_SUBTRACT:
-        case INPLACE_LSHIFT:
-        case INPLACE_RSHIFT:
-        case INPLACE_AND:
-        case INPLACE_XOR:
-        case INPLACE_OR:
-        case COMPARE_OP:
-        case LOAD_FAST:
-            return !shouldBox(opcodeIndex);
-    }
-
-    return false;
-
-}
-
-void AbstractInterpreter::dumpSources(AbstractSource* sources) {
-    if (sources != nullptr) {
-        for (auto value : sources->Sources->Sources) {
-            printf("              %s (%p)\r\n", value->describe(), value);
-        }
-    }
 }
 
 const char* AbstractInterpreter::opcodeName(int opcode) {
@@ -1282,34 +1191,6 @@ vector<Label>& AbstractInterpreter::getRaiseAndFreeLabels(size_t blockId) {
     return m_raiseAndFree[blockId];
 }
 
-vector<Label>& AbstractInterpreter::getReraiseAndFreeLabels(size_t blockId) {
-    while (m_reraiseAndFree.size() <= blockId) {
-        m_reraiseAndFree.emplace_back();
-    }
-
-    return m_reraiseAndFree[blockId];
-}
-
-size_t AbstractInterpreter::clearValueStack() {
-    auto ehBlock = currentHandler();
-    auto& entryStack = ehBlock->EntryStack;
-
-    // clear any non-object values from the stack up
-    // to the stack that owned the block when we entered.
-    size_t count = m_stack.size() - entryStack.size();
-
-    for (auto cur = m_stack.rbegin(); cur != m_stack.rend(); cur++) {
-        if (*cur == STACK_KIND_VALUE) {
-            count--;
-            m_comp->emit_pop();
-        }
-        else {
-            break;
-        }
-    }
-    return count;
-}
-
 void AbstractInterpreter::ensureLabels(vector<Label>& labels, size_t count) {
     for (auto i = labels.size(); i < count; i++) {
         labels.push_back(m_comp->emit_define_label());
@@ -1327,7 +1208,7 @@ void AbstractInterpreter::branchRaise(const char *reason) {
 #endif
     m_comp->emit_eh_trace();
     // number of stack entries we need to clear...
-    int count = m_stack.size() - entryStack.size();
+    auto count = m_stack.size() - entryStack.size();
     
     auto cur = m_stack.rbegin();
     for (; cur != m_stack.rend() && count >= 0; cur++) {
@@ -1377,12 +1258,6 @@ void AbstractInterpreter::buildTuple(size_t argCnt) {
         m_comp->emit_tuple_store(argCnt);
         decStack(argCnt);
     }
-}
-
-void AbstractInterpreter::extendTuple(size_t argCnt) {
-    extendList(argCnt);
-    m_comp->emit_list_to_tuple();
-    errorCheck("extend tuple failed");
 }
 
 void AbstractInterpreter::buildList(size_t argCnt) {
@@ -2029,7 +1904,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                                 // The stack actually ended up being empty - either because we didn't
                                 // have any values, or the values were all non-objects that we could
                                 // spill eagerly.
-                                // TODO : Validate this logic.
+                                // TODX : Validate this logic.
                                 m_comp->emit_branch(BranchAlways, curHandler->ErrorTarget);
                         }
                         else {
@@ -2164,7 +2039,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                     errorCheck("format object");
                 }
                 else if (!whichConversion) {
-                    // TODO: This could also be avoided if we knew we had a string on the stack
+                    // TODX: This could also be avoided if we knew we had a string on the stack
 
                     // If we did a conversion we know we have a string...
                     // Otherwise we need to convert
@@ -2378,7 +2253,7 @@ JittedCode* AbstractInterpreter::compile() {
 }
 
 bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
-    // TODO : Check list of opcodes that can skip lasti_update is up to date with ceval.
+    // TODX : Check list of opcodes that can skip lasti_update is up to date with ceval.
     switch (GET_OPCODE(opcodeIndex)) {
         case DUP_TOP:
         case NOP:
@@ -2418,7 +2293,7 @@ void AbstractInterpreter::unwindHandlers(){
     // handler.  When we take an error we'll branch down to this
     // little stub and then back up to the correct handler.
     if (!m_exceptionHandler.Empty()) {
-        // TODO: Unify the first handler with this loop
+        // TODX: Unify the first handler with this loop
         for (auto handler: m_exceptionHandler.GetHandlers()) {
             //emitRaiseAndFree(handler);
 
@@ -2559,7 +2434,7 @@ void AbstractInterpreter::unpackEx(size_t size, int opcode) {
     // the list local address, and the remainder address
     // PyObject* seq, size_t leftSize, size_t rightSize, PyObject** tempStorage, PyObject** list, PyObject*** remainder
 
-    errorCheck("unpack ex failed"); // TODO: We leak the sequence on failure
+    errorCheck("unpack ex failed"); // TODX: We leak the sequence on failure
 
     auto fastTmp = m_comp->emit_spill();
 
@@ -2597,8 +2472,6 @@ void AbstractInterpreter::unpackEx(size_t size, int opcode) {
 
 
 void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) {
-    auto stackInfo = getStackInfo(opcodeIndex);
-
     if (jumpTo <= opcodeIndex) {
         periodicWork();
     }

@@ -473,21 +473,9 @@ public:
 #endif
     }
 
-    void emit_call(int token, int nargs) {
+    void emit_call(int token) {
         m_il.push_back(CEE_CALL); // VarPop, VarPush
         emit_int(token);
-    }
-
-    // Unused
-    void emit_calli(int token) {
-    	m_il.push_back(CEE_CALLI);
-    	emit_int(token);
-    }
-
-    // Unused
-    void emit_callvirt(int token) {
-    	m_il.push_back(CEE_CALLVIRT);
-    	emit_int(token);
     }
 
     void st_loc(Local param) {

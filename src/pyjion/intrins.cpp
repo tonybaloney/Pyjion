@@ -1802,7 +1802,7 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         delete method_info;
         return nullptr;
     }
-    // TODO : Support vector arg calls.
+    // TODX : Support vector arg calls.
     if (method_info->object != nullptr)
     {
         auto target = method_info->method;

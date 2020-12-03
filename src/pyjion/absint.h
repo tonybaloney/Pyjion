@@ -44,14 +44,12 @@ struct AbstractLocalInfo;
 // Tracks block information for analyzing loops, exception blocks, and break opcodes.
 struct AbsIntBlockInfo {
     size_t BlockStart, BlockEnd;
-    bool IsLoop;
 
-    AbsIntBlockInfo(size_t blockStart, size_t blockEnd, bool isLoop) {
+    AbsIntBlockInfo(size_t blockStart, size_t blockEnd) {
         BlockStart = blockStart;
         BlockEnd = blockEnd;
-        IsLoop = isLoop;
     }
-};
+} __attribute__((aligned(16)));
 
 // The abstract interpreter implementation.  The abstract interpreter performs
 // static analysis of the Python byte code to determine what types are known.
@@ -293,23 +291,16 @@ public:
     // Returns information about the stack at the specific byte code index.
     vector<AbstractValueWithSources>& getStackInfo(size_t byteCodeIndex);
 
-    // Returns true if the result of the opcode should be boxed, false if it
-    // can be maintained on the stack.
-    bool shouldBox(size_t opcodeIndex);
-
-    bool canSkipLastiUpdate(size_t opcodeIndex);
-
     AbstractValue* getReturnInfo();
 
 private:
     AbstractValue* toAbstract(PyObject* obj);
-    AbstractValue* toAbstract(AbstractValueKind kind);
+
     static bool mergeStates(InterpreterState& newState, InterpreterState& mergeTo);
     bool updateStartState(InterpreterState& newState, size_t index);
     void initStartingState();
     const char* opcodeName(int opcode);
     bool preprocess();
-    void dumpSources(AbstractSource* sources);
     AbstractSource* newSource(AbstractSource* source) {
         m_sources.push_back(source);
         return source;
@@ -317,12 +308,10 @@ private:
 
     AbstractSource* addLocalSource(size_t opcodeIndex, size_t localIndex);
     AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex);
-    AbstractSource* addIntermediateSource(size_t opcodeIndex);
 
     void makeFunction(int oparg);
     bool canSkipLastiUpdate(int opcodeIndex);
     void buildTuple(size_t argCnt);
-    void extendTuple(size_t argCnt);
     void buildList(size_t argCnt);
     void extendListRecursively(Local list, size_t argCnt);
     void extendList(size_t argCnt);
@@ -340,14 +329,11 @@ private:
     void intErrorCheck(const char* reason = nullptr);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
-    vector<Label>& getReraiseAndFreeLabels(size_t blockId);
     void ensureRaiseAndFreeLocals(size_t localCount);
-    void emitRaiseAndFree(ExceptionHandler* handler);
 
     void ensureLabels(vector<Label>& labels, size_t count);
 
     void branchRaise(const char* reason = nullptr);
-    size_t clearValueStack();
     void raiseOnNegativeOne();
 
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);

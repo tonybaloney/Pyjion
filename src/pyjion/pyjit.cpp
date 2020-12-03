@@ -127,7 +127,7 @@ bool JitInit() {
 }
 
 bool jit_compile(PyCodeObject* code) {
-    // TODO : support for generator expressions
+    // TODX : support for generator expressions
     if (strcmp(PyUnicode_AsUTF8(code->co_name), "<genexpr>") == 0) {
         return false;
     }
