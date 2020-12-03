@@ -90,6 +90,7 @@ public:
 		j_generic = nullptr;
 		j_il = nullptr;
 		j_ilLen = 0;
+		j_nativeSize = 0;
 	}
 
 	~PyjionJittedCode();

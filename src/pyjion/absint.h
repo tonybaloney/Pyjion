@@ -73,12 +73,6 @@ struct AbsIntBlockInfo {
 // Once we've processed all of the blocks of code in this manner the analysis
 // is complete.
 
-struct AbstractValueKindHash {
-    std::size_t operator()(AbstractValueKind e) const {
-        return static_cast<std::size_t>(e);
-    }
-};
-
 // Tracks the state of a local variable at each location in the function.
 // Each local has a known type associated with it as well as whether or not
 // the value is potentially undefined.  When a variable is definitely assigned
@@ -231,9 +225,6 @@ class AbstractInterpreter {
     // Tracks the entry point for each POP_BLOCK opcode, so we can restore our
     // stack state back after the POP_BLOCK
     unordered_map<size_t, size_t> m_blockStarts;
-    // Tracks the location where each BREAK_LOOP will break to, so we can merge
-    // state with the current state to the breaked location.
-    unordered_map<size_t, AbsIntBlockInfo> m_breakTo;
     unordered_map<size_t, AbstractSource*> m_opcodeSources;
     // all values produced during abstract interpretation, need to be freed
     vector<AbstractValue*> m_values;
@@ -263,7 +254,7 @@ class AbstractInterpreter {
     //      free1: <decref>/<pop>
     //      raise logic.
     //  This was so we don't need to have decref/frees spread all over the code
-    vector<vector<Label>> m_raiseAndFree, m_reraiseAndFree;
+    vector<vector<Label>> m_raiseAndFree;
     unordered_set<size_t> m_jumpsTo;
     Label m_retLabel;
     Local m_retValue;
@@ -272,7 +263,6 @@ class AbstractInterpreter {
     // unpack.
     unordered_map<int, Local> m_sequenceLocals;
     unordered_map<int, bool> m_assignmentState;
-    unordered_map<int, unordered_map<AbstractValueKind, Local, AbstractValueKindHash>> m_optLocals;
 
 #pragma warning (default:4251)
 
