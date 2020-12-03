@@ -11,6 +11,6 @@ jobs:
     steps:
       - uses: "actions/checkout@master"
       - name: Install tools
-        run: sudo apt-get -y update && apt-get install -y cppcheck
+        run: sudo apt-get -y update && sudo apt-get install -y cppcheck
       - name: C++ code linter (clang-tidy and cppcheck)
         run: cppcheck --language=c++ --template="::{severity} file={file},line={line},col={column}::{message}" src
