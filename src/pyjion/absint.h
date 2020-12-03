@@ -49,7 +49,7 @@ struct AbsIntBlockInfo {
         BlockStart = blockStart;
         BlockEnd = blockEnd;
     }
-} __attribute__((aligned(16)));
+};
 
 // The abstract interpreter implementation.  The abstract interpreter performs
 // static analysis of the Python byte code to determine what types are known.
