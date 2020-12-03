@@ -1,9 +1,16 @@
 name: "Maintenance"
-on: ["push"]
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
 jobs:
   build:
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@master"
-      - name: TODO to Issue
-        uses: alstr/todo-to-issue-action@v2.3
+      - name: C++ code linter (clang-tidy and cppcheck)
+        uses: tonybaloney/cpp-linter-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
