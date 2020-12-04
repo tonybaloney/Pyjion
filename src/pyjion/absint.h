@@ -44,12 +44,10 @@ struct AbstractLocalInfo;
 // Tracks block information for analyzing loops, exception blocks, and break opcodes.
 struct AbsIntBlockInfo {
     size_t BlockStart, BlockEnd;
-    bool IsLoop;
 
-    AbsIntBlockInfo(size_t blockStart, size_t blockEnd, bool isLoop) {
+    AbsIntBlockInfo(size_t blockStart, size_t blockEnd) {
         BlockStart = blockStart;
         BlockEnd = blockEnd;
-        IsLoop = isLoop;
     }
 };
 
@@ -74,12 +72,6 @@ struct AbsIntBlockInfo {
 //
 // Once we've processed all of the blocks of code in this manner the analysis
 // is complete.
-
-struct AbstractValueKindHash {
-    std::size_t operator()(AbstractValueKind e) const {
-        return static_cast<std::size_t>(e);
-    }
-};
 
 // Tracks the state of a local variable at each location in the function.
 // Each local has a known type associated with it as well as whether or not
@@ -211,6 +203,14 @@ enum ComprehensionType {
     COMP_SET
 };
 
+class StackImbalanceException: public std::exception {
+public:
+    StackImbalanceException() : std::exception() {};
+    const char * what () const noexcept override
+    {
+        return "Stack imbalance";
+    }
+};
 
 #ifdef _WIN32
 class __declspec(dllexport) AbstractInterpreter {
@@ -233,9 +233,6 @@ class AbstractInterpreter {
     // Tracks the entry point for each POP_BLOCK opcode, so we can restore our
     // stack state back after the POP_BLOCK
     unordered_map<size_t, size_t> m_blockStarts;
-    // Tracks the location where each BREAK_LOOP will break to, so we can merge
-    // state with the current state to the breaked location.
-    unordered_map<size_t, AbsIntBlockInfo> m_breakTo;
     unordered_map<size_t, AbstractSource*> m_opcodeSources;
     // all values produced during abstract interpretation, need to be freed
     vector<AbstractValue*> m_values;
@@ -265,7 +262,7 @@ class AbstractInterpreter {
     //      free1: <decref>/<pop>
     //      raise logic.
     //  This was so we don't need to have decref/frees spread all over the code
-    vector<vector<Label>> m_raiseAndFree, m_reraiseAndFree;
+    vector<vector<Label>> m_raiseAndFree;
     unordered_set<size_t> m_jumpsTo;
     Label m_retLabel;
     Local m_retValue;
@@ -274,7 +271,6 @@ class AbstractInterpreter {
     // unpack.
     unordered_map<int, Local> m_sequenceLocals;
     unordered_map<int, bool> m_assignmentState;
-    unordered_map<int, unordered_map<AbstractValueKind, Local, AbstractValueKindHash>> m_optLocals;
 
 #pragma warning (default:4251)
 
@@ -293,23 +289,16 @@ public:
     // Returns information about the stack at the specific byte code index.
     vector<AbstractValueWithSources>& getStackInfo(size_t byteCodeIndex);
 
-    // Returns true if the result of the opcode should be boxed, false if it
-    // can be maintained on the stack.
-    bool shouldBox(size_t opcodeIndex);
-
-    bool canSkipLastiUpdate(size_t opcodeIndex);
-
     AbstractValue* getReturnInfo();
 
 private:
     AbstractValue* toAbstract(PyObject* obj);
-    AbstractValue* toAbstract(AbstractValueKind kind);
+
     static bool mergeStates(InterpreterState& newState, InterpreterState& mergeTo);
     bool updateStartState(InterpreterState& newState, size_t index);
     void initStartingState();
     const char* opcodeName(int opcode);
     bool preprocess();
-    void dumpSources(AbstractSource* sources);
     AbstractSource* newSource(AbstractSource* source) {
         m_sources.push_back(source);
         return source;
@@ -317,12 +306,10 @@ private:
 
     AbstractSource* addLocalSource(size_t opcodeIndex, size_t localIndex);
     AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex);
-    AbstractSource* addIntermediateSource(size_t opcodeIndex);
 
     void makeFunction(int oparg);
     bool canSkipLastiUpdate(int opcodeIndex);
     void buildTuple(size_t argCnt);
-    void extendTuple(size_t argCnt);
     void buildList(size_t argCnt);
     void extendListRecursively(Local list, size_t argCnt);
     void extendList(size_t argCnt);
@@ -340,14 +327,11 @@ private:
     void intErrorCheck(const char* reason = nullptr);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
-    vector<Label>& getReraiseAndFreeLabels(size_t blockId);
     void ensureRaiseAndFreeLocals(size_t localCount);
-    void emitRaiseAndFree(ExceptionHandler* handler);
 
     void ensureLabels(vector<Label>& labels, size_t count);
 
     void branchRaise(const char* reason = nullptr);
-    size_t clearValueStack();
     void raiseOnNegativeOne();
 
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);

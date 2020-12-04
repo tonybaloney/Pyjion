@@ -197,7 +197,7 @@ struct AbstractValueWithSources {
     }
 
     AbstractValueWithSources mergeWith(AbstractValueWithSources other) const {
-        // TODO: Is defining a new source at the merge point better?
+        // TODX: Is defining a new source at the merge point better?
 
         auto newValue = Value->mergeWith(other.Value);
         if ((newValue->kind() != Value->kind() && Value->kind() != AVK_Undefined) ||

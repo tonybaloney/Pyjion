@@ -127,7 +127,7 @@ bool JitInit() {
 }
 
 bool jit_compile(PyCodeObject* code) {
-    // TODO : support for generator expressions
+    // TODX : support for generator expressions
     if (strcmp(PyUnicode_AsUTF8(code->co_name), "<genexpr>") == 0) {
         return false;
     }
@@ -339,6 +339,7 @@ PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 				PyUnicode_AsUTF8(PyObject_Repr(f->f_code->co_consts))
 			);
 #endif
+            jitted->j_run_count++;
 			return jitted->j_evalfunc(jitted, f);
 		}
 		else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {

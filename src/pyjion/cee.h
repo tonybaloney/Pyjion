@@ -107,7 +107,7 @@ public: CCorJitHost(){
 
 	void freeStringConfigValue(const WCHAR* value) override
 	{
-        // TODO : Figure out what this is for? Delete key?
+        // TODX : Figure out what this is for? Delete key?
 	}
 
 	void* allocateSlab(size_t size, size_t* pActualSize) override

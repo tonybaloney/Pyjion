@@ -119,7 +119,6 @@
 #define METHOD_FLOAT_FROM_DOUBLE                 0x00000053
 #define METHOD_BOOL_FROM_LONG                    0x00000054
 #define METHOD_PYERR_SETSTRING                   0x00000055
-#define METHOD_BOX_TAGGED_PTR                    0x00000056
 
 #define METHOD_EQUALS_INT_TOKEN                  0x00000065
 #define METHOD_LESS_THAN_INT_TOKEN               0x00000066
@@ -200,7 +199,6 @@
 
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); 
 #define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
-#define ST_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.st_ind_i();
 
 extern ICorJitCompiler* g_jit;
 class PythonCompiler : public IPythonCompiler {
@@ -214,219 +212,219 @@ public:
     explicit PythonCompiler(PyCodeObject *code);
 
     int il_length() override {
-        return m_il.m_il.size();
+        return static_cast<int>(m_il.m_il.size());
     };
 
-    virtual void emit_rot_two(LocalKind kind = LK_Pointer);
+    void emit_rot_two(LocalKind kind = LK_Pointer) override;
 
-    virtual void emit_rot_three(LocalKind kind = LK_Pointer);
+    void emit_rot_three(LocalKind kind = LK_Pointer) override;
 
-    virtual void emit_rot_four(LocalKind kind = LK_Pointer);
+    void emit_rot_four(LocalKind kind = LK_Pointer) override;
 
-    virtual void emit_pop_top();
+    void emit_pop_top() override;
 
-    virtual void emit_dup_top();
+    void emit_dup_top() override;
 
-    virtual void emit_dup_top_two();
+    void emit_dup_top_two() override;
 
-    virtual void emit_load_name(void* name);
-    virtual void emit_is_true();
+    void emit_load_name(void* name) override;
+    void emit_is_true() override;
 
-    virtual void emit_push_frame();
-    virtual void emit_pop_frame();
-    virtual void emit_eh_trace();
+    void emit_push_frame() override;
+    void emit_pop_frame() override;
+    void emit_eh_trace() override;
 
-    void emit_lasti_init();
-    void emit_lasti_update(int index);
+    void emit_lasti_init() override;
+    void emit_lasti_update(int index) override;
 
-    virtual void emit_ret(int size);
+    void emit_ret(int size) override;
 
-    virtual void emit_store_name(void* name);
-    virtual void emit_delete_name(void* name);
-    virtual void emit_store_attr(void* name);
-    virtual void emit_delete_attr(void* name);
-    virtual void emit_load_attr(void* name);
-    virtual void emit_store_global(void* name);
-    virtual void emit_delete_global(void* name);
-    virtual void emit_load_global(void* name);
-    virtual void emit_delete_fast(int index);
+    void emit_store_name(void* name) override;
+    void emit_delete_name(void* name) override;
+    void emit_store_attr(void* name) override;
+    void emit_delete_attr(void* name) override;
+    void emit_load_attr(void* name) override;
+    void emit_store_global(void* name) override;
+    void emit_delete_global(void* name) override;
+    void emit_load_global(void* name) override;
+    void emit_delete_fast(int index) override;
 
-    virtual void emit_new_tuple(size_t size);
-    virtual void emit_tuple_store(size_t size);
-    virtual void emit_tuple_load(size_t index);
+    void emit_new_tuple(size_t size) override;
+    void emit_tuple_store(size_t size) override;
+    void emit_tuple_load(size_t index) override;
 
-    virtual void emit_new_list(size_t argCnt);
-    virtual void emit_list_store(size_t argCnt);
-    virtual void emit_list_extend();
-    virtual void emit_list_to_tuple();
+    void emit_new_list(size_t argCnt) override;
+    void emit_list_store(size_t argCnt) override;
+    void emit_list_extend() override;
+    void emit_list_to_tuple() override;
 
-    virtual void emit_new_set();
-    virtual void emit_set_extend();
-    virtual void emit_set_update();
-    virtual void emit_dict_store();
-    virtual void emit_dict_store_no_decref();
-    virtual void emit_dict_update();
-    virtual void emit_dict_build_from_map();
+    void emit_new_set() override;
+    void emit_set_extend() override;
+    void emit_set_update() override;
+    void emit_dict_store() override;
+    void emit_dict_store_no_decref() override;
+    void emit_dict_update() override;
+    void emit_dict_build_from_map() override;
 
-    virtual void emit_unicode_joinarray();
-    virtual void emit_format_value();
-    virtual void emit_pyobject_str();
-    virtual void emit_pyobject_repr();
-    virtual void emit_pyobject_ascii();
-    virtual void emit_pyobject_format();
+    void emit_unicode_joinarray() override;
+    void emit_format_value() override;
+    void emit_pyobject_str() override;
+    void emit_pyobject_repr() override;
+    void emit_pyobject_ascii() override;
+    void emit_pyobject_format() override;
 
-    virtual void emit_new_dict(size_t size);
-    virtual void emit_map_extend();
+    void emit_new_dict(size_t size) override;
+    void emit_map_extend() override;
 
-    virtual void emit_build_slice();
+    void emit_build_slice() override;
 
-    virtual void emit_store_subscr();
-    virtual void emit_delete_subscr();
+    void emit_store_subscr() override;
+    void emit_delete_subscr() override;
 
-    virtual void emit_unary_positive();
-    virtual void emit_unary_negative();
-    virtual void emit_unary_negative_float();
+    void emit_unary_positive() override;
+    void emit_unary_negative() override;
+    void emit_unary_negative_float() override;
 
-    virtual void emit_unary_not();
+    void emit_unary_not() override;
 
-    virtual void emit_unary_not_push_int();
-    virtual void emit_unary_invert();
+    void emit_unary_not_push_int() override;
+    void emit_unary_invert() override;
 
-    virtual void emit_import_name(void* name);
-    virtual void emit_import_from(void* name);
-    virtual void emit_import_star();
+    void emit_import_name(void* name) override;
+    void emit_import_from(void* name) override;
+    void emit_import_star() override;
 
-    virtual void emit_load_build_class();
+    void emit_load_build_class() override;
 
-    virtual void emit_unpack_sequence(Local sequence, Local sequenceStorage, Label success, size_t size);
-    virtual void emit_load_array(int index);
-    virtual void emit_store_to_array(Local array, int index);
+    void emit_unpack_sequence(Local sequence, Local sequenceStorage, Label success, size_t size) override;
+    void emit_load_array(int index) override;
+    void emit_store_to_array(Local array, int index) override;
 
-    virtual void emit_unpack_ex(Local sequence, size_t leftSize, size_t rightSize, Local sequenceStorage, Local list, Local remainder);
+    void emit_unpack_ex(Local sequence, size_t leftSize, size_t rightSize, Local sequenceStorage, Local list, Local remainder) override;
 
-    virtual void emit_build_vector(size_t argCnt);
+    void emit_build_vector(size_t argCnt) override;
 
     // Emits a call for the specified argument count.  If the compiler
     // can't emit a call with this number of args then it returns false,
     // and emit_call_with_tuple is used to call with a variable sized
     // tuple instead.
-    virtual bool emit_call(size_t argCnt);
-    virtual void emit_call_with_tuple();
+    bool emit_call(size_t argCnt) override;
+    void emit_call_with_tuple() override;
 
-    virtual void emit_kwcall_with_tuple();
+    void emit_kwcall_with_tuple() override;
 
-    virtual void emit_call_args();
-    virtual void emit_call_kwargs();
+    void emit_call_args() override;
+    void emit_call_kwargs() override;
     
-    virtual void emit_new_function();
-    virtual void emit_set_closure();
-    virtual void emit_set_annotations();
-    virtual void emit_set_kw_defaults();
-    virtual void emit_set_defaults();
+    void emit_new_function() override;
+    void emit_set_closure() override;
+    void emit_set_annotations() override;
+    void emit_set_kw_defaults() override;
+    void emit_set_defaults() override;
 
-    virtual void emit_load_deref(int index);
-    virtual void emit_store_deref(int index);
-    virtual void emit_delete_deref(int index);
-    virtual void emit_load_closure(int index);
+    void emit_load_deref(int index) override;
+    void emit_store_deref(int index) override;
+    void emit_delete_deref(int index) override;
+    void emit_load_closure(int index) override;
 
-    virtual Local emit_spill();
-    virtual void emit_store_local(Local local);
+    Local emit_spill() override;
+    void emit_store_local(Local local) override;
 
-    virtual void emit_load_local(Local local);
-    virtual void emit_load_local_addr(Local local);
-    virtual void emit_load_and_free_local(Local local);
-    virtual Local emit_define_local(bool cache);
-    virtual Local emit_define_local(LocalKind kind = LK_Pointer);
-    virtual void emit_free_local(Local local);
-    virtual Local emit_allocate_stack_array(size_t elements);
+    void emit_load_local(Local local) override;
+    void emit_load_local_addr(Local local) override;
+    void emit_load_and_free_local(Local local) override;
+    Local emit_define_local(bool cache) override;
+    Local emit_define_local(LocalKind kind = LK_Pointer) override;
+    void emit_free_local(Local local) override;
+    Local emit_allocate_stack_array(size_t elements) override;
 
-    virtual void emit_set_add();
-    virtual void emit_map_add();
-    virtual void emit_list_append();
+    void emit_set_add() override;
+    void emit_map_add() override;
+    void emit_list_append() override;
 
-    virtual void emit_raise_varargs();
+    void emit_raise_varargs() override;
 
-    virtual void emit_null();
+    void emit_null() override;
 
-    virtual void emit_print_expr();
-    virtual void emit_load_classderef(int index);
-    virtual void emit_getiter();
-    virtual void emit_for_next();
+    void emit_print_expr() override;
+    void emit_load_classderef(int index) override;
+    void emit_getiter() override;
+    void emit_for_next() override;
 
-    virtual void emit_binary_float(int opcode);
-    virtual void emit_binary_object(int opcode);
-    virtual void emit_tagged_int_to_float();
+    void emit_binary_float(int opcode) override;
+    void emit_binary_object(int opcode) override;
+    void emit_tagged_int_to_float() override;
 
-    virtual void emit_in();
-    virtual void emit_not_in();
+    void emit_in() override;
+    void emit_not_in() override;
 
-    virtual void emit_is(bool isNot);
+    void emit_is(bool isNot) override;
 
-    virtual void emit_compare_object(int compareType);
-    virtual void emit_compare_float(int compareType);
-    virtual void emit_compare_tagged_int(int compareType);
+    void emit_compare_object(int compareType) override;
+    void emit_compare_float(int compareType) override;
+    void emit_compare_tagged_int(int compareType) override;
 
-    virtual void emit_store_fast(int local);
+    void emit_store_fast(int local) override;
 
-    virtual void emit_unbound_local_check();
-    virtual void emit_load_fast(int local);
+    void emit_unbound_local_check() override;
+    void emit_load_fast(int local) override;
 
-    virtual Label emit_define_label();
-    virtual void emit_mark_label(Label label);
-    virtual void emit_branch(BranchType branchType, Label label);
-    virtual void emit_compare_equal();
+    Label emit_define_label() override;
+    void emit_mark_label(Label label) override;
+    void emit_branch(BranchType branchType, Label label) override;
+    void emit_compare_equal() override;
 
-    virtual void emit_int(int value);
-    virtual void emit_float(double value);
-    virtual void emit_ptr(void *value);
-    virtual void emit_bool(bool value);
+    void emit_int(int value) override;
+    void emit_float(double value) override;
+    void emit_ptr(void *value) override;
+    void emit_bool(bool value) override;
 
-    virtual void emit_unwind_eh(Local prevExc, Local prevExcVal, Local prevTraceback);
-    virtual void emit_prepare_exception(Local prevExc, Local prevExcVal, Local prevTraceback);
-    virtual void emit_reraise();
-    virtual void emit_restore_err();
-    virtual void emit_pyerr_setstring(void* exception, const char*msg);
+    void emit_unwind_eh(Local prevExc, Local prevExcVal, Local prevTraceback) override;
+    void emit_prepare_exception(Local prevExc, Local prevExcVal, Local prevTraceback) override;
+    void emit_reraise() override;
+    void emit_restore_err() override;
+    void emit_pyerr_setstring(void* exception, const char*msg) override;
 
-    virtual void emit_compare_exceptions();
+    void emit_compare_exceptions() override;
 
     // Pops a value off the stack, performing no operations related to reference counting
-    virtual void emit_pop();
+    void emit_pop() override;
     // Dups the current value on the stack, performing no operations related to reference counting
-    virtual void emit_dup();
+    void emit_dup() override;
 
-    virtual void emit_incref(bool maybeTagged = false);
+    void emit_incref(bool maybeTagged = false) override;
 
-    virtual void emit_debug_msg(const char* msg);
+    void emit_debug_msg(const char* msg) override;
 
-    virtual void emit_load_method(void* name);
-    virtual bool emit_method_call(size_t argCnt);
-    virtual void emit_method_call_n();
+    void emit_load_method(void* name) override;
+    bool emit_method_call(size_t argCnt) override;
+    void emit_method_call_n() override;
 
-    virtual void emit_dict_merge();
+    void emit_dict_merge() override;
 
-    virtual void emit_load_assertion_error();
+    void emit_load_assertion_error() override;
 
-    virtual void emit_periodic_work();
+    void emit_periodic_work() override;
 
-    virtual void emit_setup_annotations();
+    void emit_setup_annotations() override;
 
-    virtual void emit_breakpoint();
+    void emit_breakpoint() override;
 
-    virtual void emit_inc_local(Local local, int value);
-    virtual void emit_dec_local(Local local, int value);
+    void emit_inc_local(Local local, int value) override;
+    void emit_dec_local(Local local, int value) override;
 
-    virtual JittedCode* emit_compile();
-    virtual void lift_n_to_top(int pos);
-    virtual void lift_n_to_second(int pos);
-    virtual void lift_n_to_third(int pos);
-    virtual void sink_top_to_n(int pos);
+    JittedCode* emit_compile() override;
+    void lift_n_to_top(int pos) override;
+    void lift_n_to_second(int pos) override;
+    void lift_n_to_third(int pos) override;
+    void sink_top_to_n(int pos) override;
 private:
     void load_frame();
 
     void load_local(int oparg);
     void decref();
     CorInfoType to_clr_type(LocalKind kind);
-    void pop_top();
+    void pop_top() override;
 };
 
 #endif
