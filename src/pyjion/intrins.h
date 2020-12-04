@@ -78,12 +78,12 @@ int PyJit_UnaryNot_Int(PyObject* value);
 PyObject* PyJit_UnaryInvert(PyObject* value);
 
 PyObject* PyJit_NewList(size_t size);
-PyObject* PyJit_ListAppend(PyObject* value, PyObject* list);
+PyObject* PyJit_ListAppend(PyObject* list, PyObject* value);
 
-PyObject* PyJit_SetAdd(PyObject* value, PyObject* set);
+PyObject* PyJit_SetAdd(PyObject* set, PyObject* value);
 PyObject* PyJit_UpdateSet(PyObject* iterable, PyObject* set);
 
-PyObject* PyJit_MapAdd(PyObject*key, PyObject*map, PyObject* value);
+PyObject* PyJit_MapAdd(PyObject*map, PyObject*key, PyObject* value);
 
 PyObject* PyJit_Multiply(PyObject *left, PyObject *right);
 
@@ -142,15 +142,12 @@ void PyJit_UnwindEh(PyObject*exc, PyObject*val, PyObject*tb);
                          "BaseException is not allowed"
 
 PyObject* PyJit_CompareExceptions(PyObject*v, PyObject* w);
-int PyJit_CompareExceptions_Int(PyObject*v, PyObject* w);
 
 void PyJit_UnboundLocal(PyObject* name);
 
 void PyJit_DebugTrace(char* msg);
 
 void PyJit_PyErrRestore(PyObject*tb, PyObject*value, PyObject*exception);
-
-PyObject* PyJit_CheckFunctionResult(PyObject* value);
 
 PyObject* PyJit_ImportName(PyObject*level, PyObject*from, PyObject* name, PyFrameObject* f);
 
@@ -185,15 +182,13 @@ int PyJit_StoreMapNoDecRef(PyObject *key, PyObject *value, PyObject* map);
 
 PyObject* PyJit_DictUpdate(PyObject* other, PyObject* dict);
 PyObject * PyJit_BuildDictFromTuples(PyObject *keys_and_values);
-PyObject* PyJit_DictMerge(PyObject* other, PyObject* dict);
+PyObject* PyJit_DictMerge(PyObject* dict, PyObject* other);
 
 int PyJit_StoreSubscr(PyObject* value, PyObject *container, PyObject *index);
 
 int PyJit_DeleteSubscr(PyObject *container, PyObject *index);
 
 PyObject* PyJit_CallN(PyObject *target, PyObject* args);
-
-PyObject* PyJit_CallNKW(PyObject *target, PyObject* args, PyObject* kwargs);
 
 int PyJit_StoreGlobal(PyObject* v, PyFrameObject* f, PyObject* name);
 
@@ -245,10 +240,6 @@ PyObject* Call4(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2
 extern PyObject* g_emptyTuple;
 
 void PyJit_DecRef(PyObject* value);
-
-PyObject* PyJit_BinaryLShift_Int(PyObject *left, PyObject *right);
-PyObject* PyJit_BinaryRShift_Int(PyObject *left, PyObject *right);
-PyObject* PyJit_Power_Int(PyObject *left, PyObject *right);
 
 int PyJit_PeriodicWork();
 
