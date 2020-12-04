@@ -359,21 +359,24 @@ public:
     CorInfoHelpFunc getLazyStringLiteralHelper(
         CORINFO_MODULE_HANDLE   handle
         ) override {
-        //printf("getLazyStringLiteralHelper\r\n"); return CORINFO_HELP_UNDEF;
+        //printf("getLazyStringLiteralHelper\r\n");
+        return CORINFO_HELP_UNDEF;
     }
 
     CORINFO_MODULE_HANDLE embedModuleHandle(
         CORINFO_MODULE_HANDLE   handle,
         void                  **ppIndirection
         ) override {
-        //printf("embedModuleHandle  not implemented\r\n"); return nullptr;
+        //printf("embedModuleHandle  not implemented\r\n");
+        return nullptr;
     }
 
     CORINFO_CLASS_HANDLE embedClassHandle(
         CORINFO_CLASS_HANDLE    handle,
         void                  **ppIndirection
         ) override {
-        //printf("embedClassHandle  not implemented\r\n"); return nullptr;
+        //printf("embedClassHandle  not implemented\r\n");
+        return nullptr;
     }
 
     CORINFO_METHOD_HANDLE embedMethodHandle(
@@ -389,7 +392,8 @@ public:
         CORINFO_FIELD_HANDLE    handle,
         void                  **ppIndirection
         ) override {
-        //printf("embedFieldHandle  not implemented\r\n"); return nullptr;
+        //printf("embedFieldHandle  not implemented\r\n");
+        return nullptr;
     }
 
     // Given a module scope (module), a method handle (context) and
@@ -668,7 +672,8 @@ public:
     CORINFO_MODULE_HANDLE getMethodModule(
         CORINFO_METHOD_HANDLE       method
         ) override {
-        //printf("getMethodModule  not implemented\r\n"); return nullptr;
+        //printf("getMethodModule  not implemented\r\n");
+        return nullptr;
     }
 
     // If a method's attributes have (getMethodAttribs) CORINFO_FLG_INTRINSIC set,
@@ -728,7 +733,8 @@ public:
         CORINFO_CLASS_HANDLE        delegateHnd,
         CORINFO_METHOD_HANDLE       calleeHnd
         ) {
-        //printf("isDelegateCreationAllowed\r\n"); return FALSE;
+        //printf("isDelegateCreationAllowed\r\n");
+        return FALSE;
     }
 
 
