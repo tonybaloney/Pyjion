@@ -203,6 +203,14 @@ enum ComprehensionType {
     COMP_SET
 };
 
+class StackImbalanceException: public std::exception {
+public:
+    StackImbalanceException() : std::exception() {};
+    const char * what () const noexcept override
+    {
+        return "Stack imbalance";
+    }
+};
 
 #ifdef _WIN32
 class __declspec(dllexport) AbstractInterpreter {

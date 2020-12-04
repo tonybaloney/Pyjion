@@ -896,7 +896,9 @@ bool AbstractInterpreter::mergeStates(InterpreterState& newState, InterpreterSta
 #ifdef DUMP_TRACES
         printf("merging locals from %zu to %zu\n", mergeTo.localCount(), newState.localCount());
 #endif
-        assert(mergeTo.localCount() == newState.localCount());
+        if(mergeTo.localCount() != newState.localCount()){
+            throw StackImbalanceException();
+        }
         for (size_t i = 0; i < newState.localCount(); i++) {
             auto oldType = mergeTo.getLocal(i);
             auto newType = oldType.mergeWith(newState.getLocal(i));

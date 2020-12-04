@@ -145,7 +145,6 @@ public:
         // NB: Not honouring flag alignment requested in <flag>, but it is "optional"
 #ifdef WINDOWS
         *hotCodeBlock = m_codeAddr = HeapAlloc(m_winHeap, 0 , hotCodeSize);
-        assert(hotCodeBlock != nullptr);
 #else
 #if defined(__APPLE__) && defined(MAP_JIT)
         const int mode = MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT;
@@ -303,26 +302,26 @@ public:
     DWORD getThreadTLSIndex(
         void                  **ppIndirection
         ) override {
-        printf("getThreadTLSIndex  not implemented\r\n");
+        //printf("getThreadTLSIndex  not implemented\r\n");
         return 0;
     }
 
     const void * getInlinedCallFrameVptr(
         void                  **ppIndirection
         ) override {
-        printf("getInlinedCallFrameVptr  not implemented\r\n");
+        //printf("getInlinedCallFrameVptr  not implemented\r\n");
         return nullptr;
     }
 
     LONG * getAddrOfCaptureThreadGlobal(
         void                  **ppIndirection
         ) override {
-        printf("getAddrOfCaptureThreadGlobal  not implemented\r\n");
+        //printf("getAddrOfCaptureThreadGlobal  not implemented\r\n");
         return nullptr;
     }
 
     virtual SIZE_T*       getAddrModuleDomainID(CORINFO_MODULE_HANDLE   module) {
-        printf("getAddrModuleDomainID not implemented\r\n");
+        //printf("getAddrModuleDomainID not implemented\r\n");
         return nullptr;
     }
 
@@ -343,7 +342,7 @@ public:
     void getFunctionFixedEntryPoint(
         CORINFO_METHOD_HANDLE   ftn,
         CORINFO_CONST_LOOKUP *  pResult) override {
-        printf("getFunctionFixedEntryPoint not implemented\r\n");
+        //printf("getFunctionFixedEntryPoint not implemented\r\n");
     }
 
     // get the synchronization handle that is passed to monXstatic function
@@ -351,7 +350,7 @@ public:
         CORINFO_METHOD_HANDLE               ftn,
         void                  **ppIndirection
         ) override {
-        printf("getMethodSync  not implemented\r\n");
+        //printf("getMethodSync  not implemented\r\n");
         return nullptr;
     }
 
@@ -360,28 +359,28 @@ public:
     CorInfoHelpFunc getLazyStringLiteralHelper(
         CORINFO_MODULE_HANDLE   handle
         ) override {
-        printf("getLazyStringLiteralHelper\r\n"); return CORINFO_HELP_UNDEF;
+        //printf("getLazyStringLiteralHelper\r\n"); return CORINFO_HELP_UNDEF;
     }
 
     CORINFO_MODULE_HANDLE embedModuleHandle(
         CORINFO_MODULE_HANDLE   handle,
         void                  **ppIndirection
         ) override {
-        printf("embedModuleHandle  not implemented\r\n"); return nullptr;
+        //printf("embedModuleHandle  not implemented\r\n"); return nullptr;
     }
 
     CORINFO_CLASS_HANDLE embedClassHandle(
         CORINFO_CLASS_HANDLE    handle,
         void                  **ppIndirection
         ) override {
-        printf("embedClassHandle  not implemented\r\n"); return nullptr;
+        //printf("embedClassHandle  not implemented\r\n"); return nullptr;
     }
 
     CORINFO_METHOD_HANDLE embedMethodHandle(
         CORINFO_METHOD_HANDLE   handle,
         void                  **ppIndirection
         ) override {
-        printf("embedMethodHandle  not implemented\r\n");
+        //("embedMethodHandle  not implemented\r\n");
         *ppIndirection = nullptr;
         return handle;
     }
@@ -390,7 +389,7 @@ public:
         CORINFO_FIELD_HANDLE    handle,
         void                  **ppIndirection
         ) override {
-        printf("embedFieldHandle  not implemented\r\n"); return nullptr;
+        //printf("embedFieldHandle  not implemented\r\n"); return nullptr;
     }
 
     // Given a module scope (module), a method handle (context) and
@@ -418,7 +417,7 @@ public:
         CORINFO_SIG_INFO* szMetaSig,
         void           ** ppIndirection
         ) override {
-        printf("GetCookieForPInvokeCalliSig  not implemented\r\n");
+        //printf("GetCookieForPInvokeCalliSig  not implemented\r\n");
         return nullptr;
     }
 
@@ -427,7 +426,7 @@ public:
     bool canGetCookieForPInvokeCalliSig(
         CORINFO_SIG_INFO* szMetaSig
         ) override {
-        printf("canGetCookieForPInvokeCalliSig\r\n");
+        //printf("canGetCookieForPInvokeCalliSig\r\n");
         return true;
     }
 
@@ -453,7 +452,7 @@ public:
         void                     **pProfilerHandle,
         BOOL                      *pbIndirectedHandles
         ) override {
-        printf("GetProfilingHandle\r\n");
+        //printf("GetProfilingHandle\r\n");
     }
 
     // Returns instructions on how to make the call. See code:CORINFO_CALL_INFO for possible return values.
@@ -486,14 +485,14 @@ public:
 
     BOOL canAccessFamily(CORINFO_METHOD_HANDLE hCaller,
         CORINFO_CLASS_HANDLE hInstanceType) override {
-        printf("canAccessFamily \r\n");
+        //printf("canAccessFamily \r\n");
         return FALSE;
     }
 
     // Returns TRUE if the Class Domain ID is the RID of the class (currently true for every class
     // except reflection emitted classes and generics)
     BOOL isRIDClassDomainID(CORINFO_CLASS_HANDLE cls) override {
-        printf("isRIDClassDomainID  \r\n");
+        //printf("isRIDClassDomainID  \r\n");
         return FALSE;
     }
 
@@ -502,7 +501,7 @@ public:
         CORINFO_CLASS_HANDLE    cls,
         void                  **ppIndirection
         ) override {
-        printf("getClassDomainID not implemented\r\n");
+        //printf("getClassDomainID not implemented\r\n");
         return 0;
     }
 
@@ -511,7 +510,7 @@ public:
         CORINFO_FIELD_HANDLE    field,
         void                  **ppIndirection
         ) override {
-        printf("getFieldAddress  not implemented\r\n");
+        //printf("getFieldAddress  not implemented\r\n");
         return nullptr;
     }
 
@@ -520,7 +519,7 @@ public:
         CORINFO_SIG_INFO       *pSig,
         void                  **ppIndirection
         ) override {
-        printf("getVarArgsHandle  not implemented\r\n");
+        //printf("getVarArgsHandle  not implemented\r\n");
         return nullptr;
     }
 
@@ -529,7 +528,7 @@ public:
     bool canGetVarArgsHandle(
         CORINFO_SIG_INFO       *pSig
         ) override {
-        printf("canGetVarArgsHandle\r\n");
+        //printf("canGetVarArgsHandle\r\n");
         return false;
     }
 
@@ -539,14 +538,14 @@ public:
         mdToken                 metaTok,
         void                  **ppValue
         ) override {
-        printf("constructStringLiteral\r\n");
+        //printf("constructStringLiteral\r\n");
         return IAT_VALUE;
     }
 
     InfoAccessType emptyStringLiteral(
         void                  **ppValue
         ) override {
-        printf("emptyStringLiteral\r\n");
+        //printf("emptyStringLiteral\r\n");
         return IAT_VALUE;
     }
 
@@ -593,7 +592,8 @@ public:
         CORINFO_METHOD_HANDLE   ftn,            /* IN  */
         CORINFO_METHOD_INFO*    info            /* OUT */
         ) override {
-        printf("getMethodInfo  not implemented\r\n"); return false;
+        //("getMethodInfo  not implemented\r\n");
+        return false;
     }
 
     // Decides if you have any limitations for inlining. If everything's OK, it will return
@@ -610,7 +610,7 @@ public:
         CORINFO_METHOD_HANDLE       calleeHnd,                  /* IN  */
         DWORD*                      pRestrictions               /* OUT */
         ) override {
-        printf("canInline\r\n");
+        //printf("canInline\r\n");
         return INLINE_PASS;
     }
 
@@ -654,7 +654,7 @@ public:
         unsigned          EHnumber,             /* IN */
         CORINFO_EH_CLAUSE* clause               /* OUT */
         ) override {
-        printf("getEHinfo not implemented\r\n");
+        //printf("getEHinfo not implemented\r\n");
     }
 
     // return class it belongs to
@@ -668,7 +668,7 @@ public:
     CORINFO_MODULE_HANDLE getMethodModule(
         CORINFO_METHOD_HANDLE       method
         ) override {
-        printf("getMethodModule  not implemented\r\n"); return nullptr;
+        //printf("getMethodModule  not implemented\r\n"); return nullptr;
     }
 
     // If a method's attributes have (getMethodAttribs) CORINFO_FLG_INTRINSIC set,
@@ -677,14 +677,15 @@ public:
         CORINFO_METHOD_HANDLE       method,
 		bool * pMustExpand
         ) override {
-        printf("getIntrinsicID\r\n"); return CORINFO_INTRINSIC_Object_GetType;
+        //printf("getIntrinsicID\r\n");
+        return CORINFO_INTRINSIC_Object_GetType;
     }
 
     // return the unmanaged calling convention for a PInvoke
     CorInfoUnmanagedCallConv getUnmanagedCallConv(
         CORINFO_METHOD_HANDLE       method
         ) override {
-        printf("getUnmanagedCallConv\r\n");
+        //printf("getUnmanagedCallConv\r\n");
         return CORINFO_UNMANAGED_CALLCONV_C;
     }
 
@@ -694,7 +695,7 @@ public:
         CORINFO_METHOD_HANDLE       method,
         CORINFO_SIG_INFO*           callSiteSig
         ) override {
-        printf("pInvokeMarshalingRequired\r\n");
+        //printf("pInvokeMarshalingRequired\r\n");
         return TRUE;
     }
 
@@ -718,7 +719,7 @@ public:
         CORINFO_CLASS_HANDLE        delegateCls,      /* exact type of the delegate */
         BOOL                        *pfIsOpenDelegate /* is the delegate open */
         ) override {
-        printf("isCompatibleDelegate\r\n");
+        //printf("isCompatibleDelegate\r\n");
         return TRUE;
     }
 
@@ -727,7 +728,7 @@ public:
         CORINFO_CLASS_HANDLE        delegateHnd,
         CORINFO_METHOD_HANDLE       calleeHnd
         ) {
-        printf("isDelegateCreationAllowed\r\n"); return FALSE;
+        //printf("isDelegateCreationAllowed\r\n"); return FALSE;
     }
 
 
@@ -747,13 +748,14 @@ public:
     void methodMustBeLoadedBeforeCodeIsRun(
         CORINFO_METHOD_HANDLE       method
         ) override {
-        printf("methodMustBeLoadedBeforeCodeIsRun\r\n");
+        //printf("methodMustBeLoadedBeforeCodeIsRun\r\n");
     }
 
     CORINFO_METHOD_HANDLE mapMethodDeclToMethodImpl(
         CORINFO_METHOD_HANDLE       method
         ) override {
-        printf("mapMethodDeclToMethodImpl\r\n"); return nullptr;
+        //printf("mapMethodDeclToMethodImpl\r\n");
+        return nullptr;
     }
 
     // Returns the global cookie for the /GS unsafe buffer checks
@@ -789,7 +791,6 @@ public:
         CORINFO_CONTEXT_HANDLE      context,    /* IN */
         CORINFO_SIG_INFO           *sig         /* OUT */
         ) override {
-        printf("findSig %d\r\n", sigTOK);
         auto mod = (Module*)module;
         // TODX : ResolveMethod is signed, sigTok is unsigned.
         auto method = mod->ResolveMethod(sigTOK);
@@ -812,7 +813,9 @@ public:
 
     CORINFO_CLASS_HANDLE getTokenTypeAsHandle(
         CORINFO_RESOLVED_TOKEN *    pResolvedToken /* IN  */) override {
+#ifdef DUMP_TRACES
         printf("getTokenTypeAsHandle  not implemented\r\n");
+#endif
         return nullptr;
     }
 
