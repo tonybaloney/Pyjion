@@ -4,6 +4,9 @@ def enable() -> bool:
 def disable() -> bool:
     ...
 
+def info(f: callable) -> dict:
+    ...
+
 def dump_il(f: callable) -> bytearray:
     ...
 
