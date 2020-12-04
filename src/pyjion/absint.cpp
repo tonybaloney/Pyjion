@@ -179,7 +179,7 @@ void AbstractInterpreter::initStartingState() {
     int localIndex = 0;
     for (int i = 0; i < mCode->co_argcount + mCode->co_kwonlyargcount; i++) {
         // all parameters are initially definitely assigned
-        // TODX: Populate this with type information from profiling...
+        // TODO: Populate this with type information from profiling...
         lastState.replaceLocal(localIndex++, AbstractLocalInfo(&Any));
     }
 
@@ -495,7 +495,7 @@ bool AbstractInterpreter::interpret() {
                     lastState.pop();
                     break;
                 case LOAD_ATTR:
-                    // TODX: Add support for resolving known members of known types
+                    // TODO: Add support for resolving known members of known types
                     // @body: Implement resolving types into abstract value types for LOAD_ATTR
                     lastState.pop();
                     lastState.push(&Any);
@@ -543,7 +543,7 @@ bool AbstractInterpreter::interpret() {
                     lastState.push(&Any);
                     break;
                 case CALL_FUNCTION: {
-                    // TODX: Implement abstract value types for CALL_FUNCTION
+                    // TODO: Implement abstract value types for CALL_FUNCTION
                     // @body: Known functions could return known return types.
                     int argCnt = oparg & 0xff;
                     int kwArgCnt = (oparg >> 8) & 0xff;
@@ -641,7 +641,7 @@ bool AbstractInterpreter::interpret() {
                     }
                     break;
                 case UNPACK_SEQUENCE:
-                    // TODX: Implement abstract value types for UNPACK_SEQUENCE
+                    // TODO: Implement abstract value types for UNPACK_SEQUENCE
                     // @body: If the sequence is a known type we could know what types we're pushing here.
                     lastState.pop();
                     for (int i = 0; i < oparg; i++) {
@@ -681,7 +681,7 @@ bool AbstractInterpreter::interpret() {
                     // about their deletion.
                     break;
                 case GET_ITER:
-                    // TODX: Push iterable type on GET_ITER
+                    // TODO: Push iterable type on GET_ITER
                     lastState.pop();
                     lastState.push(&Any);
                     break;
@@ -708,7 +708,7 @@ bool AbstractInterpreter::interpret() {
                     skipEffect = true;
                     break;
                 case LOAD_BUILD_CLASS:
-                    // TODX: if we know this is __builtins__.__build_class__ we can push a special value
+                    // TODO: if we know this is __builtins__.__build_class__ we can push a special value
                     // to optimize the call.f
                     lastState.push(&Any);
                     break;
@@ -754,7 +754,7 @@ bool AbstractInterpreter::interpret() {
                 case SETUP_FINALLY: {
                     auto ehState = lastState;
                     // Except is entered with the exception object, traceback, and exception
-                    // type.  TODX: We could type these stronger then they currently are typed
+                    // type.  TODO: We could type these stronger then they currently are typed
                     ehState.push(&Any);
                     ehState.push(&Any);
                     ehState.push(&Any);
@@ -807,7 +807,7 @@ bool AbstractInterpreter::interpret() {
                     lastState.push(&Bool);
                     break;
                 case WITH_EXCEPT_START: {
-                    // TODX: Implement WITH_EXCEPT_START
+                    // TODO: Implement WITH_EXCEPT_START
                     /* At the top of the stack are 7 values:
                        - (TOP, SECOND, THIRD) = exc_info()
                        - (FOURTH, FIFTH, SIXTH) = previous exception for EXCEPT_HANDLER
@@ -821,7 +821,7 @@ bool AbstractInterpreter::interpret() {
                     auto second = lastState.pop(); // val
                     auto third = lastState.pop(); // tb
                     auto seventh = lastState[lastState.stackSize() - 7]; // exit_func
-                    // TODX : Vectorcall (exit_func, stack+1, 3, ..)
+                    // TODO : Vectorcall (exit_func, stack+1, 3, ..)
                     lastState.push(&Any); // res
                     break;
                 }
@@ -1906,7 +1906,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                                 // The stack actually ended up being empty - either because we didn't
                                 // have any values, or the values were all non-objects that we could
                                 // spill eagerly.
-                                // TODX : Validate this logic.
+                                // TODO : Validate this logic.
                                 m_comp->emit_branch(BranchAlways, curHandler->ErrorTarget);
                         }
                         else {
@@ -2041,7 +2041,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                     errorCheck("format object");
                 }
                 else if (!whichConversion) {
-                    // TODX: This could also be avoided if we knew we had a string on the stack
+                    // TODO: This could also be avoided if we knew we had a string on the stack
 
                     // If we did a conversion we know we have a string...
                     // Otherwise we need to convert
@@ -2255,7 +2255,7 @@ JittedCode* AbstractInterpreter::compile() {
 }
 
 bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
-    // TODX : Check list of opcodes that can skip lasti_update is up to date with ceval.
+    // TODO : Check list of opcodes that can skip lasti_update is up to date with ceval.
     switch (GET_OPCODE(opcodeIndex)) {
         case DUP_TOP:
         case NOP:
@@ -2295,7 +2295,7 @@ void AbstractInterpreter::unwindHandlers(){
     // handler.  When we take an error we'll branch down to this
     // little stub and then back up to the correct handler.
     if (!m_exceptionHandler.Empty()) {
-        // TODX: Unify the first handler with this loop
+        // TODO: Unify the first handler with this loop
         for (auto handler: m_exceptionHandler.GetHandlers()) {
             //emitRaiseAndFree(handler);
 
@@ -2436,7 +2436,7 @@ void AbstractInterpreter::unpackEx(size_t size, int opcode) {
     // the list local address, and the remainder address
     // PyObject* seq, size_t leftSize, size_t rightSize, PyObject** tempStorage, PyObject** list, PyObject*** remainder
 
-    errorCheck("unpack ex failed"); // TODX: We leak the sequence on failure
+    errorCheck("unpack ex failed"); // TODO: We leak the sequence on failure
 
     auto fastTmp = m_comp->emit_spill();
 

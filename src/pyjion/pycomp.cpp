@@ -168,7 +168,7 @@ Local PythonCompiler::emit_allocate_stack_array(size_t bytes) {
  */
 
 void PythonCompiler::emit_unbound_local_check() {
-    // TODX: Remove the unbound_local check for definitely assigned values
+    // TODO: Remove the unbound_local check for definitely assigned values
     // @body: (e.g. params w/ no dels, locals that are provably assigned)
     m_il.emit_call(METHOD_UNBOUND_LOCAL);
 }
@@ -189,7 +189,7 @@ CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
 
 
 void PythonCompiler::emit_store_fast(int local) {
-    // TODX: Move locals out of the Python frame object and into real locals
+    // TODO: Move locals out of the Python frame object and into real locals
 
     auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     m_il.st_loc(valueTmp);
@@ -501,7 +501,7 @@ void PythonCompiler::emit_build_vector(size_t argCnt){
     for (int i = argCnt ; i > 0; i -- ){
         m_il.st_elem(array, i, values[i]);
     }
-    ///  TODX: free local vars in emit_build_vector
+    ///  TODO: free local vars in emit_build_vector
     for (int i = 0 ; i < argCnt; i++){
         emit_free_local(values[i]);
     }
@@ -1115,7 +1115,7 @@ void PythonCompiler::emit_binary_float(int opcode) {
         case BINARY_TRUE_DIVIDE: m_il.div(); break;
         case INPLACE_MODULO:
         case BINARY_MODULO:
-            // TODX: We should be able to generate a mod and provide the JIT
+            // TODO: We should be able to generate a mod and provide the JIT
             // with a helper call method (CORINFO_HELP_DBLREM), but that's 
             // currently crashing for some reason...
             m_il.emit_call(METHOD_FLOAT_MODULUS_TOKEN);
@@ -1179,7 +1179,7 @@ void PythonCompiler::emit_binary_object(int opcode) {
         case INPLACE_MODULO:
             m_il.emit_call(METHOD_INPLACE_MODULO_TOKEN); break;
         case INPLACE_ADD:
-            // TODX: We should do the unicode_concatenate ref count optimization
+            // TODO: We should do the unicode_concatenate ref count optimization
             m_il.emit_call(METHOD_INPLACE_ADD_TOKEN);
             break;
         case INPLACE_SUBTRACT:
@@ -1212,7 +1212,7 @@ void PythonCompiler::emit_not_in() {
 }
 
 void PythonCompiler::emit_compare_float(int compareType) {
-    // TODX: Optimize compare and POP_JUMP
+    // TODO: Optimize compare and POP_JUMP
     // @body: If we know we're followed by the pop jump we could combine
     // and do a single branch comparison.
     switch (compareType) {
