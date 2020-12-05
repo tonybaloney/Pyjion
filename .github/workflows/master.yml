@@ -297,6 +297,18 @@ jobs:
         shell: bash
         run: python setup.py install --generator "Visual Studio 16 2019"
 
+      - name: Build Python Wheel
+        shell: bash
+        run: |
+          python setup.py bdist_wheel --generator "Visual Studio 16 2019"
+          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
+          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: dist
+          path: ${{ env.WHEEL }}
+
       - name: Test IPython REPL
         shell: bash
         run: |
@@ -315,14 +327,3 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_win.txt -j4
 
-      - name: Build Python Wheel
-        shell: bash
-        run: |
-          python setup.py bdist_wheel --generator "Visual Studio 16 2019"
-          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
-          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
-
-      - uses: actions/upload-artifact@v1
-        with:
-          name: dist
-          path: ${{ env.WHEEL }}
