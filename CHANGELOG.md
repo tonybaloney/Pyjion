@@ -1,5 +1,10 @@
 # Release notes
 
+## 0.0.7
+
+* Added a WSGI middleware function to enable Pyjion for Flask and Django (#67)
+* Fix a bug on dictionary merging for mapping types incorrectly raising a type error (#66)
+
 ## 0.0.6
 
 * Implemented supported for disassembling "large" methods into CIL (#27)
