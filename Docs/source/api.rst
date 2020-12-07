@@ -1,6 +1,9 @@
 Pyjion Python API
 =================
 
+Core module
+-----------
+
 .. module:: pyjion
 
 .. function:: enable()
@@ -23,12 +26,24 @@ Pyjion Python API
 
    Return the compiled machine-code as a bytearray
 
+Disassembly module
+------------------
+
 .. module:: pyjion.dis
 
 .. function:: dis(f)
 
    Print the ECMA CIL bytecode in a disassembly table
 
-.. function:: dump_native(f)
+.. function:: dis_native(f)
 
    Print the x86 assembly instructions in a disassembly table (required distorm3)
+
+WSGI middleware
+---------------
+
+.. module:: pyjion.wsgi
+
+.. class:: PyjionWsgiMiddleware(application)
+
+   Provides a WSGI middleware interface that enables the JIT for requests
