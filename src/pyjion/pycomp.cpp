@@ -150,8 +150,11 @@ void PythonCompiler::emit_breakpoint(){
     m_il.brk();
 }
 
-void PythonCompiler::emit_trace_line() {
+void PythonCompiler::emit_trace_line(Local lowerBound, Local upperBound, Local lastInstr) {
     load_frame();
+    emit_load_local(lowerBound);
+    emit_load_local(upperBound);
+    emit_load_local(lastInstr);
     m_il.emit_call(METHOD_TRACE_LINE);
 }
 
@@ -1476,4 +1479,4 @@ GLOBAL_METHOD(METHOD_SETUP_ANNOTATIONS, &PyJit_SetupAnnotations, CORINFO_TYPE_IN
 
 GLOBAL_METHOD(METHOD_LOAD_ASSERTION_ERROR, &PyJit_LoadAssertionError, CORINFO_TYPE_NATIVEINT);
 
-GLOBAL_METHOD(METHOD_TRACE_LINE, &PyJit_TraceLine, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_TRACE_LINE, &PyJit_TraceLine, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));

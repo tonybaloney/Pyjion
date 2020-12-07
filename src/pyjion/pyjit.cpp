@@ -74,13 +74,6 @@ PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame) {
     );
 #endif
 
-    PyThreadState *tstate = PyThreadState_GET();
-    if (tstate->use_tracing) {
-        if (tstate->c_tracefunc != nullptr) {
-            return _PyEval_EvalFrameDefault(tstate, frame, 0);
-        }
-    }
-
     if (Py_EnterRecursiveCall("")) {
         return nullptr;
     }
@@ -252,7 +245,7 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
 #ifdef DEBUG
             interp.enableTracing();
 #else
-			if (tstate->c_tracefunc != nullptr){
+			if (tstate->use_tracing){
 			    interp.enableTracing();
 			}
 #endif

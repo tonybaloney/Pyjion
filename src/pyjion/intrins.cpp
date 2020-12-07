@@ -1992,14 +1992,12 @@ PyObject* PyJit_FormatValue(PyObject* item) {
 	return res;
 }
 
-void PyJit_TraceLine(PyFrameObject* f){
+void PyJit_TraceLine(PyFrameObject* f, int instr_lb, int instr_ub, int instr_prev){
     auto tstate = PyThreadState_GET();
     if (tstate->c_tracefunc != nullptr && !tstate->tracing) {
         int err;
         int result;
         int line = f->f_lineno;
-        int instr_prev = f->f_lasti;
-        int instr_lb = 0, instr_ub = -1;
 
         /* If the last instruction executed isn't in the current
            instruction window, reset the window.
@@ -2026,7 +2024,6 @@ void PyJit_TraceLine(PyFrameObject* f){
                 tstate->use_tracing = ((tstate->c_tracefunc != NULL)
                                        || (tstate->c_profilefunc != NULL));
                 tstate->tracing--;
-
             }
         }
         /* Always emit an opcode event if we're tracing all opcodes. */

@@ -414,7 +414,7 @@ public:
     void emit_inc_local(Local local, int value) override;
     void emit_dec_local(Local local, int value) override;
 
-    void emit_trace_line();
+    void emit_trace_line(Local lowerBound, Local upperBound, Local lastInstr);
 
     JittedCode* emit_compile() override;
     void lift_n_to_top(int pos) override;

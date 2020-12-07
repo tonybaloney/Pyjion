@@ -229,6 +229,10 @@ class AbstractInterpreter {
     Local mErrorCheckLocal;
     Local mExcVarsOnStack; // Counter of the number of exception variables on the stack.
     bool mTracingEnabled;
+    Local mTracingInstrLowerBound;
+    Local mTracingInstrUpperBound;
+    Local mTracingLastInstr;
+
 
     // ** Data consumed during analysis:
     // Tracks the entry point for each POP_BLOCK opcode, so we can restore our

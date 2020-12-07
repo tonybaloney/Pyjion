@@ -1501,9 +1501,24 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_comp->emit_push_frame();
 
     auto rootHandlerLabel = m_comp->emit_define_label();
+
     mExcVarsOnStack = m_comp->emit_define_local(LK_Int);
     m_comp->emit_int(0);
     m_comp->emit_store_local(mExcVarsOnStack);
+
+    if (mTracingEnabled){
+        mTracingInstrLowerBound = m_comp->emit_define_local(LK_Int);
+        m_comp->emit_int(0);
+        m_comp->emit_store_local(mTracingInstrLowerBound);
+
+        mTracingInstrUpperBound = m_comp->emit_define_local(LK_Int);
+        m_comp->emit_int(-1);
+        m_comp->emit_store_local(mTracingInstrUpperBound);
+
+        mTracingLastInstr = m_comp->emit_define_local(LK_Int);
+        m_comp->emit_int(-1);
+        m_comp->emit_store_local(mTracingLastInstr);
+    }
 
     // Push a catch-all error handler onto the handler list
     auto rootHandler = m_exceptionHandler.SetRootHandler(rootHandlerLabel, ExceptionVars(m_comp));
@@ -1554,7 +1569,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
         if (!canSkipLastiUpdate(curByte)) {
             m_comp->emit_lasti_update(curByte);
             if (mTracingEnabled){
-                m_comp->emit_trace_line();
+                m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
             }
         }
 
