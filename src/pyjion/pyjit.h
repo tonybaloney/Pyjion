@@ -91,6 +91,7 @@ public:
 		j_il = nullptr;
 		j_ilLen = 0;
 		j_nativeSize = 0;
+		Py_INCREF(code);
 	}
 
 	~PyjionJittedCode();

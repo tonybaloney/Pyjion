@@ -228,6 +228,7 @@ class AbstractInterpreter {
     size_t mSize;
     Local mErrorCheckLocal;
     Local mExcVarsOnStack; // Counter of the number of exception variables on the stack.
+    bool mTracingEnabled;
 
     // ** Data consumed during analysis:
     // Tracks the entry point for each POP_BLOCK opcode, so we can restore our
@@ -290,6 +291,9 @@ public:
     vector<AbstractValueWithSources>& getStackInfo(size_t byteCodeIndex);
 
     AbstractValue* getReturnInfo();
+
+    void enableTracing();
+    void disableTracing();
 
 private:
     AbstractValue* toAbstract(PyObject* obj);

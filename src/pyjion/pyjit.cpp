@@ -249,6 +249,14 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
                 interp.setLocalType(i, type);
 			}
 
+#ifdef DEBUG
+            interp.enableTracing();
+#else
+			if (tstate->c_tracefunc != nullptr){
+			    interp.enableTracing();
+			}
+#endif
+
 			auto res = interp.compile();
 #ifdef DUMP_TRACES
 			printf("Tracing %s from %s line %d (%s)\r\n",
@@ -384,7 +392,10 @@ PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 }
 
 void PyjionJitFree(void* obj) {
-    free(obj);
+    auto* code_obj = static_cast<PyjionJittedCode *>(obj);
+    Py_XDECREF(code_obj->j_code);
+    free(code_obj->j_il);
+    code_obj->j_il = nullptr;
 }
 
 static PyInterpreterState* inter(){

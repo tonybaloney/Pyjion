@@ -190,6 +190,7 @@
 #define METHOD_STOREGLOBAL_TOKEN     0x00030004
 #define METHOD_DELETEGLOBAL_TOKEN    0x00030005
 #define METHOD_LOAD_ASSERTION_ERROR  0x00030006
+#define METHOD_TRACE_LINE            0x00030007
 
 #define METHOD_FLOAT_POWER_TOKEN    0x00050000
 #define METHOD_FLOAT_FLOOR_TOKEN    0x00050001
@@ -412,6 +413,8 @@ public:
 
     void emit_inc_local(Local local, int value) override;
     void emit_dec_local(Local local, int value) override;
+
+    void emit_trace_line();
 
     JittedCode* emit_compile() override;
     void lift_n_to_top(int pos) override;

@@ -1991,3 +1991,59 @@ PyObject* PyJit_FormatValue(PyObject* item) {
 	Py_DECREF(item);
 	return res;
 }
+
+void PyJit_TraceLine(PyFrameObject* f){
+    auto tstate = PyThreadState_GET();
+    if (tstate->c_tracefunc != nullptr && !tstate->tracing) {
+        int err;
+        int result;
+        int line = f->f_lineno;
+        int instr_prev = f->f_lasti;
+        int instr_lb = 0, instr_ub = -1;
+
+        /* If the last instruction executed isn't in the current
+           instruction window, reset the window.
+        */
+        if (f->f_lasti < instr_lb || f->f_lasti >= instr_ub) {
+            PyAddrPair bounds;
+            line = _PyCode_CheckLineNumber(f->f_code, f->f_lasti,
+                                           &bounds);
+            instr_lb = bounds.ap_lower;
+            instr_ub = bounds.ap_upper;
+        }
+        /* If the last instruction falls at the start of a line or if it
+           represents a jump backwards, update the frame's line number and
+           then call the trace function if we're tracing source lines.
+        */
+        if ((f->f_lasti == instr_lb || f->f_lasti < instr_prev)) {
+            f->f_lineno = line;
+            if (f->f_trace_lines) {
+                if (tstate->tracing)
+                    return;
+                tstate->tracing++;
+                tstate->use_tracing = 0;
+                result = tstate->c_tracefunc(tstate->c_traceobj, f, PyTrace_LINE, Py_None);
+                tstate->use_tracing = ((tstate->c_tracefunc != NULL)
+                                       || (tstate->c_profilefunc != NULL));
+                tstate->tracing--;
+
+            }
+        }
+        /* Always emit an opcode event if we're tracing all opcodes. */
+        if (f->f_trace_opcodes) {
+            if (tstate->tracing)
+                return;
+            tstate->tracing++;
+            tstate->use_tracing = 0;
+            result = tstate->c_tracefunc(tstate->c_traceobj, f, PyTrace_OPCODE, Py_None);
+            tstate->use_tracing = ((tstate->c_tracefunc != NULL)
+                                   || (tstate->c_profilefunc != NULL));
+            tstate->tracing--;
+        }
+        instr_prev = f->f_lasti;
+
+        // TODO : Handle possible change of instruction address
+        //  should lookup jump address and branch (f->f_lasti);
+        // TODO : Handle error in call trace function
+    }
+}

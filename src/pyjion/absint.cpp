@@ -1551,8 +1551,12 @@ JittedCode* AbstractInterpreter::compileWorker() {
         int ilLen = m_comp->il_length();
         m_comp->emit_breakpoint();
 #endif
-        if (!canSkipLastiUpdate(curByte))
+        if (!canSkipLastiUpdate(curByte)) {
             m_comp->emit_lasti_update(curByte);
+            if (mTracingEnabled){
+                m_comp->emit_trace_line();
+            }
+        }
 
         int curStackSize = m_stack.size();
         bool skipEffect = false;
@@ -2617,4 +2621,12 @@ void AbstractInterpreter::popExcept() {
     auto block = m_blockStack.back();
     assert (block.CurrentHandler);
     unwindEh(block.CurrentHandler, block.CurrentHandler->BackHandler);
+}
+
+void AbstractInterpreter::enableTracing() {
+    mTracingEnabled = true;
+}
+
+void AbstractInterpreter::disableTracing() {
+    mTracingEnabled = false;
 }
