@@ -33,3 +33,4 @@ Main
     building
     using
     api
+    wsgi
