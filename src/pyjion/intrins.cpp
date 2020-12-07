@@ -1088,22 +1088,15 @@ PyObject* PyJit_LoadAssertionError() {
 
 PyObject* PyJit_DictUpdate(PyObject* other, PyObject* dict) {
     assert(dict != nullptr);
-    int res ;
-    if (!PyDict_Check(dict)) {
-        PyErr_Format(PyExc_TypeError,
-                     "argument must be a dict, not %.200s",
-                     dict->ob_type->tp_name);
+    if (PyDict_Update(dict, other) < 0){
+        if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
+            PyErr_Format(PyExc_TypeError,
+                          "'%.200s' object is not a mapping",
+                          Py_TYPE(other)->tp_name);
+        }
         goto error;
     }
-    if (!PyDict_Check(other)) {
-        PyErr_Format(PyExc_TypeError,
-                     "argument must be a dict, not %.200s",
-                     other->ob_type->tp_name);
-        goto error;
-    }
-    res = PyDict_Update(dict, other);
-    if (res != 0)
-        goto error;
+
     Py_DECREF(other);
     return dict;
 error:
@@ -1113,22 +1106,15 @@ error:
 
 PyObject* PyJit_DictMerge(PyObject* dict, PyObject* other) {
     assert(dict != nullptr);
-    int res ;
-    if (!PyDict_Check(dict)) {
-        PyErr_Format(PyExc_TypeError,
-                     "argument must be a dict, not %.200s",
-                     dict->ob_type->tp_name);
+    if (_PyDict_MergeEx(dict, other, 2) < 0){
+        if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
+            PyErr_Format(PyExc_TypeError,
+                         "'%.200s' object is not a mapping",
+                         Py_TYPE(other)->tp_name);
+        }
         goto error;
     }
-    if (!PyDict_Check(other)) {
-        PyErr_Format(PyExc_TypeError,
-                     "argument must be a dict, not %.200s",
-                     other->ob_type->tp_name);
-        goto error;
-    }
-    res = _PyDict_MergeEx(dict, other, 2);
-    if (res != 0)
-        goto error;
+
     Py_DECREF(other);
     return dict;
 error:
