@@ -1507,6 +1507,9 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_comp->emit_store_local(mExcVarsOnStack);
 
     if (mTracingEnabled){
+        // push initial trace on entry to frame
+        m_comp->emit_trace_frame_entry();
+
         mTracingInstrLowerBound = m_comp->emit_define_local(LK_Int);
         m_comp->emit_int(0);
         m_comp->emit_store_local(mTracingInstrLowerBound);

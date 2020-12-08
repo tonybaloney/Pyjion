@@ -109,8 +109,8 @@ public:
 TEST_CASE("test simple func"){
     SECTION("test simple") {
         auto t = TracingTest(
-                "def f():\n  a = 1"
+                "def f():\n  a = 1\n  b = 2\n  c=3\n  return a + b + c\n"
         );
-        CHECK(t.returns() == "None");
+        CHECK(t.returns() == "6");
     };
 }

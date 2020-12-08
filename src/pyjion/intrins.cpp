@@ -1992,28 +1992,28 @@ PyObject* PyJit_FormatValue(PyObject* item) {
 	return res;
 }
 
-void PyJit_TraceLine(PyFrameObject* f, int instr_lb, int instr_ub, int instr_prev){
+void PyJit_TraceLine(PyFrameObject* f, int* instr_lb, int* instr_ub, int* instr_prev){
     auto tstate = PyThreadState_GET();
     if (tstate->c_tracefunc != nullptr && !tstate->tracing) {
         int err;
-        int result;
+        int result = 0;
         int line = f->f_lineno;
 
         /* If the last instruction executed isn't in the current
            instruction window, reset the window.
         */
-        if (f->f_lasti < instr_lb || f->f_lasti >= instr_ub) {
+        if (f->f_lasti < *instr_lb || f->f_lasti >= *instr_ub) {
             PyAddrPair bounds;
             line = _PyCode_CheckLineNumber(f->f_code, f->f_lasti,
                                            &bounds);
-            instr_lb = bounds.ap_lower;
-            instr_ub = bounds.ap_upper;
+            *instr_lb = bounds.ap_lower;
+            *instr_ub = bounds.ap_upper;
         }
         /* If the last instruction falls at the start of a line or if it
            represents a jump backwards, update the frame's line number and
            then call the trace function if we're tracing source lines.
         */
-        if ((f->f_lasti == instr_lb || f->f_lasti < instr_prev)) {
+        if ((f->f_lasti == *instr_lb || f->f_lasti < *instr_prev)) {
             f->f_lineno = line;
             if (f->f_trace_lines) {
                 if (tstate->tracing)
@@ -2037,10 +2037,38 @@ void PyJit_TraceLine(PyFrameObject* f, int instr_lb, int instr_ub, int instr_pre
                                    || (tstate->c_profilefunc != NULL));
             tstate->tracing--;
         }
-        instr_prev = f->f_lasti;
+        *instr_prev = f->f_lasti;
 
         // TODO : Handle possible change of instruction address
         //  should lookup jump address and branch (f->f_lasti);
         // TODO : Handle error in call trace function
+    }
+}
+
+void PyJit_TraceFrameEntry(PyFrameObject* f){
+    auto tstate = PyThreadState_GET();
+    int result = 0;
+    PyObject *type, *value, *traceback;
+    PyErr_Fetch(&type, &value, &traceback);
+
+    if (tstate->tracing)
+        return;
+    tstate->tracing++;
+    tstate->use_tracing = 0;
+    result = tstate->c_tracefunc(tstate->c_traceobj, f, PyTrace_CALL, Py_None);
+    tstate->use_tracing = ((tstate->c_tracefunc != NULL)
+                           || (tstate->c_profilefunc != NULL));
+    tstate->tracing--;
+
+    if (result == 0)
+    {
+        PyErr_Restore(type, value, traceback);
+        //return 0;
+    }
+    else {
+        Py_XDECREF(type);
+        Py_XDECREF(value);
+        Py_XDECREF(traceback);
+        //return -1;
     }
 }

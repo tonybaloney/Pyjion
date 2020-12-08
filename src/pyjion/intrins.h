@@ -231,7 +231,8 @@ PyObject* PyJit_IsNot(PyObject* lhs, PyObject* rhs);
 int PyJit_Is_Bool(PyObject* lhs, PyObject* rhs);
 int PyJit_IsNot_Bool(PyObject* lhs, PyObject* rhs);
 
-void PyJit_TraceLine(PyFrameObject* f, int instr_lb, int instr_ub, int instr_prev);
+void PyJit_TraceLine(PyFrameObject* f, int* instr_lb, int* instr_ub, int* instr_prev);
+void PyJit_TraceFrameEntry(PyFrameObject* f);
 
 PyObject* Call0(PyObject *target);
 PyObject* Call1(PyObject *target, PyObject* arg0);
