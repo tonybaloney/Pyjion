@@ -150,6 +150,29 @@ void PythonCompiler::emit_breakpoint(){
     m_il.brk();
 }
 
+void PythonCompiler::emit_trace_line(Local lowerBound, Local upperBound, Local lastInstr) {
+    load_frame();
+    emit_load_local_addr(lowerBound);
+    emit_load_local_addr(upperBound);
+    emit_load_local_addr(lastInstr);
+    m_il.emit_call(METHOD_TRACE_LINE);
+}
+
+void PythonCompiler::emit_trace_frame_entry() {
+    load_frame();
+    m_il.emit_call(METHOD_TRACE_FRAME_ENTRY);
+}
+
+void PythonCompiler::emit_trace_frame_exit() {
+    load_frame();
+    m_il.emit_call(METHOD_TRACE_FRAME_EXIT);
+}
+
+void PythonCompiler::emit_trace_exception() {
+    load_frame();
+    m_il.emit_call(METHOD_TRACE_EXCEPTION);
+}
+
 void PythonCompiler::decref() {
     m_il.emit_call(METHOD_DECREF_TOKEN);
 }
@@ -1470,3 +1493,8 @@ GLOBAL_METHOD(METHOD_METHCALLN_TOKEN, &MethCallN, CORINFO_TYPE_NATIVEINT, Parame
 GLOBAL_METHOD(METHOD_SETUP_ANNOTATIONS, &PyJit_SetupAnnotations, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT),);
 
 GLOBAL_METHOD(METHOD_LOAD_ASSERTION_ERROR, &PyJit_LoadAssertionError, CORINFO_TYPE_NATIVEINT);
+
+GLOBAL_METHOD(METHOD_TRACE_LINE, &PyJit_TraceLine, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_TRACE_FRAME_ENTRY, &PyJit_TraceFrameEntry, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
+GLOBAL_METHOD(METHOD_TRACE_FRAME_EXIT, &PyJit_TraceFrameExit, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
+GLOBAL_METHOD(METHOD_TRACE_EXCEPTION, &PyJit_TraceFrameException, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );

@@ -59,9 +59,16 @@ PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject);
 class PyjionJittedCode;
 typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*);
 
+typedef struct {
+    bool tracing;
+    unsigned short optimizationLevel;
+} PyjionSettings;
+
 static PY_UINT64_T HOT_CODE = 0;
 static PY_UINT64_T jitPassCounter = 0;
 static PY_UINT64_T jitFailCounter = 0;
+
+static PyjionSettings g_pyjionSettings;
 
 void PyjionJitFree(void* obj);
 
@@ -91,6 +98,7 @@ public:
 		j_il = nullptr;
 		j_ilLen = 0;
 		j_nativeSize = 0;
+		Py_INCREF(code);
 	}
 
 	~PyjionJittedCode();

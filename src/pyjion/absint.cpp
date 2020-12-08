@@ -38,6 +38,7 @@
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
     mSize = PyBytes_Size(code->co_code);
+    mTracingEnabled = false;
 
     if (comp != nullptr) {
         m_retLabel = comp->emit_define_label();
@@ -58,9 +59,6 @@ bool AbstractInterpreter::preprocess() {
     if (mCode->co_flags & (CO_COROUTINE | CO_GENERATOR)) {
         // Don't compile co-routines or generators.  We can't rely on
         // detecting yields because they could be optimized out.
-#ifdef DEBUG
-        printf("Skipping function because it contains a coroutine/generator.");
-#endif
         return false;
     }
     for (int i = 0; i < mCode->co_argcount; i++) {
@@ -200,9 +198,6 @@ void AbstractInterpreter::initStartingState() {
 
 bool AbstractInterpreter::interpret() {
     if (!preprocess()) {
-#ifdef DEBUG
-        printf("Failed to preprocess");
-#endif
         return false;
     }
 
@@ -222,10 +217,6 @@ bool AbstractInterpreter::interpret() {
 
             auto opcode = GET_OPCODE(curByte);
             oparg = GET_OPARG(curByte);
-#ifdef DUMP_TRACES
-            printf("Interpreting %lu - OPCODE %s (%d) stack %zu\n", opcodeIndex, opcodeName(opcode), oparg,
-                   lastState.stackSize());
-#endif
         processOpCode:
 
             int curStackLen = lastState.stackSize();
@@ -1209,6 +1200,10 @@ void AbstractInterpreter::branchRaise(const char *reason) {
     }
 #endif
     m_comp->emit_eh_trace();
+
+    if (mTracingEnabled)
+        m_comp->emit_trace_exception();
+
     // number of stack entries we need to clear...
     int count = m_stack.size() - entryStack.size();
     
@@ -1501,9 +1496,27 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_comp->emit_push_frame();
 
     auto rootHandlerLabel = m_comp->emit_define_label();
+
     mExcVarsOnStack = m_comp->emit_define_local(LK_Int);
     m_comp->emit_int(0);
     m_comp->emit_store_local(mExcVarsOnStack);
+
+    if (mTracingEnabled){
+        // push initial trace on entry to frame
+        m_comp->emit_trace_frame_entry();
+
+        mTracingInstrLowerBound = m_comp->emit_define_local(LK_Int);
+        m_comp->emit_int(0);
+        m_comp->emit_store_local(mTracingInstrLowerBound);
+
+        mTracingInstrUpperBound = m_comp->emit_define_local(LK_Int);
+        m_comp->emit_int(-1);
+        m_comp->emit_store_local(mTracingInstrUpperBound);
+
+        mTracingLastInstr = m_comp->emit_define_local(LK_Int);
+        m_comp->emit_int(-1);
+        m_comp->emit_store_local(mTracingLastInstr);
+    }
 
     // Push a catch-all error handler onto the handler list
     auto rootHandler = m_exceptionHandler.SetRootHandler(rootHandlerLabel, ExceptionVars(m_comp));
@@ -1551,8 +1564,12 @@ JittedCode* AbstractInterpreter::compileWorker() {
         int ilLen = m_comp->il_length();
         m_comp->emit_breakpoint();
 #endif
-        if (!canSkipLastiUpdate(curByte))
+        if (!canSkipLastiUpdate(curByte)) {
             m_comp->emit_lasti_update(curByte);
+            if (mTracingEnabled){
+                m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
+            }
+        }
 
         int curStackSize = m_stack.size();
         bool skipEffect = false;
@@ -2203,6 +2220,10 @@ JittedCode* AbstractInterpreter::compileWorker() {
     // Final return position, pop frame and return
     m_comp->emit_mark_label(finalRet);
 
+    if (mTracingEnabled) {
+        m_comp->emit_trace_frame_exit();
+    }
+
     m_comp->emit_pop_frame();
 
     m_comp->emit_ret(1);
@@ -2617,4 +2638,12 @@ void AbstractInterpreter::popExcept() {
     auto block = m_blockStack.back();
     assert (block.CurrentHandler);
     unwindEh(block.CurrentHandler, block.CurrentHandler->BackHandler);
+}
+
+void AbstractInterpreter::enableTracing() {
+    mTracingEnabled = true;
+}
+
+void AbstractInterpreter::disableTracing() {
+    mTracingEnabled = false;
 }

@@ -74,13 +74,6 @@ PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame) {
     );
 #endif
 
-    PyThreadState *tstate = PyThreadState_GET();
-    if (tstate->use_tracing) {
-        if (tstate->c_tracefunc != nullptr) {
-            return _PyEval_EvalFrameDefault(tstate, frame, 0);
-        }
-    }
-
     if (Py_EnterRecursiveCall("")) {
         return nullptr;
     }
@@ -105,7 +98,9 @@ PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame) {
 
 static Py_tss_t* g_extraSlot;
 
+
 bool JitInit() {
+    g_pyjionSettings = {false, 0};
 	g_extraSlot = PyThread_tss_alloc();
 	PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS
@@ -131,16 +126,6 @@ bool jit_compile(PyCodeObject* code) {
     if (strcmp(PyUnicode_AsUTF8(code->co_name), "<genexpr>") == 0) {
         return false;
     }
-#ifdef DUMP_TRACES
-    static int compileCount = 0, failCount = 0;
-    printf("Tracing %s from %s line %d #%d (%d failures so far)\r\n",
-           PyUnicode_AsUTF8(code->co_name),
-           PyUnicode_AsUTF8(code->co_filename),
-           code->co_firstlineno,
-           ++compileCount,
-           failCount);
-#endif
-
     auto jittedCode = PyJit_EnsureExtra((PyObject *) code);
 
     jittedCode->j_evalfunc = &Jit_EvalTrace;
@@ -249,21 +234,18 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
                 interp.setLocalType(i, type);
 			}
 
-			auto res = interp.compile();
-#ifdef DUMP_TRACES
-			printf("Tracing %s from %s line %d (%s)\r\n",
-				PyUnicode_AsUTF8(frame->f_code->co_name),
-				PyUnicode_AsUTF8(frame->f_code->co_filename),
-				frame->f_code->co_firstlineno,
-                PyUnicode_AsUTF8(PyObject_Repr(frame->f_code->co_consts))
-			);
+#ifdef DEBUG
+            interp.enableTracing();
+#else
+			if (tstate->use_tracing || g_pyjionSettings.tracing){
+			    interp.enableTracing();
+			}
 #endif
+
+			auto res = interp.compile();
 
 			if (res == nullptr) {
 				static int failCount;
-#ifdef DUMP_TRACES
-                printf("Result from compile operation indicates failure, defaulting to EFD.\r\n");
-#endif
 				trace->j_failed = true;
 				return _PyEval_EvalFrameDefault(tstate, frame, 0);
 			}
@@ -330,29 +312,12 @@ PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 	auto jitted = PyJit_EnsureExtra((PyObject*)f->f_code);
 	if (jitted != nullptr && !throwflag) {
 		if (jitted->j_evalfunc != nullptr) {
-#ifdef DUMP_TRACES
-			printf("Calling %s (already jitted) from %s line %d %p (%s)\r\n",
-				PyUnicode_AsUTF8(f->f_code->co_name),
-				PyUnicode_AsUTF8(f->f_code->co_filename),
-				f->f_code->co_firstlineno,
-				jitted,
-				PyUnicode_AsUTF8(PyObject_Repr(f->f_code->co_consts))
-			);
-#endif
             jitted->j_run_count++;
 			return jitted->j_evalfunc(jitted, f);
 		}
 		else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {
 			if (jit_compile(f->f_code)) {
 				// execute the jitted code...
-#ifdef DUMP_TRACES
-				printf("Calling first %s from %s line %d %p\r\n",
-					PyUnicode_AsUTF8(f->f_code->co_name),
-					PyUnicode_AsUTF8(f->f_code->co_filename),
-					f->f_code->co_firstlineno,
-					jitted
-				);
-#endif
 				jitPassCounter++;
 				return jitted->j_evalfunc(jitted, f);
 			}
@@ -362,29 +327,17 @@ PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 			jitted->j_failed = true;
 		}
 	}
-#ifdef DUMP_TRACES
-	printf("Falling to EFD %s from %s line %d %p\r\n",
-		PyUnicode_AsUTF8(f->f_code->co_name),
-		PyUnicode_AsUTF8(f->f_code->co_filename),
-		f->f_code->co_firstlineno,
-		jitted
-	);
-#endif
-
 	auto res = _PyEval_EvalFrameDefault(ts, f, throwflag);
-#ifdef DUMP_TRACES
-	printf("Returning EFD %s from %s line %d %p\r\n",
-		PyUnicode_AsUTF8(f->f_code->co_name),
-		PyUnicode_AsUTF8(f->f_code->co_filename),
-		f->f_code->co_firstlineno,
-		jitted
-	);
-#endif
 	return res;
 }
 
 void PyjionJitFree(void* obj) {
-    free(obj);
+    if (obj == nullptr)
+        return;
+    auto* code_obj = static_cast<PyjionJittedCode *>(obj);
+    Py_XDECREF(code_obj->j_code);
+    free(code_obj->j_il);
+    code_obj->j_il = nullptr;
 }
 
 static PyInterpreterState* inter(){
@@ -506,7 +459,7 @@ static PyObject *pyjion_dump_native(PyObject *self, PyObject* func) {
     return res;
 }
 
-static PyObject *pyjion_set_threshold(PyObject *self, PyObject* args) {
+static PyObject* pyjion_set_threshold(PyObject *self, PyObject* args) {
 	if (!PyLong_Check(args)) {
 		PyErr_SetString(PyExc_TypeError, "Expected int for new threshold");
 		return nullptr;
@@ -523,8 +476,18 @@ static PyObject *pyjion_set_threshold(PyObject *self, PyObject* args) {
 	return prev;
 }
 
-static PyObject *pyjion_get_threshold(PyObject *self, PyObject* args) {
+static PyObject* pyjion_get_threshold(PyObject *self, PyObject* args) {
 	return PyLong_FromLongLong(HOT_CODE);
+}
+
+static PyObject* pyjion_enable_tracing(PyObject *self, PyObject* args) {
+    g_pyjionSettings.tracing = true;
+    Py_RETURN_NONE;
+}
+
+static PyObject* pyjion_disable_tracing(PyObject *self, PyObject* args) {
+    g_pyjionSettings.tracing = false;
+    Py_RETURN_NONE;
 }
 
 static PyMethodDef PyjionMethods[] = {
@@ -582,6 +545,18 @@ static PyMethodDef PyjionMethods[] = {
 		METH_O,
 		"Gets the number of times a method needs to be executed before the JIT is triggered."
 	},
+    {
+            "enable_tracing",
+            pyjion_enable_tracing,
+            METH_NOARGS,
+            "Enable tracing for generated code."
+    },
+    {
+            "disable_tracing",
+            pyjion_disable_tracing,
+            METH_NOARGS,
+            "Enable tracing for generated code."
+    },
 	{NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
