@@ -12,3 +12,9 @@ def dump_il(f: callable) -> bytearray:
 
 def dump_native(f: callable) -> bytearray:
     ...
+
+def enable_tracing() -> None:
+    ...
+
+def disable_tracing() -> None:
+    ...
