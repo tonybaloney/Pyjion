@@ -75,5 +75,27 @@ class TracingModuleTestCase(unittest.TestCase):
         self.assertIn("Returning ", f.getvalue())
         self.assertIn("STORE_FAST", f.getvalue())
 
+    def test_eh_tracer(self):
+        def custom_trace(frame, event, args):
+            frame.f_trace_opcodes = True
+            if event == 'exception':
+                print("Hit exception")
+                print(*args)
+            return custom_trace
+
+        def test_f():
+            a = 1 / 0
+            return a
+
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            sys.settrace(custom_trace)
+            with self.assertRaises(ZeroDivisionError):
+                test_f()
+            sys.settrace(None)
+
+        self.assertIn("Hit exception", f.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()
