@@ -2225,6 +2225,10 @@ JittedCode* AbstractInterpreter::compileWorker() {
     // Final return position, pop frame and return
     m_comp->emit_mark_label(finalRet);
 
+    if (mTracingEnabled) {
+        m_comp->emit_trace_frame_exit();
+    }
+
     m_comp->emit_pop_frame();
 
     m_comp->emit_ret(1);

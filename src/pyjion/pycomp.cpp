@@ -163,6 +163,11 @@ void PythonCompiler::emit_trace_frame_entry() {
     m_il.emit_call(METHOD_TRACE_FRAME_ENTRY);
 }
 
+void PythonCompiler::emit_trace_frame_exit() {
+    load_frame();
+    m_il.emit_call(METHOD_TRACE_FRAME_EXIT);
+}
+
 void PythonCompiler::decref() {
     m_il.emit_call(METHOD_DECREF_TOKEN);
 }
@@ -1486,3 +1491,4 @@ GLOBAL_METHOD(METHOD_LOAD_ASSERTION_ERROR, &PyJit_LoadAssertionError, CORINFO_TY
 
 GLOBAL_METHOD(METHOD_TRACE_LINE, &PyJit_TraceLine, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_TRACE_FRAME_ENTRY, &PyJit_TraceFrameEntry, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
+GLOBAL_METHOD(METHOD_TRACE_FRAME_EXIT, &PyJit_TraceFrameExit, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
