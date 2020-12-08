@@ -38,6 +38,7 @@
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
     mSize = PyBytes_Size(code->co_code);
+    mTracingEnabled = false;
 
     if (comp != nullptr) {
         m_retLabel = comp->emit_define_label();
@@ -58,9 +59,6 @@ bool AbstractInterpreter::preprocess() {
     if (mCode->co_flags & (CO_COROUTINE | CO_GENERATOR)) {
         // Don't compile co-routines or generators.  We can't rely on
         // detecting yields because they could be optimized out.
-#ifdef DEBUG
-        printf("Skipping function because it contains a coroutine/generator.");
-#endif
         return false;
     }
     for (int i = 0; i < mCode->co_argcount; i++) {
@@ -200,9 +198,6 @@ void AbstractInterpreter::initStartingState() {
 
 bool AbstractInterpreter::interpret() {
     if (!preprocess()) {
-#ifdef DEBUG
-        printf("Failed to preprocess");
-#endif
         return false;
     }
 
@@ -222,10 +217,6 @@ bool AbstractInterpreter::interpret() {
 
             auto opcode = GET_OPCODE(curByte);
             oparg = GET_OPARG(curByte);
-#ifdef DUMP_TRACES
-            printf("Interpreting %lu - OPCODE %s (%d) stack %zu\n", opcodeIndex, opcodeName(opcode), oparg,
-                   lastState.stackSize());
-#endif
         processOpCode:
 
             int curStackLen = lastState.stackSize();
