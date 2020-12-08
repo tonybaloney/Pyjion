@@ -19,7 +19,7 @@ with open("CHANGELOG.md", "r") as fh:
 
 setup(
     name='pyjion',
-    version='0.0.7',
+    version='0.1.0',
     description='A JIT compiler wrapper for CPython',
     author='Anthony Shaw and Microsoft',
     author_email='anthonyshaw@apache.org',
@@ -33,7 +33,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",

@@ -1,5 +1,12 @@
 # Release notes
 
+## 0.1.0
+
+* Added support for debugging compiled functions and modules by enabling tracing (`pyjion.enable_tracing()`)
+* Added support for debugging to catch unhandled/handled exceptions at runtime when tracing is enabled
+* Added support for opcode-level tracing
+* Fixed a bug on executing Pyjion with pydevd (VScode/PyCharm debugger) would cause the Python process to crash because of a doubly-freed code object (#7)
+
 ## 0.0.7
 
 * Added a WSGI middleware function to enable Pyjion for Flask and Django (#67)
