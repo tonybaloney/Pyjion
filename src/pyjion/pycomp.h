@@ -190,9 +190,12 @@
 #define METHOD_STOREGLOBAL_TOKEN     0x00030004
 #define METHOD_DELETEGLOBAL_TOKEN    0x00030005
 #define METHOD_LOAD_ASSERTION_ERROR  0x00030006
+
+/* Tracing methods */
 #define METHOD_TRACE_LINE            0x00030007
 #define METHOD_TRACE_FRAME_ENTRY     0x00030008
 #define METHOD_TRACE_FRAME_EXIT      0x00030009
+#define METHOD_TRACE_EXCEPTION       0x0003000A
 
 #define METHOD_FLOAT_POWER_TOKEN    0x00050000
 #define METHOD_FLOAT_FLOOR_TOKEN    0x00050001
@@ -419,6 +422,7 @@ public:
     void emit_trace_line(Local lowerBound, Local upperBound, Local lastInstr) override;
     void emit_trace_frame_entry() override;
     void emit_trace_frame_exit() override;
+    void emit_trace_exception() override;
 
     JittedCode* emit_compile() override;
     void lift_n_to_top(int pos) override;

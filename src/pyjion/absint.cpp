@@ -1209,6 +1209,10 @@ void AbstractInterpreter::branchRaise(const char *reason) {
     }
 #endif
     m_comp->emit_eh_trace();
+
+    if (mTracingEnabled)
+        m_comp->emit_trace_exception();
+
     // number of stack entries we need to clear...
     int count = m_stack.size() - entryStack.size();
     

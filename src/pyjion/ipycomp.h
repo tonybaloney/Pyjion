@@ -403,6 +403,7 @@ public:
     virtual void emit_trace_line(Local lowerBound, Local upperBound, Local lastInstr) = 0;
     virtual void emit_trace_frame_entry() = 0;
     virtual void emit_trace_frame_exit() = 0;
+    virtual void emit_trace_exception() = 0;
 
     /* Compiles the generated code */
     virtual JittedCode* emit_compile() = 0;

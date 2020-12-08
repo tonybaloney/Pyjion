@@ -184,7 +184,7 @@ PyObject* PyJit_DictUpdate(PyObject* other, PyObject* dict);
 PyObject * PyJit_BuildDictFromTuples(PyObject *keys_and_values);
 PyObject* PyJit_DictMerge(PyObject* dict, PyObject* other);
 
-int PyJit_StoreSubscr(PyObject* valuIe, PyObject *container, PyObject *index);
+int PyJit_StoreSubscr(PyObject* value, PyObject *container, PyObject *index);
 
 int PyJit_DeleteSubscr(PyObject *container, PyObject *index);
 
@@ -234,6 +234,7 @@ int PyJit_IsNot_Bool(PyObject* lhs, PyObject* rhs);
 void PyJit_TraceLine(PyFrameObject* f, int* instr_lb, int* instr_ub, int* instr_prev);
 void PyJit_TraceFrameEntry(PyFrameObject* f);
 void PyJit_TraceFrameExit(PyFrameObject* f);
+void PyJit_TraceFrameException(PyFrameObject* f);
 
 PyObject* Call0(PyObject *target);
 PyObject* Call1(PyObject *target, PyObject* arg0);
