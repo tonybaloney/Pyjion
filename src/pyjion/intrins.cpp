@@ -2047,28 +2047,28 @@ void PyJit_TraceLine(PyFrameObject* f, int* instr_lb, int* instr_ub, int* instr_
 
 void PyJit_TraceFrameEntry(PyFrameObject* f){
     auto tstate = PyThreadState_GET();
-    int result = 0;
-    PyObject *type, *value, *traceback;
-    PyErr_Fetch(&type, &value, &traceback);
+    if (tstate->c_tracefunc != nullptr && !tstate->tracing) {
+        int result = 0;
+        PyObject *type, *value, *traceback;
+        PyErr_Fetch(&type, &value, &traceback);
 
-    if (tstate->tracing)
-        return;
-    tstate->tracing++;
-    tstate->use_tracing = 0;
-    result = tstate->c_tracefunc(tstate->c_traceobj, f, PyTrace_CALL, Py_None);
-    tstate->use_tracing = ((tstate->c_tracefunc != NULL)
-                           || (tstate->c_profilefunc != NULL));
-    tstate->tracing--;
+        if (tstate->tracing)
+            return;
+        tstate->tracing++;
+        tstate->use_tracing = 0;
+        result = tstate->c_tracefunc(tstate->c_traceobj, f, PyTrace_CALL, Py_None);
+        tstate->use_tracing = ((tstate->c_tracefunc != NULL)
+                               || (tstate->c_profilefunc != NULL));
+        tstate->tracing--;
 
-    if (result == 0)
-    {
-        PyErr_Restore(type, value, traceback);
-        //return 0;
-    }
-    else {
-        Py_XDECREF(type);
-        Py_XDECREF(value);
-        Py_XDECREF(traceback);
-        //return -1;
+        if (result == 0) {
+            PyErr_Restore(type, value, traceback);
+            //return 0;
+        } else {
+            Py_XDECREF(type);
+            Py_XDECREF(value);
+            Py_XDECREF(traceback);
+            //return -1;
+        }
     }
 }

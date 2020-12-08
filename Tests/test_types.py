@@ -2,6 +2,7 @@ import pyjion
 import unittest
 import os
 
+
 class DictTypeTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
