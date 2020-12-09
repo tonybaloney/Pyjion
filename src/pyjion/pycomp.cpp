@@ -168,6 +168,16 @@ void PythonCompiler::emit_trace_frame_exit() {
     m_il.emit_call(METHOD_TRACE_FRAME_EXIT);
 }
 
+void PythonCompiler::emit_profile_frame_entry() {
+    load_frame();
+    m_il.emit_call(METHOD_PROFILE_FRAME_ENTRY);
+}
+
+void PythonCompiler::emit_profile_frame_exit() {
+    load_frame();
+    m_il.emit_call(METHOD_PROFILE_FRAME_EXIT);
+}
+
 void PythonCompiler::emit_trace_exception() {
     load_frame();
     m_il.emit_call(METHOD_TRACE_EXCEPTION);
@@ -1498,3 +1508,5 @@ GLOBAL_METHOD(METHOD_TRACE_LINE, &PyJit_TraceLine, CORINFO_TYPE_VOID, Parameter(
 GLOBAL_METHOD(METHOD_TRACE_FRAME_ENTRY, &PyJit_TraceFrameEntry, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
 GLOBAL_METHOD(METHOD_TRACE_FRAME_EXIT, &PyJit_TraceFrameExit, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
 GLOBAL_METHOD(METHOD_TRACE_EXCEPTION, &PyJit_TraceFrameException, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
+GLOBAL_METHOD(METHOD_PROFILE_FRAME_ENTRY, &PyJit_ProfileFrameEntry, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
+GLOBAL_METHOD(METHOD_PROFILE_FRAME_EXIT, &PyJit_ProfileFrameExit, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );

@@ -196,6 +196,8 @@
 #define METHOD_TRACE_FRAME_ENTRY     0x00030008
 #define METHOD_TRACE_FRAME_EXIT      0x00030009
 #define METHOD_TRACE_EXCEPTION       0x0003000A
+#define METHOD_PROFILE_FRAME_ENTRY   0x0003000B
+#define METHOD_PROFILE_FRAME_EXIT    0x0003000C
 
 #define METHOD_FLOAT_POWER_TOKEN    0x00050000
 #define METHOD_FLOAT_FLOOR_TOKEN    0x00050001
@@ -423,6 +425,8 @@ public:
     void emit_trace_frame_entry() override;
     void emit_trace_frame_exit() override;
     void emit_trace_exception() override;
+    void emit_profile_frame_entry() override;
+    void emit_profile_frame_exit() override;
 
     JittedCode* emit_compile() override;
     void lift_n_to_top(int pos) override;

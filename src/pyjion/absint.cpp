@@ -39,6 +39,7 @@ AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* co
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
     mSize = PyBytes_Size(code->co_code);
     mTracingEnabled = false;
+    mProfilingEnabled = false;
 
     if (comp != nullptr) {
         m_retLabel = comp->emit_define_label();
@@ -878,15 +879,9 @@ bool AbstractInterpreter::updateStartState(InterpreterState& newState, size_t in
 }
 
 bool AbstractInterpreter::mergeStates(InterpreterState& newState, InterpreterState& mergeTo) {
-#ifdef DUMP_TRACES
-    printf("merging states from %zu to %zu\n", mergeTo.stackSize(), newState.stackSize());
-#endif
     bool changed = false;
     if (mergeTo.mLocals != newState.mLocals) {
         // need to merge locals...
-#ifdef DUMP_TRACES
-        printf("merging locals from %zu to %zu\n", mergeTo.localCount(), newState.localCount());
-#endif
         if(mergeTo.localCount() != newState.localCount()){
             throw StackImbalanceException();
         }
@@ -904,17 +899,11 @@ bool AbstractInterpreter::mergeStates(InterpreterState& newState, InterpreterSta
     }
 
     if (mergeTo.stackSize() == 0) {
-#ifdef DUMP_TRACES
-        printf("Initializing empty stack\n");
-#endif
         // first time we assigned, or empty stack...
         mergeTo.mStack = newState.mStack;
         changed |= newState.stackSize() != 0;
     }
     else {
-#ifdef DUMP_TRACES
-        printf("merging stack states\n");
-#endif
         int max = mergeTo.stackSize();;
         if (newState.stackSize() < mergeTo.stackSize())
             max = newState.stackSize();
@@ -1460,9 +1449,6 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
 
 void AbstractInterpreter::decExcVars(int count){
     m_comp->emit_dec_local(mExcVarsOnStack, count);
-#ifdef DUMP_TRACES
-    m_comp->emit_debug_msg("decrementing exception vars");
-#endif
 }
 
 void AbstractInterpreter::incExcVars(int count) {
@@ -1477,9 +1463,6 @@ void AbstractInterpreter::popExcVars(){
     m_comp->emit_load_local(mExcVarsOnStack);
     m_comp->emit_int(0);
     m_comp->emit_branch(BranchLessThanEqual, nothing_to_pop);
-#ifdef DUMP_TRACES
-    m_comp->emit_debug_msg("popping next 3 exc vars");
-#endif
     m_comp->emit_pop();
     m_comp->emit_pop();
     m_comp->emit_pop();
@@ -1517,6 +1500,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
         m_comp->emit_int(-1);
         m_comp->emit_store_local(mTracingLastInstr);
     }
+    if (mProfilingEnabled) { m_comp->emit_profile_frame_entry(); }
 
     // Push a catch-all error handler onto the handler list
     auto rootHandler = m_exceptionHandler.SetRootHandler(rootHandlerLabel, ExceptionVars(m_comp));
@@ -1543,24 +1527,17 @@ JittedCode* AbstractInterpreter::compileWorker() {
         // See if current index is part of offset stack, used for jump operations
         auto curStackDepth = m_offsetStack.find(curByte);
         if (curStackDepth != m_offsetStack.end()) {
-#ifdef DUMP_TRACES
-            printf("Recovering stack position to size %zu\n", curStackDepth->second.size());
-#endif
             // Recover stack from jump
             m_stack = curStackDepth->second;
         }
         if (m_exceptionHandler.IsHandlerAtOffset(curByte)){
-#ifdef DUMP_TRACES
-            printf("Recovering EH stack\n");
-#endif
+
             ExceptionHandler* handler = m_exceptionHandler.HandlerAtOffset(curByte);
             m_comp->emit_mark_label(handler->ErrorTarget);
-            m_comp->emit_debug_msg("Pushing raise vars");
             emitRaise(handler);
         }
 
-#ifdef DUMP_TRACES
-        printf("Compiling OPCODE %d - %s (%d) stack %zu, depth %zu\n", curByte, opcodeName(byte), oparg, m_stack.size(), m_blockStack.size());
+#ifdef DEBUG
         int ilLen = m_comp->il_length();
         m_comp->emit_breakpoint();
 #endif
@@ -1983,7 +1960,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case SETUP_WITH:
             case YIELD_FROM:
             case YIELD_VALUE:
-#ifdef DUMP_TRACES
+#ifdef DEBUG
                 printf("Unsupported opcode: %s (with related)\r\n", opcodeName(byte));
 #endif
                 return nullptr;
@@ -2223,6 +2200,9 @@ JittedCode* AbstractInterpreter::compileWorker() {
     if (mTracingEnabled) {
         m_comp->emit_trace_frame_exit();
     }
+    if (mProfilingEnabled) {
+        m_comp->emit_profile_frame_exit();
+    }
 
     m_comp->emit_pop_frame();
 
@@ -2260,7 +2240,7 @@ void AbstractInterpreter::unaryNot(int& opcodeIndex) {
 JittedCode* AbstractInterpreter::compile() {
     bool interpreted = interpret();
     if (!interpreted) {
-#ifdef DUMP_TRACES
+#ifdef DEBUG
         printf("Failed to interpret");
 #endif
         return nullptr;
@@ -2646,4 +2626,12 @@ void AbstractInterpreter::enableTracing() {
 
 void AbstractInterpreter::disableTracing() {
     mTracingEnabled = false;
+}
+
+void AbstractInterpreter::enableProfiling() {
+    mProfilingEnabled = true;
+}
+
+void AbstractInterpreter::disableProfiling() {
+    mProfilingEnabled = false;
 }

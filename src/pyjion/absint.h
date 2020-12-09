@@ -229,6 +229,7 @@ class AbstractInterpreter {
     Local mErrorCheckLocal;
     Local mExcVarsOnStack; // Counter of the number of exception variables on the stack.
     bool mTracingEnabled;
+    bool mProfilingEnabled;
     Local mTracingInstrLowerBound;
     Local mTracingInstrUpperBound;
     Local mTracingLastInstr;
@@ -298,6 +299,8 @@ public:
 
     void enableTracing();
     void disableTracing();
+    void enableProfiling();
+    void disableProfiling();
 
 private:
     AbstractValue* toAbstract(PyObject* obj);
