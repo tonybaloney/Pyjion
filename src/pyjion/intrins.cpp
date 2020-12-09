@@ -25,6 +25,7 @@
 * Portions lifted from CPython under the PSF license.
 */
 #include "intrins.h"
+#include "pyjit.h"
 
 #ifdef _MSC_VER
 
@@ -872,11 +873,11 @@ error:
 }
 
 void PyJit_PushFrame(PyFrameObject* frame) {
-    PyThreadState_Get()->frame = frame;
+    PyThreadState_GET()->frame = frame;
 }
 
 void PyJit_PopFrame(PyFrameObject* frame) {
-    PyThreadState_Get()->frame = frame->f_back;
+    PyThreadState_GET()->frame = frame->f_back;
 }
 
 void PyJit_EhTrace(PyFrameObject *f) {
@@ -1492,7 +1493,6 @@ int PyJit_DeleteAttr(PyObject* owner, PyObject* name) {
 }
 
 int PyJit_SetupAnnotations(PyFrameObject* frame) {
-    auto tstate = PyThreadState_Get();
     _Py_IDENTIFIER(__annotations__);
     int err;
     PyObject *ann_dict;
@@ -1647,6 +1647,7 @@ PyObject* Call(PyObject* target) {
 
 template<typename T, typename ... Args>
 PyObject* Call(PyObject *target, Args...args) {
+    auto tstate = PyThreadState_GET();
     PyObject* res = nullptr;
     if (target == nullptr)
         return nullptr;
@@ -1656,7 +1657,19 @@ PyObject* Call(PyObject *target, Args...args) {
         PyGILState_STATE gstate;
         gstate = PyGILState_Ensure();
 #endif
-        res = PyObject_Vectorcall(target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+        if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
+            // Call the function with profiling hooks
+            trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
+            res = PyObject_Vectorcall(target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+            if (res == nullptr)
+                trace(tstate, tstate->frame, PyTrace_C_EXCEPTION, target, tstate->c_profilefunc, tstate->c_profileobj);
+            else
+                trace(tstate, tstate->frame, PyTrace_C_RETURN, target, tstate->c_profilefunc, tstate->c_profileobj);
+        } else {
+            // Regular function call
+            res = PyObject_Vectorcall(target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+        }
+
 #ifdef GIL
         PyGILState_Release(gstate);
 #endif
@@ -1694,6 +1707,7 @@ PyObject* Call(PyObject *target, Args...args) {
 
 PyObject* Call0(PyObject *target) {
     PyObject* res = nullptr;
+    auto tstate = PyThreadState_GET();
     if (target == nullptr)
         return nullptr;
 #ifdef GIL
@@ -1701,7 +1715,18 @@ PyObject* Call0(PyObject *target) {
     gstate = PyGILState_Ensure();
 #endif
     if (PyCFunction_Check(target)) {
-        res = PyObject_Vectorcall(target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+        if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
+            // Call the function with profiling hooks
+            trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
+            res = PyObject_Vectorcall(target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+            if (res == nullptr)
+                trace(tstate, tstate->frame, PyTrace_C_EXCEPTION, target, tstate->c_profilefunc, tstate->c_profileobj);
+            else
+                trace(tstate, tstate->frame, PyTrace_C_RETURN, target, tstate->c_profilefunc, tstate->c_profileobj);
+        } else {
+            // Regular function call
+            res = PyObject_Vectorcall(target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+        }
     }
     else {
         res = PyObject_CallNoArgs(target);
