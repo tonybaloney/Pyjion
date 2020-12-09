@@ -61,6 +61,7 @@ typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*);
 
 typedef struct {
     bool tracing;
+    bool profiling;
     unsigned short optimizationLevel;
 } PyjionSettings;
 

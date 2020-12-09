@@ -1992,10 +1992,19 @@ PyObject* PyJit_FormatValue(PyObject* item) {
 	return res;
 }
 
+inline int trace(PyThreadState *tstate, PyFrameObject *f, int ty, PyObject *args, Py_tracefunc func, PyObject* tracearg) {
+    tstate->tracing++;
+    tstate->use_tracing = 0;
+    int result = func(tracearg, f, ty, args);
+    tstate->use_tracing = ((tstate->c_tracefunc != NULL)
+                           || (tstate->c_profilefunc != NULL));
+    tstate->tracing--;
+    return result;
+}
+
 void PyJit_TraceLine(PyFrameObject* f, int* instr_lb, int* instr_ub, int* instr_prev){
     auto tstate = PyThreadState_GET();
     if (tstate->c_tracefunc != nullptr && !tstate->tracing) {
-        int err;
         int result = 0;
         int line = f->f_lineno;
 
@@ -2018,24 +2027,14 @@ void PyJit_TraceLine(PyFrameObject* f, int* instr_lb, int* instr_ub, int* instr_
             if (f->f_trace_lines) {
                 if (tstate->tracing)
                     return;
-                tstate->tracing++;
-                tstate->use_tracing = 0;
-                result = tstate->c_tracefunc(tstate->c_traceobj, f, PyTrace_LINE, Py_None);
-                tstate->use_tracing = ((tstate->c_tracefunc != NULL)
-                                       || (tstate->c_profilefunc != NULL));
-                tstate->tracing--;
+                result = trace(tstate, f, PyTrace_LINE, Py_None, tstate->c_tracefunc, tstate->c_traceobj);
             }
         }
         /* Always emit an opcode event if we're tracing all opcodes. */
         if (f->f_trace_opcodes) {
             if (tstate->tracing)
                 return;
-            tstate->tracing++;
-            tstate->use_tracing = 0;
-            result = tstate->c_tracefunc(tstate->c_traceobj, f, PyTrace_OPCODE, Py_None);
-            tstate->use_tracing = ((tstate->c_tracefunc != NULL)
-                                   || (tstate->c_profilefunc != NULL));
-            tstate->tracing--;
+            result = trace(tstate, f, PyTrace_OPCODE, Py_None, tstate->c_tracefunc, tstate->c_traceobj);
         }
         *instr_prev = f->f_lasti;
 
@@ -2045,59 +2044,51 @@ void PyJit_TraceLine(PyFrameObject* f, int* instr_lb, int* instr_ub, int* instr_
     }
 }
 
+inline int protected_trace(PyThreadState* tstate, PyFrameObject* f, int ty, PyObject* arg, Py_tracefunc func, PyObject* tracearg){
+    int result = 0;
+    PyObject *type, *value, *traceback;
+    PyErr_Fetch(&type, &value, &traceback);
+
+    if (tstate->tracing)
+        return 0;
+    result = trace(tstate, f, ty, arg, func, tracearg);
+
+    if (result == 0) {
+        PyErr_Restore(type, value, traceback);
+        return 0;
+    } else {
+        Py_XDECREF(type);
+        Py_XDECREF(value);
+        Py_XDECREF(traceback);
+        return -1;
+    }
+}
+
 void PyJit_TraceFrameEntry(PyFrameObject* f){
     auto tstate = PyThreadState_GET();
     if (tstate->c_tracefunc != nullptr && !tstate->tracing) {
-        int result = 0;
-        PyObject *type, *value, *traceback;
-        PyErr_Fetch(&type, &value, &traceback);
-
-        if (tstate->tracing)
-            return;
-        tstate->tracing++;
-        tstate->use_tracing = 0;
-        result = tstate->c_tracefunc(tstate->c_traceobj, f, PyTrace_CALL, Py_None);
-        tstate->use_tracing = ((tstate->c_tracefunc != NULL)
-                               || (tstate->c_profilefunc != NULL));
-        tstate->tracing--;
-
-        if (result == 0) {
-            PyErr_Restore(type, value, traceback);
-            //return 0;
-        } else {
-            Py_XDECREF(type);
-            Py_XDECREF(value);
-            Py_XDECREF(traceback);
-            //return -1;
-        }
+        protected_trace(tstate, f, PyTrace_CALL, Py_None, tstate->c_tracefunc, tstate->c_traceobj);
     }
 }
 
 void PyJit_TraceFrameExit(PyFrameObject* f){
     auto tstate = PyThreadState_GET();
     if (tstate->c_tracefunc != nullptr && !tstate->tracing) {
-        int result = 0;
-        PyObject *type, *value, *traceback;
-        PyErr_Fetch(&type, &value, &traceback);
+        protected_trace(tstate, f, PyTrace_RETURN, Py_None, tstate->c_tracefunc, tstate->c_traceobj);
+    }
+}
 
-        if (tstate->tracing)
-            return;
-        tstate->tracing++;
-        tstate->use_tracing = 0;
-        result = tstate->c_tracefunc(tstate->c_traceobj, f, PyTrace_RETURN, Py_None);
-        tstate->use_tracing = ((tstate->c_tracefunc != NULL)
-                               || (tstate->c_profilefunc != NULL));
-        tstate->tracing--;
+void PyJit_ProfileFrameEntry(PyFrameObject* f){
+    auto tstate = PyThreadState_GET();
+    if (tstate->c_profilefunc != nullptr && !tstate->tracing) {
+        protected_trace(tstate, f, PyTrace_CALL, Py_None, tstate->c_profilefunc, tstate->c_profileobj);
+    }
+}
 
-        if (result == 0) {
-            PyErr_Restore(type, value, traceback);
-            //return 0;
-        } else {
-            Py_XDECREF(type);
-            Py_XDECREF(value);
-            Py_XDECREF(traceback);
-            //return -1;
-        }
+void PyJit_ProfileFrameExit(PyFrameObject* f){
+    auto tstate = PyThreadState_GET();
+    if (tstate->c_profilefunc != nullptr && !tstate->tracing) {
+        protected_trace(tstate, f, PyTrace_RETURN, Py_None, tstate->c_profilefunc, tstate->c_profileobj);
     }
 }
 
@@ -2121,12 +2112,7 @@ void PyJit_TraceFrameException(PyFrameObject* f){
 
         if (tstate->tracing)
             return;
-        tstate->tracing++;
-        tstate->use_tracing = 0;
-        result = tstate->c_tracefunc(tstate->c_traceobj, f, PyTrace_EXCEPTION, arg);
-        tstate->use_tracing = ((tstate->c_tracefunc != NULL)
-                               || (tstate->c_profilefunc != NULL));
-        tstate->tracing--;
+        result = trace(tstate, f, PyTrace_EXCEPTION, arg, tstate->c_tracefunc, tstate->c_traceobj);
         Py_DECREF(arg);
         if (result == 0) {
             PyErr_Restore(type, value, orig_traceback);

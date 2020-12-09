@@ -40,11 +40,6 @@ IF(CMAKE_BUILD_TYPE MATCHES Debug)
     set(DO_TESTS 1)
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
 
-if(DUMP_TRACES)
-    message(STATUS "Enabling very-verbose messages")
-    add_definitions(-DDUMP_TRACES)
-endif()
-
 if(TRACK_TUPLES)
     message(STATUS "Enabling tuple tracing messages")
     add_definitions(-DTRACK_TUPLES)

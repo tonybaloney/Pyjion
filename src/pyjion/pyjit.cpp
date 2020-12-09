@@ -236,9 +236,17 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
 
 #ifdef DEBUG
             interp.enableTracing();
+			interp.enableProfiling();
 #else
 			if (tstate->use_tracing || g_pyjionSettings.tracing){
 			    interp.enableTracing();
+			} else {
+			    interp.disableTracing();
+			}
+			if (tstate->use_tracing || g_pyjionSettings.profiling){
+			    interp.enableProfiling();
+			} else {
+			    interp.disableProfiling();
 			}
 #endif
 
@@ -490,6 +498,16 @@ static PyObject* pyjion_disable_tracing(PyObject *self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* pyjion_enable_profiling(PyObject *self, PyObject* args) {
+    g_pyjionSettings.profiling = true;
+    Py_RETURN_NONE;
+}
+
+static PyObject* pyjion_disable_profiling(PyObject *self, PyObject* args) {
+    g_pyjionSettings.profiling = false;
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef PyjionMethods[] = {
 	{ 
 		"enable",  
@@ -516,10 +534,10 @@ static PyMethodDef PyjionMethods[] = {
 		"Returns a dictionary describing information about a function or code objects current JIT status."
 	},
     {
-            "stats",
-            pyjion_stats,
-            METH_O,
-            "Returns a dictionary with stats about the JIT compiler."
+        "stats",
+        pyjion_stats,
+        METH_O,
+        "Returns a dictionary with stats about the JIT compiler."
     },
     {
         "dump_il",
@@ -546,16 +564,28 @@ static PyMethodDef PyjionMethods[] = {
 		"Gets the number of times a method needs to be executed before the JIT is triggered."
 	},
     {
-            "enable_tracing",
-            pyjion_enable_tracing,
-            METH_NOARGS,
-            "Enable tracing for generated code."
+        "enable_tracing",
+        pyjion_enable_tracing,
+        METH_NOARGS,
+        "Enable tracing for generated code."
     },
     {
-            "disable_tracing",
-            pyjion_disable_tracing,
-            METH_NOARGS,
-            "Enable tracing for generated code."
+        "disable_tracing",
+        pyjion_disable_tracing,
+        METH_NOARGS,
+        "Enable tracing for generated code."
+    },
+    {
+        "enable_profiling",
+        pyjion_enable_profiling,
+        METH_NOARGS,
+        "Enable profiling for generated code."
+    },
+    {
+    "disable_profiling",
+        pyjion_disable_profiling,
+        METH_NOARGS,
+        "Enable profiling for generated code."
     },
 	{NULL, NULL, 0, NULL}        /* Sentinel */
 };
