@@ -57,7 +57,7 @@ public:
     unordered_map<int, BaseMethod*> m_methods;
     Module() = default;
 
-    virtual BaseMethod* ResolveMethod(int tokenId) {
+    virtual BaseMethod* ResolveMethod(unsigned int tokenId) {
         return m_methods[tokenId];
     }
 };
@@ -69,7 +69,7 @@ public:
 
     }
 
-    BaseMethod* ResolveMethod(int tokenId) override {
+    BaseMethod* ResolveMethod(unsigned int tokenId) override {
         auto res = m_methods.find(tokenId);
         if (res == m_methods.end()) {
             return m_parent.ResolveMethod(tokenId);
@@ -123,7 +123,7 @@ public:
         pResult->codePointerLookup.constLookup.addr = &m_addr;
         pResult->verMethodFlags = pResult->methodFlags = CORINFO_FLG_STATIC;
         pResult->kind = CORINFO_CALL;
-        pResult->sig.args = (CORINFO_ARG_LIST_HANDLE)(m_params.size() == 0 ? nullptr : &m_params[0]);
+        pResult->sig.args = (CORINFO_ARG_LIST_HANDLE)(m_params.empty() ? nullptr : &m_params[0]);
         pResult->sig.retType = m_retType;
         pResult->sig.numArgs = m_params.size();
     }
@@ -131,7 +131,7 @@ public:
         sig->retType = m_retType;
         sig->callConv = CORINFO_CALLCONV_STDCALL;
         sig->retTypeClass = nullptr;
-        sig->args = (CORINFO_ARG_LIST_HANDLE)(m_params.size() != 0 ? &m_params[0] : nullptr);
+        sig->args = (CORINFO_ARG_LIST_HANDLE)(!m_params.empty() ? &m_params[0] : nullptr);
         sig->numArgs = m_params.size();
     }
     void getFunctionEntryPoint(CORINFO_CONST_LOOKUP *  pResult) override {

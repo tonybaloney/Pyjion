@@ -217,9 +217,6 @@ PyObject* PyJit_UnaryInvert(PyObject* value) {
 
 PyObject* PyJit_NewList(size_t size){
     auto list = PyList_New(size);
-#ifdef DUMP_TRACES
-    fprintf(g_traceLog, "List <%lu> at %p (PyJit_NewList())\n", size, list);
-#endif
     return list;
 }
 
@@ -578,11 +575,6 @@ void PyJit_DebugTrace(char* msg) {
 }
 
 void PyJit_PyErrRestore(PyObject*tb, PyObject*value, PyObject*exception) {
-#ifdef DUMP_TRACES
-    printf("Restoring exception %p %s\r\n", exception, ObjInfo(exception));
-    printf("Restoring value %p %s\r\n", value, ObjInfo(value));
-    printf("Restoring tb %p %s\r\n", tb, ObjInfo(tb));
-#endif
     if (exception == Py_None) {
         exception = nullptr;
     }
@@ -1456,11 +1448,6 @@ PyObject** PyJit_UnpackSequence(PyObject* seq, size_t size, PyObject** tempStora
 PyObject* PyJit_LoadAttr(PyObject* owner, PyObject* name) {
     PyObject *res = PyObject_GetAttr(owner, name);
     Py_DECREF(owner);
-#ifdef DUMP_TRACES
-    if (res == nullptr) {
-        printf("Load attr failed: %s\r\n", PyUnicode_AsUTF8(name));
-    }
-#endif
     return res;
 }
 
@@ -1676,9 +1663,6 @@ PyObject* Call(PyObject *target, Args...args) {
     }
     else {
         auto t_args = PyTuple_New(sizeof...(args));
-#ifdef DUMP_TRACES
-        fprintf(g_traceLog, "Tuple <%lu> at %p (Call<T>)\n", sizeof...(args), t_args);
-#endif
         if (t_args == nullptr) {
             std::vector<PyObject*> argsVector = {args...};
             for (auto &i: argsVector)
@@ -1825,9 +1809,6 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         }
         auto obj =  method_info->object;
         auto args_tuple = PyTuple_New(PyTuple_Size(args) + 1);
-#ifdef DUMP_TRACES
-        fprintf(g_traceLog, "Tuple <%lu> at %p (MethCallN)\n", PyTuple_Size(args) + 1, args_tuple);
-#endif
         PyTuple_SET_ITEM(args_tuple, 0, obj);
         Py_INCREF(obj);
         for (int i = 0 ; i < PyTuple_Size(args) ; i ++){
@@ -1872,9 +1853,6 @@ PyObject* PyJit_KwCallN(PyObject *target, PyObject* args, PyObject* names) {
 	auto argCount = PyTuple_Size(args) - PyTuple_Size(names);
 	PyObject* posArgs;
 	posArgs = PyTuple_New(argCount);
-#ifdef DUMP_TRACES
-    fprintf(g_traceLog, "Tuple <%lu> at %p (PyJit_KwCallN)\n", argCount, posArgs);
-#endif
 	if (posArgs == nullptr) {
 		goto error;
 	}
@@ -1914,9 +1892,6 @@ error:
 
 PyObject* PyJit_PyTuple_New(ssize_t len){
     auto t = PyTuple_New(len);
-#ifdef DUMP_TRACES
-    fprintf(g_traceLog, "Tuple <%lu> at %p (buildTuple)\n", len, t);
-#endif
     return t;
 }
 
