@@ -63,6 +63,9 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     UserModule* m_module;
     vector<BYTE> m_il;
     ULONG m_nativeSize;
+
+    volatile const GSCookie s_gsCookie = 0xBAADF00D;
+
 #ifdef WINDOWS
     HANDLE m_winHeap;
 #endif
@@ -749,9 +752,15 @@ public:
         GSCookie * pCookieVal,                     // OUT
         GSCookie ** ppCookieVal                    // OUT
         ) override {
-        *pCookieVal = 0x1234; // TODO: Implement secure GS cookie values
-        *ppCookieVal = nullptr;
-        //printf("getGSCookie\r\n");
+        if (pCookieVal)
+        {
+            *pCookieVal = *(volatile GSCookie *)(&s_gsCookie);
+            *ppCookieVal = nullptr;
+        }
+        else
+        {
+            *ppCookieVal = const_cast<GSCookie *>(&s_gsCookie);
+        }
     }
 
     /**********************************************************************************/
