@@ -231,11 +231,11 @@ public:
         return static_cast<int>(m_il.m_il.size());
     };
 
-    void emit_rot_two(LocalKind kind = LK_Pointer) override;
+    void emit_rot_two(LocalKind kind) override;
 
-    void emit_rot_three(LocalKind kind = LK_Pointer) override;
+    void emit_rot_three(LocalKind kind) override;
 
-    void emit_rot_four(LocalKind kind = LK_Pointer) override;
+    void emit_rot_four(LocalKind kind) override;
 
     void emit_pop_top() override;
 
@@ -350,7 +350,7 @@ public:
     void emit_load_local_addr(Local local) override;
     void emit_load_and_free_local(Local local) override;
     Local emit_define_local(bool cache) override;
-    Local emit_define_local(LocalKind kind = LK_Pointer) override;
+    Local emit_define_local(LocalKind kind) override;
     void emit_free_local(Local local) override;
     Local emit_allocate_stack_array(size_t elements) override;
 
@@ -408,7 +408,7 @@ public:
     // Dups the current value on the stack, performing no operations related to reference counting
     void emit_dup() override;
 
-    void emit_incref(bool maybeTagged = false) override;
+    void emit_incref(bool maybeTagged) override;
 
     void emit_debug_msg(const char* msg) override;
 
