@@ -36,7 +36,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
-
+      with:
+        submodules: 'recursive'
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
@@ -46,6 +47,22 @@ jobs:
         # By default, queries listed here will override any specified in a config file.
         # Prefix the list here with "+" to use these queries and those in the config file.
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
+
+    - name: Setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+        architecture: x64
+    - name: Install CLR requirements
+      run: |
+        sudo apt-get -y update
+        sudo apt-get install -y cmake llvm-9 clang-9 autoconf automake \
+        libtool build-essential python curl git lldb-6.0 liblldb-6.0-dev \
+        libunwind8 libunwind8-dev gettext libicu-dev liblttng-ust-dev \
+        libssl-dev libnuma-dev libkrb5-dev zlib1g-dev
+    - uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '5.0.100'
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
