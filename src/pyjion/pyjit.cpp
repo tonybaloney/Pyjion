@@ -64,32 +64,12 @@ PyjionJittedCode::~PyjionJittedCode() {
 
 PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame);
 PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame) {
-#ifdef DUMP_TRACES
-    printf("Invoking trace %s from %s line %d %p %p\r\n",
-        PyUnicode_AsUTF8(frame->f_code->co_name),
-        PyUnicode_AsUTF8(frame->f_code->co_filename),
-        frame->f_code->co_firstlineno,
-        state,
-        frame
-    );
-#endif
-
     if (Py_EnterRecursiveCall("")) {
         return nullptr;
     }
 
 	frame->f_executing = 1;
     auto res = ((Py_EvalFunc)state)(nullptr, frame);
-
-#ifdef DUMP_TRACES
-    if (res != nullptr) {
-        auto res_repr = PyObject_Repr(res);
-        if (res_repr != nullptr)
-            printf("Returning from %s, value %s\r\n", PyUnicode_AsUTF8(frame->f_code->co_name), PyUnicode_AsUTF8(res_repr));
-        else
-            printf("Bad result from %s, value %p\r\n", PyUnicode_AsUTF8(frame->f_code->co_name), res);
-    }
-#endif
 
     Py_LeaveRecursiveCall();
     frame->f_executing = 0;

@@ -63,6 +63,9 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     UserModule* m_module;
     vector<BYTE> m_il;
     ULONG m_nativeSize;
+
+    volatile const GSCookie s_gsCookie = 0xBAADF00D;
+
 #ifdef WINDOWS
     HANDLE m_winHeap;
 #endif
@@ -172,13 +175,13 @@ public:
     }
 
     BOOL logMsg(unsigned level, const char* fmt, va_list args) override {
-#ifdef DUMP_TRACES
-        vprintf(fmt, args);
+#ifdef DEBUG
+        if (level <= 3)
+            vprintf(fmt, args);
         return FALSE;
 #else
         return TRUE;
 #endif
-
     }
 
     int doAssert(const char* szFile, int iLine, const char* szExpr) override {
@@ -192,8 +195,6 @@ public:
 #ifdef DEBUG
         printf("Fatal error from .NET JIT %X\r\n", result);
 #endif
-        // TODO : Handle/report fatal JIT errors as Python exceptions
-        // PyErr_Format(PyExc_ValueError, "Fatal error from .NET JIT %X\r\n", result);
     }
 
     void recordRelocation(
@@ -320,11 +321,6 @@ public:
         return nullptr;
     }
 
-    virtual SIZE_T*       getAddrModuleDomainID(CORINFO_MODULE_HANDLE   module) {
-        //printf("getAddrModuleDomainID not implemented\r\n");
-        return nullptr;
-    }
-
     // return a callable address of the function (native code). This function
     // may return a different value (depending on whether the method has
     // been JITed or not.
@@ -332,7 +328,7 @@ public:
         CORINFO_METHOD_HANDLE   ftn,                 /* IN  */
         CORINFO_CONST_LOOKUP *  pResult,             /* OUT */
         CORINFO_ACCESS_FLAGS    accessFlags) override {
-        auto* method = (BaseMethod*)ftn;
+        auto* method = reinterpret_cast<BaseMethod*>(ftn);
         method->getFunctionEntryPoint(pResult);
     }
 
@@ -476,7 +472,7 @@ public:
         //out params (OUT)
         CORINFO_CALL_INFO       *pResult
         ) override {
-        auto method = (BaseMethod*)pResolvedToken->hMethod;
+        auto method = reinterpret_cast<BaseMethod*>(pResolvedToken->hMethod);
         pResult->hMethod = (CORINFO_METHOD_HANDLE)method;
 
         method->get_call_info(pResult);
@@ -557,7 +553,7 @@ public:
     DWORD getMethodAttribs(
         CORINFO_METHOD_HANDLE       ftn         /* IN */
         ) override {
-        auto method = (BaseMethod*)ftn;
+        auto method = reinterpret_cast<BaseMethod*>(ftn);
         return method->get_method_attrs();
     }
 
@@ -578,8 +574,7 @@ public:
         CORINFO_SIG_INFO          *sig,        /* OUT */
         CORINFO_CLASS_HANDLE      memberParent /* IN */
         ) override {
-        auto* m = (BaseMethod*)ftn;
-        //printf("getMethodSig %p\r\n", ftn);
+        auto* m = reinterpret_cast<BaseMethod*>(ftn);
         m->findSig(sig);
     }
 
@@ -737,19 +732,6 @@ public:
         return FALSE;
     }
 
-
-    // Loads the constraints on a typical method definition, detecting cycles;
-    // for use in verification.
-    virtual void initConstraintsForVerification(
-        CORINFO_METHOD_HANDLE   method, /* IN */
-        BOOL *pfHasCircularClassConstraints, /* OUT */
-        BOOL *pfHasCircularMethodConstraint /* OUT */
-        ) {
-        *pfHasCircularClassConstraints = FALSE;
-        *pfHasCircularMethodConstraint = FALSE;
-        //printf("initConstraintsForVerification\r\n");
-    }
-
     // load and restore the method
     void methodMustBeLoadedBeforeCodeIsRun(
         CORINFO_METHOD_HANDLE       method
@@ -770,9 +752,15 @@ public:
         GSCookie * pCookieVal,                     // OUT
         GSCookie ** ppCookieVal                    // OUT
         ) override {
-        *pCookieVal = 0x1234; // TODO: Implement secure GS cookie values
-        *ppCookieVal = nullptr;
-        //printf("getGSCookie\r\n");
+        if (pCookieVal)
+        {
+            *pCookieVal = *(volatile GSCookie *)(&s_gsCookie);
+            *ppCookieVal = nullptr;
+        }
+        else
+        {
+            *ppCookieVal = const_cast<GSCookie *>(&s_gsCookie);
+        }
     }
 
     /**********************************************************************************/
@@ -783,7 +771,7 @@ public:
 
     // Resolve metadata token into runtime method handles.
     void resolveToken(/* IN, OUT */ CORINFO_RESOLVED_TOKEN * pResolvedToken) override {
-        auto* mod = (Module*)pResolvedToken->tokenScope;
+        auto* mod = reinterpret_cast<Module*>(pResolvedToken->tokenScope);
         BaseMethod* method = mod->ResolveMethod(pResolvedToken->token);
         pResolvedToken->hMethod = (CORINFO_METHOD_HANDLE)method;
         pResolvedToken->hClass = PYOBJECT_PTR_TYPE; // Internal reference for Pyobject ptr
@@ -797,8 +785,7 @@ public:
         CORINFO_CONTEXT_HANDLE      context,    /* IN */
         CORINFO_SIG_INFO           *sig         /* OUT */
         ) override {
-        auto mod = (Module*)module;
-        // TODO : ResolveMethod is signed, sigTok is unsigned.
+        auto mod = reinterpret_cast<Module*>(module);
         auto method = mod->ResolveMethod(sigTOK);
         method->findSig(sig);
     }
@@ -812,16 +799,10 @@ public:
         CORINFO_CONTEXT_HANDLE      context,    /* IN */
         CORINFO_SIG_INFO           *sig         /* OUT */
         ) override {
-#ifdef DUMP_TRACES
-        printf("findCallSiteSig\r\n");
-#endif
     }
 
     CORINFO_CLASS_HANDLE getTokenTypeAsHandle(
         CORINFO_RESOLVED_TOKEN *    pResolvedToken /* IN  */) override {
-#ifdef DUMP_TRACES
-        printf("getTokenTypeAsHandle  not implemented\r\n");
-#endif
         return nullptr;
     }
 
@@ -1381,7 +1362,7 @@ public:
     CORINFO_ARG_LIST_HANDLE getArgNext(
         CORINFO_ARG_LIST_HANDLE     args            /* IN */
         ) override {
-        return (CORINFO_ARG_LIST_HANDLE)(((Parameter*)args) + 1);
+        return reinterpret_cast<CORINFO_ARG_LIST_HANDLE>((reinterpret_cast<Parameter*>(args) + 1));
     }
 
     // If the Arg is a CORINFO_TYPE_CLASS fetch the class handle associated with it
@@ -1797,7 +1778,7 @@ public:
     CorInfoTypeWithMod
     getArgType(CORINFO_SIG_INFO *sig, CORINFO_ARG_LIST_HANDLE args, CORINFO_CLASS_HANDLE *vcTypeRet) override {
         *vcTypeRet = nullptr;
-        return (CorInfoTypeWithMod)((Parameter*)args)->m_type;
+        return (CorInfoTypeWithMod)(reinterpret_cast<Parameter*>(args))->m_type;
     }
 
     void recordCallSite(ULONG instrOffset,
