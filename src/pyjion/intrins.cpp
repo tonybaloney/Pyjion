@@ -1623,17 +1623,17 @@ int PyJit_DeleteName(PyFrameObject* f, PyObject* name) {
 
 
 template<typename T>
-T tuple_build(PyObject* v, PyObject* arg) {
+inline T tuple_build(PyObject* v, PyObject* arg) {
     int l = PyTuple_Size(v);
 }
 
 template<typename T>
-PyObject* Call(PyObject* target) {
+inline PyObject* Call(PyObject* target) {
     return Call0(target);
 }
 
 template<typename T, typename ... Args>
-PyObject* Call(PyObject *target, Args...args) {
+inline PyObject* Call(PyObject *target, Args...args) {
     auto tstate = PyThreadState_GET();
     PyObject* res = nullptr;
     if (target == nullptr)
@@ -1738,6 +1738,30 @@ PyObject* Call4(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2
     return Call<PyObject*>(target, arg0, arg1, arg2, arg3);
 }
 
+PyObject* Call5(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4){
+    return Call<PyObject*>(target, arg0, arg1, arg2, arg3, arg4);
+}
+
+PyObject* Call6(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5){
+    return Call<PyObject*>(target, arg0, arg1, arg2, arg3, arg4, arg5);
+}
+
+PyObject* Call7(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6){
+    return Call<PyObject*>(target, arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+PyObject* Call8(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7){
+    return Call<PyObject*>(target, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+}
+
+PyObject* Call9(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8){
+    return Call<PyObject*>(target, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+}
+
+PyObject* Call10(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9){
+    return Call<PyObject*>(target, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+}
+
 PyObject* MethCall0(PyObject* self, PyMethodLocation* method_info) {
     PyObject* res;
     if (method_info->object != nullptr)
@@ -1784,6 +1808,66 @@ PyObject* MethCall4(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4);
+    delete method_info;
+    return res;
+}
+
+PyObject* MethCall5(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5){
+    PyObject* res;
+    if (method_info->object != nullptr)
+        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5);
+    else
+        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5);
+    delete method_info;
+    return res;
+}
+
+PyObject* MethCall6(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6){
+    PyObject* res;
+    if (method_info->object != nullptr)
+        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6);
+    else
+        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6);
+    delete method_info;
+    return res;
+}
+
+PyObject* MethCall7(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7){
+    PyObject* res;
+    if (method_info->object != nullptr)
+        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+    else
+        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+    delete method_info;
+    return res;
+}
+
+PyObject* MethCall8(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8){
+    PyObject* res;
+    if (method_info->object != nullptr)
+        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+    else
+        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+    delete method_info;
+    return res;
+}
+
+PyObject* MethCall9(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9){
+    PyObject* res;
+    if (method_info->object != nullptr)
+        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+    else
+        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+    delete method_info;
+    return res;
+}
+
+PyObject* MethCall10(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyObject* arg10){
+    PyObject* res;
+    if (method_info->object != nullptr)
+        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+    else
+        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
     delete method_info;
     return res;
 }
