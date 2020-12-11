@@ -117,7 +117,7 @@ void PythonCompiler::load_local(int oparg) {
     m_il.ld_ind_i();
 }
 
-void PythonCompiler::emit_incref(bool maybeTagged) {
+void PythonCompiler::emit_incref(bool maybeTagged = false) {
     Label tagged, done;
     if (maybeTagged) {
         m_il.dup();
@@ -858,7 +858,7 @@ bool PythonCompiler::emit_method_call(size_t argCnt) {
         case 3: m_il.emit_call(METHOD_METHCALL_3_TOKEN); return true;
         case 4: m_il.emit_call(METHOD_METHCALL_4_TOKEN); return true;
         case 5: m_il.emit_call(METHOD_METHCALL_5_TOKEN); return true;
-//        case 6: m_il.emit_call(METHOD_METHCALL_6_TOKEN); return true;
+        case 6: m_il.emit_call(METHOD_METHCALL_6_TOKEN); return true;
         case 7: m_il.emit_call(METHOD_METHCALL_7_TOKEN); return true;
         case 8: m_il.emit_call(METHOD_METHCALL_8_TOKEN); return true;
         case 9: m_il.emit_call(METHOD_METHCALL_9_TOKEN); return true;
