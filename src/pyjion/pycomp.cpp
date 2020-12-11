@@ -520,27 +520,6 @@ void PythonCompiler::emit_list_store(size_t argCnt) {
     m_il.free_local(listItems);
 }
 
-void PythonCompiler::emit_build_vector(size_t argCnt){
-    vector<Local> values;
-    // dump all the values into local tmp variables.
-    for (int i = 0 ; i < argCnt; i++){
-        auto tmpVar = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
-        m_il.st_loc(tmpVar);
-        values.push_back(tmpVar);
-    }
-    m_il.new_array(argCnt);
-    auto array = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
-    m_il.st_loc(array);
-    for (int i = argCnt ; i > 0; i -- ){
-        m_il.st_elem(array, i, values[i]);
-    }
-    ///  TODO: free local vars in emit_build_vector
-    for (int i = 0 ; i < argCnt; i++){
-        emit_free_local(values[i]);
-    }
-    emit_load_and_free_local(array);
-}
-
 void PythonCompiler::emit_list_extend() {
     m_il.emit_call(METHOD_EXTENDLIST_TOKEN);
 }
@@ -1145,29 +1124,34 @@ void PythonCompiler::emit_debug_msg(const char* msg) {
 void PythonCompiler::emit_binary_float(int opcode) {
     switch (opcode) {
         case BINARY_ADD:
-        case INPLACE_ADD: m_il.add(); break;
+        case INPLACE_ADD:
+            m_il.add();
+            break;
         case INPLACE_TRUE_DIVIDE:
-        case BINARY_TRUE_DIVIDE: m_il.div(); break;
+        case BINARY_TRUE_DIVIDE:
+            m_il.div();
+            break;
         case INPLACE_MODULO:
         case BINARY_MODULO:
-            // TODO: We should be able to generate a mod and provide the JIT
-            // with a helper call method (CORINFO_HELP_DBLREM), but that's 
-            // currently crashing for some reason...
-            m_il.emit_call(METHOD_FLOAT_MODULUS_TOKEN);
-            //m_il.mod(); 
+            m_il.mod();
             break;
         case INPLACE_MULTIPLY:
-        case BINARY_MULTIPLY:  m_il.mul(); break;
+        case BINARY_MULTIPLY:
+            m_il.mul();
+            break;
         case INPLACE_SUBTRACT:
-        case BINARY_SUBTRACT:  m_il.sub(); break;
-
+        case BINARY_SUBTRACT:
+            m_il.sub();
+            break;
         case BINARY_POWER:
         case INPLACE_POWER:
-            m_il.emit_call(METHOD_FLOAT_POWER_TOKEN); break;
+            m_il.emit_call(METHOD_FLOAT_POWER_TOKEN);
+            break;
         case BINARY_FLOOR_DIVIDE:
-        case INPLACE_FLOOR_DIVIDE: m_il.div();
-            m_il.emit_call(METHOD_FLOAT_FLOOR_TOKEN); break;
-
+        case INPLACE_FLOOR_DIVIDE:
+            m_il.div();
+            m_il.emit_call(METHOD_FLOAT_FLOOR_TOKEN);
+            break;
     }
 }
 
