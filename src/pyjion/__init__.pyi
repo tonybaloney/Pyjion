@@ -18,3 +18,9 @@ def enable_tracing() -> None:
 
 def disable_tracing() -> None:
     ...
+
+def enable_profiling() -> None:
+    ...
+
+def disable_profiling() -> None:
+    ...

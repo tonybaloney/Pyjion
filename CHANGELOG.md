@@ -1,5 +1,12 @@
 # Release notes
 
+## 0.2.0
+
+* Added support for profiling compiled functions by enabling profiling (`pyjion.enable_profiling()`)
+* Added support for profiling C function calls, returns and exceptions
+* Implemented a faster call path for functions and methods for 5-10 arguments
+* Fixed a bug where the page size defaulted to 0 in the .NET EE, which caused a failed assertion (and fails to compile the function), would fix a large % of functions that previously failed to compile
+
 ## 0.1.0
 
 * Added support for debugging compiled functions and modules by enabling tracing (`pyjion.enable_tracing()`)

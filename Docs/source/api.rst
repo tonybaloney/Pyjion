@@ -14,6 +14,22 @@ Core module
 
    Disable the JIT
 
+.. function:: enable_tracing()
+
+   Enable tracing hooks (e.g. used by debuggers) to be emitted in the compiled CIL. Required for debugging.
+
+.. function:: disable_tracing()
+
+   Disable tracing hooks.
+
+.. function:: enable_profiling()
+
+   Enable profiling hooks (e.g. used by performance profilers) to be emitted in the compiled CIL.
+
+.. function:: disable()
+
+   Disable profiling hooks.
+
 .. function:: set_threshold(to)
 
    Set the threshold to JIT compile a function to the number of times it is executed.
