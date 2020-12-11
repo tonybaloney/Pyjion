@@ -246,6 +246,12 @@ PyObject* Call1(PyObject *target, PyObject* arg0);
 PyObject* Call2(PyObject *target, PyObject* arg0, PyObject* arg1);
 PyObject* Call3(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2);
 PyObject* Call4(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3);
+PyObject* Call5(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4);
+PyObject* Call6(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5);
+PyObject* Call7(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6);
+PyObject* Call8(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7);
+PyObject* Call9(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8);
+PyObject* Call10(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9);
 
 extern PyObject* g_emptyTuple;
 
@@ -264,6 +270,12 @@ PyObject* MethCall1(PyObject* self, PyMethodLocation* method_info, PyObject* arg
 PyObject* MethCall2(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2);
 PyObject* MethCall3(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3);
 PyObject* MethCall4(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4);
+PyObject* MethCall5(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5);
+PyObject* MethCall6(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6);
+PyObject* MethCall7(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7);
+PyObject* MethCall8(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8);
+PyObject* MethCall9(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9);
+PyObject* MethCall10(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyObject* arg10);
 PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* args);
 
 int PyJit_SetupAnnotations(PyFrameObject* frame);

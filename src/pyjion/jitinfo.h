@@ -1445,6 +1445,7 @@ public:
         pEEInfoOut->osPageSize = 0x1000; // Set to the windows default
         pEEInfoOut->osType = CORINFO_WINNT;
 #else
+        pEEInfoOut->osPageSize = getpagesize();
         pEEInfoOut->osType = CORINFO_UNIX;
 #endif
     }
