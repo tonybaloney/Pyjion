@@ -14,7 +14,7 @@ At the command-line you can compile the project by using `setup.py`:
 
 .. code-block::
 
- > git clone git@github.com:Microsoft/pyjion --recurse-submodules
+ > git clone git@github.com:tonybaloney/pyjion --recurse-submodules
  > cd pyjion
  > python -m pip install .
 
@@ -30,6 +30,6 @@ Prerequisites:
 
 .. code-block::
 
-    $ git clone git@github.com:Microsoft/pyjion --recurse-submodules
+    $ git clone git@github.com:tonybaloney/pyjion --recurse-submodules
     $ cd pyjion
     $ python -m pip install .

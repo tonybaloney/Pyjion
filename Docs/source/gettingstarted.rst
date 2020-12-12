@@ -7,7 +7,7 @@ To recursively clone the project use
 
 .. sourcecode:: bash
 
-  git clone --recursive https://github.com/microsoft/Pyjion.git
+  git clone --recursive https://github.com/tonybaloney/Pyjion.git
 
 If you did not clone the repository with --recursive, you can still download submodules within git.
 
