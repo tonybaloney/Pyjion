@@ -318,8 +318,6 @@ public:
 
     void emit_unpack_ex(Local sequence, size_t leftSize, size_t rightSize, Local sequenceStorage, Local list, Local remainder) override;
 
-    void emit_build_vector(size_t argCnt) override;
-
     // Emits a call for the specified argument count.  If the compiler
     // can't emit a call with this number of args then it returns false,
     // and emit_call_with_tuple is used to call with a variable sized
