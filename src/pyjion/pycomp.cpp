@@ -118,34 +118,6 @@ void PythonCompiler::load_local(int oparg) {
     m_il.ld_ind_i();
 }
 
-void PythonCompiler::emit_incref(bool maybeTagged = false) {
-    Label tagged, done;
-    if (maybeTagged) {
-        m_il.dup();
-        m_il.ld_i(1);
-        m_il.bitwise_and();
-        tagged = m_il.define_label();
-        done = m_il.define_label();
-        m_il.branch(BranchTrue, tagged);
-    }
-
-    LD_FIELDA(PyObject, ob_refcnt);
-    m_il.dup();
-    m_il.ld_ind_i4();
-    m_il.ld_i4(1);
-    m_il.add();
-    m_il.st_ind_i4();
-
-    if (maybeTagged) {
-        m_il.branch(BranchAlways, done);
-
-        m_il.mark_label(tagged);
-        m_il.pop();
-
-        m_il.mark_label(done);
-    }
-}
-
 void PythonCompiler::emit_breakpoint(){
     // Emits a breakpoint in the IL. useful for debugging
     m_il.brk();
@@ -184,8 +156,61 @@ void PythonCompiler::emit_trace_exception() {
     m_il.emit_call(METHOD_TRACE_EXCEPTION);
 }
 
+void PythonCompiler::emit_incref(bool maybeTagged = false) {
+    Label tagged, done;
+    if (maybeTagged) {
+        m_il.dup();
+        m_il.ld_i(1);
+        m_il.bitwise_and();
+        tagged = m_il.define_label();
+        done = m_il.define_label();
+        m_il.branch(BranchTrue, tagged);
+    }
+
+    LD_FIELDA(PyObject, ob_refcnt);
+    m_il.dup();
+    m_il.ld_ind_i4();
+    m_il.ld_i4(1);
+    m_il.add();
+    m_il.st_ind_i4();
+
+    if (maybeTagged) {
+        m_il.branch(BranchAlways, done);
+
+        m_il.mark_label(tagged);
+        m_il.pop();
+
+        m_il.mark_label(done);
+    }
+}
+
 void PythonCompiler::decref() {
-    m_il.emit_call(METHOD_DECREF_TOKEN);
+    if (g_pyjionSettings.opt_inlineDecref){ // obj
+        Label dealloc = emit_define_label();
+        Label done = emit_define_label();
+
+        m_il.dup();                     // obj, obj
+
+        LD_FIELDA(PyObject, ob_refcnt); // obj, refcnt
+        m_il.dup();                     // obj, refcnt, refcnt
+        m_il.dup();                     // obj, refcnt, refcnt, refcnt
+        m_il.ld_ind_i4();               // obj, refcnt, refcnt, refcnt(i4)
+        m_il.ld_i4(1);                  // obj, refcnt, refcnt, refcnt(i4), 1
+        emit_branch(BranchLessThanEqual, dealloc);
+        m_il.ld_i4(1);                  // obj, refcnt, refcnt, 1
+        m_il.sub();                     // obj, refcnt, (refcnt(i4)-1)
+        m_il.st_ind_i4();               // obj
+        m_il.pop();                     //
+        emit_branch(BranchAlways, done);
+
+        emit_mark_label(dealloc);       // obj, refcnt, refcnt
+        m_il.pop(); m_il.pop();         // obj
+        m_il.emit_call(METHOD_DECREF_TOKEN); //
+
+        emit_mark_label(done);
+    } else {
+        m_il.emit_call(METHOD_DECREF_TOKEN);
+    }
 }
 
 Local PythonCompiler::emit_allocate_stack_array(size_t bytes) {
