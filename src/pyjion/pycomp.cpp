@@ -1221,14 +1221,17 @@ void PythonCompiler::emit_is(bool isNot) {
     if (g_pyjionSettings.opt_inlineIs){
         auto branchType = isNot ? BranchNotEqual : BranchEqual;
         Label match = emit_define_label();
+        Label end = emit_define_label();
         emit_branch(branchType, match);
         emit_ptr(Py_False);
         emit_dup();
         emit_incref();
+        emit_branch(BranchAlways, end);
         emit_mark_label(match);
         emit_ptr(Py_True);
         emit_dup();
         emit_incref();
+        emit_mark_label(end);
     } else {
         m_il.emit_call(isNot ? METHOD_ISNOT : METHOD_IS);
     }
