@@ -186,26 +186,29 @@ void PythonCompiler::emit_incref(bool maybeTagged = false) {
 
 void PythonCompiler::decref() {
     if (g_pyjionSettings.opt_inlineDecref){ // obj
-        Label dealloc = emit_define_label();
         Label done = emit_define_label();
+        Label popAndGo = emit_define_label();
 
         m_il.dup();                     // obj, obj
+        emit_null();                    // obj, obj, null
+        emit_branch(BranchEqual, popAndGo);
 
-        LD_FIELDA(PyObject, ob_refcnt); // obj, refcnt
-        m_il.dup();                     // obj, refcnt, refcnt
-        m_il.dup();                     // obj, refcnt, refcnt, refcnt
-        m_il.ld_ind_i4();               // obj, refcnt, refcnt, refcnt(i4)
-        m_il.ld_i4(1);                  // obj, refcnt, refcnt, refcnt(i4), 1
-        emit_branch(BranchLessThanEqual, dealloc);
-        m_il.ld_i4(1);                  // obj, refcnt, refcnt, 1
-        m_il.sub();                     // obj, refcnt, (refcnt(i4)-1)
-        m_il.st_ind_i4();               // obj
-        m_il.pop();                     //
+        m_il.dup(); m_il.dup();         // obj, obj, obj
+        LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
+        m_il.dup();                     // obj, obj, refcnt, refcnt
+        m_il.ld_ind_i4();               // obj, obj, refcnt, *refcnt
+        m_il.ld_i4(1);               // obj, obj, refcnt,  *refcnt, 1
+        m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
+        m_il.st_ind_i4();              // obj, obj
+
+        LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
+        m_il.ld_i4(0);              // obj, refcnt, 0
+        emit_branch(BranchGreaterThan, popAndGo);
+
+        m_il.emit_call(METHOD_DEALLOC_OBJECT);
         emit_branch(BranchAlways, done);
-
-        emit_mark_label(dealloc);       // obj, refcnt, refcnt
-        m_il.pop(); m_il.pop();         // obj
-        m_il.emit_call(METHOD_DECREF_TOKEN); //
+        emit_mark_label(popAndGo);
+        emit_pop();
 
         emit_mark_label(done);
     } else {
@@ -1559,6 +1562,9 @@ GLOBAL_METHOD(METHOD_METHCALLN_TOKEN, &MethCallN, CORINFO_TYPE_NATIVEINT, Parame
 GLOBAL_METHOD(METHOD_SETUP_ANNOTATIONS, &PyJit_SetupAnnotations, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT),);
 
 GLOBAL_METHOD(METHOD_LOAD_ASSERTION_ERROR, &PyJit_LoadAssertionError, CORINFO_TYPE_NATIVEINT);
+
+GLOBAL_METHOD(METHOD_DEALLOC_OBJECT, &_Py_Dealloc, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
+
 
 GLOBAL_METHOD(METHOD_TRACE_LINE, &PyJit_TraceLine, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_TRACE_FRAME_ENTRY, &PyJit_TraceFrameEntry, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
