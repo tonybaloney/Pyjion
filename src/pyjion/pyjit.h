@@ -59,10 +59,13 @@ PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject);
 class PyjionJittedCode;
 typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*);
 
-typedef struct {
+typedef struct PyjionSettings {
     bool tracing;
     bool profiling;
-    unsigned short optimizationLevel;
+    unsigned short optimizationLevel = 1;
+
+    // Optimizations
+    bool opt_inlineIs = true; // OPT-1
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
@@ -106,5 +109,7 @@ public:
 };
 
 bool jit_compile(PyCodeObject* code);
+
+void setOptimizationLevel(unsigned short level);
 
 #endif

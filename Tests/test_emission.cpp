@@ -60,8 +60,9 @@ private:
     }
 
 public:
-    explicit EmissionTest(const char *code) {
+    explicit EmissionTest(const char *code, unsigned short optLevel = 0) {
         PyErr_Clear();
+        setOptimizationLevel(optLevel);
         m_code.reset(CompileCode(code));
         if (m_code.get() == nullptr) {
             FAIL("failed to compile in JIT code");
@@ -302,9 +303,15 @@ TEST_CASE("Dict Merging"){
 }
 
 TEST_CASE("General is comparison") {
+    auto optLevel  = GENERATE(0, 1, 2);
     SECTION("common case") {
-        auto t = EmissionTest("def f(): return 1 is 2");
+        auto t = EmissionTest("def f(): return 1 is 2", optLevel);
         CHECK(t.returns() == "False");
+    }
+
+    SECTION("common not case") {
+        auto t = EmissionTest("def f(): return 1 is not 2", optLevel);
+        CHECK(t.returns() == "True");
     }
 }
 
