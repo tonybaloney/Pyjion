@@ -286,7 +286,7 @@ jobs:
         run: cmake --build . --config Release
 
       - name: Run unit tests
-        run: build\Release\unit_tests.exe
+        run: .\build\Release\unit_tests.exe
 
       - name: Install build deps
         shell: bash
