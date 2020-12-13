@@ -59,21 +59,21 @@ PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject);
 class PyjionJittedCode;
 typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*);
 
-typedef struct PyjionSettings {
-    bool tracing = false;
-    bool profiling = false;
-    unsigned short optimizationLevel = 1;
+typedef struct {
+    bool tracing;
+    bool profiling;
+    unsigned short optimizationLevel ;
 
     // Optimizations
-    bool opt_inlineIs = true; // OPT-1
-    bool opt_inlineDecref = true; // OPT-2
+    bool opt_inlineIs; // OPT-1
+    bool opt_inlineDecref; // OPT-2
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
 static PY_UINT64_T jitPassCounter = 0;
 static PY_UINT64_T jitFailCounter = 0;
 
-static PyjionSettings g_pyjionSettings;
+static PyjionSettings* g_pyjionSettings;
 
 void PyjionJitFree(void* obj);
 

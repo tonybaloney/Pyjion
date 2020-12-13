@@ -1644,7 +1644,7 @@ inline PyObject* Call(PyObject *target, Args...args) {
         PyGILState_STATE gstate;
         gstate = PyGILState_Ensure();
 #endif
-        if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
+        if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings->profiling) {
             // Call the function with profiling hooks
             trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
             res = PyObject_Vectorcall(target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
@@ -1699,7 +1699,7 @@ PyObject* Call0(PyObject *target) {
     gstate = PyGILState_Ensure();
 #endif
     if (PyCFunction_Check(target)) {
-        if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
+        if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings->profiling) {
             // Call the function with profiling hooks
             trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
             res = PyObject_Vectorcall(target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);

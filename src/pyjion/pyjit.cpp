@@ -56,10 +56,10 @@ struct SpecializedTreeNode {
 };
 
 #define SET_OPT(opt, actualLevel, minLevel) \
-    g_pyjionSettings.opt_ ## opt = (actualLevel) >= (minLevel) ? true : false;
+    g_pyjionSettings->opt_ ## opt = (actualLevel) >= (minLevel) ? true : false;
 
 void setOptimizationLevel(unsigned short level){
-    g_pyjionSettings.optimizationLevel = level;
+    g_pyjionSettings->optimizationLevel = level;
     SET_OPT(inlineIs, level, 1);
     SET_OPT(inlineDecref, level, 1);
 }
@@ -88,7 +88,12 @@ static Py_tss_t* g_extraSlot;
 
 
 bool JitInit() {
-    g_pyjionSettings = {false, 0};
+    g_pyjionSettings = new PyjionSettings {
+            false,
+            false,
+            1,
+            true,
+            true};
 	g_extraSlot = PyThread_tss_alloc();
 	PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS
@@ -477,22 +482,22 @@ static PyObject* pyjion_get_threshold(PyObject *self, PyObject* args) {
 }
 
 static PyObject* pyjion_enable_tracing(PyObject *self, PyObject* args) {
-    g_pyjionSettings.tracing = true;
+    g_pyjionSettings->tracing = true;
     Py_RETURN_NONE;
 }
 
 static PyObject* pyjion_disable_tracing(PyObject *self, PyObject* args) {
-    g_pyjionSettings.tracing = false;
+    g_pyjionSettings->tracing = false;
     Py_RETURN_NONE;
 }
 
 static PyObject* pyjion_enable_profiling(PyObject *self, PyObject* args) {
-    g_pyjionSettings.profiling = true;
+    g_pyjionSettings->profiling = true;
     Py_RETURN_NONE;
 }
 
 static PyObject* pyjion_disable_profiling(PyObject *self, PyObject* args) {
-    g_pyjionSettings.profiling = false;
+    g_pyjionSettings->profiling = false;
     Py_RETURN_NONE;
 }
 
