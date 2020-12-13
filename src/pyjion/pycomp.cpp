@@ -1219,6 +1219,15 @@ void PythonCompiler::emit_binary_object(int opcode) {
 
 void PythonCompiler::emit_is(bool isNot) {
     if (g_pyjionSettings.opt_inlineIs){
+        auto left = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+        auto right = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+
+        m_il.st_loc(left);
+        m_il.st_loc(right);
+
+        m_il.ld_loc(right);
+        m_il.ld_loc(left);
+
         auto branchType = isNot ? BranchNotEqual : BranchEqual;
         Label match = emit_define_label();
         Label end = emit_define_label();
@@ -1232,6 +1241,11 @@ void PythonCompiler::emit_is(bool isNot) {
         emit_dup();
         emit_incref();
         emit_mark_label(end);
+
+        emit_load_and_free_local(left);
+        decref();
+        emit_load_and_free_local(right);
+        decref();
     } else {
         m_il.emit_call(isNot ? METHOD_ISNOT : METHOD_IS);
     }
