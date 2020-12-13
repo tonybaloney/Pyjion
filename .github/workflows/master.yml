@@ -33,7 +33,7 @@ jobs:
           libssl-dev libnuma-dev libkrb5-dev zlib1g-dev
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.100'
+          dotnet-version: '5.0.101'
 
       - name: Create Build Environment
         run: cmake -E make_directory ${{runner.workspace}}/build
@@ -111,7 +111,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.100'
+          dotnet-version: '5.0.101'
 
       - name: Create Build Environment
         run: cmake -E make_directory ${{runner.workspace}}/build
@@ -189,7 +189,7 @@ jobs:
           architecture: x64
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.100'
+          dotnet-version: '5.0.101'
       - name: Create Build Environment
         run: cmake -E make_directory ${{runner.workspace}}/build
 
