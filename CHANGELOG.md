@@ -1,5 +1,10 @@
 # Release notes
 
+## 0.2.1
+
+* Added support for .NET 5.0.1
+* Implemented a CIL modulus emitter
+
 ## 0.2.0
 
 * Added support for profiling compiled functions by enabling profiling (`pyjion.enable_profiling()`)
