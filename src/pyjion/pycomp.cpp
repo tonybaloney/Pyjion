@@ -33,6 +33,7 @@ typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #endif
 
 #include "pycomp.h"
+#include "pyjit.h"
 
 using namespace std;
 
@@ -1217,7 +1218,37 @@ void PythonCompiler::emit_binary_object(int opcode) {
 }
 
 void PythonCompiler::emit_is(bool isNot) {
-    m_il.emit_call(isNot ? METHOD_ISNOT : METHOD_IS);
+    if (g_pyjionSettings.opt_inlineIs){
+        auto left = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+        auto right = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+
+        m_il.st_loc(left);
+        m_il.st_loc(right);
+
+        m_il.ld_loc(right);
+        m_il.ld_loc(left);
+
+        auto branchType = isNot ? BranchNotEqual : BranchEqual;
+        Label match = emit_define_label();
+        Label end = emit_define_label();
+        emit_branch(branchType, match);
+        emit_ptr(Py_False);
+        emit_dup();
+        emit_incref();
+        emit_branch(BranchAlways, end);
+        emit_mark_label(match);
+        emit_ptr(Py_True);
+        emit_dup();
+        emit_incref();
+        emit_mark_label(end);
+
+        emit_load_and_free_local(left);
+        decref();
+        emit_load_and_free_local(right);
+        decref();
+    } else {
+        m_il.emit_call(isNot ? METHOD_ISNOT : METHOD_IS);
+    }
 }
 
 

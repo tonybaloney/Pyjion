@@ -55,6 +55,13 @@ struct SpecializedTreeNode {
 	}
 };
 
+#define SET_OPT(opt, actualLevel, minLevel) \
+    g_pyjionSettings.opt_ ## opt = (actualLevel) >= minLevel ? true : false;
+
+void setOptimizationLevel(unsigned short level){
+    g_pyjionSettings.optimizationLevel = level;
+    SET_OPT(inlineIs, level, 1);
+}
 
 PyjionJittedCode::~PyjionJittedCode() {
 	for (auto & cur : j_optimized) {
@@ -488,6 +495,22 @@ static PyObject* pyjion_disable_profiling(PyObject *self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* pyjion_set_optimization_level(PyObject *self, PyObject* args) {
+    if (!PyLong_Check(args)) {
+        PyErr_SetString(PyExc_TypeError, "Expected int for new threshold");
+        return nullptr;
+    }
+
+    auto newValue = PyLong_AsUnsignedLong(args);
+    if (newValue > 2) {
+        PyErr_SetString(PyExc_ValueError, "Expected a number smaller than 4");
+        return nullptr;
+    }
+
+    setOptimizationLevel(newValue);
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef PyjionMethods[] = {
 	{ 
 		"enable",  
@@ -543,6 +566,12 @@ static PyMethodDef PyjionMethods[] = {
 		METH_O,
 		"Gets the number of times a method needs to be executed before the JIT is triggered."
 	},
+    {
+            "set_optimization_level",
+            pyjion_set_optimization_level,
+            METH_O,
+            "Sets optimization level (0 = None, 1 = Common, 2 = Maximum)."
+    },
     {
         "enable_tracing",
         pyjion_enable_tracing,
