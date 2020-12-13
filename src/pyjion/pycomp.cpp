@@ -205,7 +205,7 @@ void PythonCompiler::decref() {
         m_il.ld_i4(0);              // obj, refcnt, 0
         emit_branch(BranchGreaterThan, popAndGo);
 
-        m_il.emit_call(METHOD_DEALLOC_OBJECT);
+        m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
         emit_branch(BranchAlways, done);
         emit_mark_label(popAndGo);
         emit_pop();
