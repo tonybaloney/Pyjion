@@ -1446,7 +1446,6 @@ public:
 #ifdef WINDOWS
         pEEInfoOut->osPageSize = systemInfo.dwPageSize; // Set to the windows default
         pEEInfoOut->osType = CORINFO_WINNT;
-        printf("OS Page size %d\r\n", pEEInfoOut->osPageSize);
 #else
         pEEInfoOut->osPageSize = getpagesize();
         pEEInfoOut->osType = CORINFO_UNIX;
