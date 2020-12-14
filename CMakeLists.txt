@@ -6,6 +6,10 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(BUILD_TESTS "Build the unit tests" OFF)
+
+include(CMakeOptimizations.txt)
+
 if (UNIX AND NOT APPLE)
     message(STATUS "Enabling PIC")
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
