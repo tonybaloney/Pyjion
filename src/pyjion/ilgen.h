@@ -179,6 +179,7 @@ public:
             case 5: push_back(CEE_LDC_I4_5); break;
             case 6: push_back(CEE_LDC_I4_6); break;
             case 7: push_back(CEE_LDC_I4_7); break;
+            case 8: push_back(CEE_LDC_I4_8); break;
             default:
                 if (i < 256) {
                     push_back(CEE_LDC_I4_S);
