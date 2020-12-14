@@ -6,6 +6,10 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(BUILD_TESTS "Build the unit tests" OFF)
+
+include(CMakeOptimizations.txt)
+
 if (UNIX AND NOT APPLE)
     message(STATUS "Enabling PIC")
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -65,6 +69,7 @@ else()
     add_definitions(-D_HAS_STD_BYTE=0)
     if (MSVC)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:80000000")
     endif(MSVC)
 endif(NOT WIN32)
 

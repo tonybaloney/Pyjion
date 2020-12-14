@@ -118,34 +118,6 @@ void PythonCompiler::load_local(int oparg) {
     m_il.ld_ind_i();
 }
 
-void PythonCompiler::emit_incref(bool maybeTagged = false) {
-    Label tagged, done;
-    if (maybeTagged) {
-        m_il.dup();
-        m_il.ld_i(1);
-        m_il.bitwise_and();
-        tagged = m_il.define_label();
-        done = m_il.define_label();
-        m_il.branch(BranchTrue, tagged);
-    }
-
-    LD_FIELDA(PyObject, ob_refcnt);
-    m_il.dup();
-    m_il.ld_ind_i4();
-    m_il.ld_i4(1);
-    m_il.add();
-    m_il.st_ind_i4();
-
-    if (maybeTagged) {
-        m_il.branch(BranchAlways, done);
-
-        m_il.mark_label(tagged);
-        m_il.pop();
-
-        m_il.mark_label(done);
-    }
-}
-
 void PythonCompiler::emit_breakpoint(){
     // Emits a breakpoint in the IL. useful for debugging
     m_il.brk();
@@ -184,8 +156,65 @@ void PythonCompiler::emit_trace_exception() {
     m_il.emit_call(METHOD_TRACE_EXCEPTION);
 }
 
+void PythonCompiler::emit_incref(bool maybeTagged = false) {
+    Label tagged, done;
+    if (maybeTagged) {
+        m_il.dup();
+        m_il.ld_i(1);
+        m_il.bitwise_and();
+        tagged = m_il.define_label();
+        done = m_il.define_label();
+        m_il.branch(BranchTrue, tagged);
+    }
+
+    LD_FIELDA(PyObject, ob_refcnt);
+    m_il.dup();
+    m_il.ld_ind_i4();
+    m_il.ld_i4(1);
+    m_il.add();
+    m_il.st_ind_i4();
+
+    if (maybeTagged) {
+        m_il.branch(BranchAlways, done);
+
+        m_il.mark_label(tagged);
+        m_il.pop();
+
+        m_il.mark_label(done);
+    }
+}
+
 void PythonCompiler::decref() {
-    m_il.emit_call(METHOD_DECREF_TOKEN);
+    if (g_pyjionSettings.opt_inlineDecref){ // obj
+        Label done = emit_define_label();
+        Label popAndGo = emit_define_label();
+
+        m_il.dup();                     // obj, obj
+        emit_null();                    // obj, obj, null
+        emit_branch(BranchEqual, popAndGo);
+
+        m_il.dup(); m_il.dup();         // obj, obj, obj
+        LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
+        m_il.dup();                     // obj, obj, refcnt, refcnt
+        m_il.ld_ind_i4();               // obj, obj, refcnt, *refcnt
+        m_il.ld_i4(1);               // obj, obj, refcnt,  *refcnt, 1
+        m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
+        m_il.st_ind_i4();              // obj, obj
+
+        // TODO : Check if LD_FIELD can be ld_ind_i4 instead of ld_ind
+        LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
+        m_il.ld_i4(0);                 // obj, refcnt, 0
+        emit_branch(BranchGreaterThan, popAndGo);
+        
+        m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
+        emit_branch(BranchAlways, done);
+        emit_mark_label(popAndGo);
+        emit_pop();
+
+        emit_mark_label(done);
+    } else {
+        m_il.emit_call(METHOD_DECREF_TOKEN);
+    }
 }
 
 Local PythonCompiler::emit_allocate_stack_array(size_t bytes) {
@@ -1534,6 +1563,9 @@ GLOBAL_METHOD(METHOD_METHCALLN_TOKEN, &MethCallN, CORINFO_TYPE_NATIVEINT, Parame
 GLOBAL_METHOD(METHOD_SETUP_ANNOTATIONS, &PyJit_SetupAnnotations, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT),);
 
 GLOBAL_METHOD(METHOD_LOAD_ASSERTION_ERROR, &PyJit_LoadAssertionError, CORINFO_TYPE_NATIVEINT);
+
+GLOBAL_METHOD(METHOD_DEALLOC_OBJECT, &_Py_Dealloc, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
+
 
 GLOBAL_METHOD(METHOD_TRACE_LINE, &PyJit_TraceLine, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_TRACE_FRAME_ENTRY, &PyJit_TraceFrameEntry, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );

@@ -141,6 +141,7 @@
 #define METHOD_BUILD_DICT_FROM_TUPLES            0x00000076
 #define METHOD_DICT_MERGE                        0x00000077
 #define METHOD_SETUP_ANNOTATIONS                 0x00000078
+#define METHOD_DEALLOC_OBJECT                    0x00000079
 
 // call helpers
 #define METHOD_CALL_0_TOKEN        0x00010000

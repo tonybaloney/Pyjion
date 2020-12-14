@@ -56,11 +56,12 @@ struct SpecializedTreeNode {
 };
 
 #define SET_OPT(opt, actualLevel, minLevel) \
-    g_pyjionSettings.opt_ ## opt = (actualLevel) >= minLevel ? true : false;
+    g_pyjionSettings.opt_ ## opt = (actualLevel) >= (minLevel) ? true : false;
 
 void setOptimizationLevel(unsigned short level){
     g_pyjionSettings.optimizationLevel = level;
     SET_OPT(inlineIs, level, 1);
+    SET_OPT(inlineDecref, level, 1);
 }
 
 PyjionJittedCode::~PyjionJittedCode() {

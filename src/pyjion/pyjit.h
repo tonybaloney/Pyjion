@@ -60,12 +60,13 @@ class PyjionJittedCode;
 typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*);
 
 typedef struct PyjionSettings {
-    bool tracing;
-    bool profiling;
+    bool tracing = false;
+    bool profiling = false;
     unsigned short optimizationLevel = 1;
 
     // Optimizations
-    bool opt_inlineIs = true; // OPT-1
+    bool opt_inlineIs = OPTIMIZE_IS; // OPT-1
+    bool opt_inlineDecref = OPTIMIZE_DECREF; // OPT-2
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;

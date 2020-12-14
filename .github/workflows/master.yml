@@ -319,11 +319,15 @@ jobs:
         shell: bash
         run: python -m unittest discover Tests/
 
+      - name: Run unit tests
+        working-directory: ${{runner.workspace}}/build/Release
+        run: .\unit_tests.exe
+
       - name: Run smoke tests
         shell: bash
-        run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -j4
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -j1
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_win.txt -j4
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_win.txt -j1
 

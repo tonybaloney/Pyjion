@@ -179,6 +179,7 @@ public:
             case 5: push_back(CEE_LDC_I4_5); break;
             case 6: push_back(CEE_LDC_I4_6); break;
             case 7: push_back(CEE_LDC_I4_7); break;
+            case 8: push_back(CEE_LDC_I4_8); break;
             default:
                 if (i < 256) {
                     push_back(CEE_LDC_I4_S);
@@ -368,6 +369,9 @@ public:
                     break;
                 case BranchLessThanEqual:
                     m_il.push_back(CEE_BLE); // Pop1+Pop1, Push0
+                    break;
+                case BranchGreaterThan:
+                    m_il.push_back(CEE_BGT); // Pop1+Pop1, Push0
                     break;
             }
             emit_int(offset - 5);
