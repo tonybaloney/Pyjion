@@ -65,6 +65,7 @@ else()
     add_definitions(-D_HAS_STD_BYTE=0)
     if (MSVC)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:80000000")
     endif(MSVC)
 endif(NOT WIN32)
 
