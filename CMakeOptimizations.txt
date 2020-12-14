@@ -1,0 +1,21 @@
+# Optimization default flags
+option(OPTIMIZE_DECREF "Optimize DECREF when ob_refcnt > 1" ON)
+option(OPTIMIZE_IS "Optimize IS_OP" ON)
+
+
+if (WIN32)
+    SET(OPTIMIZE_DECREF OFF)
+    SET(OPTIMIZE_IS OFF)
+endif()
+
+if (OPTIMIZE_DECREF)
+    add_definitions(-DOPTIMIZE_DECREF=1)
+else()
+    add_definitions(-DOPTIMIZE_DECREF=0)
+endif()
+
+if (OPTIMIZE_IS)
+    add_definitions(-DOPTIMIZE_IS=1)
+else()
+    add_definitions(-DOPTIMIZE_IS=0)
+endif()

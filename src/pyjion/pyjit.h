@@ -65,8 +65,8 @@ typedef struct PyjionSettings {
     unsigned short optimizationLevel = 1;
 
     // Optimizations
-    bool opt_inlineIs = true; // OPT-1
-    bool opt_inlineDecref = true; // OPT-2
+    bool opt_inlineIs = OPTIMIZE_IS; // OPT-1
+    bool opt_inlineDecref = OPTIMIZE_DECREF; // OPT-2
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
