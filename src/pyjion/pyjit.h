@@ -66,11 +66,7 @@ typedef struct PyjionSettings {
 
     // Optimizations
     bool opt_inlineIs = true; // OPT-1
-#ifdef WINDOWS
-    bool opt_inlineDecref = false; // TODO : Fix 0xC0000005 crash on Windows opt-inline
-#else
     bool opt_inlineDecref = true; // OPT-2
-#endif
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
