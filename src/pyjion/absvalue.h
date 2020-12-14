@@ -161,6 +161,10 @@ public:
     virtual bool isAlwaysFalse() {
         return false;
     }
+    virtual bool isIntern() {
+        return false;
+    }
+
     virtual AbstractValue* mergeWith(AbstractValue*other);
     virtual AbstractValueKind kind() = 0;
     virtual const char* describe() {
@@ -287,6 +291,9 @@ class IntegerValue : public AbstractValue {
 };
 
 class InternIntegerValue : public IntegerValue {
+    bool isIntern() override {
+        return true;
+    }
 };
 
 class StringValue : public AbstractValue {
