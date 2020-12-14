@@ -344,6 +344,9 @@ public:
                 case BranchLessThanEqual:
                     m_il.push_back(CEE_BLE_S); // Pop1+Pop1, Push0
                     break;
+                case BranchGreaterThan:
+                    m_il.push_back(CEE_BGT_S); // Pop1+Pop1, Push0
+                    break;
             }
             m_il.push_back((BYTE)offset - 2);
         }

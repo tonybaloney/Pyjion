@@ -389,5 +389,6 @@ private:
     void incExcVars(int count);
 };
 
-
+// TODO : Fetch the range of interned integers from the interpreter state
+#define IS_SMALL_INT(ival) (-5 <= (ival) && (ival) < 257)
 #endif

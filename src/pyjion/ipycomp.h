@@ -27,6 +27,7 @@
 #define PYJION_IPYCOMP_H
 
 #include <cstdint>
+#include "absvalue.h"
 
 class Local {
 public:
@@ -358,6 +359,8 @@ public:
 
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
     virtual void emit_compare_object(int compareType) = 0;
+    // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
+    virtual void emit_compare_known_object(int compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) = 0;
     // Performs a comparison of two unboxed floating point values on the stack
     virtual void emit_compare_float(int compareType) = 0;
     // Performs a comparison of two tagged integers

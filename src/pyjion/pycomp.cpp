@@ -1326,6 +1326,10 @@ void PythonCompiler::emit_compare_object(int compareType) {
     m_il.emit_call(METHOD_RICHCMP_TOKEN);
 }
 
+void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) {
+    emit_compare_object(compareType);
+}
+
 void PythonCompiler::emit_load_method(void* name) {
     m_il.ld_i(name);
     m_il.emit_call(METHOD_LOAD_METHOD);

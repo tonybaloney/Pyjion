@@ -286,6 +286,9 @@ class IntegerValue : public AbstractValue {
     void truth(AbstractSource* sources) override;
 };
 
+class InternIntegerValue : public IntegerValue {
+};
+
 class StringValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
@@ -351,6 +354,7 @@ extern UndefinedValue Undefined;
 extern AnyValue Any;
 extern BoolValue Bool;
 extern IntegerValue Integer;
+extern InternIntegerValue InternInteger;
 extern FloatValue Float;
 extern ListValue List;
 extern TupleValue Tuple;

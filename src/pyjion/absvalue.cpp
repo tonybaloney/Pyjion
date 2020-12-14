@@ -28,6 +28,7 @@
 AnyValue Any;
 UndefinedValue Undefined;
 IntegerValue Integer;
+InternIntegerValue InternInteger;
 FloatValue Float;
 BoolValue Bool;
 ListValue List;

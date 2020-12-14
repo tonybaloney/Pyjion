@@ -67,6 +67,7 @@ typedef struct PyjionSettings {
     // Optimizations
     bool opt_inlineIs = OPTIMIZE_IS; // OPT-1
     bool opt_inlineDecref = OPTIMIZE_DECREF; // OPT-2
+    bool opt_internRichCompare = OPTIMIZE_INTERN_COMPARE; // OPT-3
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
@@ -74,6 +75,8 @@ static PY_UINT64_T jitPassCounter = 0;
 static PY_UINT64_T jitFailCounter = 0;
 
 static PyjionSettings g_pyjionSettings;
+
+#define OPT_ENABLED(opt) g_pyjionSettings.opt_ ## opt
 
 void PyjionJitFree(void* obj);
 

@@ -1,6 +1,7 @@
 # Optimization default flags
 option(OPTIMIZE_DECREF "Optimize DECREF when ob_refcnt > 1" ON)
 option(OPTIMIZE_IS "Optimize IS_OP" ON)
+option(OPTIMIZE_INTERN_COMPARE "Optimize COMPARE_OP for intern values" ON)
 
 
 if (WIN32)
@@ -18,4 +19,10 @@ if (OPTIMIZE_IS)
     add_definitions(-DOPTIMIZE_IS=1)
 else()
     add_definitions(-DOPTIMIZE_IS=0)
+endif()
+
+if (OPTIMIZE_INTERN_COMPARE)
+    add_definitions(-DOPTIMIZE_INTERN_COMPARE=1)
+else()
+    add_definitions(-DOPTIMIZE_INTERN_COMPARE=0)
 endif()
