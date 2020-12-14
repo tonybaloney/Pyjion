@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.3.0
+
+* Added an optimization (OPT-1/OPTIMIZE_IS) to inline the "is"/ "is not" statement into a simple pointer comparison with jump statement. Compiles to inline machine code instead of a method call
+* Added an optimization (OPT-2/OPTIMIZE_DECREF) to decrement the refcount without a method call, when the object refcount is >1 and then call _Py_dealloc if the ref count becomes 0. Replaces the previous method call
+* Windows now uses the system page size instead of the default value of 1MB
+
 ## 0.2.1
 
 * Added support for .NET 5.0.1
