@@ -18,8 +18,8 @@ JIT_StackProbe PROC
 ProbeLoop:
         sub     rax, PAGE_SIZE         ; rax points to the lowest address of the **next page** to probe
         test    dword ptr [rax], eax   ; rax points to the lowest address on the **last probed** page
-        ; cmp     rax, r11
-        ; jg      ProbeLoop              ; If (rax > r11), then we need to probe at least one more page.
+        cmp     rax, r11
+        jg      ProbeLoop              ; If (rax > r11), then we need to probe at least one more page.
 
         ret
 

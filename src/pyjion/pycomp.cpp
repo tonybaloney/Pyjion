@@ -201,10 +201,12 @@ void PythonCompiler::decref() {
         m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
         m_il.st_ind_i4();              // obj, obj
 
-        LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
+        m_il.ld_i(offsetof(PyObject, ob_refcnt));
+        m_il.add();
+        m_il.ld_ind_i4();           // obj, refcnt
         m_il.ld_i4(0);              // obj, refcnt, 0
         emit_branch(BranchGreaterThan, popAndGo);
-
+        
         m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
         emit_branch(BranchAlways, done);
         emit_mark_label(popAndGo);

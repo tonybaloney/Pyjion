@@ -68,6 +68,7 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
 
 #ifdef WINDOWS
     HANDLE m_winHeap;
+    SYSTEM_INFO systemInfo;
 #endif
 
 public:
@@ -79,6 +80,7 @@ public:
         m_il = vector<BYTE>(0);
 #ifdef WINDOWS
         m_winHeap = HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, 0, 0);
+        GetSystemInfo(&systemInfo);
 #endif
     }
 
@@ -1442,8 +1444,9 @@ public:
         memset(pEEInfoOut, 0, sizeof(CORINFO_EE_INFO));
         pEEInfoOut->inlinedCallFrameInfo.size = 4;
 #ifdef WINDOWS
-        pEEInfoOut->osPageSize = 0x1000; // Set to the windows default
+        pEEInfoOut->osPageSize = systemInfo.dwPageSize; // Set to the windows default
         pEEInfoOut->osType = CORINFO_WINNT;
+        printf("OS Page size %d\r\n", pEEInfoOut->osPageSize);
 #else
         pEEInfoOut->osPageSize = getpagesize();
         pEEInfoOut->osType = CORINFO_UNIX;
