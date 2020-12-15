@@ -41,7 +41,7 @@ add_definitions(-DUSE_STL)
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
     message(STATUS "Enabling verbose messages")
     add_definitions(-DDEBUG)
-    set(DO_TESTS 1)
+    set(BUILD_TESTS ON)
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
 
 if(DUMP_JIT_TRACES)
@@ -202,7 +202,7 @@ if (NOT SKBUILD)
     target_link_libraries(_pyjion ${Python3_LIBRARIES})
 endif()
 
-if (DO_TESTS)
+if (BUILD_TESTS)
     # Testing
     add_subdirectory(Tests/Catch)
     set(TEST_SOURCES Tests/testing_util.cpp Tests/test_emission.cpp Tests/test_compiler.cpp Tests/test_absint.cpp Tests/Tests.cpp Tests/test_wrappers.cpp Tests/test_exceptions.cpp Tests/test_scopes.cpp Tests/test_tracing.cpp)
@@ -218,7 +218,7 @@ if (DO_TESTS)
     if (NOT WIN32)
         target_link_libraries(unit_tests ${DOTNETPATH}/${CLR_JIT_LIB})
     endif()
-endif(DO_TESTS)
+endif(BUILD_TESTS)
 
 # Code Coverage Configuration
 add_library(coverage_config INTERFACE)
