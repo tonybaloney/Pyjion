@@ -1330,13 +1330,13 @@ void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWit
     // OPT-3 Optimize the comparison of an intern'ed const integer with an integer to an IS_OP expression.
     if ((lhs.Value->isIntern() && rhs.Value->kind() == AVK_Integer) ||
         (rhs.Value->isIntern() && lhs.Value->kind() == AVK_Integer)){
-        if (compareType == Py_EQ) {
-            emit_is(false);
-            return;
-        }
-        else if (compareType == Py_NE) {
-            emit_is(true);
-            return;
+        switch(compareType) { // NOLINT(hicpp-multiway-paths-covered)
+            case Py_EQ:
+                emit_is(false);
+                return;
+            case Py_NE:
+                emit_is(true);
+                return;
         }
     }
     emit_compare_object(compareType);
