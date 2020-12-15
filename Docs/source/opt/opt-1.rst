@@ -65,6 +65,9 @@ This operation is slow because:
 - It requires a global method call (requires a jump pointer on Windows and Linux as well)
 - x86_64 preamble/ABI adds overhead
 
+Solution
+--------
+
 The OPT-1 optimization will instead implement a simple CIL bytecode sequence, similar to the incref emitter, equivalent to this C code:
 
 .. code-block:: c
@@ -82,7 +85,7 @@ By reusing the reference to ``obj`` and dup'ing the value, the entire operation 
 
     Label done = emit_define_label();
     Label popAndGo = emit_define_label();
-
+                                    // -- EE Stack Effect --
     m_il.dup();                     // obj, obj
     emit_null();                    // obj, obj, null
     emit_branch(BranchEqual, popAndGo);
@@ -91,11 +94,10 @@ By reusing the reference to ``obj`` and dup'ing the value, the entire operation 
     LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
     m_il.dup();                     // obj, obj, refcnt, refcnt
     m_il.ld_ind_i4();               // obj, obj, refcnt, *refcnt
-    m_il.ld_i4(1);               // obj, obj, refcnt,  *refcnt, 1
-    m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
-    m_il.st_ind_i4();              // obj, obj
+    m_il.ld_i4(1);                  // obj, obj, refcnt,  *refcnt, 1
+    m_il.sub();                     // obj, obj, refcnt, (*refcnt - 1)
+    m_il.st_ind_i4();               // obj, obj
 
-    // TODO : Check if LD_FIELD can be ld_ind_i4 instead of ld_ind
     LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
     m_il.ld_i4(0);                 // obj, refcnt, 0
     emit_branch(BranchGreaterThan, popAndGo);

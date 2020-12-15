@@ -24,6 +24,9 @@ This should have the following effect:
 4. If the pointers are not equal return a pointer ``Py_False`` and increment the reference count to ``Py_False``.
 5. If this is ``is not`` reverse the logic of 3 and 4
 
+Solution
+--------
+
 This optimization will emit CIL opcodes (and native machine code) to the equivalent of:
 
 - Load the left-hand pointer from the evaluation stack
