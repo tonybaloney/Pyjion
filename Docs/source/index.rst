@@ -80,3 +80,4 @@ Main
     using
     api
     wsgi
+    optimizations
