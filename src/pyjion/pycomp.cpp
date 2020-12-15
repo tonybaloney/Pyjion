@@ -185,7 +185,7 @@ void PythonCompiler::emit_incref(bool maybeTagged = false) {
 }
 
 void PythonCompiler::decref() {
-    if (g_pyjionSettings.opt_inlineDecref){ // obj
+    if (OPT_ENABLED(inlineDecref)){ // obj
         Label done = emit_define_label();
         Label popAndGo = emit_define_label();
 
@@ -1247,7 +1247,7 @@ void PythonCompiler::emit_binary_object(int opcode) {
 }
 
 void PythonCompiler::emit_is(bool isNot) {
-    if (g_pyjionSettings.opt_inlineIs){
+    if (OPT_ENABLED(inlineIs)){
         auto left = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
         auto right = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
 
