@@ -31,6 +31,7 @@
 #include <algorithm>
 
 #include "absint.h"
+#include "pyjit.h"
 
 #define GET_OPARG(index)  _Py_OPARG(mByteCode[(index)/sizeof(_Py_CODEUNIT)])
 #define GET_OPCODE(index) _Py_OPCODE(mByteCode[(index)/sizeof(_Py_CODEUNIT)])
@@ -925,6 +926,10 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
         return &None;
     }
     else if (PyLong_CheckExact(obj)) {
+        int o;
+        if (Py_SIZE(obj) < 4)
+            if (IS_SMALL_INT(PyLong_AsLongLongAndOverflow(obj, &o)))
+                return &InternInteger;
         return &Integer;
     }
     else if (PyUnicode_Check(obj)) {
@@ -1531,7 +1536,6 @@ JittedCode* AbstractInterpreter::compileWorker() {
             m_stack = curStackDepth->second;
         }
         if (m_exceptionHandler.IsHandlerAtOffset(curByte)){
-
             ExceptionHandler* handler = m_exceptionHandler.HandlerAtOffset(curByte);
             m_comp->emit_mark_label(handler->ErrorTarget);
             emitRaise(handler);
@@ -1547,6 +1551,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
             }
         }
+
+        auto stackInfo = getStackInfo(curByte);
 
         int curStackSize = m_stack.size();
         bool skipEffect = false;
@@ -1580,12 +1586,16 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 incStack(2);
                 m_comp->emit_dup_top_two();
                 break;
-            case COMPARE_OP:
-                m_comp->emit_compare_object(oparg);
+            case COMPARE_OP: {
+                if (OPT_ENABLED(internRichCompare) && stackInfo.size() > 1){
+                    m_comp->emit_compare_known_object(oparg, stackInfo[0], stackInfo[1]);
+                } else {
+                    m_comp->emit_compare_object(oparg);
+                }
                 decStack(2);
                 errorCheck("failed to compare");
                 incStack(1);
-                break;
+                break; }
             case LOAD_BUILD_CLASS:
                 m_comp->emit_load_build_class();
                 errorCheck("load build class failed");

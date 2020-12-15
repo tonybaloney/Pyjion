@@ -161,6 +161,10 @@ public:
     virtual bool isAlwaysFalse() {
         return false;
     }
+    virtual bool isIntern() {
+        return false;
+    }
+
     virtual AbstractValue* mergeWith(AbstractValue*other);
     virtual AbstractValueKind kind() = 0;
     virtual const char* describe() {
@@ -286,6 +290,12 @@ class IntegerValue : public AbstractValue {
     void truth(AbstractSource* sources) override;
 };
 
+class InternIntegerValue : public IntegerValue {
+    bool isIntern() override {
+        return true;
+    }
+};
+
 class StringValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
@@ -351,6 +361,7 @@ extern UndefinedValue Undefined;
 extern AnyValue Any;
 extern BoolValue Bool;
 extern IntegerValue Integer;
+extern InternIntegerValue InternInteger;
 extern FloatValue Float;
 extern ListValue List;
 extern TupleValue Tuple;
