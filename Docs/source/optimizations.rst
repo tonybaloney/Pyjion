@@ -78,6 +78,7 @@ References
 
 - Checkout `EMCA CIL reference <https://github.com/tonybaloney/ecma-335/tree/master/docs>`_ for a list of what is possible in the CIL.
 - See my book for a comprehensive guide to the CPython compiler and design `CPython Internals (ISBN 9781775093350) <https://realpython.com/products/cpython-internals-book/>`_
+- Checkout `Discussions <https://github.com/tonybaloney/Pyjion/discussions/90>`_ for any discussion about potential optimizations.
 
 Optimization Matrix
 -------------------
