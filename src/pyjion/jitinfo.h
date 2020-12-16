@@ -64,7 +64,7 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     vector<BYTE> m_il;
     ULONG m_nativeSize;
 
-    volatile const GSCookie s_gsCookie = 0xBAADF00D;
+    volatile const GSCookie s_gsCookie = 0x1234;
 
 #ifdef WINDOWS
     HANDLE m_winHeap;
@@ -110,7 +110,7 @@ public:
     };
 
     static void failFastExceptionHelper() {
-        printf("Caught fatal error in JIT/Pyjion EE code.\n");
+        printf("Caught fatal GS fault.\n");
         exit(25);
         //throw new exception("Overflow exception raised");
     };
