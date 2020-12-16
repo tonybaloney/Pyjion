@@ -104,6 +104,12 @@ public:
     /// CPython opcodes.
     static void breakpointFtn() {};
 
+    static void raiseOverflowExceptionHelper() {
+        
+        printf("Caught overflow exception\n");
+        //throw new exception("Overflow exception raised");
+    };
+
     /// Override the default .NET CIL_NEWARR with a custom array allocator. See getHelperFtn
     /// \param size Requested array size
     /// \param arrayMT Array type handle
@@ -1535,6 +1541,7 @@ public:
         // TODO : API added isRelative flag, getMethodVTableOffset doesn't inspect that.
         *offsetOfIndirection = 0x1234;
         *offsetAfterIndirection = 0x2468;
+        *isRelative = 1;
         printf("getMethodVTableOffset\r\n");
     }
 
@@ -1678,7 +1685,11 @@ public:
             case CORINFO_HELP_STACK_PROBE:
                 helper = (void*)&JIT_StackProbe;
                 break;
+            case CORINFO_HELP_OVERFLOW:
+                helper = (void*)&raiseOverflowExceptionHelper;
+                break;
             default:
+                printf("Requesting helper method %d\r\n", ftnNum);
                 helper = (void*)&helperFtn;
                 break;
         }
