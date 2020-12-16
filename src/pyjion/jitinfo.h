@@ -105,8 +105,13 @@ public:
     static void breakpointFtn() {};
 
     static void raiseOverflowExceptionHelper() {
-        
         printf("Caught overflow exception\n");
+        //throw new exception("Overflow exception raised");
+    };
+
+    static void failFastExceptionHelper() {
+        printf("Caught fatal error in JIT/Pyjion EE code.\n");
+        exit(25);
         //throw new exception("Overflow exception raised");
     };
 
@@ -1536,13 +1541,16 @@ public:
 		return sizeof(CORJIT_FLAGS);
 	}
 
-    void getMethodVTableOffset(CORINFO_METHOD_HANDLE method, unsigned int *offsetOfIndirection,
-                               unsigned int *offsetAfterIndirection, bool *isRelative) override {
-        // TODO : API added isRelative flag, getMethodVTableOffset doesn't inspect that.
+    // This function returns the offset of the specified method in the
+    // vtable of it's owning class or interface.
+    void getMethodVTableOffset(CORINFO_METHOD_HANDLE method,                /* IN */
+                               unsigned*             offsetOfIndirection,   /* OUT */
+                               unsigned*             offsetAfterIndirection,/* OUT */
+                               bool*                 isRelative             /* OUT */) override {
         *offsetOfIndirection = 0x1234;
         *offsetAfterIndirection = 0x2468;
         *isRelative = 1;
-        printf("getMethodVTableOffset\r\n");
+        *isRelative = true;
     }
 
     CORINFO_METHOD_HANDLE
@@ -1688,6 +1696,9 @@ public:
             case CORINFO_HELP_OVERFLOW:
                 helper = (void*)&raiseOverflowExceptionHelper;
                 break;
+            case CORINFO_HELP_FAIL_FAST:
+                helper = (void*)&failFastExceptionHelper;
+                break;
             default:
                 printf("Requesting helper method %d\r\n", ftnNum);
                 helper = (void*)&helperFtn;
@@ -1709,6 +1720,10 @@ public:
                 return (void*)stArrayHelperFtn;
             case CORINFO_HELP_STACK_PROBE:
                 return (void*)JIT_StackProbe;
+            case CORINFO_HELP_OVERFLOW:
+                return (void*)raiseOverflowExceptionHelper;
+            case CORINFO_HELP_FAIL_FAST:
+                return (void*)failFastExceptionHelper;
             default:
                 return (void*)helperFtn;
         }
