@@ -1607,3 +1607,26 @@ TEST_CASE("Test augassign"){
     }
 
 }
+
+TEST_CASE("Test deep stack"){
+    SECTION("test basic augassign every operator") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "        import re\n"
+                "        _token_pattern = re.compile(r\"\"\"\n"
+                "        (?P<WHITESPACES>[ \\t]+)                    | # spaces and horizontal tabs\n"
+                "        (?P<NUMBER>[0-9]+\\b)                       | # decimal integer\n"
+                "        (?P<NAME>n\\b)                              | # only n is allowed\n"
+                "        (?P<PARENTHESIS>[()])                      |\n"
+                "        (?P<OPERATOR>[-*/%+?:]|[><!]=?|==|&&|\\|\\|) | # !, *, /, %, +, -, <, >,\n"
+                "                                                     # <=, >=, ==, !=, &&, ||,\n"
+                "                                                     # ? :\n"
+                "                                                     # unary and bitwise ops\n"
+                "                                                     # not allowed\n"
+                "        (?P<INVALID>\\w+|.)                           # invalid token\n"
+                "        \"\"\", re.VERBOSE|re.DOTALL)\n"
+                "        return _token_pattern.match('goo')"
+        );
+        CHECK(t.returns() == "<re.Match object; span=(0, 3), match='goo'>");
+    }
+}
