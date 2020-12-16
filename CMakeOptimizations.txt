@@ -5,11 +5,6 @@ option(OPTIMIZE_INTERN_COMPARE "Optimize COMPARE_OP for intern values" ON)
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
 
 
-if (WIN32)
-    SET(OPTIMIZE_DECREF OFF)
-    SET(OPTIMIZE_IS OFF)
-endif()
-
 if (OPTIMIZE_DECREF)
     add_definitions(-DOPTIMIZE_DECREF=1)
 else()
