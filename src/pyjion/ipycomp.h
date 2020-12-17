@@ -66,7 +66,9 @@ enum BranchType {
     BranchNotEqual,
     BranchLeave,
     BranchLessThanEqual,
-    BranchGreaterThan
+    BranchLessThanEqualUnsigned,
+    BranchGreaterThan,
+    BranchGreaterThanUnsigned
 };
 
 class JittedCode {

@@ -204,7 +204,7 @@ void PythonCompiler::decref() {
         // TODO : Check if LD_FIELD can be ld_ind_i4 instead of ld_ind
         LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
         m_il.ld_i4(0);                 // obj, refcnt, 0
-        emit_branch(BranchGreaterThan, popAndGo);
+        emit_branch(BranchGreaterThanUnsigned, popAndGo);
         
         m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
         emit_branch(BranchAlways, done);
