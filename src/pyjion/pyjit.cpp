@@ -77,11 +77,17 @@ PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame) {
     }
 
 	frame->f_executing = 1;
-    auto res = ((Py_EvalFunc)state)(nullptr, frame);
-
-    Py_LeaveRecursiveCall();
-    frame->f_executing = 0;
-    return res;
+    try {
+        auto res = ((Py_EvalFunc)state)(nullptr, frame);
+        Py_LeaveRecursiveCall();
+        frame->f_executing = 0;
+        return res;
+    } catch (const std::exception& e){
+        PyErr_SetString(PyExc_RuntimeError, e.what());
+        Py_LeaveRecursiveCall();
+        frame->f_executing = 0;
+        return nullptr;
+    }
 }
 
 static Py_tss_t* g_extraSlot;
