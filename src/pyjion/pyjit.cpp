@@ -222,21 +222,16 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
                 interp.setLocalType(i, type);
 			}
 
-#ifdef DEBUG
-            interp.enableTracing();
-			interp.enableProfiling();
-#else
-			if (tstate->use_tracing || g_pyjionSettings.tracing){
+			if (g_pyjionSettings.tracing){
 			    interp.enableTracing();
 			} else {
 			    interp.disableTracing();
 			}
-			if (tstate->use_tracing || g_pyjionSettings.profiling){
+			if (g_pyjionSettings.profiling){
 			    interp.enableProfiling();
 			} else {
 			    interp.disableProfiling();
 			}
-#endif
 
 			auto res = interp.compile();
 

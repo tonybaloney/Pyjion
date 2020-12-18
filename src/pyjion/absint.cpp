@@ -1540,7 +1540,6 @@ JittedCode* AbstractInterpreter::compileWorker() {
 
 #ifdef DEBUG
         int ilLen = m_comp->il_length();
-        m_comp->emit_breakpoint();
 #endif
         if (!canSkipLastiUpdate(curByte)) {
             m_comp->emit_lasti_update(curByte);

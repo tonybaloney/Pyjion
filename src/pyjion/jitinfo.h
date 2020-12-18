@@ -54,6 +54,36 @@ using namespace std;
 
 extern "C" void JIT_StackProbe(); // Implemented in helpers.asm
 
+class GuardStackException: public std::exception {
+public:
+    GuardStackException() : std::exception() {};
+    const char * what () const noexcept override
+    {
+        return "Guard Stack error.";
+    }
+};
+
+class IntegerOverflowException: public std::exception {
+public:
+    IntegerOverflowException() : std::exception() {};
+    const char * what () const noexcept override
+    {
+        return "Compiled CIL function contains an integer overflow.";
+    }
+};
+
+class UnsupportedHelperException: public std::exception {
+    int ftn;
+public:
+    UnsupportedHelperException(int ftnNum) : std::exception() {
+        ftn = ftnNum;
+    };
+    const char * what () const noexcept override
+    {
+        return "Unsupported EE helper requested.";
+    }
+};
+
 const CORINFO_CLASS_HANDLE PYOBJECT_PTR_TYPE = (CORINFO_CLASS_HANDLE)0x11;
 
 class CorJitInfo : public ICorJitInfo, public JittedCode {
@@ -105,14 +135,11 @@ public:
     static void breakpointFtn() {};
 
     static void raiseOverflowExceptionHelper() {
-        printf("Caught overflow exception\n");
-        //throw new exception("Overflow exception raised");
+        throw new IntegerOverflowException();
     };
 
     static void failFastExceptionHelper() {
-        printf("Caught fatal GS fault.\n");
-        exit(25);
-        //throw new exception("Overflow exception raised");
+        throw new GuardStackException();
     };
 
     /// Override the default .NET CIL_NEWARR with a custom array allocator. See getHelperFtn
@@ -1700,8 +1727,7 @@ public:
                 helper = (void*)&failFastExceptionHelper;
                 break;
             default:
-                printf("Requesting helper method %d\r\n", ftnNum);
-                helper = (void*)&helperFtn;
+                throw new UnsupportedHelperException(ftnNum);
                 break;
         }
         *ppIndirection = &helper;
@@ -1725,7 +1751,7 @@ public:
             case CORINFO_HELP_FAIL_FAST:
                 return (void*)failFastExceptionHelper;
             default:
-                return (void*)helperFtn;
+                throw new UnsupportedHelperException(ftnNum);
         }
     }
 #endif
