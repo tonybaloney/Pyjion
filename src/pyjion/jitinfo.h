@@ -45,6 +45,7 @@
 #include "codemodel.h"
 #include "cee.h"
 #include "ipycomp.h"
+#include "exceptions.h"
 
 #ifndef WINDOWS
 #include <sys/mman.h>
@@ -53,36 +54,6 @@
 using namespace std;
 
 extern "C" void JIT_StackProbe(); // Implemented in helpers.asm
-
-class GuardStackException: public std::exception {
-public:
-    GuardStackException() : std::exception() {};
-    const char * what () const noexcept override
-    {
-        return "Guard Stack error.";
-    }
-};
-
-class IntegerOverflowException: public std::exception {
-public:
-    IntegerOverflowException() : std::exception() {};
-    const char * what () const noexcept override
-    {
-        return "Compiled CIL function contains an integer overflow.";
-    }
-};
-
-class UnsupportedHelperException: public std::exception {
-    int ftn;
-public:
-    UnsupportedHelperException(int ftnNum) : std::exception() {
-        ftn = ftnNum;
-    };
-    const char * what () const noexcept override
-    {
-        return "Unsupported EE helper requested.";
-    }
-};
 
 const CORINFO_CLASS_HANDLE PYOBJECT_PTR_TYPE = (CORINFO_CLASS_HANDLE)0x11;
 
@@ -135,11 +106,31 @@ public:
     static void breakpointFtn() {};
 
     static void raiseOverflowExceptionHelper() {
-        throw new IntegerOverflowException();
+        throw IntegerOverflowException();
+    };
+
+    static void rangeCheckExceptionHelper() {
+        throw RangeCheckException();
+    };
+
+    static void divisionByZeroExceptionHelper() {
+        throw DivisionByZeroException();
+    };
+
+    static void nullReferenceExceptionHelper() {
+        throw NullReferenceException();
+    };
+
+    static void verificationExceptionHelper() {
+        throw CilVerficationException();
+    };
+
+    static void securityExceptionHelper() {
+        throw UnmanagedCodeSecurityException();
     };
 
     static void failFastExceptionHelper() {
-        throw new GuardStackException();
+        throw GuardStackException();
     };
 
     /// Override the default .NET CIL_NEWARR with a custom array allocator. See getHelperFtn
@@ -1720,14 +1711,31 @@ public:
             case CORINFO_HELP_STACK_PROBE:
                 helper = (void*)&JIT_StackProbe;
                 break;
+
+            /* Helpers that throw exceptions */
             case CORINFO_HELP_OVERFLOW:
                 helper = (void*)&raiseOverflowExceptionHelper;
                 break;
             case CORINFO_HELP_FAIL_FAST:
                 helper = (void*)&failFastExceptionHelper;
                 break;
+            case CORINFO_HELP_RNGCHKFAIL:
+                helper = (void*)&rangeCheckExceptionHelper;
+                break;
+            case CORINFO_HELP_THROWDIVZERO:
+                helper = (void*)&divisionByZeroExceptionHelper;
+                break;
+            case CORINFO_HELP_THROWNULLREF:
+                helper = (void*)&nullReferenceExceptionHelper;
+                break;
+            case CORINFO_HELP_VERIFICATION:
+                helper = (void*)&verificationExceptionHelper;
+                break;
+            case CORINFO_HELP_SEC_UNMGDCODE_EXCPT:
+                helper = (void*)&securityExceptionHelper;
+                break;
             default:
-                throw new UnsupportedHelperException(ftnNum);
+                throw UnsupportedHelperException(ftnNum);
                 break;
         }
         *ppIndirection = &helper;
@@ -1750,8 +1758,18 @@ public:
                 return (void*)raiseOverflowExceptionHelper;
             case CORINFO_HELP_FAIL_FAST:
                 return (void*)failFastExceptionHelper;
+            case CORINFO_HELP_RNGCHKFAIL:
+                return (void*)rangeCheckExceptionHelper;
+            case CORINFO_HELP_THROWDIVZERO:
+                return (void*)divisionByZeroExceptionHelper;
+            case CORINFO_HELP_THROWNULLREF:
+                return (void*)nullReferenceExceptionHelper;
+            case CORINFO_HELP_VERIFICATION:
+                return (void*)verificationExceptionHelper;
+            case CORINFO_HELP_SEC_UNMGDCODE_EXCPT:
+                return (void*)securityExceptionHelper;
             default:
-                throw new UnsupportedHelperException(ftnNum);
+                throw UnsupportedHelperException(ftnNum);
         }
     }
 #endif
