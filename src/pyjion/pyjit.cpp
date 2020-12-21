@@ -131,7 +131,7 @@ static Py_tss_t* g_extraSlot;
 
 
 bool JitInit() {
-    g_pyjionSettings = {false, 0};
+    g_pyjionSettings = {false, false};
 	g_extraSlot = PyThread_tss_alloc();
 	PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS

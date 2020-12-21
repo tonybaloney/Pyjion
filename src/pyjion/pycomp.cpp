@@ -1059,11 +1059,8 @@ void PythonCompiler::emit_delete_deref(int index) {
 
 void PythonCompiler::emit_load_closure(int index) {
     load_frame();
-    m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + (m_code->co_nlocals + index) * sizeof(size_t));
-    m_il.add();
-    m_il.ld_ind_i();
-    m_il.dup();
-    emit_incref();
+    m_il.ld_i4(index);
+    m_il.emit_call(METHOD_LOAD_CLOSURE);
 }
 
 void PythonCompiler::emit_set_add() {
@@ -1589,3 +1586,5 @@ GLOBAL_METHOD(METHOD_TRACE_FRAME_EXIT, &PyJit_TraceFrameExit, CORINFO_TYPE_VOID,
 GLOBAL_METHOD(METHOD_TRACE_EXCEPTION, &PyJit_TraceFrameException, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
 GLOBAL_METHOD(METHOD_PROFILE_FRAME_ENTRY, &PyJit_ProfileFrameEntry, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
 GLOBAL_METHOD(METHOD_PROFILE_FRAME_EXIT, &PyJit_ProfileFrameExit, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
+
+GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
