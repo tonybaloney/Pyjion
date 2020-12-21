@@ -216,10 +216,6 @@ TEST_CASE("General method calls") {
         auto t = EmissionTest("def f(): a={False};a.add(True);a.pop(); return a");
         CHECK(t.returns() == "{True}");
     }
-//    SECTION("four-arg case") {
-//        auto t = EmissionTest("def f(): a = OSError(1,2,3,4); return a");
-//        CHECK(t.returns() == "PermissionError(1, 2)");
-//    }
     SECTION("N-arg case") {
         auto t = EmissionTest("def f(): from pathlib import PurePosixPath; p = PurePosixPath().joinpath('a', 'b', 'c', 'd', 'e', 'f', 'g'); return p");
         CHECK(t.returns() == "PurePosixPath('a/b/c/d/e/f/g')");
@@ -374,5 +370,19 @@ TEST_CASE("*args and **kwargs") {
                               "     return kwargs['x']\n"
                               "  return g(x=1)\n");
         CHECK(t.returns() == "1");
+    }
+}
+
+TEST_CASE("Simple recursion") {
+    SECTION("assert recursion depth 4 case") {
+        auto t = EmissionTest("def f(): \n"
+                              " def ad(z):\n"
+                              "   if len(z) < 5:\n"
+                              "      z.append('a')\n"
+                              "      return ad(z)\n"
+                              "   else:\n"
+                              "      return z\n"
+                              " return ad([])\n");
+        CHECK(t.returns() == "'aaaaa'");
     }
 }

@@ -63,6 +63,7 @@ typedef struct PyjionSettings {
     bool tracing = false;
     bool profiling = false;
     unsigned short optimizationLevel = 1;
+    int recursionLimit = 100;
 
     // Optimizations
     bool opt_inlineIs = OPTIMIZE_IS; // OPT-1
@@ -79,6 +80,11 @@ static PyjionSettings g_pyjionSettings;
 #define OPT_ENABLED(opt) g_pyjionSettings.opt_ ## opt
 
 void PyjionJitFree(void* obj);
+
+int Pyjit_CheckRecursiveCall(PyThreadState *tstate, const char *where);
+static int Pyjit_EnterRecursiveCall(const char *where);
+static void Pyjit_LeaveRecursiveCall();
+
 
 /* Jitted code object.  This object is returned from the JIT implementation.  The JIT can allocate
 a jitted code object and fill in the state for which is necessary for it to perform an evaluation. */

@@ -1548,7 +1548,7 @@ public:
 
 	DWORD getJitFlags(CORJIT_FLAGS * flags, DWORD sizeInBytes) override
 	{
-		//flags->Add(flags->CORJIT_FLAG_SKIP_VERIFICATION);
+		flags->Add(flags->CORJIT_FLAG_SKIP_VERIFICATION);
 #ifdef EE_DEBUG_CODE
         flags->Add(flags->CORJIT_FLAG_DEBUG_CODE);
         flags->Add(flags->CORJIT_FLAG_NO_INLINING);

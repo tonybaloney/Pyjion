@@ -70,21 +70,58 @@ PyjionJittedCode::~PyjionJittedCode() {
 	}
 }
 
+int
+Pyjit_CheckRecursiveCall(PyThreadState *tstate, const char *where)
+{
+    int recursion_limit = g_pyjionSettings.recursionLimit;
+
+    if (tstate->recursion_critical)
+        /* Somebody asked that we don't check for recursion. */
+        return 0;
+    if (tstate->overflowed) {
+        if (tstate->recursion_depth > recursion_limit + 50) {
+            /* Overflowing while handling an overflow. Give up. */
+            Py_FatalError("Cannot recover from stack overflow.");
+        }
+        return 0;
+    }
+    if (tstate->recursion_depth > recursion_limit) {
+        --tstate->recursion_depth;
+        tstate->overflowed = 1;
+        PyErr_Format(PyExc_RecursionError,
+                      "maximum recursion depth exceeded%s",
+                      where);
+        return -1;
+    }
+    return 0;
+}
+
+static inline int Pyjit_EnterRecursiveCall(const char *where) {
+    PyThreadState *tstate = PyThreadState_GET();
+    return ((++tstate->recursion_depth > g_pyjionSettings.recursionLimit)
+            && Pyjit_CheckRecursiveCall(tstate, where));
+}
+
+static inline void Pyjit_LeaveRecursiveCall() {
+    PyThreadState *tstate = PyThreadState_GET();
+    tstate->recursion_depth--;
+}
+
 PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame);
 PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame) {
-    if (Py_EnterRecursiveCall("")) {
+    if (Pyjit_EnterRecursiveCall("")) {
         return nullptr;
     }
 
 	frame->f_executing = 1;
     try {
         auto res = ((Py_EvalFunc)state)(nullptr, frame);
-        Py_LeaveRecursiveCall();
+        Pyjit_LeaveRecursiveCall();
         frame->f_executing = 0;
         return res;
     } catch (const std::exception& e){
         PyErr_SetString(PyExc_RuntimeError, e.what());
-        Py_LeaveRecursiveCall();
+        Pyjit_LeaveRecursiveCall();
         frame->f_executing = 0;
         return nullptr;
     }
