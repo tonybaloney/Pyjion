@@ -15,7 +15,7 @@ class RecursionTestCase(unittest.TestCase):
             import math
             return math.sqrt(4)
 
-        self.assertEquals(_f(), 2)
+        self.assertEqual(_f(), 2)
         info = pyjion.info(_f)
         self.assertTrue(info['compiled'])
 
@@ -24,7 +24,7 @@ class RecursionTestCase(unittest.TestCase):
             from math import sqrt
             return sqrt(4)
 
-        self.assertEquals(_f(), 2)
+        self.assertEqual(_f(), 2)
         info = pyjion.info(_f)
         self.assertTrue(info['compiled'])
 
@@ -33,7 +33,7 @@ class RecursionTestCase(unittest.TestCase):
             from math import sqrt as square_root
             return square_root(4)
 
-        self.assertEquals(_f(), 2)
+        self.assertEqual(_f(), 2)
         info = pyjion.info(_f)
         self.assertTrue(info['compiled'])
 

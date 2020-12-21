@@ -17,9 +17,9 @@ class RecursionTestCase(unittest.TestCase):
                     z.append('a')
                     return add_a(z)
                 return z
-            add_a([])
+            return add_a([])
 
-        self.assertEqual(_f(), ['a', 'a', 'a', 'a'])
+        self.assertEqual(_f(), ['a', 'a', 'a', 'a', 'a'])
         info = pyjion.info(_f)
         self.assertTrue(info['compiled'])
 
@@ -30,7 +30,7 @@ class RecursionTestCase(unittest.TestCase):
                     z.append('a')
                     return add_a(z)
                 return z
-            add_a([])
+            return add_a([])
 
         with self.assertRaises(RecursionError):
             _f()
