@@ -63,7 +63,7 @@ typedef struct PyjionSettings {
     bool tracing = false;
     bool profiling = false;
     unsigned short optimizationLevel = 1;
-    int recursionLimit = 100;
+    int recursionLimit = 1000;
 
     // Optimizations
     bool opt_inlineIs = OPTIMIZE_IS; // OPT-1

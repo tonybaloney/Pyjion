@@ -62,6 +62,7 @@ void setOptimizationLevel(unsigned short level){
     g_pyjionSettings.optimizationLevel = level;
     SET_OPT(inlineIs, level, 1);
     SET_OPT(inlineDecref, level, 1);
+    SET_OPT(internRichCompare, level, 1);
 }
 
 PyjionJittedCode::~PyjionJittedCode() {
@@ -132,6 +133,7 @@ static Py_tss_t* g_extraSlot;
 
 bool JitInit() {
     g_pyjionSettings = {false, false};
+    g_pyjionSettings.recursionLimit = Py_GetRecursionLimit();
 	g_extraSlot = PyThread_tss_alloc();
 	PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS
