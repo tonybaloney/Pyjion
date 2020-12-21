@@ -102,14 +102,7 @@ public:
         return m_jittedcode->j_il;
     }
 };
-TEST_CASE("test imports"){
-    SECTION("import this") {
-        auto t = CompilerTest(
-                "def f():\n  import this"
-        );
-        CHECK(t.returns() == "None");
-    };
-}
+
 TEST_CASE("Test ITER", "[float][binary op][inference]") {
     SECTION("test1") {
         // EXTENDED_ARG FOR_ITER:
@@ -1606,27 +1599,4 @@ TEST_CASE("Test augassign"){
         CHECK(t.returns() == "3.0");
     }
 
-}
-
-TEST_CASE("Test deep stack"){
-    SECTION("test basic augassign every operator") {
-        auto t = CompilerTest(
-                "def f():\n"
-                "        import re\n"
-                "        _token_pattern = re.compile(r\"\"\"\n"
-                "        (?P<WHITESPACES>[ \\t]+)                    | # spaces and horizontal tabs\n"
-                "        (?P<NUMBER>[0-9]+\\b)                       | # decimal integer\n"
-                "        (?P<NAME>n\\b)                              | # only n is allowed\n"
-                "        (?P<PARENTHESIS>[()])                      |\n"
-                "        (?P<OPERATOR>[-*/%+?:]|[><!]=?|==|&&|\\|\\|) | # !, *, /, %, +, -, <, >,\n"
-                "                                                     # <=, >=, ==, !=, &&, ||,\n"
-                "                                                     # ? :\n"
-                "                                                     # unary and bitwise ops\n"
-                "                                                     # not allowed\n"
-                "        (?P<INVALID>\\w+|.)                           # invalid token\n"
-                "        \"\"\", re.VERBOSE|re.DOTALL)\n"
-                "        return _token_pattern.match('goo')"
-        );
-        CHECK(t.returns() == "<re.Match object; span=(0, 3), match='goo'>");
-    }
 }
