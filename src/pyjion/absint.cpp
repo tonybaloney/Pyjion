@@ -1820,6 +1820,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case DELETE_DEREF: m_comp->emit_delete_deref(oparg); break;
             case LOAD_CLOSURE:
                 m_comp->emit_load_closure(oparg);
+                errorCheck("load closure failed");
                 incStack();
                 break;
             case GET_ITER: {
