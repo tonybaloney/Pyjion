@@ -190,8 +190,7 @@ void PythonCompiler::decref() {
         Label popAndGo = emit_define_label();
 
         m_il.dup();                     // obj, obj
-        emit_null();                    // obj, obj, null
-        emit_branch(BranchEqual, popAndGo);
+        emit_branch(BranchFalse, popAndGo);
 
         m_il.dup(); m_il.dup();         // obj, obj, obj
         LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
@@ -204,7 +203,7 @@ void PythonCompiler::decref() {
         // TODO : Check if LD_FIELD can be ld_ind_i4 instead of ld_ind
         LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
         m_il.ld_i4(0);                 // obj, refcnt, 0
-        emit_branch(BranchGreaterThanUnsigned, popAndGo);
+        emit_branch(BranchGreaterThan, popAndGo);
         
         m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
         emit_branch(BranchAlways, done);
