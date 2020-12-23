@@ -1,5 +1,5 @@
 # Optimization default flags
-option(OPTIMIZE_DECREF "Optimize DECREF when ob_refcnt > 1" ON)
+option(OPTIMIZE_DECREF "Optimize DECREF when ob_refcnt > 1" OFF)
 option(OPTIMIZE_IS "Optimize IS_OP" ON)
 option(OPTIMIZE_INTERN_COMPARE "Optimize COMPARE_OP for intern values" ON)
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
