@@ -168,10 +168,7 @@ void PythonCompiler::emit_incref(bool maybeTagged = false) {
 void PythonCompiler::decref() {
     if (OPT_ENABLED(inlineDecref)){ // obj
         Label done = emit_define_label();
-        Label decref = emit_define_label();
-        Label destroy = emit_define_label();
         Label popAndGo = emit_define_label();
-
         m_il.dup();                     // obj, obj
         emit_branch(BranchFalse, popAndGo);
 
@@ -179,28 +176,16 @@ void PythonCompiler::decref() {
         LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
         m_il.dup();                     // obj, obj, refcnt, refcnt
         m_il.ld_ind_i8();               // obj, obj, refcnt, *refcnt
-        m_il.dup();                     // obj, obj, refcnt, *refcnt, *refcnt
-        m_il.ld_i4(0);
-        emit_branch(BranchGreaterThan, decref);
-        m_il.pop();                     // obj, obj, refcnt, 
-        m_il.pop();                     // obj, obj, 
-        m_il.pop();                     // obj
-        emit_branch(BranchAlways, destroy);
-
-        emit_mark_label(decref);
-        m_il.ld_i4(1);               // obj, obj, refcnt,  *refcnt, 1
+        m_il.ld_i4(1);                 // obj, obj, refcnt,  *refcnt, 1
         m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
         m_il.st_ind_i8();              // obj, obj
-
         LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
-        emit_branch(BranchTrue, popAndGo);
+        m_il.ld_i(0);                 // obj, refcnt, 0
+        emit_branch(BranchGreaterThan, popAndGo);
 
-        /* Deallocate object on stack */
-        emit_mark_label(destroy);
         m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
         emit_branch(BranchAlways, done);
 
-        /* Pop value and return */
         emit_mark_label(popAndGo);
         emit_pop();
 
@@ -1120,7 +1105,7 @@ void PythonCompiler::emit_inc_local(Local local, int value) {
 void PythonCompiler::emit_dec_local(Local local, int value) {
     emit_load_local(local);
     emit_int(value);
-    m_il.sub();
+    m_il.sub_with_overflow();
     emit_store_local(local);
 }
 
@@ -1161,7 +1146,7 @@ void PythonCompiler::emit_binary_float(int opcode) {
             break;
         case INPLACE_SUBTRACT:
         case BINARY_SUBTRACT:
-            m_il.sub();
+            m_il.sub_with_overflow();
             break;
         case BINARY_POWER:
         case INPLACE_POWER:

@@ -305,7 +305,6 @@ public:
         push_back(CEE_STIND_I8); // PopI + PopI / Push0
     }
 
-
     void ld_ind_i4() {
         push_back(CEE_LDIND_I4); // PopI  / PushI
     }
@@ -585,6 +584,10 @@ public:
     }
 
     void sub() {
+        push_back(CEE_SUB);   // Pop1+Pop1, Push1
+    }
+
+    void sub_with_overflow() {
         push_back(CEE_SUB_OVF);   // Pop1+Pop1, Push1
     }
 
