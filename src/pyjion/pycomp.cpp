@@ -195,12 +195,11 @@ void PythonCompiler::decref() {
         m_il.dup(); m_il.dup();         // obj, obj, obj
         LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
         m_il.dup();                     // obj, obj, refcnt, refcnt
-        m_il.ld_ind_i4();               // obj, obj, refcnt, *refcnt
-        m_il.ld_i4(0);               // obj, obj, refcnt,  *refcnt, 1
+        m_il.ld_ind_i();               // obj, obj, refcnt, *refcnt
+        m_il.ld_i4(1);               // obj, obj, refcnt,  *refcnt, 1
         m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
-        m_il.st_ind_i4();              // obj, obj
+        m_il.st_ind_i();              // obj, obj
 
-        // TODO : Check if LD_FIELD can be ld_ind_i4 instead of ld_ind
         LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
         m_il.ld_i4(0);                 // obj, refcnt, 0
         emit_branch(BranchGreaterThan, popAndGo);
