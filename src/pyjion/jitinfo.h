@@ -657,7 +657,9 @@ public:
         CORINFO_METHOD_HANDLE inlineeHnd,
         CorInfoInline inlineResult,
         const char * reason) override {
-        WARN("reportInliningDecision\r\n");
+        if (inlineResult == CorInfoInline::INLINE_FAIL) {
+            WARN("Inlining failed.\r\n");
+        }
     }
 
 
@@ -1130,7 +1132,7 @@ public:
     void classMustBeLoadedBeforeCodeIsRun(
         CORINFO_CLASS_HANDLE        cls
         ) override {
-        WARN("classMustBeLoadedBeforeCodeIsRun\r\n");
+        WARN("classMustBeLoadedBeforeCodeIsRun not implemented\r\n");
     }
 
     // returns the class handle for the special builtin classes
@@ -1828,9 +1830,17 @@ public:
 
     }
 
-    void allocUnwindInfo(BYTE *pHotCode, BYTE *pColdCode, ULONG startOffset, ULONG endOffset, ULONG unwindSize,
-                         BYTE *pUnwindBlock, CorJitFuncKind funcKind) override {
-        WARN("allocUnwindInfo not implemented \r\n");
+    void allocUnwindInfo (
+            BYTE *              pHotCode,              /* IN */
+            BYTE *              pColdCode,             /* IN */
+            ULONG               startOffset,           /* IN */
+            ULONG               endOffset,             /* IN */
+            ULONG               unwindSize,            /* IN */
+            BYTE *              pUnwindBlock,          /* IN */
+            CorJitFuncKind      funcKind               /* IN */
+    ) override {
+        // Only used in .NET 5 for FEATURE_EH_FUNCLETS.
+        // No requirement to have an implementation in Pyjion.
     }
 
     void *allocGCInfo(size_t size) override {

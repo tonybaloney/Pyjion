@@ -196,7 +196,7 @@ void PythonCompiler::decref() {
         LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
         m_il.dup();                     // obj, obj, refcnt, refcnt
         m_il.ld_ind_i4();               // obj, obj, refcnt, *refcnt
-        m_il.ld_i4(1);               // obj, obj, refcnt,  *refcnt, 1
+        m_il.ld_i4(0);               // obj, obj, refcnt,  *refcnt, 1
         m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
         m_il.st_ind_i4();              // obj, obj
 
