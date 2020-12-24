@@ -180,7 +180,8 @@ void PythonCompiler::decref() {
         m_il.dup();                     // obj, obj, refcnt, refcnt
         m_il.ld_ind_i8();               // obj, obj, refcnt, *refcnt
         m_il.dup();                     // obj, obj, refcnt, *refcnt, *refcnt
-        emit_branch(BranchTrue, decref);
+        m_il.ld_i4(0);
+        emit_branch(BranchGreaterThan, decref);
         m_il.pop();                     // obj, obj, refcnt, 
         m_il.pop();                     // obj, obj, 
         m_il.pop();                     // obj
