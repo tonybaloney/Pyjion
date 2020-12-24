@@ -301,8 +301,17 @@ public:
         push_back(CEE_STIND_I4); // PopI + PopI / Push0
     }
 
+    void st_ind_i8() {
+        push_back(CEE_STIND_I8); // PopI + PopI / Push0
+    }
+
+
     void ld_ind_i4() {
         push_back(CEE_LDIND_I4); // PopI  / PushI
+    }
+
+    void ld_ind_i8() {
+        push_back(CEE_LDIND_I8); // PopI  / PushI
     }
 
     void ld_ind_r8() {
