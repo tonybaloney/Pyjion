@@ -168,6 +168,8 @@ void PythonCompiler::emit_incref(bool maybeTagged = false) {
 void PythonCompiler::decref() {
     if (OPT_ENABLED(inlineDecref)){ // obj
         Label done = emit_define_label();
+        Label decref = emit_define_label();
+        Label destroy = emit_define_label();
         Label popAndGo = emit_define_label();
 
         m_il.dup();                     // obj, obj
@@ -177,16 +179,27 @@ void PythonCompiler::decref() {
         LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
         m_il.dup();                     // obj, obj, refcnt, refcnt
         m_il.ld_ind_i8();               // obj, obj, refcnt, *refcnt
+        m_il.dup();                     // obj, obj, refcnt, *refcnt, *refcnt
+        emit_branch(BranchTrue, decref);
+        m_il.pop();                     // obj, obj, refcnt, 
+        m_il.pop();                     // obj, obj, 
+        m_il.pop();                     // obj
+        emit_branch(BranchAlways, destroy);
+
+        emit_mark_label(decref);
         m_il.ld_i4(1);               // obj, obj, refcnt,  *refcnt, 1
         m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
         m_il.st_ind_i8();              // obj, obj
 
         LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
-        m_il.ld_i4(0);                 // obj, refcnt, 0
-        emit_branch(BranchNotEqual, popAndGo);
-        
+        emit_branch(BranchTrue, popAndGo);
+
+        /* Deallocate object on stack */
+        emit_mark_label(destroy);
         m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
         emit_branch(BranchAlways, done);
+
+        /* Pop value and return */
         emit_mark_label(popAndGo);
         emit_pop();
 
