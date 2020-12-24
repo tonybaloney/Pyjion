@@ -157,31 +157,12 @@ void PythonCompiler::emit_trace_exception() {
 }
 
 void PythonCompiler::emit_incref(bool maybeTagged = false) {
-    Label tagged, done;
-    if (maybeTagged) {
-        m_il.dup();
-        m_il.ld_i(1);
-        m_il.bitwise_and();
-        tagged = m_il.define_label();
-        done = m_il.define_label();
-        m_il.branch(BranchTrue, tagged);
-    }
-
     LD_FIELDA(PyObject, ob_refcnt);
     m_il.dup();
-    m_il.ld_ind_i4();
+    m_il.ld_ind_i();
     m_il.ld_i4(1);
     m_il.add();
-    m_il.st_ind_i4();
-
-    if (maybeTagged) {
-        m_il.branch(BranchAlways, done);
-
-        m_il.mark_label(tagged);
-        m_il.pop();
-
-        m_il.mark_label(done);
-    }
+    m_il.st_ind_i();
 }
 
 void PythonCompiler::decref() {

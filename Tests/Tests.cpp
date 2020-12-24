@@ -30,6 +30,8 @@
 #include <pyjit.h>
 
 int main(int argc, char* const argv[]) {
+    printf("Py_ssizet is %d \r\n", sizeof(Py_ssize_t));
+
     Py_Initialize();
     JitInit();
 
