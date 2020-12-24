@@ -289,6 +289,11 @@ public:
         m_il.push_back(CEE_CONV_I); // Pop1 + PushI
     }
 
+    void load_one() {
+        ld_i4(1);
+        m_il.push_back(CEE_CONV_I); // Pop1 + PushI
+    }
+
     void st_ind_i() {
         push_back(CEE_STIND_I); // PopI + PopI / Push0
     }

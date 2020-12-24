@@ -175,12 +175,12 @@ void PythonCompiler::decref() {
         m_il.dup(); m_il.dup();         // obj, obj, obj
         LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
         m_il.dup();                     // obj, obj, refcnt, refcnt
-        m_il.ld_ind_i8();               // obj, obj, refcnt, *refcnt
-        m_il.ld_i4(1);                 // obj, obj, refcnt,  *refcnt, 1
+        m_il.ld_ind_i();               // obj, obj, refcnt, *refcnt
+        m_il.load_one();                 // obj, obj, refcnt,  *refcnt, 1
         m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
-        m_il.st_ind_i8();              // obj, obj
+        m_il.st_ind_i();              // obj, obj
         LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
-        m_il.ld_i(0);                 // obj, refcnt, 0
+        m_il.load_null();                 // obj, refcnt, 0
         emit_branch(BranchGreaterThan, popAndGo);
 
         m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
