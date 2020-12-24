@@ -183,7 +183,7 @@ void PythonCompiler::decref() {
 
         LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
         m_il.ld_i4(0);                 // obj, refcnt, 0
-        emit_branch(BranchGreaterThan, popAndGo);
+        emit_branch(BranchNotEqual, popAndGo);
         
         m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
         emit_branch(BranchAlways, done);
