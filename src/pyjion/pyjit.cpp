@@ -219,11 +219,6 @@ PyTypeObject* GetArgType(int arg, PyObject** locals) {
     return type;
 }
 
-PyObject* Jit_EvalGeneric(PyjionJittedCode* state, PyFrameObject*frame) {
-    auto trace = (PyjionJittedCode*)state;
-    return Jit_EvalHelper((void*)trace->j_generic, frame);
-}
-
 #define MAX_TRACE 5
 
 PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
@@ -295,7 +290,6 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
 			trace->j_ilLen = res->get_il_len();
             trace->j_nativeSize = res->get_native_size();
             trace->j_generic = target->addr;
-            trace->j_evalfunc = Jit_EvalGeneric;
 
 			return Jit_EvalHelper((void*)target->addr, frame);
 		}
@@ -544,7 +538,7 @@ static PyObject* pyjion_set_optimization_level(PyObject *self, PyObject* args) {
 
     auto newValue = PyLong_AsUnsignedLong(args);
     if (newValue > 2) {
-        PyErr_SetString(PyExc_ValueError, "Expected a number smaller than 4");
+        PyErr_SetString(PyExc_ValueError, "Expected a number smaller than 3");
         return nullptr;
     }
 

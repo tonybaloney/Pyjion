@@ -52,9 +52,9 @@
 #endif
 
 #ifdef DEBUG
-#define WARN(msg) printf(#msg);
+#define WARN(msg, ...) printf(#msg, ##__VA_ARGS__);
 #else
-#define WARN(msg) 
+#define WARN(msg, ...) 
 #endif
 
 using namespace std;
@@ -103,9 +103,6 @@ public:
 #endif
         delete m_module;
     }
-
-    /// Empty helper function given to the JIT as the entry-point callback. Never used
-    static void helperFtn() {};
 
     /// Empty breakpoint function, put some bonus code in here if you want to debug anything between
     /// CPython opcodes.
@@ -658,7 +655,7 @@ public:
         CorInfoInline inlineResult,
         const char * reason) override {
         if (inlineResult == CorInfoInline::INLINE_FAIL) {
-            WARN("Inlining failed.\r\n");
+            WARN("Inlining failed : %s.\r\n", reason);
         }
     }
 
@@ -1132,7 +1129,7 @@ public:
     void classMustBeLoadedBeforeCodeIsRun(
         CORINFO_CLASS_HANDLE        cls
         ) override {
-        WARN("classMustBeLoadedBeforeCodeIsRun not implemented\r\n");
+        // Do nothing. We don't load/compile classes. 
     }
 
     // returns the class handle for the special builtin classes
@@ -1410,7 +1407,7 @@ public:
         CORINFO_SIG_INFO*           sig,            /* IN */
         CORINFO_ARG_LIST_HANDLE     args            /* IN */
         ) override {
-        WARN("getArgClass not implemented \r\n");
+        // Do nothing. We don't load/compile classes. 
         return nullptr;
     }
 
