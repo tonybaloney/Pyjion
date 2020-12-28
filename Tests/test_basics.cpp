@@ -103,17 +103,6 @@ public:
     }
 };
 
-TEST_CASE("General import test") {
-    SECTION("import from case") {
-        auto t = EmissionTest("def f():\n  from math import sqrt\n  return sqrt(4)");
-        CHECK(t.returns() == "2.0");
-    }
-    SECTION("import case") {
-        auto t = EmissionTest("def f():\n  import math\n  return math.sqrt(4)");
-        CHECK(t.returns() == "2.0");
-    }
-}
-
 TEST_CASE("General list unpacking") {
     SECTION("common case") {
         auto t = EmissionTest("def f(): return [1, *[2], 3, 4]");
@@ -215,18 +204,6 @@ TEST_CASE("General method calls") {
     SECTION("zero-arg case") {
         auto t = EmissionTest("def f(): a={False};a.add(True);a.pop(); return a");
         CHECK(t.returns() == "{True}");
-    }
-//    SECTION("four-arg case") {
-//        auto t = EmissionTest("def f(): a = OSError(1,2,3,4); return a");
-//        CHECK(t.returns() == "PermissionError(1, 2)");
-//    }
-    SECTION("N-arg case") {
-        auto t = EmissionTest("def f(): from pathlib import PurePosixPath; p = PurePosixPath().joinpath('a', 'b', 'c', 'd', 'e', 'f', 'g'); return p");
-        CHECK(t.returns() == "PurePosixPath('a/b/c/d/e/f/g')");
-    }
-    SECTION("N-arg failure case") {
-        auto t = EmissionTest("def f(): from pathlib import PurePosixPath; p = PurePosixPath().joinpath('a', 'b', 'c', 'd', 'e', 'f', 'g', None); return p");
-        CHECK(t.raises() == PyExc_TypeError);
     }
     SECTION("failure case") {
         auto t = EmissionTest("def f(): a={False};a.add([True]);return a");

@@ -62,6 +62,7 @@ void setOptimizationLevel(unsigned short level){
     g_pyjionSettings.optimizationLevel = level;
     SET_OPT(inlineIs, level, 1);
     SET_OPT(inlineDecref, level, 1);
+    SET_OPT(internRichCompare, level, 1);
 }
 
 PyjionJittedCode::~PyjionJittedCode() {
@@ -70,25 +71,69 @@ PyjionJittedCode::~PyjionJittedCode() {
 	}
 }
 
+int
+Pyjit_CheckRecursiveCall(PyThreadState *tstate, const char *where)
+{
+    int recursion_limit = g_pyjionSettings.recursionLimit;
+
+    if (tstate->recursion_critical)
+        /* Somebody asked that we don't check for recursion. */
+        return 0;
+    if (tstate->overflowed) {
+        if (tstate->recursion_depth > recursion_limit + 50) {
+            /* Overflowing while handling an overflow. Give up. */
+            Py_FatalError("Cannot recover from stack overflow.");
+        }
+        return 0;
+    }
+    if (tstate->recursion_depth > recursion_limit) {
+        --tstate->recursion_depth;
+        tstate->overflowed = 1;
+        PyErr_Format(PyExc_RecursionError,
+                      "maximum recursion depth exceeded%s",
+                      where);
+        return -1;
+    }
+    return 0;
+}
+
+static inline int Pyjit_EnterRecursiveCall(const char *where) {
+    PyThreadState *tstate = PyThreadState_GET();
+    return ((++tstate->recursion_depth > g_pyjionSettings.recursionLimit)
+            && Pyjit_CheckRecursiveCall(tstate, where));
+}
+
+static inline void Pyjit_LeaveRecursiveCall() {
+    PyThreadState *tstate = PyThreadState_GET();
+    tstate->recursion_depth--;
+}
+
 PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame);
 PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame) {
-    if (Py_EnterRecursiveCall("")) {
+    if (Pyjit_EnterRecursiveCall("")) {
         return nullptr;
     }
 
 	frame->f_executing = 1;
-    auto res = ((Py_EvalFunc)state)(nullptr, frame);
-
-    Py_LeaveRecursiveCall();
-    frame->f_executing = 0;
-    return res;
+    try {
+        auto res = ((Py_EvalFunc)state)(nullptr, frame);
+        Pyjit_LeaveRecursiveCall();
+        frame->f_executing = 0;
+        return res;
+    } catch (const std::exception& e){
+        PyErr_SetString(PyExc_RuntimeError, e.what());
+        Pyjit_LeaveRecursiveCall();
+        frame->f_executing = 0;
+        return nullptr;
+    }
 }
 
 static Py_tss_t* g_extraSlot;
 
 
 bool JitInit() {
-    g_pyjionSettings = {false, 0};
+    g_pyjionSettings = {false, false};
+    g_pyjionSettings.recursionLimit = Py_GetRecursionLimit();
 	g_extraSlot = PyThread_tss_alloc();
 	PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS
@@ -174,11 +219,6 @@ PyTypeObject* GetArgType(int arg, PyObject** locals) {
     return type;
 }
 
-PyObject* Jit_EvalGeneric(PyjionJittedCode* state, PyFrameObject*frame) {
-    auto trace = (PyjionJittedCode*)state;
-    return Jit_EvalHelper((void*)trace->j_generic, frame);
-}
-
 #define MAX_TRACE 5
 
 PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
@@ -222,21 +262,16 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
                 interp.setLocalType(i, type);
 			}
 
-#ifdef DEBUG
-            interp.enableTracing();
-			interp.enableProfiling();
-#else
-			if (tstate->use_tracing || g_pyjionSettings.tracing){
+			if (g_pyjionSettings.tracing){
 			    interp.enableTracing();
 			} else {
 			    interp.disableTracing();
 			}
-			if (tstate->use_tracing || g_pyjionSettings.profiling){
+			if (g_pyjionSettings.profiling){
 			    interp.enableProfiling();
 			} else {
 			    interp.disableProfiling();
 			}
-#endif
 
 			auto res = interp.compile();
 
@@ -255,7 +290,6 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
 			trace->j_ilLen = res->get_il_len();
             trace->j_nativeSize = res->get_native_size();
             trace->j_generic = target->addr;
-            trace->j_evalfunc = Jit_EvalGeneric;
 
 			return Jit_EvalHelper((void*)target->addr, frame);
 		}
@@ -504,7 +538,7 @@ static PyObject* pyjion_set_optimization_level(PyObject *self, PyObject* args) {
 
     auto newValue = PyLong_AsUnsignedLong(args);
     if (newValue > 2) {
-        PyErr_SetString(PyExc_ValueError, "Expected a number smaller than 4");
+        PyErr_SetString(PyExc_ValueError, "Expected a number smaller than 3");
         return nullptr;
     }
 

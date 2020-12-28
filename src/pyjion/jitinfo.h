@@ -45,9 +45,16 @@
 #include "codemodel.h"
 #include "cee.h"
 #include "ipycomp.h"
+#include "exceptions.h"
 
 #ifndef WINDOWS
 #include <sys/mman.h>
+#endif
+
+#ifdef DEBUG
+#define WARN(msg, ...) printf(#msg, ##__VA_ARGS__);
+#else
+#define WARN(msg, ...) 
 #endif
 
 using namespace std;
@@ -64,7 +71,7 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     vector<BYTE> m_il;
     ULONG m_nativeSize;
 
-    volatile const GSCookie s_gsCookie = 0xBAADF00D;
+    volatile const GSCookie s_gsCookie = 0x1234;
 
 #ifdef WINDOWS
     HANDLE m_winHeap;
@@ -97,12 +104,37 @@ public:
         delete m_module;
     }
 
-    /// Empty helper function given to the JIT as the entry-point callback. Never used
-    static void helperFtn() {};
-
     /// Empty breakpoint function, put some bonus code in here if you want to debug anything between
     /// CPython opcodes.
     static void breakpointFtn() {};
+
+    static void raiseOverflowExceptionHelper() {
+        throw IntegerOverflowException();
+    };
+
+    static void rangeCheckExceptionHelper() {
+        throw RangeCheckException();
+    };
+
+    static void divisionByZeroExceptionHelper() {
+        throw DivisionByZeroException();
+    };
+
+    static void nullReferenceExceptionHelper() {
+        throw NullReferenceException();
+    };
+
+    static void verificationExceptionHelper() {
+        throw CilVerficationException();
+    };
+
+    static void securityExceptionHelper() {
+        throw UnmanagedCodeSecurityException();
+    };
+
+    static void failFastExceptionHelper() {
+        throw GuardStackException();
+    };
 
     /// Override the default .NET CIL_NEWARR with a custom array allocator. See getHelperFtn
     /// \param size Requested array size
@@ -340,7 +372,7 @@ public:
     void getFunctionFixedEntryPoint(
         CORINFO_METHOD_HANDLE   ftn,
         CORINFO_CONST_LOOKUP *  pResult) override {
-        //printf("getFunctionFixedEntryPoint not implemented\r\n");
+        WARN("getFunctionFixedEntryPoint not implemented\r\n");
     }
 
     // get the synchronization handle that is passed to monXstatic function
@@ -348,7 +380,7 @@ public:
         CORINFO_METHOD_HANDLE               ftn,
         void                  **ppIndirection
         ) override {
-        //printf("getMethodSync  not implemented\r\n");
+        WARN("getMethodSync  not implemented\r\n");
         return nullptr;
     }
 
@@ -357,7 +389,7 @@ public:
     CorInfoHelpFunc getLazyStringLiteralHelper(
         CORINFO_MODULE_HANDLE   handle
         ) override {
-        //printf("getLazyStringLiteralHelper\r\n");
+        WARN("getLazyStringLiteralHelper\r\n");
         return CORINFO_HELP_UNDEF;
     }
 
@@ -365,7 +397,7 @@ public:
         CORINFO_MODULE_HANDLE   handle,
         void                  **ppIndirection
         ) override {
-        //printf("embedModuleHandle  not implemented\r\n");
+        WARN("embedModuleHandle  not implemented\r\n");
         return nullptr;
     }
 
@@ -373,7 +405,7 @@ public:
         CORINFO_CLASS_HANDLE    handle,
         void                  **ppIndirection
         ) override {
-        //printf("embedClassHandle  not implemented\r\n");
+        WARN("embedClassHandle  not implemented\r\n");
         return nullptr;
     }
 
@@ -390,7 +422,7 @@ public:
         CORINFO_FIELD_HANDLE    handle,
         void                  **ppIndirection
         ) override {
-        //printf("embedFieldHandle  not implemented\r\n");
+        WARN("embedFieldHandle  not implemented\r\n");
         return nullptr;
     }
 
@@ -419,7 +451,7 @@ public:
         CORINFO_SIG_INFO* szMetaSig,
         void           ** ppIndirection
         ) override {
-        //printf("GetCookieForPInvokeCalliSig  not implemented\r\n");
+        WARN("GetCookieForPInvokeCalliSig  not implemented\r\n");
         return nullptr;
     }
 
@@ -428,8 +460,8 @@ public:
     bool canGetCookieForPInvokeCalliSig(
         CORINFO_SIG_INFO* szMetaSig
         ) override {
-        //printf("canGetCookieForPInvokeCalliSig\r\n");
-        return true;
+        WARN("canGetCookieForPInvokeCalliSig not implemented\r\n");
+        return false;
     }
 
     // Gets a handle that is checked to see if the current method is
@@ -454,7 +486,7 @@ public:
         void                     **pProfilerHandle,
         BOOL                      *pbIndirectedHandles
         ) override {
-        //printf("GetProfilingHandle\r\n");
+        WARN("GetProfilingHandle not implemented\r\n");
     }
 
     // Returns instructions on how to make the call. See code:CORINFO_CALL_INFO for possible return values.
@@ -487,14 +519,14 @@ public:
 
     BOOL canAccessFamily(CORINFO_METHOD_HANDLE hCaller,
         CORINFO_CLASS_HANDLE hInstanceType) override {
-        //printf("canAccessFamily \r\n");
+        WARN("canAccessFamily not implemented\r\n");
         return FALSE;
     }
 
     // Returns TRUE if the Class Domain ID is the RID of the class (currently true for every class
     // except reflection emitted classes and generics)
     BOOL isRIDClassDomainID(CORINFO_CLASS_HANDLE cls) override {
-        //printf("isRIDClassDomainID  \r\n");
+        WARN("isRIDClassDomainID not implemented\r\n");
         return FALSE;
     }
 
@@ -503,7 +535,7 @@ public:
         CORINFO_CLASS_HANDLE    cls,
         void                  **ppIndirection
         ) override {
-        //printf("getClassDomainID not implemented\r\n");
+        WARN("getClassDomainID not implemented\r\n");
         return 0;
     }
 
@@ -512,7 +544,7 @@ public:
         CORINFO_FIELD_HANDLE    field,
         void                  **ppIndirection
         ) override {
-        //printf("getFieldAddress  not implemented\r\n");
+        WARN("getFieldAddress  not implemented\r\n");
         return nullptr;
     }
 
@@ -521,7 +553,7 @@ public:
         CORINFO_SIG_INFO       *pSig,
         void                  **ppIndirection
         ) override {
-        //printf("getVarArgsHandle  not implemented\r\n");
+        WARN("getVarArgsHandle  not implemented\r\n");
         return nullptr;
     }
 
@@ -530,7 +562,7 @@ public:
     bool canGetVarArgsHandle(
         CORINFO_SIG_INFO       *pSig
         ) override {
-        //printf("canGetVarArgsHandle\r\n");
+        WARN("canGetVarArgsHandle\r\n");
         return false;
     }
 
@@ -540,14 +572,14 @@ public:
         mdToken                 metaTok,
         void                  **ppValue
         ) override {
-        //printf("constructStringLiteral\r\n");
+        WARN("constructStringLiteral not implemented\r\n");
         return IAT_VALUE;
     }
 
     InfoAccessType emptyStringLiteral(
         void                  **ppValue
         ) override {
-        //printf("emptyStringLiteral\r\n");
+        WARN("emptyStringLiteral not implemented\r\n");
         return IAT_VALUE;
     }
 
@@ -564,7 +596,7 @@ public:
         CORINFO_METHOD_HANDLE       ftn,        /* IN */
         CorInfoMethodRuntimeFlags   attribs     /* IN */
         ) override {
-        //printf("setMethodAttribs  not implemented\r\n");
+        WARN("setMethodAttribs  not implemented\r\n");
     }
 
     // Given a method descriptor ftnHnd, extract signature information into sigInfo
@@ -593,7 +625,7 @@ public:
         CORINFO_METHOD_HANDLE   ftn,            /* IN  */
         CORINFO_METHOD_INFO*    info            /* OUT */
         ) override {
-        //("getMethodInfo  not implemented\r\n");
+        WARN("getMethodInfo  not implemented\r\n");
         return false;
     }
 
@@ -611,7 +643,7 @@ public:
         CORINFO_METHOD_HANDLE       calleeHnd,                  /* IN  */
         DWORD*                      pRestrictions               /* OUT */
         ) override {
-        //printf("canInline\r\n");
+        WARN("canInline not implemented\r\n");
         return INLINE_PASS;
     }
 
@@ -622,7 +654,9 @@ public:
         CORINFO_METHOD_HANDLE inlineeHnd,
         CorInfoInline inlineResult,
         const char * reason) override {
-        //printf("reportInliningDecision\r\n");
+        if (inlineResult == CorInfoInline::INLINE_FAIL) {
+            WARN("Inlining failed : %s.\r\n", reason);
+        }
     }
 
 
@@ -646,7 +680,7 @@ public:
         bool fIsTailPrefix,
         CorInfoTailCall tailCallResult,
         const char * reason) override {
-        //printf("reportTailCallDecision\r\n");
+        WARN("reportTailCallDecision\r\n");
     }
 
     // get individual exception handler
@@ -655,7 +689,7 @@ public:
         unsigned          EHnumber,             /* IN */
         CORINFO_EH_CLAUSE* clause               /* OUT */
         ) override {
-        //printf("getEHinfo not implemented\r\n");
+        WARN("getEHinfo not implemented\r\n");
     }
 
     // return class it belongs to
@@ -679,7 +713,7 @@ public:
         CORINFO_METHOD_HANDLE       method,
 		bool * pMustExpand
         ) override {
-        //printf("getIntrinsicID\r\n");
+        WARN("getIntrinsicID not implemented\r\n");
         return CORINFO_INTRINSIC_Object_GetType;
     }
 
@@ -687,7 +721,7 @@ public:
     CorInfoUnmanagedCallConv getUnmanagedCallConv(
         CORINFO_METHOD_HANDLE       method
         ) override {
-        //printf("getUnmanagedCallConv\r\n");
+        WARN("getUnmanagedCallConv not implemented\r\n");
         return CORINFO_UNMANAGED_CALLCONV_C;
     }
 
@@ -697,7 +731,7 @@ public:
         CORINFO_METHOD_HANDLE       method,
         CORINFO_SIG_INFO*           callSiteSig
         ) override {
-        //printf("pInvokeMarshalingRequired\r\n");
+        WARN("pInvokeMarshalingRequired not implemented\r\n");
         return TRUE;
     }
 
@@ -707,7 +741,7 @@ public:
         CORINFO_CLASS_HANDLE        parent, // the exact parent of the method
         CORINFO_METHOD_HANDLE       method
         ) override {
-        //printf("satisfiesMethodConstraints\r\n"); 
+        WARN("satisfiesMethodConstraints not implemented\r\n"); 
         return TRUE;
     }
 
@@ -721,7 +755,7 @@ public:
         CORINFO_CLASS_HANDLE        delegateCls,      /* exact type of the delegate */
         BOOL                        *pfIsOpenDelegate /* is the delegate open */
         ) override {
-        //printf("isCompatibleDelegate\r\n");
+        WARN("isCompatibleDelegate not implemented\r\n");
         return TRUE;
     }
 
@@ -730,7 +764,7 @@ public:
         CORINFO_CLASS_HANDLE        delegateHnd,
         CORINFO_METHOD_HANDLE       calleeHnd
         ) {
-        //printf("isDelegateCreationAllowed\r\n");
+        WARN("isDelegateCreationAllowed not implemented\r\n");
         return FALSE;
     }
 
@@ -738,13 +772,13 @@ public:
     void methodMustBeLoadedBeforeCodeIsRun(
         CORINFO_METHOD_HANDLE       method
         ) override {
-        //printf("methodMustBeLoadedBeforeCodeIsRun\r\n");
+        WARN("methodMustBeLoadedBeforeCodeIsRun\r\n");
     }
 
     CORINFO_METHOD_HANDLE mapMethodDeclToMethodImpl(
         CORINFO_METHOD_HANDLE       method
         ) override {
-        //printf("mapMethodDeclToMethodImpl\r\n");
+        WARN("mapMethodDeclToMethodImpl\r\n");
         return nullptr;
     }
 
@@ -756,7 +790,7 @@ public:
         ) override {
         if (pCookieVal)
         {
-            *pCookieVal = *(volatile GSCookie *)(&s_gsCookie);
+            *pCookieVal = s_gsCookie;
             *ppCookieVal = nullptr;
         }
         else
@@ -777,7 +811,6 @@ public:
         BaseMethod* method = mod->ResolveMethod(pResolvedToken->token);
         pResolvedToken->hMethod = (CORINFO_METHOD_HANDLE)method;
         pResolvedToken->hClass = PYOBJECT_PTR_TYPE; // Internal reference for Pyobject ptr
-        //printf("resolveToken %d\r\n", pResolvedToken->token);
     }
 
     // Signature information about the call sig
@@ -801,6 +834,7 @@ public:
         CORINFO_CONTEXT_HANDLE      context,    /* IN */
         CORINFO_SIG_INFO           *sig         /* OUT */
         ) override {
+        WARN("Find call site sig not implemented \r\n");
     }
 
     CORINFO_CLASS_HANDLE getTokenTypeAsHandle(
@@ -822,7 +856,8 @@ public:
         CORINFO_MODULE_HANDLE       module,     /* IN  */
         unsigned                    metaTOK     /* IN  */
         ) override {
-        printf("isValidToken\r\n"); return TRUE;
+        WARN("isValidToken not implemented\r\n"); 
+        return TRUE;
     }
 
     // Checks if the given metadata token is valid StringRef
@@ -830,7 +865,7 @@ public:
         CORINFO_MODULE_HANDLE       module,     /* IN  */
         unsigned                    metaTOK     /* IN  */
         ) override {
-        printf("isValidStringRef\r\n");
+        WARN("isValidStringRef not implemented\r\n");
         return TRUE;
     }
 
@@ -848,7 +883,7 @@ public:
         if (cls == PYOBJECT_PTR_TYPE){
             return CORINFO_TYPE_PTR;
         }
-        printf("unimplemented asCorInfoType\r\n");
+        WARN("unimplemented asCorInfoType\r\n");
         return CORINFO_TYPE_UNDEF;
     }
 
@@ -874,7 +909,7 @@ public:
         BOOL fFullInst,
         BOOL fAssembly
         ) override {
-        printf("appendClassName\r\n"); return 0;
+        WARN("appendClassName not implemented\r\n"); return 0;
     }
 
     // Quick check whether the type is a value class. Returns the same value as getClassAttribs(cls) & CORINFO_FLG_VALUECLASS, except faster.
@@ -900,14 +935,14 @@ public:
     // returns TRUE are always stack allocated, and thus, that stores to the GC-pointer fields of such return
     // buffers do not require GC write barriers.
     BOOL isStructRequiringStackAllocRetBuf(CORINFO_CLASS_HANDLE cls) override {
-        printf("isStructRequiringStackAllocRetBuf\r\n");
+        WARN("isStructRequiringStackAllocRetBuf\r\n");
         return FALSE;
     }
 
     CORINFO_MODULE_HANDLE getClassModule(
         CORINFO_CLASS_HANDLE    cls
         ) override {
-        printf("getClassModule  not implemented\r\n");
+        WARN("getClassModule  not implemented\r\n");
         return nullptr;
     }
 
@@ -915,7 +950,7 @@ public:
     CORINFO_ASSEMBLY_HANDLE getModuleAssembly(
         CORINFO_MODULE_HANDLE   mod
         ) override {
-        printf("getModuleAssembly  not implemented\r\n");
+        WARN("getModuleAssembly  not implemented\r\n");
         return nullptr;
     }
 
@@ -923,7 +958,7 @@ public:
     const char* getAssemblyName(
         CORINFO_ASSEMBLY_HANDLE assem
         ) override {
-        printf("getAssemblyName  not implemented\r\n");
+        WARN("getAssemblyName  not implemented\r\n");
         return "assem";
     }
 
@@ -932,12 +967,12 @@ public:
     // Note that "LongLifetimeFree" does not execute destructors, if "obj"
     // is an array of a struct type with a destructor.
     void* LongLifetimeMalloc(size_t sz) override {
-        printf("LongLifetimeMalloc\r\n");
+        WARN("LongLifetimeMalloc\r\n");
         return nullptr;
     }
 
     void LongLifetimeFree(void* obj) override {
-        printf("LongLifetimeFree\r\n");
+        WARN("LongLifetimeFree\r\n");
     }
 
     size_t getClassModuleIdForStatics(
@@ -945,7 +980,7 @@ public:
         CORINFO_MODULE_HANDLE *pModule,
         void **ppIndirection
         ) override {
-        printf("getClassModuleIdForStatics  not implemented\r\n");
+        WARN("getClassModuleIdForStatics  not implemented\r\n");
         return 0;
     }
 
@@ -953,7 +988,7 @@ public:
     unsigned getClassSize(
         CORINFO_CLASS_HANDLE        cls
         ) override {
-        printf("getClassSize  not implemented\r\n");
+        WARN("getClassSize  not implemented\r\n");
         return 0;
     }
 
@@ -961,7 +996,7 @@ public:
         CORINFO_CLASS_HANDLE        cls,
         BOOL                        fDoubleAlignHint
         ) override {
-        printf("getClassAlignmentRequirement\r\n");
+        WARN("getClassAlignmentRequirement\r\n");
         return 0;
     }
 
@@ -978,7 +1013,7 @@ public:
         CORINFO_CLASS_HANDLE        cls,        /* IN */
         BYTE                       *gcPtrs      /* OUT */
         ) override {
-        printf("getClassGClayout\r\n");
+        WARN("getClassGClayout\r\n");
         return 0;
     }
 
@@ -986,7 +1021,7 @@ public:
     unsigned getClassNumInstanceFields(
         CORINFO_CLASS_HANDLE        cls        /* IN */
         ) override {
-        printf("getClassNumInstanceFields\r\n");
+        WARN("getClassNumInstanceFields\r\n");
         return 0;
     }
 
@@ -994,7 +1029,7 @@ public:
         CORINFO_CLASS_HANDLE clsHnd,
         INT num
         ) override {
-        printf("getFieldInClass\r\n");
+        WARN("getFieldInClass\r\n");
         return nullptr;
     }
 
@@ -1003,7 +1038,7 @@ public:
         LPCSTR modifier,
         BOOL fOptional
         ) override {
-        printf("checkMethodModifier\r\n");
+        WARN("checkMethodModifier\r\n");
         return FALSE;
     }
 
@@ -1014,7 +1049,7 @@ public:
         if (arrayCls == PYOBJECT_PTR_TYPE){
             return CORINFO_HELP_NEWARR_1_VC;
         }
-        printf("getNewArrHelper\r\n");
+        WARN("getNewArrHelper\r\n");
         return CORINFO_HELP_UNDEF;
     }
 
@@ -1023,7 +1058,7 @@ public:
         CORINFO_RESOLVED_TOKEN * pResolvedToken,
         bool fThrowing
         ) override {
-        printf("getCastingHelper\r\n");
+        WARN("getCastingHelper\r\n");
         return CORINFO_HELP_UNDEF;
     }
 
@@ -1031,7 +1066,7 @@ public:
     CorInfoHelpFunc getSharedCCtorHelper(
         CORINFO_CLASS_HANDLE clsHnd
         ) override {
-        printf("getSharedCCtorHelper\r\n");
+        WARN("getSharedCCtorHelper\r\n");
         return CORINFO_HELP_UNDEF;
     }
 
@@ -1042,7 +1077,7 @@ public:
     CORINFO_CLASS_HANDLE  getTypeForBox(
         CORINFO_CLASS_HANDLE        cls
         ) override {
-        printf("getTypeForBox  not implemented\r\n");
+        WARN("getTypeForBox  not implemented\r\n");
         return nullptr;
     }
 
@@ -1052,7 +1087,7 @@ public:
     CorInfoHelpFunc getBoxHelper(
         CORINFO_CLASS_HANDLE        cls
         ) override {
-        printf("getBoxHelper\r\n");
+        WARN("getBoxHelper\r\n");
         return CORINFO_HELP_BOX;
     }
 
@@ -1071,7 +1106,7 @@ public:
     CorInfoHelpFunc getUnBoxHelper(
         CORINFO_CLASS_HANDLE        cls
         ) override {
-        printf("getUnBoxHelper\r\n");
+        WARN("getUnBoxHelper\r\n");
         return CORINFO_HELP_UNBOX;
     }
 
@@ -1094,14 +1129,14 @@ public:
     void classMustBeLoadedBeforeCodeIsRun(
         CORINFO_CLASS_HANDLE        cls
         ) override {
-        //printf("classMustBeLoadedBeforeCodeIsRun\r\n");
+        // Do nothing. We don't load/compile classes. 
     }
 
     // returns the class handle for the special builtin classes
     CORINFO_CLASS_HANDLE getBuiltinClass(
         CorInfoClassId              classId
         ) override {
-        printf("getBuiltinClass\r\n");
+        WARN("getBuiltinClass\r\n");
         return nullptr;
     }
 
@@ -1111,7 +1146,7 @@ public:
         ) override {
         if (cls == PYOBJECT_PTR_TYPE)
             return CORINFO_TYPE_NATIVEINT;
-        printf("getTypeForPrimitiveValueClass\r\n");
+        WARN("getTypeForPrimitiveValueClass\r\n");
         return CORINFO_TYPE_UNDEF;
     }
 
@@ -1121,7 +1156,7 @@ public:
         CORINFO_CLASS_HANDLE        child,  // subtype (extends parent)
         CORINFO_CLASS_HANDLE        parent  // base type
         ) override {
-        printf("canCast\r\n");
+        WARN("canCast\r\n");
         return TRUE;
     }
 
@@ -1130,7 +1165,7 @@ public:
         CORINFO_CLASS_HANDLE        cls1,
         CORINFO_CLASS_HANDLE        cls2
         ) override {
-        printf("areTypesEquivalent\r\n");
+        WARN("areTypesEquivalent\r\n");
         return FALSE;
     }
 
@@ -1139,7 +1174,7 @@ public:
         CORINFO_CLASS_HANDLE        cls1,
         CORINFO_CLASS_HANDLE        cls2
         ) override {
-        printf("mergeClasses  not implemented\r\n");
+        WARN("mergeClasses  not implemented\r\n");
         return nullptr;
     }
 
@@ -1149,7 +1184,7 @@ public:
     CORINFO_CLASS_HANDLE getParentType(
         CORINFO_CLASS_HANDLE        cls
         ) override {
-        printf("getParentType  not implemented\r\n");
+        WARN("getParentType  not implemented\r\n");
         return nullptr;
     }
 
@@ -1161,7 +1196,7 @@ public:
         CORINFO_CLASS_HANDLE       clsHnd,
         CORINFO_CLASS_HANDLE       *clsRet
         ) override {
-        printf("getChildType  not implemented\r\n");
+        WARN("getChildType  not implemented\r\n");
         return CORINFO_TYPE_UNDEF;
     }
 
@@ -1169,7 +1204,7 @@ public:
     BOOL satisfiesClassConstraints(
         CORINFO_CLASS_HANDLE cls
         ) override {
-        //printf("satisfiesClassConstraints\r\n");
+        WARN("satisfiesClassConstraints\r\n");
         return TRUE;
     }
 
@@ -1177,7 +1212,7 @@ public:
     BOOL isSDArray(
         CORINFO_CLASS_HANDLE        cls
         ) override {
-        printf("isSDArray\r\n");
+        WARN("isSDArray\r\n");
         return TRUE;
     }
 
@@ -1185,7 +1220,7 @@ public:
     unsigned getArrayRank(
         CORINFO_CLASS_HANDLE        cls
         ) override {
-        printf("getArrayRank\r\n");
+        WARN("getArrayRank\r\n");
         return 0;
     }
 
@@ -1194,7 +1229,7 @@ public:
         CORINFO_FIELD_HANDLE        field,
         DWORD                       size
         ) override {
-        printf("getArrayInitializationData\r\n");
+        WARN("getArrayInitializationData\r\n");
         return nullptr;
     }
 
@@ -1221,7 +1256,7 @@ public:
         CORINFO_FIELD_HANDLE        ftn,        /* IN */
         const char                **moduleName  /* OUT */
         ) override {
-        printf("getFieldName  not implemented\r\n");
+        WARN("getFieldName  not implemented\r\n");
         return "field";
     }
 
@@ -1229,7 +1264,7 @@ public:
     CORINFO_CLASS_HANDLE getFieldClass(
         CORINFO_FIELD_HANDLE    field
         ) override {
-        printf("getFieldClass not implemented\r\n");
+        WARN("getFieldClass not implemented\r\n");
         return nullptr;
     }
 
@@ -1244,7 +1279,7 @@ public:
         CORINFO_CLASS_HANDLE   *structType,
         CORINFO_CLASS_HANDLE    memberParent /* IN */
         ) override {
-        printf("getFieldType\r\n");
+        WARN("getFieldType\r\n");
         return CORINFO_TYPE_UNDEF;
     }
 
@@ -1252,7 +1287,7 @@ public:
     unsigned getFieldOffset(
         CORINFO_FIELD_HANDLE    field
         ) override {
-        printf("getFieldOffset\r\n");
+        WARN("getFieldOffset\r\n");
         return 0;
     }
 
@@ -1261,12 +1296,12 @@ public:
         CORINFO_ACCESS_FLAGS   flags,
         CORINFO_FIELD_INFO    *pResult
         ) override {
-        printf("\r\n");
+        WARN("getFieldInfo not implemented\r\n");
     }
 
     // Returns true iff "fldHnd" represents a static field.
     bool isFieldStatic(CORINFO_FIELD_HANDLE fldHnd) override {
-        printf("isFieldStatic\r\n");
+        WARN("isFieldStatic not implemented\r\n");
         return FALSE;
     }
 
@@ -1290,7 +1325,7 @@ public:
         //       jit MUST free with freeArray!
         ICorDebugInfo::BoundaryTypes *implictBoundaries // [OUT] tell jit, all boundries of this type
         ) override {
-        printf("getBoundaries\r\n");
+        WARN("getBoundaries not implemented\r\n");
     }
 
     // Report back the mapping from IL to native code,
@@ -1306,7 +1341,7 @@ public:
         ICorDebugInfo::OffsetMapping *pMap      // [IN] map including all points of interest.
         //      jit allocated with allocateArray, EE frees
         ) override {
-        printf("setBoundaries\r\n");
+        WARN("setBoundaries not implemented\r\n");
     }
 
     // Query the EE to find out the scope of local varables.
@@ -1325,7 +1360,7 @@ public:
         bool                           *extendOthers    // [OUT] it TRUE, then assume the scope
         //       of unmentioned vars is entire method
         ) override {
-        printf("getVars\r\n");
+        WARN("getVars not implemented\r\n");
     }
 
     // Report back to the EE the location of every variable.
@@ -1338,7 +1373,7 @@ public:
         ICorDebugInfo::NativeVarInfo   *vars            // [IN] map telling where local vars are stored at what points
         //      jit allocated with allocateArray, EE frees
         ) override {
-        printf("setVars\r\n");
+        WARN("setVars not implemented\r\n");
     }
 
     /*-------------------------- Misc ---------------------------------------*/
@@ -1350,7 +1385,7 @@ public:
     void freeArray(
         void               *array
         ) override {
-        printf("freeArray\r\n");
+        WARN("freeArray not implemented\r\n");
     }
 
     /*********************************************************************************/
@@ -1372,6 +1407,7 @@ public:
         CORINFO_SIG_INFO*           sig,            /* IN */
         CORINFO_ARG_LIST_HANDLE     args            /* IN */
         ) override {
+        // Do nothing. We don't load/compile classes. 
         return nullptr;
     }
 
@@ -1385,7 +1421,7 @@ public:
     HRESULT GetErrorHRESULT(
     struct _EXCEPTION_POINTERS *pExceptionPointers
         ) override {
-        printf("GetErrorHRESULT\r\n");
+        WARN("GetErrorHRESULT\r\n");
         return E_FAIL;
     }
 
@@ -1396,7 +1432,7 @@ public:
         __inout_ecount(bufferLength) LPWSTR buffer,
         ULONG bufferLength
         ) override {
-        printf("GetErrorMessage\r\n");
+        WARN("GetErrorMessage\r\n");
         return 0;
     }
 
@@ -1409,25 +1445,25 @@ public:
     int FilterException(
     struct _EXCEPTION_POINTERS *pExceptionPointers
         ) override {
-        printf("FilterException\r\n"); return 0;
+        WARN("FilterException\r\n"); return 0;
     }
 
     // Cleans up internal EE tracking when an exception is caught.
     void HandleException(
     struct _EXCEPTION_POINTERS *pExceptionPointers
         ) override {
-        printf("HandleException\r\n");
+        WARN("HandleException\r\n");
     }
 
     void ThrowExceptionForJitResult(
         HRESULT result) override {
-        printf("ThrowExceptionForJitResult\r\n");
+        WARN("ThrowExceptionForJitResult\r\n");
     }
 
     //Throws an exception defined by the given throw helper.
     void ThrowExceptionForHelper(
         const CORINFO_HELPER_DESC * throwHelper) override {
-        printf("ThrowExceptionForHelper\r\n");
+        WARN("ThrowExceptionForHelper\r\n");
     }
 
     /*****************************************************************************
@@ -1476,7 +1512,7 @@ public:
     mdMethodDef getMethodDefFromMethod(
         CORINFO_METHOD_HANDLE hMethod
         ) override {
-        printf("getMethodDefFromMethod\r\n");
+        WARN("getMethodDefFromMethod\r\n");
         return 0;
     }
 
@@ -1507,14 +1543,14 @@ public:
         __out_ecount(FQNameCapacity) char * szFQName, /* OUT */
         size_t FQNameCapacity  /* IN */
         ) override {
-        printf("findNameOfToken\r\n");
+        WARN("findNameOfToken\r\n");
         return 0;
 
     }
 
 	void getAddressOfPInvokeTarget(CORINFO_METHOD_HANDLE method, CORINFO_CONST_LOOKUP * pLookup) override
 	{
-        printf("getAddressOfPInvokeTarget\r\n");
+        WARN("getAddressOfPInvokeTarget\r\n");
 	}
 
 	DWORD getJitFlags(CORJIT_FLAGS * flags, DWORD sizeInBytes) override
@@ -1530,28 +1566,31 @@ public:
 		return sizeof(CORJIT_FLAGS);
 	}
 
-    void getMethodVTableOffset(CORINFO_METHOD_HANDLE method, unsigned int *offsetOfIndirection,
-                               unsigned int *offsetAfterIndirection, bool *isRelative) override {
-        // TODO : API added isRelative flag, getMethodVTableOffset doesn't inspect that.
+    // This function returns the offset of the specified method in the
+    // vtable of it's owning class or interface.
+    void getMethodVTableOffset(CORINFO_METHOD_HANDLE method,                /* IN */
+                               unsigned*             offsetOfIndirection,   /* OUT */
+                               unsigned*             offsetAfterIndirection,/* OUT */
+                               bool*                 isRelative             /* OUT */) override {
         *offsetOfIndirection = 0x1234;
         *offsetAfterIndirection = 0x2468;
-        printf("getMethodVTableOffset\r\n");
+        *isRelative = true;
     }
 
     CORINFO_METHOD_HANDLE
     resolveVirtualMethod(CORINFO_METHOD_HANDLE virtualMethod, CORINFO_CLASS_HANDLE implementingClass,
                          CORINFO_CONTEXT_HANDLE ownerType) override {
-        printf("resolveVirtualMethod not defined\r\n");
+        WARN("resolveVirtualMethod not defined\r\n");
         return nullptr;
     }
 
     CORINFO_METHOD_HANDLE getUnboxedEntry(CORINFO_METHOD_HANDLE ftn, bool *requiresInstMethodTableArg) override {
-        printf("getUnboxedEntry not defined\r\n");
+        WARN("getUnboxedEntry not defined\r\n");
         return nullptr;
     }
 
     CORINFO_CLASS_HANDLE getDefaultEqualityComparerClass(CORINFO_CLASS_HANDLE elemType) override {
-        printf("getDefaultEqualityComparerClass not defined\r\n");
+        WARN("getDefaultEqualityComparerClass not defined\r\n");
         return nullptr;
     }
 
@@ -1565,7 +1604,7 @@ public:
     }
 
     PatchpointInfo *getOSRInfo(unsigned int *ilOffset) override {
-        printf("getOSRInfo not defined\r\n");
+        WARN("getOSRInfo not defined\r\n");
         return nullptr;
     }
 
@@ -1574,17 +1613,17 @@ public:
     }
 
     LPCWSTR getStringLiteral(CORINFO_MODULE_HANDLE module, unsigned int metaTOK, int *length) override {
-        printf("getStringLiteral not defined\r\n");
+        WARN("getStringLiteral not defined\r\n");
         return nullptr;
     }
 
     const char *getClassNameFromMetadata(CORINFO_CLASS_HANDLE cls, const char **namespaceName) override {
-        printf("getClassNameFromMetadata not defined\r\n");
+        WARN("getClassNameFromMetadata not defined\r\n");
         return nullptr;
     }
 
     CORINFO_CLASS_HANDLE getTypeInstantiationArgument(CORINFO_CLASS_HANDLE cls, unsigned int index) override {
-        printf("getTypeInstantiationArgument not defined\r\n");
+        WARN("getTypeInstantiationArgument not defined\r\n");
         return nullptr;
     }
 
@@ -1651,7 +1690,7 @@ public:
 
     const char *getMethodNameFromMetadata(CORINFO_METHOD_HANDLE ftn, const char **className, const char **namespaceName,
                                           const char **enclosingClassName) override {
-        printf("getMethodNameFromMetadata not defined\r\n");
+        WARN("getMethodNameFromMetadata not defined\r\n");
         return nullptr;
     }
 
@@ -1678,8 +1717,31 @@ public:
             case CORINFO_HELP_STACK_PROBE:
                 helper = (void*)&JIT_StackProbe;
                 break;
+
+            /* Helpers that throw exceptions */
+            case CORINFO_HELP_OVERFLOW:
+                helper = (void*)&raiseOverflowExceptionHelper;
+                break;
+            case CORINFO_HELP_FAIL_FAST:
+                helper = (void*)&failFastExceptionHelper;
+                break;
+            case CORINFO_HELP_RNGCHKFAIL:
+                helper = (void*)&rangeCheckExceptionHelper;
+                break;
+            case CORINFO_HELP_THROWDIVZERO:
+                helper = (void*)&divisionByZeroExceptionHelper;
+                break;
+            case CORINFO_HELP_THROWNULLREF:
+                helper = (void*)&nullReferenceExceptionHelper;
+                break;
+            case CORINFO_HELP_VERIFICATION:
+                helper = (void*)&verificationExceptionHelper;
+                break;
+            case CORINFO_HELP_SEC_UNMGDCODE_EXCPT:
+                helper = (void*)&securityExceptionHelper;
+                break;
             default:
-                helper = (void*)&helperFtn;
+                throw UnsupportedHelperException(ftnNum);
                 break;
         }
         *ppIndirection = &helper;
@@ -1698,8 +1760,22 @@ public:
                 return (void*)stArrayHelperFtn;
             case CORINFO_HELP_STACK_PROBE:
                 return (void*)JIT_StackProbe;
+            case CORINFO_HELP_OVERFLOW:
+                return (void*)raiseOverflowExceptionHelper;
+            case CORINFO_HELP_FAIL_FAST:
+                return (void*)failFastExceptionHelper;
+            case CORINFO_HELP_RNGCHKFAIL:
+                return (void*)rangeCheckExceptionHelper;
+            case CORINFO_HELP_THROWDIVZERO:
+                return (void*)divisionByZeroExceptionHelper;
+            case CORINFO_HELP_THROWNULLREF:
+                return (void*)nullReferenceExceptionHelper;
+            case CORINFO_HELP_VERIFICATION:
+                return (void*)verificationExceptionHelper;
+            case CORINFO_HELP_SEC_UNMGDCODE_EXCPT:
+                return (void*)securityExceptionHelper;
             default:
-                return (void*)helperFtn;
+                throw UnsupportedHelperException(ftnNum);
         }
     }
 #endif
@@ -1707,7 +1783,7 @@ public:
     }
 
     CORINFO_CLASS_HANDLE getStaticFieldCurrentClass(CORINFO_FIELD_HANDLE field, bool *pIsSpeculative) override {
-        printf("getStaticFieldCurrentClass not defined\r\n");
+        WARN("getStaticFieldCurrentClass not defined\r\n");
         return nullptr;
     }
 
@@ -1726,7 +1802,7 @@ public:
     CORINFO_METHOD_HANDLE
     GetDelegateCtor(CORINFO_METHOD_HANDLE methHnd, CORINFO_CLASS_HANDLE clsHnd, CORINFO_METHOD_HANDLE targetMethodHnd,
                     DelegateCtorArgs *pCtorData) override {
-        printf("GetDelegateCtor not defined\r\n");
+        WARN("GetDelegateCtor not defined\r\n");
         return nullptr;
     }
 
@@ -1751,9 +1827,17 @@ public:
 
     }
 
-    void allocUnwindInfo(BYTE *pHotCode, BYTE *pColdCode, ULONG startOffset, ULONG endOffset, ULONG unwindSize,
-                         BYTE *pUnwindBlock, CorJitFuncKind funcKind) override {
-        //printf("allocUnwindInfo not implemented \r\n");
+    void allocUnwindInfo (
+            BYTE *              pHotCode,              /* IN */
+            BYTE *              pColdCode,             /* IN */
+            ULONG               startOffset,           /* IN */
+            ULONG               endOffset,             /* IN */
+            ULONG               unwindSize,            /* IN */
+            BYTE *              pUnwindBlock,          /* IN */
+            CorJitFuncKind      funcKind               /* IN */
+    ) override {
+        // Only used in .NET 5 for FEATURE_EH_FUNCLETS.
+        // No requirement to have an implementation in Pyjion.
     }
 
     void *allocGCInfo(size_t size) override {
@@ -1761,21 +1845,21 @@ public:
     }
 
     void setEHcount(unsigned int cEH) override {
-        printf("setEHcount not implemented \r\n");
+        WARN("setEHcount not implemented \r\n");
     }
 
     void setEHinfo(unsigned int EHnumber, const CORINFO_EH_CLAUSE *clause) override {
-        printf("setEHinfo not implemented \r\n");
+        WARN("setEHinfo not implemented \r\n");
     }
 
     HRESULT allocMethodBlockCounts(UINT32 count, BlockCounts **pBlockCounts) override {
-        printf("allocMethodBlockCounts not implemented \r\n");
+        WARN("allocMethodBlockCounts not implemented \r\n");
         return 0;
     }
 
     HRESULT getMethodBlockCounts(CORINFO_METHOD_HANDLE ftnHnd, UINT32 *pCount, BlockCounts **pBlockCounts,
                                  UINT32 *pNumRuns) override {
-        printf("getMethodBlockCounts not implemented \r\n");
+        WARN("getMethodBlockCounts not implemented \r\n");
         return 0;
     }
 

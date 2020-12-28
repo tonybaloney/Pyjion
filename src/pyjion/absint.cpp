@@ -1466,12 +1466,9 @@ void AbstractInterpreter::popExcVars(){
 
     m_comp->emit_mark_label(loop);
     m_comp->emit_load_local(mExcVarsOnStack);
-    m_comp->emit_int(0);
-    m_comp->emit_branch(BranchLessThanEqual, nothing_to_pop);
+    m_comp->emit_branch(BranchFalse, nothing_to_pop);
     m_comp->emit_pop();
-    m_comp->emit_pop();
-    m_comp->emit_pop();
-    m_comp->emit_dec_local(mExcVarsOnStack, 3);
+    m_comp->emit_dec_local(mExcVarsOnStack, 1);
     m_comp->emit_branch(BranchAlways, loop);
 
     m_comp->emit_mark_label(nothing_to_pop);
@@ -1543,7 +1540,6 @@ JittedCode* AbstractInterpreter::compileWorker() {
 
 #ifdef DEBUG
         int ilLen = m_comp->il_length();
-        m_comp->emit_breakpoint();
 #endif
         if (!canSkipLastiUpdate(curByte)) {
             m_comp->emit_lasti_update(curByte);
@@ -1824,6 +1820,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case DELETE_DEREF: m_comp->emit_delete_deref(oparg); break;
             case LOAD_CLOSURE:
                 m_comp->emit_load_closure(oparg);
+                errorCheck("load closure failed");
                 incStack();
                 break;
             case GET_ITER: {

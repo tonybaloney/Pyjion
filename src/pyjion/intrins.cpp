@@ -155,6 +155,19 @@ PyObject* PyJit_NewFunction(PyObject* code, PyObject* qualname, PyFrameObject* f
     return res;
 }
 
+PyObject* PyJit_LoadClosure(PyFrameObject* frame, size_t index) {
+    PyObject** cells = frame->f_localsplus + frame->f_code->co_nlocals;
+    PyObject *value = cells[index];
+
+    if (value == nullptr) {
+        format_exc_unbound(frame->f_code, (int)index);
+    }
+    else {
+        Py_INCREF(value);
+    }
+    return value;
+}
+
 PyObject* PyJit_SetClosure(PyObject* closure, PyObject* func) {
     PyFunction_SetClosure(func, closure);
     Py_DECREF(closure);

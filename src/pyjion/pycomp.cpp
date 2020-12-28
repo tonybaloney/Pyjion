@@ -157,57 +157,35 @@ void PythonCompiler::emit_trace_exception() {
 }
 
 void PythonCompiler::emit_incref(bool maybeTagged = false) {
-    Label tagged, done;
-    if (maybeTagged) {
-        m_il.dup();
-        m_il.ld_i(1);
-        m_il.bitwise_and();
-        tagged = m_il.define_label();
-        done = m_il.define_label();
-        m_il.branch(BranchTrue, tagged);
-    }
-
     LD_FIELDA(PyObject, ob_refcnt);
     m_il.dup();
-    m_il.ld_ind_i4();
+    m_il.ld_ind_i();
     m_il.ld_i4(1);
     m_il.add();
-    m_il.st_ind_i4();
-
-    if (maybeTagged) {
-        m_il.branch(BranchAlways, done);
-
-        m_il.mark_label(tagged);
-        m_il.pop();
-
-        m_il.mark_label(done);
-    }
+    m_il.st_ind_i();
 }
 
 void PythonCompiler::decref() {
     if (OPT_ENABLED(inlineDecref)){ // obj
         Label done = emit_define_label();
         Label popAndGo = emit_define_label();
-
         m_il.dup();                     // obj, obj
-        emit_null();                    // obj, obj, null
-        emit_branch(BranchEqual, popAndGo);
+        emit_branch(BranchFalse, popAndGo);
 
         m_il.dup(); m_il.dup();         // obj, obj, obj
         LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
         m_il.dup();                     // obj, obj, refcnt, refcnt
-        m_il.ld_ind_i4();               // obj, obj, refcnt, *refcnt
-        m_il.ld_i4(1);               // obj, obj, refcnt,  *refcnt, 1
+        m_il.ld_ind_i();               // obj, obj, refcnt, *refcnt
+        m_il.load_one();                 // obj, obj, refcnt,  *refcnt, 1
         m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
-        m_il.st_ind_i4();              // obj, obj
-
-        // TODO : Check if LD_FIELD can be ld_ind_i4 instead of ld_ind
+        m_il.st_ind_i();              // obj, obj
         LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
-        m_il.ld_i4(0);                 // obj, refcnt, 0
+        m_il.load_null();                 // obj, refcnt, 0
         emit_branch(BranchGreaterThan, popAndGo);
-        
+
         m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
         emit_branch(BranchAlways, done);
+
         emit_mark_label(popAndGo);
         emit_pop();
 
@@ -1059,11 +1037,8 @@ void PythonCompiler::emit_delete_deref(int index) {
 
 void PythonCompiler::emit_load_closure(int index) {
     load_frame();
-    m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + (m_code->co_nlocals + index) * sizeof(size_t));
-    m_il.add();
-    m_il.ld_ind_i();
-    m_il.dup();
-    emit_incref();
+    m_il.ld_i4(index);
+    m_il.emit_call(METHOD_LOAD_CLOSURE);
 }
 
 void PythonCompiler::emit_set_add() {
@@ -1130,7 +1105,7 @@ void PythonCompiler::emit_inc_local(Local local, int value) {
 void PythonCompiler::emit_dec_local(Local local, int value) {
     emit_load_local(local);
     emit_int(value);
-    m_il.sub();
+    m_il.sub_with_overflow();
     emit_store_local(local);
 }
 
@@ -1171,7 +1146,7 @@ void PythonCompiler::emit_binary_float(int opcode) {
             break;
         case INPLACE_SUBTRACT:
         case BINARY_SUBTRACT:
-            m_il.sub();
+            m_il.sub_with_overflow();
             break;
         case BINARY_POWER:
         case INPLACE_POWER:
@@ -1589,3 +1564,5 @@ GLOBAL_METHOD(METHOD_TRACE_FRAME_EXIT, &PyJit_TraceFrameExit, CORINFO_TYPE_VOID,
 GLOBAL_METHOD(METHOD_TRACE_EXCEPTION, &PyJit_TraceFrameException, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
 GLOBAL_METHOD(METHOD_PROFILE_FRAME_ENTRY, &PyJit_ProfileFrameEntry, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
 GLOBAL_METHOD(METHOD_PROFILE_FRAME_EXIT, &PyJit_ProfileFrameExit, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
+
+GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));

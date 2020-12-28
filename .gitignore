@@ -28,3 +28,4 @@ venv*/
 *.pyc
 MANIFEST
 src/pyjion/*.so
+/src/pyjion/_pyjion.cp39-win_amd64.pyd

@@ -64,6 +64,7 @@ PyObject* PyJit_NotContains(PyObject *left, PyObject *right);
 
 PyObject* PyJit_NewFunction(PyObject* code, PyObject* qualname, PyFrameObject* frame);
 
+PyObject* PyJit_LoadClosure(PyFrameObject* frame, size_t index);
 PyObject* PyJit_SetClosure(PyObject* closure, PyObject* func);
 
 PyObject* PyJit_BuildSlice(PyObject* start, PyObject* stop, PyObject* step);

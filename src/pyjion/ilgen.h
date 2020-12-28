@@ -289,6 +289,11 @@ public:
         m_il.push_back(CEE_CONV_I); // Pop1 + PushI
     }
 
+    void load_one() {
+        ld_i4(1);
+        m_il.push_back(CEE_CONV_I); // Pop1 + PushI
+    }
+
     void st_ind_i() {
         push_back(CEE_STIND_I); // PopI + PopI / Push0
     }
@@ -301,8 +306,16 @@ public:
         push_back(CEE_STIND_I4); // PopI + PopI / Push0
     }
 
+    void st_ind_i8() {
+        push_back(CEE_STIND_I8); // PopI + PopI / Push0
+    }
+
     void ld_ind_i4() {
         push_back(CEE_LDIND_I4); // PopI  / PushI
+    }
+
+    void ld_ind_i8() {
+        push_back(CEE_LDIND_I8); // PopI  / PushI
     }
 
     void ld_ind_r8() {
@@ -321,11 +334,13 @@ public:
     }
 
     void branch(BranchType branchType, int offset) {
+        /*
+            For jump offsets that can fit into a single byte, there is a "_S"
+            suffix to the CIL opcode to notate that the jump address is a single byte.
+            The default is 4 bytes. 
+        */ 
         if ((offset - 2) <= 128 && (offset - 2) >= -127) {
             switch (branchType) {
-                case BranchLeave:
-                    m_il.push_back(CEE_LEAVE_S); // Pop0 + Push0
-                    break;
                 case BranchAlways:
                     m_il.push_back(CEE_BR_S);  // Pop0 + Push0
                     break;
@@ -341,40 +356,55 @@ public:
                 case BranchNotEqual:
                     m_il.push_back(CEE_BNE_UN_S); // Pop1+Pop1, Push0
                     break;
+                case BranchLeave:
+                    m_il.push_back(CEE_LEAVE_S); // Pop0 + Push0
+                    break;
                 case BranchLessThanEqual:
                     m_il.push_back(CEE_BLE_S); // Pop1+Pop1, Push0
                     break;
+                case BranchLessThanEqualUnsigned:
+                    m_il.push_back(CEE_BLE_UN_S); // Pop1+Pop1, Push0
+                    break;
                 case BranchGreaterThan:
                     m_il.push_back(CEE_BGT_S); // Pop1+Pop1, Push0
+                    break;
+                case BranchGreaterThanUnsigned:
+                    m_il.push_back(CEE_BGT_UN_S); // Pop1+Pop1, Push0
                     break;
             }
             m_il.push_back((BYTE)offset - 2);
         }
         else {
             switch (branchType) {
-                case BranchLeave:
-                    m_il.push_back(CEE_LEAVE);  // Pop0, Push0
-                    break;
                 case BranchAlways:
-                    m_il.push_back(CEE_BR); // Pop0, Push0
+                    m_il.push_back(CEE_BR);  // Pop0 + Push0
                     break;
                 case BranchTrue:
-                    m_il.push_back(CEE_BRTRUE); // PopI, Push0
+                    m_il.push_back(CEE_BRTRUE); // PopI + Push0
                     break;
                 case BranchFalse:
-                    m_il.push_back(CEE_BRFALSE); // PopI, Push0
+                    m_il.push_back(CEE_BRFALSE);  // PopI, Push0
                     break;
                 case BranchEqual:
-                    m_il.push_back(CEE_BEQ); //  Pop1+Pop1, Push0
+                    m_il.push_back(CEE_BEQ); // Pop1+Pop1, Push0
                     break;
                 case BranchNotEqual:
-                    m_il.push_back(CEE_BNE_UN); //  Pop1+Pop1, Push0
+                    m_il.push_back(CEE_BNE_UN); // Pop1+Pop1, Push0
+                    break;
+                case BranchLeave:
+                    m_il.push_back(CEE_LEAVE); // Pop0 + Push0
                     break;
                 case BranchLessThanEqual:
                     m_il.push_back(CEE_BLE); // Pop1+Pop1, Push0
                     break;
+                case BranchLessThanEqualUnsigned:
+                    m_il.push_back(CEE_BLE_UN); // Pop1+Pop1, Push0
+                    break;
                 case BranchGreaterThan:
                     m_il.push_back(CEE_BGT); // Pop1+Pop1, Push0
+                    break;
+                case BranchGreaterThanUnsigned:
+                    m_il.push_back(CEE_BGT_UN); // Pop1+Pop1, Push0
                     break;
             }
             emit_int(offset - 5);
@@ -559,6 +589,10 @@ public:
     }
 
     void sub() {
+        push_back(CEE_SUB);   // Pop1+Pop1, Push1
+    }
+
+    void sub_with_overflow() {
         push_back(CEE_SUB_OVF);   // Pop1+Pop1, Push1
     }
 
