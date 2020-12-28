@@ -1,5 +1,20 @@
 # Release notes
 
+## 0.4.0
+
+* Fixed a crash bug where CPython checks recursion depth from ceval state, which may not be set
+* Implemented a faster check for recursion depth
+* Fixed a bug on LOAD_CLOSURE operator not being set
+* Fixed OPT-2 on Windows and Linux
+* Fixed a bug where the wrong CIL opcode was being used to subtract values, would throw an overflow error and fail back into EFD.
+* Implemented the .NET EE exception handlers for guard stack canaries, overflow errors, and null reference exceptions
+* Implemented a more efficient case of ld_i(1)
+* Corrected cases of ob_refcnt to use 64-bit signed integers
+* No longer print error messages on release code for unimplemented .NET EE methods
+* Fixed a bug on the incorrect vtable relative field being set
+* Fixed a bug where tracing and profiling would be emitted even when not explicitly enabled
+* .NET Exceptions are transferred into Python exceptions at runtime
+
 ## 0.3.0
 
 * Added an optimization (OPT-1/OPTIMIZE_IS) to inline the "is"/ "is not" statement into a simple pointer comparison with jump statement. Compiles to inline machine code instead of a method call
