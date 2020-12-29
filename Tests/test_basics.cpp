@@ -48,7 +48,7 @@ private:
 
         auto tstate = PyThreadState_Get();
         // Don't DECREF as frames are recycled.
-        auto frame = PyFrame_New(PyThreadState_Get(), m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
+        auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
         auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate);
