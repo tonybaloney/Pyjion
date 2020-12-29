@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.5.0
+
+* Added OPT-4 optimization. Frame locals (named variables known at compilation) using the LOAD_FAST, STORE_FAST and DELETE_FAST
+ opcodes will use native .NET locals instead of using the frame's f_localsplus array.
+* Improved performance in LOAD_FAST and STORE_FAST through OPT-4
+* Added OPT-5 optimization. Frame push/pop on entry/exit are now inline CIL instructions.
+* LOAD_FAST skips unbound local checks when proceeded by a STORE_FAST (i.e. slot is definitely assigned)
+
 ## 0.4.0
 
 * Fixed a crash bug where CPython checks recursion depth from ceval state, which may not be set
