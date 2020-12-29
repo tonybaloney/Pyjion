@@ -2284,7 +2284,6 @@ bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
         case LOAD_ASSERTION_ERROR:
         case END_ASYNC_FOR:
         case POP_TOP:
-        case DUP_TOP_TWO:
         case STORE_FAST:
         case LOAD_FAST:
         case LOAD_CONST:
