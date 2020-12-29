@@ -63,6 +63,7 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(inlineIs, level, 1);
     SET_OPT(inlineDecref, level, 1);
     SET_OPT(internRichCompare, level, 1);
+    SET_OPT(nativeLocals, level, 1);
 }
 
 PyjionJittedCode::~PyjionJittedCode() {
@@ -116,7 +117,8 @@ PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame) {
 
 	frame->f_executing = 1;
     try {
-        auto res = ((Py_EvalFunc)state)(nullptr, frame);
+        auto tstate = PyThreadState_GET();
+        auto res = ((Py_EvalFunc)state)(nullptr, frame, tstate);
         Pyjit_LeaveRecursiveCall();
         frame->f_executing = 0;
         return res;

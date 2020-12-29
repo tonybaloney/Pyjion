@@ -1480,6 +1480,9 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_comp->emit_lasti_init();
     m_comp->emit_push_frame();
 
+    if (OPT_ENABLED(nativeLocals))
+        m_comp->emit_locals();
+
     auto rootHandlerLabel = m_comp->emit_define_label();
 
     mExcVarsOnStack = m_comp->emit_define_local(LK_Int);

@@ -69,6 +69,7 @@ typedef struct PyjionSettings {
     bool opt_inlineIs = OPTIMIZE_IS; // OPT-1
     bool opt_inlineDecref = OPTIMIZE_DECREF; // OPT-2
     bool opt_internRichCompare = OPTIMIZE_INTERN_COMPARE; // OPT-3
+	bool opt_nativeLocals = OPTIMIZE_NATIVE_LOCALS; // OPT-4
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;

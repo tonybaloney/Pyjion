@@ -225,6 +225,7 @@ class PythonCompiler : public IPythonCompiler {
     ILGenerator m_il;
     UserModule* m_module;
     Local m_lasti;
+    unordered_map<int, Local> m_frameLocals;
 
 public:
     explicit PythonCompiler(PyCodeObject *code);
@@ -444,7 +445,7 @@ public:
     void sink_top_to_n(int pos) override;
 private:
     void load_frame();
-
+    void load_tstate();
     void load_local(int oparg);
     void decref();
     CorInfoType to_clr_type(LocalKind kind);
