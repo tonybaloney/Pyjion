@@ -87,9 +87,14 @@ void PythonCompiler::load_tstate() {
     m_il.ld_arg(2);
 }
 
-void PythonCompiler::emit_locals(){
+void PythonCompiler::emit_load_frame_locals(){
     for (int i = 0 ; i < this->m_code->co_nlocals; i++){
-        m_frameLocals[i] = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+        m_frameLocals[i] = m_il.define_local_no_cache(Parameter(CORINFO_TYPE_NATIVEINT));
+        load_frame();
+        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + i * sizeof(size_t));
+        m_il.add();
+        m_il.ld_ind_i();
+        m_il.st_loc(m_frameLocals[i]);
     }
 }
 

@@ -109,15 +109,14 @@ static inline void Pyjit_LeaveRecursiveCall() {
     tstate->recursion_depth--;
 }
 
-PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame);
-PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame) {
+PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate);
+PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame, PyThreadState* tstate) {
     if (Pyjit_EnterRecursiveCall("")) {
         return nullptr;
     }
 
 	frame->f_executing = 1;
     try {
-        auto tstate = PyThreadState_GET();
         auto res = ((Py_EvalFunc)state)(nullptr, frame, tstate);
         Pyjit_LeaveRecursiveCall();
         frame->f_executing = 0;
@@ -223,11 +222,10 @@ PyTypeObject* GetArgType(int arg, PyObject** locals) {
 
 #define MAX_TRACE 5
 
-PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
+PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate) {
 	// Walk our tree of argument types to find the SpecializedTreeNode which
     // corresponds with our sets of arguments here.
     auto trace = (PyjionJittedCode*)state;
-    auto tstate = PyThreadState_Get();
 	SpecializedTreeNode* target = nullptr;
 
     // record the new trace...
@@ -245,7 +243,7 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
 	if (target != nullptr && !trace->j_failed) {
 		if (target->addr != nullptr) {
 			// we have a specialized function for this, just invoke it
-			auto res = Jit_EvalHelper((void*)target->addr, frame);
+			auto res = Jit_EvalHelper((void*)target->addr, frame, tstate);
 			return res;
 		}
 
@@ -293,7 +291,7 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame) {
             trace->j_nativeSize = res->get_native_size();
             trace->j_generic = target->addr;
 
-			return Jit_EvalHelper((void*)target->addr, frame);
+			return Jit_EvalHelper((void*)target->addr, frame, tstate);
 		}
 	}
 
@@ -345,13 +343,13 @@ PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 	if (jitted != nullptr && !throwflag) {
 		if (jitted->j_evalfunc != nullptr) {
             jitted->j_run_count++;
-			return jitted->j_evalfunc(jitted, f);
+			return jitted->j_evalfunc(jitted, f, ts);
 		}
 		else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {
 			if (jit_compile(f->f_code)) {
 				// execute the jitted code...
 				jitPassCounter++;
-				return jitted->j_evalfunc(jitted, f);
+				return jitted->j_evalfunc(jitted, f, ts);
 			}
 
 			// no longer try and compile this method...

@@ -438,6 +438,8 @@ public:
     void emit_profile_frame_entry() override;
     void emit_profile_frame_exit() override;
 
+    void emit_load_frame_locals() override;
+
     JittedCode* emit_compile() override;
     void lift_n_to_top(int pos) override;
     void lift_n_to_second(int pos) override;

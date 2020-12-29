@@ -1481,7 +1481,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_comp->emit_push_frame();
 
     if (OPT_ENABLED(nativeLocals))
-        m_comp->emit_locals();
+        m_comp->emit_load_frame_locals();
 
     auto rootHandlerLabel = m_comp->emit_define_label();
 
