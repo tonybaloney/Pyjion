@@ -101,8 +101,7 @@ void PythonCompiler::emit_load_frame_locals(){
 void PythonCompiler::emit_push_frame() {
     if (OPT_ENABLED(inlineFramePushPop)) {
         load_tstate();
-        m_il.ld_i(offsetof(PyThreadState, frame));
-        m_il.add();
+        LD_FIELDA(PyThreadState, frame);
         load_frame();
         m_il.st_ind_i();
     } else {
@@ -114,12 +113,10 @@ void PythonCompiler::emit_push_frame() {
 void PythonCompiler::emit_pop_frame() {
     if (OPT_ENABLED(inlineFramePushPop)) {
         load_tstate();
-        m_il.ld_i(offsetof(PyThreadState, frame));
-        m_il.add();
+        LD_FIELDA(PyThreadState, frame);
 
         load_frame();
-        m_il.ld_i(offsetof(PyFrameObject, f_back));
-        m_il.add();
+        LD_FIELD(PyFrameObject, f_back);
 
         m_il.st_ind_i();
     } else {
