@@ -2417,8 +2417,7 @@ void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound) {
 
         m_comp->emit_dup();
         m_comp->emit_store_local(mErrorCheckLocal);
-        m_comp->emit_null();
-        m_comp->emit_branch(BranchNotEqual, success);
+        m_comp->emit_branch(BranchTrue, success);
 
         m_comp->emit_ptr(PyTuple_GetItem(mCode->co_varnames, local));
 
