@@ -3,6 +3,8 @@ option(OPTIMIZE_DECREF "Optimize DECREF when ob_refcnt > 1" ON)
 option(OPTIMIZE_IS "Optimize IS_OP" ON)
 option(OPTIMIZE_INTERN_COMPARE "Optimize COMPARE_OP for intern values" ON)
 option(OPTIMIZE_NATIVE_LOCALS "Optimize frame locals into native JIT locals" ON)
+option(OPTIMIZE_PUSH_FRAME "Optimize push/pop frame into inline instructions" ON)
+
 
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
 
@@ -29,6 +31,12 @@ if (OPTIMIZE_NATIVE_LOCALS)
     add_definitions(-DOPTIMIZE_NATIVE_LOCALS=1)
 else()
     add_definitions(-DOPTIMIZE_NATIVE_LOCALS=0)
+endif()
+
+if (OPTIMIZE_PUSH_FRAME)
+    add_definitions(-DOPTIMIZE_PUSH_FRAME=1)
+else()
+    add_definitions(-DOPTIMIZE_PUSH_FRAME=0)
 endif()
 
 if (EE_DEBUG_CODE)

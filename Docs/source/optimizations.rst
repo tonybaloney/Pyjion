@@ -10,6 +10,7 @@ Built-in Optimizations
     opt/opt-2
     opt/opt-3
     opt/opt-4
+    opt/opt-5
 
 Overview
 --------
@@ -105,6 +106,10 @@ Optimization Matrix
      - On
      - On
    * - :ref:`OPT-4`
+     - Off
+     - On
+     - On
+   * - :ref:`OPT-5`
      - Off
      - On
      - On

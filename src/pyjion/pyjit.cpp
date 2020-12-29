@@ -64,6 +64,7 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(inlineDecref, level, 1);
     SET_OPT(internRichCompare, level, 1);
     SET_OPT(nativeLocals, level, 1);
+    SET_OPT(inlineFramePushPop, level, 1);
 }
 
 PyjionJittedCode::~PyjionJittedCode() {
