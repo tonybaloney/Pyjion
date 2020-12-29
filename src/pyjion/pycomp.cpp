@@ -128,7 +128,7 @@ void PythonCompiler::emit_lasti_update(int index) {
 
 void PythonCompiler::load_local(int oparg) {
     if (OPT_ENABLED(nativeLocals)) {
-        
+        m_il.ld_loc(m_frameLocals[oparg]);
     } else {
         load_frame();
         m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + oparg * sizeof(size_t));
@@ -250,7 +250,10 @@ CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
 
 void PythonCompiler::emit_store_fast(int local) {
     if (OPT_ENABLED(nativeLocals)){
-
+        // decref old value and store new value.
+        m_il.ld_loc(m_frameLocals[local]);
+        decref();
+        m_il.st_loc(m_frameLocals[local]);
     } else {
         auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
         m_il.st_loc(valueTmp);
@@ -665,7 +668,10 @@ void PythonCompiler::emit_load_global(void* name) {
 
 void PythonCompiler::emit_delete_fast(int index) {
     if (OPT_ENABLED(nativeLocals)) {
-
+        m_il.ld_loc(m_frameLocals[index]);
+        decref();
+        m_il.load_null();
+        m_il.st_loc(m_frameLocals[index]);
     } else {
         load_local(index);
         load_frame();
