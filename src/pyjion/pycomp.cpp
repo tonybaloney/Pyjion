@@ -245,8 +245,6 @@ Local PythonCompiler::emit_allocate_stack_array(size_t bytes) {
  */
 
 void PythonCompiler::emit_unbound_local_check() {
-    // TODO: Remove the unbound_local check for definitely assigned values
-    // @body: (e.g. params w/ no dels, locals that are provably assigned)
     m_il.emit_call(METHOD_UNBOUND_LOCAL);
 }
 
