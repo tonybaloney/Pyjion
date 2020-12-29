@@ -46,9 +46,10 @@ private:
         PyDict_SetItemString(globals.get(), "__builtins__", builtins);
         PyDict_SetItemString(globals.get(), "sys", sysModule.get());
 
+        auto tstate = PyThreadState_Get();
         // Don't DECREF as frames are recycled.
-        auto frame = PyFrame_New(PyThreadState_Get(), m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
-        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame);
+        auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
+        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate);
         //Py_DECREF(frame);
         size_t collected = PyGC_Collect();
         printf("Collected %zu values\n", collected);

@@ -225,6 +225,7 @@ class PythonCompiler : public IPythonCompiler {
     ILGenerator m_il;
     UserModule* m_module;
     Local m_lasti;
+    unordered_map<int, Local> m_frameLocals;
 
 public:
     explicit PythonCompiler(PyCodeObject *code);
@@ -437,6 +438,8 @@ public:
     void emit_profile_frame_entry() override;
     void emit_profile_frame_exit() override;
 
+    void emit_load_frame_locals() override;
+
     JittedCode* emit_compile() override;
     void lift_n_to_top(int pos) override;
     void lift_n_to_second(int pos) override;
@@ -444,7 +447,7 @@ public:
     void sink_top_to_n(int pos) override;
 private:
     void load_frame();
-
+    void load_tstate();
     void load_local(int oparg);
     void decref();
     CorInfoType to_clr_type(LocalKind kind);

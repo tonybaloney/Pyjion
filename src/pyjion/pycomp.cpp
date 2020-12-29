@@ -74,13 +74,28 @@ ICorJitCompiler* g_jit;
 PythonCompiler::PythonCompiler(PyCodeObject *code) :
     m_il(m_module = new UserModule(g_module),
         CORINFO_TYPE_NATIVEINT,
-        std::vector < Parameter > {Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT) }) {
+        std::vector < Parameter > {Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT) }) {
     this->m_code = code;
     m_lasti = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
 }
 
 void PythonCompiler::load_frame() {
     m_il.ld_arg(1);
+}
+
+void PythonCompiler::load_tstate() {
+    m_il.ld_arg(2);
+}
+
+void PythonCompiler::emit_load_frame_locals(){
+    for (int i = 0 ; i < this->m_code->co_nlocals; i++){
+        m_frameLocals[i] = m_il.define_local_no_cache(Parameter(CORINFO_TYPE_NATIVEINT));
+        load_frame();
+        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + i * sizeof(size_t));
+        m_il.add();
+        m_il.ld_ind_i();
+        m_il.st_loc(m_frameLocals[i]);
+    }
 }
 
 void PythonCompiler::emit_push_frame() {
@@ -112,10 +127,14 @@ void PythonCompiler::emit_lasti_update(int index) {
 }
 
 void PythonCompiler::load_local(int oparg) {
-    load_frame();
-    m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + oparg * sizeof(size_t));
-    m_il.add();
-    m_il.ld_ind_i();
+    if (OPT_ENABLED(nativeLocals)) {
+        m_il.ld_loc(m_frameLocals[oparg]);
+    } else {
+        load_frame();
+        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + oparg * sizeof(size_t));
+        m_il.add();
+        m_il.ld_ind_i();
+    }
 }
 
 void PythonCompiler::emit_breakpoint(){
@@ -230,28 +249,33 @@ CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
 
 
 void PythonCompiler::emit_store_fast(int local) {
-    // TODO: Move locals out of the Python frame object and into real locals
+    if (OPT_ENABLED(nativeLocals)){
+        // decref old value and store new value.
+        m_il.ld_loc(m_frameLocals[local]);
+        decref();
+        m_il.st_loc(m_frameLocals[local]);
+    } else {
+        auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+        m_il.st_loc(valueTmp);
 
-    auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
-    m_il.st_loc(valueTmp);
+        // load the value onto the IL stack, we'll decref it after we replace the
+        // value in the frame object so that we never have a freed object in the
+        // frame object.
+        load_local(local);
 
-    // load the value onto the IL stack, we'll decref it after we replace the
-    // value in the frame object so that we never have a freed object in the
-    // frame object.
-    load_local(local);
+        load_frame();
+        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + local * sizeof(size_t));
+        m_il.add();
 
-    load_frame();
-    m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + local * sizeof(size_t));
-    m_il.add();
+        m_il.ld_loc(valueTmp);
 
-    m_il.ld_loc(valueTmp);
+        m_il.st_ind_i();
 
-    m_il.st_ind_i();
+        m_il.free_local(valueTmp);
 
-    m_il.free_local(valueTmp);
-
-    // now dec ref the old value potentially freeing it.
-    decref();
+        // now dec ref the old value potentially freeing it.
+        decref();
+    }
 }
 
 void PythonCompiler::emit_rot_two(LocalKind kind) {
@@ -643,13 +667,20 @@ void PythonCompiler::emit_load_global(void* name) {
 }
 
 void PythonCompiler::emit_delete_fast(int index) {
-    load_local(index);
-    load_frame();
-    m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + index * sizeof(size_t));
-    m_il.add();
-    m_il.load_null();
-    m_il.st_ind_i();
-    decref();
+    if (OPT_ENABLED(nativeLocals)) {
+        m_il.ld_loc(m_frameLocals[index]);
+        decref();
+        m_il.load_null();
+        m_il.st_loc(m_frameLocals[index]);
+    } else {
+        load_local(index);
+        load_frame();
+        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + index * sizeof(size_t));
+        m_il.add();
+        m_il.load_null();
+        m_il.st_ind_i();
+        decref();
+    }
 }
 
 void PythonCompiler::emit_new_tuple(size_t size) {

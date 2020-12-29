@@ -88,7 +88,6 @@ public:
         m_retType = returnType;
         m_params = params;
         m_localCount = 0;
-        m_stackSize =  2 + params.size() ; // starts with frame on stack
     }
 
     Local define_local(Parameter param) {

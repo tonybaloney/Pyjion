@@ -1480,6 +1480,9 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_comp->emit_lasti_init();
     m_comp->emit_push_frame();
 
+    if (OPT_ENABLED(nativeLocals))
+        m_comp->emit_load_frame_locals();
+
     auto rootHandlerLabel = m_comp->emit_define_label();
 
     mExcVarsOnStack = m_comp->emit_define_local(LK_Int);
@@ -2414,8 +2417,7 @@ void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound) {
 
         m_comp->emit_dup();
         m_comp->emit_store_local(mErrorCheckLocal);
-        m_comp->emit_null();
-        m_comp->emit_branch(BranchNotEqual, success);
+        m_comp->emit_branch(BranchTrue, success);
 
         m_comp->emit_ptr(PyTuple_GetItem(mCode->co_varnames, local));
 
