@@ -1668,6 +1668,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 loadFastWorker(oparg, true);
                 m_comp->emit_pop_top();
                 m_comp->emit_delete_fast(oparg);
+                m_assignmentState[oparg] = false;
                 break;
             case STORE_FAST:
                 storeFast(oparg, opcodeIndex); break;
@@ -2290,6 +2291,7 @@ bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
 void AbstractInterpreter::storeFast(int local, int opcodeIndex) {
     m_comp->emit_store_fast(local);
     decStack();
+    m_assignmentState[local] = true;
 }
 
 void AbstractInterpreter::loadConst(int constIndex, int opcodeIndex) {
