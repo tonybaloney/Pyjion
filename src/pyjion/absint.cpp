@@ -2267,9 +2267,9 @@ JittedCode* AbstractInterpreter::compile() {
 }
 
 bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
-    // TODO : Check list of opcodes that can skip lasti_update is up to date with ceval.
     switch (GET_OPCODE(opcodeIndex)) {
         case DUP_TOP:
+        case DUP_TOP_TWO:
         case NOP:
         case ROT_TWO:
         case ROT_THREE:
@@ -2277,8 +2277,15 @@ bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
         case POP_BLOCK:
         case POP_JUMP_IF_FALSE:
         case POP_JUMP_IF_TRUE:
+        case JUMP_IF_FALSE_OR_POP:
+        case JUMP_IF_TRUE_OR_POP:
+        case CONTAINS_OP:
+        case IS_OP:
+        case LOAD_ASSERTION_ERROR:
+        case END_ASYNC_FOR:
         case POP_TOP:
-        case DUP_TOP_TWO:
+        case STORE_FAST:
+        case LOAD_FAST:
         case LOAD_CONST:
         case JUMP_FORWARD:
         case JUMP_ABSOLUTE:
