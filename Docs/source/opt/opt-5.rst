@@ -1,4 +1,4 @@
-.. _OPT-4:
+.. _OPT-5:
 
 OPT-5 Inline frame push/pop instructions
 ========================================

@@ -51,11 +51,15 @@ Solution
 Instead, this optimization will allocate a native ECMA CIL local and use the ``ldloc.x`` opcode for ``LOAD_FAST`` and store a hashmap of which local indexes
 relate to which frame locals.
 
+.. code-block::
+
     ld.i
     add
     ldind.i
 
 Becomes
+
+.. code-block::
 
     ldloc.s
 

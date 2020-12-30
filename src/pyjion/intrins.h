@@ -192,8 +192,6 @@ int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index)
 int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject *objIndex, int index);
 
-int PyJit_StoreSubscrTuple(PyObject* value, PyObject *container, PyObject *index);
-
 int PyJit_DeleteSubscr(PyObject *container, PyObject *index);
 
 PyObject* PyJit_CallN(PyObject *target, PyObject* args);

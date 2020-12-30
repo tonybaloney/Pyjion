@@ -220,7 +220,6 @@
 #define METHOD_STORE_SUBSCR_DICT    0x00060002
 #define METHOD_STORE_SUBSCR_LIST    0x00060003
 #define METHOD_STORE_SUBSCR_LIST_I  0x00060004
-#define METHOD_STORE_SUBSCR_TUPLE   0x00060005
 
 
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();

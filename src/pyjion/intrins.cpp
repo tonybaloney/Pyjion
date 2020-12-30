@@ -1161,7 +1161,6 @@ int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIn
     return res;
 }
 
-
 int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index) {
     if(PyDict_Check(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, index);
@@ -1202,30 +1201,6 @@ int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject * 
         return PyJit_StoreSubscr(value, container, objIndex);
     res = PyList_SetItem(container, index, value);
     Py_DECREF(objIndex);
-    Py_DECREF(value);
-    Py_DECREF(container);
-    return res;
-}
-
-int PyJit_StoreSubscrTuple(PyObject* value, PyObject *container, PyObject *index) {
-    int res ;
-    if(PyTuple_Check(container)) // just incase we got the type wrong.
-        return PyJit_StoreSubscr(value, container, index);
-    if (PyIndex_Check(index)) {
-        Py_ssize_t key_value;
-        key_value = PyNumber_AsSsize_t(index, PyExc_IndexError);
-        if (key_value == -1 && PyErr_Occurred())
-            res = -1;
-        else
-            res = PyTuple_SetItem(container, key_value, value);
-    }
-    else {
-        PyErr_Format(PyExc_TypeError,
-                     "sequence index must be "
-                     "integer, not '%.200s'", index);
-        res = -1;
-    }
-    Py_DECREF(index);
     Py_DECREF(value);
     Py_DECREF(container);
     return res;
