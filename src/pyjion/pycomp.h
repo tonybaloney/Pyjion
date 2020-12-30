@@ -305,7 +305,7 @@ public:
     void emit_build_slice() override;
 
     void emit_store_subscr() override;
-    void emit_store_subscr(AbstractValueWithSources key, AbstractValueWithSources container, AbstractValueWithSources value) override;
+    void emit_store_subscr(AbstractValueWithSources value, AbstractValueWithSources container, AbstractValueWithSources key) override;
     void emit_delete_subscr() override;
 
     void emit_unary_positive() override;
