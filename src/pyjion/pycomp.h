@@ -215,6 +215,9 @@
 #define METHOD_FLOAT_FLOOR_TOKEN    0x00050001
 #define METHOD_FLOAT_MODULUS_TOKEN  0x00050002
 
+#define METHOD_STORE_SUBSCR_DICT    0x00060001
+
+
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); 
 #define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
 
@@ -298,6 +301,7 @@ public:
     void emit_build_slice() override;
 
     void emit_store_subscr() override;
+    void emit_store_subscr(AbstractValueWithSources key, AbstractValueWithSources container, AbstractValueWithSources value) override;
     void emit_delete_subscr() override;
 
     void emit_unary_positive() override;

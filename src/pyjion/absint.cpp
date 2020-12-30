@@ -1735,8 +1735,12 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 incStack();
                 break;
             case STORE_SUBSCR:
+                if (OPT_ENABLED(knownStoreSubscr) && stackInfo.size() >= 3){
+                    m_comp->emit_store_subscr(stackInfo[0], stackInfo[1], stackInfo[2]);
+                } else {
+                    m_comp->emit_store_subscr();
+                }
                 decStack(3);
-                m_comp->emit_store_subscr();
                 intErrorCheck("store subscr failed");
                 break;
             case DELETE_SUBSCR:

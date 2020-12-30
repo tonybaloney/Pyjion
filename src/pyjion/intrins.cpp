@@ -1136,6 +1136,14 @@ int PyJit_StoreSubscr(PyObject* value, PyObject *container, PyObject *index) {
     return res;
 }
 
+int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index) {
+    auto res = PyDict_SetItem(container, index, value);
+    Py_DECREF(index);
+    Py_DECREF(value);
+    Py_DECREF(container);
+    return res;
+}
+
 int PyJit_DeleteSubscr(PyObject *container, PyObject *index) {
     auto res = PyObject_DelItem(container, index);
     Py_DECREF(index);
