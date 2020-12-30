@@ -116,7 +116,7 @@ def main(n=5000000, ref='sun'):
 
 
 if __name__ == "__main__":
+    print("Took {0} without Pyjion".format(timeit.timeit(main, number=1)))
     pyjion.enable()
     print("Took {0} with Pyjion".format(timeit.timeit(main, number=1)))
     pyjion.disable()
-    print("Took {0} without Pyjion".format(timeit.timeit(main, number=1)))
