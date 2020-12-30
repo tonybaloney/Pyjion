@@ -926,10 +926,10 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
         return &None;
     }
     else if (PyLong_CheckExact(obj)) {
-        int o;
+        int value;
         if (Py_SIZE(obj) < 4)
-            if (IS_SMALL_INT(PyLong_AsLongLongAndOverflow(obj, &o)))
-                return &InternInteger;
+            if (IS_SMALL_INT(PyLong_AsLongLongAndOverflow(obj, &value)))
+                return new InternIntegerValue(value);
         return &Integer;
     }
     else if (PyUnicode_Check(obj)) {
@@ -1094,7 +1094,7 @@ const char* AbstractInterpreter::opcodeName(int opcode) {
 }
 
 
-// Returns information about the specified local variable at a specific 
+// Returns information about the specified local variable at a specific
 // byte code index.
 AbstractLocalInfo AbstractInterpreter::getLocalInfo(size_t byteCodeIndex, size_t localIndex) {
     return mStartStates[byteCodeIndex].getLocal(localIndex);
@@ -1200,7 +1200,7 @@ void AbstractInterpreter::branchRaise(const char *reason) {
 
     // number of stack entries we need to clear...
     int count = m_stack.size() - entryStack.size();
-    
+
     auto cur = m_stack.rbegin();
     for (; cur != m_stack.rend() && count >= 0; cur++) {
         if (*cur == STACK_KIND_VALUE) {
@@ -1320,7 +1320,7 @@ void AbstractInterpreter::buildSet(size_t argCnt) {
         m_comp->emit_mark_label(err);
         m_comp->emit_load_local(setTmp);
         m_comp->emit_pop_top();
-        
+
         // In the event of an error we need to free any
         // args that weren't processed.  We'll always process
         // the 1st value and dec ref it in the set add helper.
@@ -1558,12 +1558,12 @@ JittedCode* AbstractInterpreter::compileWorker() {
 
         switch (byte) {
             case NOP: break;
-            case ROT_TWO: 
+            case ROT_TWO:
             {
                 m_comp->emit_rot_two();
                 break;
             }
-            case ROT_THREE: 
+            case ROT_THREE:
             {
                 m_comp->emit_rot_three();
                 break;
@@ -1810,7 +1810,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 curByte += sizeof(_Py_CODEUNIT);
                 oparg = (oparg << 8) | GET_OPARG(curByte);
                 byte = GET_OPCODE(curByte);
-                
+
                 goto processOpCode;
             }
             case MAKE_FUNCTION:

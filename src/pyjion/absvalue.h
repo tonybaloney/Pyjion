@@ -291,8 +291,20 @@ class IntegerValue : public AbstractValue {
 };
 
 class InternIntegerValue : public IntegerValue {
+    int constValue = 0 ;
+
     bool isIntern() override {
         return true;
+    }
+
+public:
+    InternIntegerValue() = default ;
+    explicit InternIntegerValue(int value) {
+        constValue = value;
+    }
+
+    int absoluteValue() const {
+        return constValue;
     }
 };
 

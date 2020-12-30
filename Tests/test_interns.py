@@ -80,5 +80,50 @@ class InternIntegerTestCase(unittest.TestCase):
         self.assertNotOptimized(test_f)
 
 
+class InternIntegerSubscrTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        pyjion.enable()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+
+    def assertNotOptimized(self, func) -> None:
+        self.assertFalse(func())
+        self.assertTrue(pyjion.info(func)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(func)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE", f.getvalue())
+
+    def assertOptimized(self, func) -> None:
+        self.assertFalse(func())
+        self.assertTrue(pyjion.info(func)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(func)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertNotIn("MethodTokens.METHOD_RICHCMP_TOKEN", f.getvalue())
+
+    def test_const_compare(self):
+        def test_f():
+            a = 1
+            b = 2
+            return a == b
+        self.assertOptimized(test_f)
+
+
+    def test_const_compare_big_left(self):
+        def test_f():
+            a = 1000
+            b = 2
+            return a == b
+
+        self.assertOptimized(test_f)
+
+
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -215,12 +215,15 @@
 #define METHOD_FLOAT_FLOOR_TOKEN    0x00050001
 #define METHOD_FLOAT_MODULUS_TOKEN  0x00050002
 
+#define METHOD_STORE_SUBSCR_OBJ     0x00060000
+#define METHOD_STORE_SUBSCR_OBJ_I   0x00060001
 #define METHOD_STORE_SUBSCR_DICT    0x00060001
 #define METHOD_STORE_SUBSCR_LIST    0x00060002
-#define METHOD_STORE_SUBSCR_TUPLE   0x00060003
+#define METHOD_STORE_SUBSCR_LIST_I  0x00060003
+#define METHOD_STORE_SUBSCR_TUPLE   0x00060004
 
 
-#define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); 
+#define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
 #define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
 
 extern ICorJitCompiler* g_jit;
