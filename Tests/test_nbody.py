@@ -6,7 +6,6 @@
 # modified by Maciej Fijalkowski
 # 2to3
 
-import sys
 import pyjion
 import timeit
 

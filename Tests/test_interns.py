@@ -88,41 +88,48 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
     def tearDown(self) -> None:
         pyjion.disable()
 
-    def assertNotOptimized(self, func) -> None:
-        self.assertFalse(func())
-        self.assertTrue(pyjion.info(func)['compiled'])
+    def test_dict_key(self):
+        def test_f():
+            a = {0: 'a'}
+            a[0] = 'b'
+            return a[0] == 'b'
+
+        self.assertTrue(test_f())
+        self.assertTrue(pyjion.info(test_f)['compiled'])
         f = io.StringIO()
         with contextlib.redirect_stdout(f):
-            pyjion.dis.dis(func)
+            pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_STORE", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_DICT", f.getvalue())
 
-    def assertOptimized(self, func) -> None:
-        self.assertFalse(func())
-        self.assertTrue(pyjion.info(func)['compiled'])
+    def test_list_key(self):
+        def test_f():
+            a = ['a']
+            a[0] = 'b'
+            return a[0] == 'b'
+
+        self.assertTrue(test_f())
+        self.assertTrue(pyjion.info(test_f)['compiled'])
         f = io.StringIO()
         with contextlib.redirect_stdout(f):
-            pyjion.dis.dis(func)
+            pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertNotIn("MethodTokens.METHOD_RICHCMP_TOKEN", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
 
-    def test_const_compare(self):
-        def test_f():
-            a = 1
-            b = 2
-            return a == b
-        self.assertOptimized(test_f)
+    def test_list_key_non_const(self):
+        def test_f(b):
+            a = ['a']
+            a[b] = 'b'
+            return a[b] == 'b'
 
-
-    def test_const_compare_big_left(self):
-        def test_f():
-            a = 1000
-            b = 2
-            return a == b
-
-        self.assertOptimized(test_f)
-
-
+        self.assertTrue(test_f(0))
+        self.assertTrue(pyjion.info(test_f)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(test_f)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertNotIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST", f.getvalue())
 
 
 if __name__ == "__main__":

@@ -67,10 +67,6 @@ jobs:
         shell: bash
         run: python -m unittest discover Tests/
 
-      - name: Run n-body test
-        shell: bash
-        run: python Tests/test_nbody.py
-
       - name: Run smoke tests
         shell: bash
         run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -j4
@@ -326,10 +322,6 @@ jobs:
         run: |
           pip install ipython
           python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
-
-      - name: Run n-body test
-        shell: bash
-        run: python Tests/test_nbody.py
 
       - name: Run Python tests
         shell: bash
