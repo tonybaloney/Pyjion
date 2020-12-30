@@ -186,7 +186,7 @@ if (WIN32)
         TARGET _pyjion POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         ${DOTNETPATH}/clrjit.dll
-        ${CMAKE_CURRENT_BINARY_DIR}/clrjit.dll
+        ${CMAKE_CURRENT_BINARY_DIR}/
     )
 endif(WIN32)
 
