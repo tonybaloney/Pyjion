@@ -187,6 +187,8 @@ PyObject* PyJit_DictMerge(PyObject* dict, PyObject* other);
 
 int PyJit_StoreSubscr(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index);
+int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index);
+int PyJit_StoreSubscrTuple(PyObject* value, PyObject *container, PyObject *index);
 
 int PyJit_DeleteSubscr(PyObject *container, PyObject *index);
 

@@ -216,6 +216,8 @@
 #define METHOD_FLOAT_MODULUS_TOKEN  0x00050002
 
 #define METHOD_STORE_SUBSCR_DICT    0x00060001
+#define METHOD_STORE_SUBSCR_LIST    0x00060002
+#define METHOD_STORE_SUBSCR_TUPLE   0x00060003
 
 
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); 
