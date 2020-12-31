@@ -79,6 +79,7 @@ PyCodeObject* CompileCode(const char* code, vector<const char*> locals, vector<c
 }
 
 void VerifyOldTest(AITestCase testCase) {
+    PyErr_Clear();
     auto codeObj = CompileCode(testCase.m_code);
 
     AbstractInterpreter interpreter(codeObj, nullptr);
