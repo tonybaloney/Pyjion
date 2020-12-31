@@ -55,6 +55,7 @@ PyObject* PyJit_Add(PyObject *left, PyObject *right);
 PyObject* PyJit_Subscr(PyObject *left, PyObject *right);
 PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, int index);
 PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key);
+PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash);
 PyObject* PyJit_SubscrList(PyObject *o, PyObject *key);
 PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, int index);
 PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key);
@@ -194,8 +195,8 @@ PyObject* PyJit_DictMerge(PyObject* dict, PyObject* other);
 
 int PyJit_StoreSubscr(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIndex, int index);
-
 int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index);
+int PyJit_StoreSubscrDictHash(PyObject* value, PyObject *container, PyObject *index, Py_hash_t hash);
 int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject *objIndex, int index);
 

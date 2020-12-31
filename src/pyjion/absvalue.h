@@ -88,6 +88,8 @@ public:
 
     bool needsBoxing() const;
 
+    bool hasConstValue() { return false; }
+
     virtual const char* describe() {
         return "unknown source";
     }
@@ -114,7 +116,18 @@ struct AbstractSources {
 };
 
 class ConstSource : public AbstractSource {
+    Py_hash_t hash;
 public:
+    explicit ConstSource(Py_hash_t hash) {
+        this->hash = hash;
+    }
+
+    bool hasConstValue() { return true; }
+
+    Py_hash_t getHash (){
+        return this->hash;
+    }
+
     const char* describe() override {
         if (needsBoxing()) {
             return "Source: Const (escapes)";

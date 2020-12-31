@@ -316,7 +316,7 @@ private:
     }
 
     AbstractSource* addLocalSource(size_t opcodeIndex, size_t localIndex);
-    AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex);
+    AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
 
     void makeFunction(int oparg);
     bool canSkipLastiUpdate(int opcodeIndex);

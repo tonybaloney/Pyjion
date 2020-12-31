@@ -750,15 +750,24 @@ void PythonCompiler::emit_store_subscr() {
 
 void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractValueWithSources container, AbstractValueWithSources key) {
     bool constIndex = false;
+    bool indexIsIntern = false;
     if (key.Value->isIntern()){
+        indexIsIntern = true;
+    }
+    if (key.Sources->hasConstValue()){
         constIndex = true;
     }
     switch(container.Value->kind()){
         case AVK_Dict:
-            m_il.emit_call(METHOD_STORE_SUBSCR_DICT);
+            if (constIndex){
+                m_il.ld_i((void*)dynamic_cast<ConstSource*>(key.Sources)->getHash());
+                m_il.emit_call(METHOD_STORE_SUBSCR_DICT_HASH);
+            } else {
+                m_il.emit_call(METHOD_STORE_SUBSCR_DICT);
+            }
             break;
         case AVK_List:
-            if (constIndex){
+            if (indexIsIntern){
                 m_il.ld_i4(dynamic_cast<InternIntegerValue*>(key.Value)->absoluteValue());
                 m_il.emit_call(METHOD_STORE_SUBSCR_LIST_I);
             } else {
@@ -766,7 +775,7 @@ void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractV
             }
             break;
         default:
-            if (constIndex){
+            if (indexIsIntern){
                 m_il.ld_i4(dynamic_cast<InternIntegerValue*>(key.Value)->absoluteValue());
                 m_il.emit_call(METHOD_STORE_SUBSCR_OBJ_I);
             } else {
@@ -783,15 +792,24 @@ void PythonCompiler::emit_delete_subscr() {
 
 void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index) {
     bool constIndex = false;
+    bool indexIsIntern = false;
     if (index.Value->isIntern()){
+        indexIsIntern = true;
+    }
+    if (index.Sources->hasConstValue()){
         constIndex = true;
     }
     switch(container.Value->kind()){
         case AVK_Dict:
-            m_il.emit_call(METHOD_SUBSCR_DICT);
+            if (constIndex){
+                m_il.ld_i((void*)dynamic_cast<ConstSource*>(index.Sources)->getHash());
+                m_il.emit_call(METHOD_SUBSCR_DICT_HASH);
+            } else {
+                m_il.emit_call(METHOD_SUBSCR_DICT);
+            }
             break;
         case AVK_List:
-            if (constIndex){
+            if (indexIsIntern){
                 m_il.ld_i4(dynamic_cast<InternIntegerValue*>(index.Value)->absoluteValue());
                 m_il.emit_call(METHOD_SUBSCR_LIST_I);
             } else {
@@ -799,7 +817,7 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             }
             break;
         case AVK_Tuple:
-            if (constIndex){
+            if (indexIsIntern){
                 m_il.ld_i4(dynamic_cast<InternIntegerValue*>(index.Value)->absoluteValue());
                 m_il.emit_call(METHOD_SUBSCR_TUPLE_I);
             } else {
@@ -807,7 +825,7 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             }
             break;
         default:
-            if (constIndex){
+            if (indexIsIntern){
                 m_il.ld_i4(dynamic_cast<InternIntegerValue*>(index.Value)->absoluteValue());
                 m_il.emit_call(METHOD_SUBSCR_OBJ_I);
             } else {
@@ -1493,6 +1511,8 @@ GLOBAL_METHOD(METHOD_ADD_TOKEN, &PyJit_Add, CORINFO_TYPE_NATIVEINT, Parameter(CO
 GLOBAL_METHOD(METHOD_SUBSCR_OBJ, &PyJit_Subscr, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_OBJ_I, &PyJit_SubscrIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_SUBSCR_DICT, &PyJit_SubscrDict, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_DICT_HASH, &PyJit_SubscrDictHash, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+
 GLOBAL_METHOD(METHOD_SUBSCR_LIST, &PyJit_SubscrList, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST_I, &PyJit_SubscrListIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_SUBSCR_TUPLE, &PyJit_SubscrTuple, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
@@ -1522,6 +1542,8 @@ GLOBAL_METHOD(METHOD_DICTUPDATE_TOKEN, &PyJit_DictUpdate, CORINFO_TYPE_NATIVEINT
 GLOBAL_METHOD(METHOD_STORE_SUBSCR_OBJ, &PyJit_StoreSubscr, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_STORE_SUBSCR_OBJ_I, &PyJit_StoreSubscrIndex, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_STORE_SUBSCR_DICT, &PyJit_StoreSubscrDict, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_STORE_SUBSCR_DICT_HASH, &PyJit_StoreSubscrDictHash, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+
 GLOBAL_METHOD(METHOD_STORE_SUBSCR_LIST, &PyJit_StoreSubscrList, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_STORE_SUBSCR_LIST_I, &PyJit_StoreSubscrListIndex, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
 

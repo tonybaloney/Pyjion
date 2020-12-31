@@ -149,6 +149,16 @@ PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key){
     return res;
 }
 
+PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash){
+    if (!PyDict_Check(o))
+        return PyJit_Subscr(o, key);
+    PyObject* value = _PyDict_GetItem_KnownHash(o, key, hash);
+    Py_DECREF(o);
+    Py_DECREF(key);
+    return value;
+}
+
+
 PyObject* PyJit_SubscrList(PyObject *o, PyObject *key){
     if (!PyList_Check(o))
         return PyJit_Subscr(o, key);
@@ -1267,6 +1277,16 @@ int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index)
     if(PyDict_Check(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, index);
     auto res = PyDict_SetItem(container, index, value);
+    Py_DECREF(index);
+    Py_DECREF(value);
+    Py_DECREF(container);
+    return res;
+}
+
+int PyJit_StoreSubscrDictHash(PyObject* value, PyObject *container, PyObject *index, Py_hash_t hash) {
+    if(PyDict_Check(container)) // just incase we got the type wrong.
+        return PyJit_StoreSubscr(value, container, index);
+    auto res = _PyDict_SetItem_KnownHash(container, index, value, hash);
     Py_DECREF(index);
     Py_DECREF(value);
     Py_DECREF(container);
