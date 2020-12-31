@@ -169,19 +169,14 @@ PyObject* PyJit_SubscrList(PyObject *o, PyObject *key){
         key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
         if (key_value == -1 && PyErr_Occurred()) {
             res = nullptr;
-            goto error;
         } else
             res = PyList_GetItem(o, key_value);
     }
     else {
-        PyErr_Format(PyExc_TypeError,
-                     "sequence index must be "
-                     "integer, not '%.200s'", key);
-        res = nullptr;
+        return PyJit_Subscr(o, key);
     }
-    error:
-    Py_DECREF(key);
     Py_DECREF(o);
+    Py_DECREF(key);
     return res;
 }
 
@@ -209,10 +204,7 @@ PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
             res = PyTuple_GetItem(o, key_value);
     }
     else {
-        PyErr_Format(PyExc_TypeError,
-                     "sequence index must be "
-                     "integer, not '%.200s'", key);
-        res = nullptr;
+        return PyJit_Subscr(o, key);
     }
     error:
     Py_DECREF(key);
