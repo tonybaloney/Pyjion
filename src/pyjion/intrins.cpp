@@ -144,6 +144,7 @@ PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key){
         return PyJit_Subscr(o, key);
 
     PyObject* res = PyDict_GetItem(o, key);
+    Py_INCREF(res);
     Py_DECREF(o);
     Py_DECREF(key);
     return res;
@@ -153,6 +154,7 @@ PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash){
     if (!PyDict_Check(o))
         return PyJit_Subscr(o, key);
     PyObject* value = _PyDict_GetItem_KnownHash(o, key, hash);
+    Py_INCREF(value);
     Py_DECREF(o);
     Py_DECREF(key);
     return value;
@@ -169,8 +171,10 @@ PyObject* PyJit_SubscrList(PyObject *o, PyObject *key){
         key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
         if (key_value == -1 && PyErr_Occurred()) {
             res = nullptr;
-        } else
+        } else {
             res = PyList_GetItem(o, key_value);
+            Py_INCREF(res);
+        }
     }
     else {
         return PyJit_Subscr(o, key);
@@ -184,6 +188,7 @@ PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, int index){
     if (!PyList_Check(o))
         return PyJit_Subscr(o, key);
     PyObject* res = PyList_GetItem(o, index);
+    Py_INCREF(res);
     Py_DECREF(o);
     Py_DECREF(key);
     return res;
@@ -200,8 +205,10 @@ PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
         if (key_value == -1 && PyErr_Occurred()) {
             res = nullptr;
             goto error;
-        } else
+        } else {
             res = PyTuple_GetItem(o, key_value);
+            Py_INCREF(res);
+        }
     }
     else {
         return PyJit_Subscr(o, key);
@@ -216,6 +223,7 @@ PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, int index){
     if (!PyTuple_Check(o))
         return PyJit_Subscr(o, key);
     PyObject* res = PyTuple_GetItem(o, index);
+    Py_INCREF(res);
     Py_DECREF(o);
     Py_DECREF(key);
     return res;
