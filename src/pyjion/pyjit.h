@@ -72,7 +72,7 @@ typedef struct PyjionSettings {
 	bool opt_nativeLocals = OPTIMIZE_NATIVE_LOCALS; // OPT-4
 	bool opt_inlineFramePushPop = OPTIMIZE_PUSH_FRAME; // OPT-5
     bool opt_knownStoreSubscr = OPTIMIZE_KNOWN_STORE_SUBSCR; // OPT-6
-
+    bool opt_knownBinarySubscr = OPTIMIZE_KNOWN_BINARY_SUBSCR; // OPT-7
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;

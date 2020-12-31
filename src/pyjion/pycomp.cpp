@@ -781,6 +781,41 @@ void PythonCompiler::emit_delete_subscr() {
     m_il.emit_call(METHOD_DELETESUBSCR_TOKEN);
 }
 
+void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index) {
+    bool constIndex = false;
+    if (index.Value->isIntern()){
+        constIndex = true;
+    }
+    switch(container.Value->kind()){
+        case AVK_Dict:
+            m_il.emit_call(METHOD_SUBSCR_DICT);
+            break;
+        case AVK_List:
+            if (constIndex){
+                m_il.ld_i4(dynamic_cast<InternIntegerValue*>(index.Value)->absoluteValue());
+                m_il.emit_call(METHOD_SUBSCR_LIST_I);
+            } else {
+                m_il.emit_call(METHOD_SUBSCR_LIST);
+            }
+            break;
+        case AVK_Tuple:
+            if (constIndex){
+                m_il.ld_i4(dynamic_cast<InternIntegerValue*>(index.Value)->absoluteValue());
+                m_il.emit_call(METHOD_SUBSCR_TUPLE_I);
+            } else {
+                m_il.emit_call(METHOD_SUBSCR_TUPLE);
+            }
+            break;
+        default:
+            if (constIndex){
+                m_il.ld_i4(dynamic_cast<InternIntegerValue*>(index.Value)->absoluteValue());
+                m_il.emit_call(METHOD_SUBSCR_OBJ_I);
+            } else {
+                m_il.emit_call(METHOD_SUBSCR_OBJ);
+            }
+    }
+}
+
 void PythonCompiler::emit_build_slice() {
     m_il.emit_call(METHOD_BUILD_SLICE);
 }
@@ -1234,10 +1269,23 @@ void PythonCompiler::emit_binary_float(int opcode) {
     }
 }
 
+void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
+    switch (opcode) {
+        case BINARY_SUBSCR:
+            if (OPT_ENABLED(knownBinarySubscr)){
+                emit_binary_subscr(left, right);
+            } else {
+                m_il.emit_call(METHOD_SUBSCR_OBJ); break;
+            }
+            return;
+    }
+    emit_binary_object(opcode);
+}
+
 void PythonCompiler::emit_binary_object(int opcode) {
     switch (opcode) {
         case BINARY_SUBSCR:
-            m_il.emit_call(METHOD_SUBSCR_TOKEN); break;
+            m_il.emit_call(METHOD_SUBSCR_OBJ); break;
         case BINARY_ADD:
             m_il.emit_call(METHOD_ADD_TOKEN); break;
         case BINARY_TRUE_DIVIDE:
@@ -1441,7 +1489,15 @@ public:
     GlobalMethod g ## token(token, Method(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr));
 
 GLOBAL_METHOD(METHOD_ADD_TOKEN, &PyJit_Add, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
-GLOBAL_METHOD(METHOD_SUBSCR_TOKEN, &PyJit_Subscr, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+
+GLOBAL_METHOD(METHOD_SUBSCR_OBJ, &PyJit_Subscr, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_OBJ_I, &PyJit_SubscrIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
+GLOBAL_METHOD(METHOD_SUBSCR_DICT, &PyJit_SubscrDict, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST, &PyJit_SubscrList, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST_I, &PyJit_SubscrListIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
+GLOBAL_METHOD(METHOD_SUBSCR_TUPLE, &PyJit_SubscrTuple, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_TUPLE_I, &PyJit_SubscrTupleIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
+
 
 GLOBAL_METHOD(METHOD_MULTIPLY_TOKEN, &PyJit_Multiply, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DIVIDE_TOKEN, &PyJit_TrueDivide, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));

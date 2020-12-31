@@ -53,6 +53,13 @@ format_exc_unbound(PyCodeObject *co, int oparg);
 PyObject* PyJit_Add(PyObject *left, PyObject *right);
 
 PyObject* PyJit_Subscr(PyObject *left, PyObject *right);
+PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, int index);
+PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key);
+PyObject* PyJit_SubscrList(PyObject *o, PyObject *key);
+PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, int index);
+PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key);
+PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, int index);
+
 
 PyObject* PyJit_RichCompare(PyObject *left, PyObject *right, size_t op);
 

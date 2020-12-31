@@ -221,6 +221,14 @@
 #define METHOD_STORE_SUBSCR_LIST    0x00060003
 #define METHOD_STORE_SUBSCR_LIST_I  0x00060004
 
+#define METHOD_SUBSCR_OBJ     0x00070000
+#define METHOD_SUBSCR_OBJ_I   0x00070001
+#define METHOD_SUBSCR_DICT    0x00070002
+#define METHOD_SUBSCR_LIST    0x00070003
+#define METHOD_SUBSCR_LIST_I  0x00070004
+#define METHOD_SUBSCR_TUPLE   0x00070005
+#define METHOD_SUBSCR_TUPLE_I 0x00070006
+
 
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
 #define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
@@ -378,6 +386,7 @@ public:
 
     void emit_binary_float(int opcode) override;
     void emit_binary_object(int opcode) override;
+    void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     void emit_tagged_int_to_float() override;
 
     void emit_in() override;
@@ -460,6 +469,8 @@ private:
     void decref();
     CorInfoType to_clr_type(LocalKind kind);
     void pop_top() override;
+    void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
+
 };
 
 #endif

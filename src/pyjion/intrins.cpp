@@ -117,6 +117,108 @@ PyObject* PyJit_Subscr(PyObject *left, PyObject *right) {
     return res;
 }
 
+PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, int index)
+{
+    PyMappingMethods *m;
+    PySequenceMethods *ms;
+    PyObject* res;
+
+    if (o == nullptr || key == nullptr) {
+        return nullptr;
+    }
+
+    ms = Py_TYPE(o)->tp_as_sequence;
+    if (ms && ms->sq_item) {
+        res = PySequence_GetItem(o, index);
+        Py_DECREF(o);
+        Py_DECREF(key);
+    } else {
+        res = PyJit_Subscr(o, key);
+    }
+
+    return res;
+}
+
+PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key){
+    if (!PyDict_Check(o))
+        return PyJit_Subscr(o, key);
+
+    PyObject* res = PyDict_GetItem(o, key);
+    Py_DECREF(o);
+    Py_DECREF(key);
+    return res;
+}
+
+PyObject* PyJit_SubscrList(PyObject *o, PyObject *key){
+    if (!PyList_Check(o))
+        return PyJit_Subscr(o, key);
+    PyObject* res;
+
+    if (PyIndex_Check(key)) {
+        Py_ssize_t key_value;
+        key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
+        if (key_value == -1 && PyErr_Occurred()) {
+            res = nullptr;
+            goto error;
+        } else
+            res = PyList_GetItem(o, key_value);
+    }
+    else {
+        PyErr_Format(PyExc_TypeError,
+                     "sequence index must be "
+                     "integer, not '%.200s'", key);
+        res = nullptr;
+    }
+    error:
+    Py_DECREF(key);
+    Py_DECREF(o);
+    return res;
+}
+
+PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, int index){
+    if (!PyList_Check(o))
+        return PyJit_Subscr(o, key);
+    PyObject* res = PyList_GetItem(o, index);
+    Py_DECREF(o);
+    Py_DECREF(key);
+    return res;
+}
+
+PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
+    if (!PyTuple_Check(o))
+        return PyJit_Subscr(o, key);
+    PyObject* res;
+
+    if (PyIndex_Check(key)) {
+        Py_ssize_t key_value;
+        key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
+        if (key_value == -1 && PyErr_Occurred()) {
+            res = nullptr;
+            goto error;
+        } else
+            res = PyTuple_GetItem(o, key_value);
+    }
+    else {
+        PyErr_Format(PyExc_TypeError,
+                     "sequence index must be "
+                     "integer, not '%.200s'", key);
+        res = nullptr;
+    }
+    error:
+    Py_DECREF(key);
+    Py_DECREF(o);
+    return res;
+}
+
+PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, int index){
+    if (!PyTuple_Check(o))
+        return PyJit_Subscr(o, key);
+    PyObject* res = PyTuple_GetItem(o, index);
+    Py_DECREF(o);
+    Py_DECREF(key);
+    return res;
+}
+
 PyObject* PyJit_RichCompare(PyObject *left, PyObject *right, size_t op) {
     auto res = PyObject_RichCompare(left, right, op);
     Py_DECREF(left);

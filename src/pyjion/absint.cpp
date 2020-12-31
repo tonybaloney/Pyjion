@@ -1802,7 +1802,10 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case INPLACE_AND:
             case INPLACE_XOR:
             case INPLACE_OR:
-                m_comp->emit_binary_object(byte);
+                if (stackInfo.size() >= 2)
+                    m_comp->emit_binary_object(byte, stackInfo[0], stackInfo[1]);
+                else
+                    m_comp->emit_binary_object(byte);
                 decStack(2);
                 errorCheck("binary op failed");
                 incStack();
