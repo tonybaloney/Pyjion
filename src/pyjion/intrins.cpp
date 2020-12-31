@@ -1298,10 +1298,7 @@ int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index)
             res = PyList_SetItem(container, key_value, value);
     }
     else {
-        PyErr_Format(PyExc_TypeError,
-                     "sequence index must be "
-                     "integer, not '%.200s'", index);
-        res = -1;
+        return PyJit_StoreSubscr(value, container, index);
     }
     Py_DECREF(index);
     Py_DECREF(value);
