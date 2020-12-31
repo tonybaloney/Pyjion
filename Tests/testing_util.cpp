@@ -79,24 +79,18 @@ PyCodeObject* CompileCode(const char* code, vector<const char*> locals, vector<c
 }
 
 void VerifyOldTest(AITestCase testCase) {
+    PyErr_Clear();
     auto codeObj = CompileCode(testCase.m_code);
 
     AbstractInterpreter interpreter(codeObj, nullptr);
     if (!interpreter.interpret()) {
-        FAIL("Failed to interprete code");
+        FAIL("Failed to interpret code");
     }
 
     testCase.verify(interpreter);
 
     Py_DECREF(codeObj);
 }
-
-
-StackVerifier::StackVerifier(size_t byteCodeIndex, size_t stackIndex, AbstractValueKind kind) {
-    m_byteCodeIndex = byteCodeIndex;
-    m_stackIndex = stackIndex;
-    m_kind = kind;
-};
 
 void StackVerifier::verify(AbstractInterpreter& interpreter) {
     auto info = interpreter.getStackInfo(m_byteCodeIndex);
@@ -126,8 +120,3 @@ ReturnVerifier::ReturnVerifier(AbstractValueKind kind) {
 void ReturnVerifier::verify(AbstractInterpreter& interpreter) {
     CHECK(m_kind == interpreter.getReturnInfo()->kind());
 };
-
-PyObject* Incremented(PyObject*o) {
-    Py_INCREF(o);
-    return o;
-}
