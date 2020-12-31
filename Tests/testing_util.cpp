@@ -83,7 +83,7 @@ void VerifyOldTest(AITestCase testCase) {
 
     AbstractInterpreter interpreter(codeObj, nullptr);
     if (!interpreter.interpret()) {
-        FAIL("Failed to interprete code");
+        FAIL("Failed to interpret code");
     }
 
     testCase.verify(interpreter);

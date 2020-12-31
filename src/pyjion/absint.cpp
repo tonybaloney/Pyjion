@@ -376,11 +376,12 @@ bool AbstractInterpreter::interpret() {
                 case INPLACE_AND:
                 case INPLACE_XOR:
                 case INPLACE_OR: {
-                    auto two = lastState.pop();
-                    auto one = lastState.pop();
-                    lastState.push(&Any);
+                    auto two = lastState.popNoEscape();
+                    auto one = lastState.popNoEscape();
+                    auto out = one.Value->binary(one.Sources, opcode, two);
+                    lastState.push(out);
                 }
-                    break;
+                break;
                 case POP_JUMP_IF_FALSE: {
                     auto value = lastState.popNoEscape();
 
@@ -525,7 +526,7 @@ bool AbstractInterpreter::interpret() {
                     lastState.pop();
                     lastState.push(&Any);
                 }
-                    break;
+                break;
                 case IMPORT_NAME:
                     lastState.pop();
                     lastState.pop();
@@ -619,8 +620,9 @@ bool AbstractInterpreter::interpret() {
                 case UNARY_NEGATIVE:
                 case UNARY_INVERT:
                 case UNARY_NOT: {
-                    lastState.pop();
-                    lastState.push(&Any);
+                    auto in = lastState.popNoEscape();
+                    auto out = in.Value->unary(in.Sources, opcode);
+                    lastState.push(out);
                     break;
                 }
                 case UNPACK_EX:
@@ -676,7 +678,7 @@ bool AbstractInterpreter::interpret() {
                 case GET_ITER:
                     // TODO: Push iterable type on GET_ITER
                     lastState.pop();
-                    lastState.push(&Any);
+                    lastState.push(&Iterable);
                     break;
                 case FOR_ITER: {
                     // For branches out with the value consumed
@@ -718,6 +720,8 @@ bool AbstractInterpreter::interpret() {
                     // pop the value and key being stored off, leave list on stack
                     lastState.pop();
                     lastState.pop();
+                    lastState.pop();
+                    lastState.push(&Dict);
                     break;
                 case FORMAT_VALUE:
                     if ((oparg & FVS_MASK) == FVS_HAVE_SPEC) {

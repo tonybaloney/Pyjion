@@ -41,6 +41,7 @@ NoneValue None;
 FunctionValue Function;
 SliceValue Slice;
 ComplexValue Complex;
+IterableValue Iterable;
 
 AbstractSource::AbstractSource() {
     Sources = shared_ptr<AbstractSources>(new AbstractSources());
@@ -1068,4 +1069,15 @@ AbstractValue* SliceValue::unary(AbstractSource* selfSources, int op) {
 }
 const char* SliceValue::describe() {
     return "slice";
+}
+
+// Iterable methods
+AbstractValueKind IterableValue::kind() {
+    return AVK_Iterable;
+}
+AbstractValue* IterableValue::unary(AbstractSource* selfSources, int op) {
+    return AbstractValue::unary(selfSources, op);
+}
+const char* IterableValue::describe() {
+    return "iterable";
 }

@@ -41,7 +41,7 @@ private:
     std::unique_ptr<AbstractInterpreter> m_absint;
 
 public:
-    InferenceTest(const char* code) {
+    explicit InferenceTest(const char* code) {
         auto pyCode = CompileCode(code);
         m_absint = std::make_unique<AbstractInterpreter>(pyCode, nullptr);
         auto success = m_absint->interpret();
@@ -52,7 +52,7 @@ public:
     }
 
     AbstractValueKind kind(size_t byteCodeIndex, size_t localIndex) {
-        auto local = m_absint->get_local_info(byteCodeIndex, localIndex);
+        auto local = m_absint->getLocalInfo(byteCodeIndex, localIndex);
         return local.ValueInfo.Value->kind();
     }
 };
@@ -4443,7 +4443,7 @@ TEST_CASE("Function unary op type inference", "[function][unary op][inference]")
         REQUIRE(t.kind(2, 0) == AVK_Undefined);   // STORE_FAST 0
 		REQUIRE(t.kind(8, 0) == AVK_Function);   // LOAD_FAST 0
 		REQUIRE(t.kind(12, 1) == AVK_Undefined);  // STORE_FAST 1
-		REQUIRE(t.kind(14, 1) == AVK_Any);       // LOAD_CONST 0
+		REQUIRE(t.kind(14, 1) == AVK_Bool);       // LOAD_CONST 0
     }
 }
 

@@ -52,7 +52,8 @@ enum AbstractValueKind {
     AVK_None,
     AVK_Function,
     AVK_Slice,
-    AVK_Complex
+    AVK_Complex,
+    AVK_Iterable
 };
 
 static bool isKnownType(AbstractValueKind kind) {
@@ -70,6 +71,7 @@ static bool isKnownType(AbstractValueKind kind) {
         case AVK_Function:
         case AVK_Slice:
         case AVK_Complex:
+        case AVK_Iterable:
             return true;
     }
     return false;
@@ -368,6 +370,11 @@ class SliceValue : public AbstractValue {
     const char* describe() override;
 };
 
+class IterableValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
 
 extern UndefinedValue Undefined;
 extern AnyValue Any;
@@ -385,6 +392,7 @@ extern NoneValue None;
 extern FunctionValue Function;
 extern SliceValue Slice;
 extern ComplexValue Complex;
+extern IterableValue Iterable;
 
 #endif
 
