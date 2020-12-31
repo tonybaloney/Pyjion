@@ -201,6 +201,8 @@ public:
 
     // Sets/deletes a subscript value
     virtual void emit_store_subscr() = 0;
+    virtual void emit_store_subscr(AbstractValueWithSources, AbstractValueWithSources, AbstractValueWithSources) = 0;
+
     virtual void emit_delete_subscr() = 0;
     virtual void emit_periodic_work() = 0;
 

@@ -745,8 +745,36 @@ void PythonCompiler::emit_tuple_store(size_t argCnt) {
 
 void PythonCompiler::emit_store_subscr() {
     // stack is value, container, index
-    m_il.emit_call(METHOD_STORESUBSCR_TOKEN);
+    m_il.emit_call(METHOD_STORE_SUBSCR_OBJ);
 }
+
+void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractValueWithSources container, AbstractValueWithSources key) {
+    bool constIndex = false;
+    if (key.Value->isIntern()){
+        constIndex = true;
+    }
+    switch(container.Value->kind()){
+        case AVK_Dict:
+            m_il.emit_call(METHOD_STORE_SUBSCR_DICT);
+            break;
+        case AVK_List:
+            if (constIndex){
+                m_il.ld_i4(dynamic_cast<InternIntegerValue*>(key.Value)->absoluteValue());
+                m_il.emit_call(METHOD_STORE_SUBSCR_LIST_I);
+            } else {
+                m_il.emit_call(METHOD_STORE_SUBSCR_LIST);
+            }
+            break;
+        default:
+            if (constIndex){
+                m_il.ld_i4(dynamic_cast<InternIntegerValue*>(key.Value)->absoluteValue());
+                m_il.emit_call(METHOD_STORE_SUBSCR_OBJ_I);
+            } else {
+                m_il.emit_call(METHOD_STORE_SUBSCR_OBJ);
+            }
+    }
+}
+
 
 void PythonCompiler::emit_delete_subscr() {
     // stack is container, index
@@ -804,7 +832,7 @@ void PythonCompiler::emit_load_build_class() {
 }
 
 void PythonCompiler::emit_unpack_sequence(Local sequence, Local sequenceStorage, Label success, size_t size) {
-    // load the iterable, the count, and our temporary 
+    // load the iterable, the count, and our temporary
     // storage if we need to iterate over the object.
     m_il.ld_loc(sequence);
     m_il.ld_i(size);
@@ -1059,7 +1087,7 @@ void PythonCompiler::emit_set_defaults() {
 	m_il.ld_i(offsetof(PyFunctionObject, func_defaults));
 	m_il.add();
 	emit_load_and_free_local(tmp);
-	m_il.st_ind_i(); 
+	m_il.st_ind_i();
 }
 
 void PythonCompiler::emit_load_deref(int index) {
@@ -1434,7 +1462,14 @@ GLOBAL_METHOD(METHOD_LISTTOTUPLE_TOKEN, &PyJit_ListToTuple, CORINFO_TYPE_NATIVEI
 GLOBAL_METHOD(METHOD_STOREMAP_TOKEN, &PyJit_StoreMap, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_STOREMAP_NO_DECREF_TOKEN, &PyJit_StoreMapNoDecRef, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DICTUPDATE_TOKEN, &PyJit_DictUpdate, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
-GLOBAL_METHOD(METHOD_STORESUBSCR_TOKEN, &PyJit_StoreSubscr, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+
+GLOBAL_METHOD(METHOD_STORE_SUBSCR_OBJ, &PyJit_StoreSubscr, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_STORE_SUBSCR_OBJ_I, &PyJit_StoreSubscrIndex, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
+GLOBAL_METHOD(METHOD_STORE_SUBSCR_DICT, &PyJit_StoreSubscrDict, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_STORE_SUBSCR_LIST, &PyJit_StoreSubscrList, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_STORE_SUBSCR_LIST_I, &PyJit_StoreSubscrListIndex, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
+
+
 GLOBAL_METHOD(METHOD_DELETESUBSCR_TOKEN, &PyJit_DeleteSubscr, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_BUILD_DICT_FROM_TUPLES, &PyJit_BuildDictFromTuples, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DICT_MERGE, &PyJit_DictMerge, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));

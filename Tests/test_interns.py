@@ -80,5 +80,57 @@ class InternIntegerTestCase(unittest.TestCase):
         self.assertNotOptimized(test_f)
 
 
+class InternIntegerSubscrTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        pyjion.enable()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+
+    def test_dict_key(self):
+        def test_f():
+            a = {0: 'a'}
+            a[0] = 'b'
+            return a[0] == 'b'
+
+        self.assertTrue(test_f())
+        self.assertTrue(pyjion.info(test_f)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(test_f)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_DICT", f.getvalue())
+
+    def test_list_key(self):
+        def test_f():
+            a = ['a']
+            a[0] = 'b'
+            return a[0] == 'b'
+
+        self.assertTrue(test_f())
+        self.assertTrue(pyjion.info(test_f)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(test_f)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
+
+    def test_list_key_non_const(self):
+        def test_f(b):
+            a = ['a']
+            a[b] = 'b'
+            return a[b] == 'b'
+
+        self.assertTrue(test_f(0))
+        self.assertTrue(pyjion.info(test_f)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(test_f)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertNotIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST", f.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

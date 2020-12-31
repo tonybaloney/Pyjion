@@ -116,6 +116,16 @@ TEST_CASE("General list unpacking") {
     }
 }
 
+TEST_CASE("List assignments from const values") {
+    SECTION("common case") {
+        auto t = EmissionTest("def f():\n"
+                              " a = ['v']\n"
+                              " a[0] = 'a'\n"
+                              " return a");
+        CHECK(t.returns() == "['a']");
+    }
+}
+
 TEST_CASE("General dict comprehensions") {
     SECTION("common case") {
         auto t = EmissionTest("def f():\n  dict1 = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5}\n  return {k : v * 2 for k,v in dict1.items()}\n");
