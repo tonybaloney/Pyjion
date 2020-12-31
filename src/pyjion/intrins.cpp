@@ -1274,7 +1274,7 @@ int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIn
 }
 
 int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index) {
-    if(PyDict_Check(container)) // just incase we got the type wrong.
+    if(PyDict_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, index);
     auto res = PyDict_SetItem(container, index, value);
     Py_DECREF(index);
@@ -1284,7 +1284,7 @@ int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index)
 }
 
 int PyJit_StoreSubscrDictHash(PyObject* value, PyObject *container, PyObject *index, Py_hash_t hash) {
-    if(PyDict_Check(container)) // just incase we got the type wrong.
+    if(PyDict_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, index);
     auto res = _PyDict_SetItem_KnownHash(container, index, value, hash);
     Py_DECREF(index);
@@ -1295,7 +1295,7 @@ int PyJit_StoreSubscrDictHash(PyObject* value, PyObject *container, PyObject *in
 
 int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index) {
     int res ;
-    if(PyList_Check(container)) // just incase we got the type wrong.
+    if(PyList_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, index);
     if (PyIndex_Check(index)) {
         Py_ssize_t key_value;
@@ -1316,7 +1316,7 @@ int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index)
 
 int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject * objIndex, int index) {
     int res ;
-    if(PyList_Check(container)) // just incase we got the type wrong.
+    if(PyList_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, objIndex);
     res = PyList_SetItem(container, index, value);
     Py_DECREF(objIndex);
