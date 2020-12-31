@@ -92,13 +92,6 @@ void VerifyOldTest(AITestCase testCase) {
     Py_DECREF(codeObj);
 }
 
-
-StackVerifier::StackVerifier(size_t byteCodeIndex, size_t stackIndex, AbstractValueKind kind) {
-    m_byteCodeIndex = byteCodeIndex;
-    m_stackIndex = stackIndex;
-    m_kind = kind;
-};
-
 void StackVerifier::verify(AbstractInterpreter& interpreter) {
     auto info = interpreter.getStackInfo(m_byteCodeIndex);
     CHECK(m_kind == info[info.size() - m_stackIndex - 1].Value->kind());
@@ -127,8 +120,3 @@ ReturnVerifier::ReturnVerifier(AbstractValueKind kind) {
 void ReturnVerifier::verify(AbstractInterpreter& interpreter) {
     CHECK(m_kind == interpreter.getReturnInfo()->kind());
 };
-
-PyObject* Incremented(PyObject*o) {
-    Py_INCREF(o);
-    return o;
-}
