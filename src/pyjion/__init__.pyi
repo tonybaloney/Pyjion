@@ -10,7 +10,7 @@ def info(f: callable) -> dict:
 def dump_il(f: callable) -> bytearray:
     ...
 
-def dump_native(f: callable) -> bytearray:
+def dump_native(f: callable) -> tuple[bytearray, int, int]:
     ...
 
 def enable_tracing() -> None:
@@ -23,4 +23,7 @@ def enable_profiling() -> None:
     ...
 
 def disable_profiling() -> None:
+    ...
+
+def set_optimization_level(level: int) -> None:
     ...

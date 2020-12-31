@@ -125,5 +125,4 @@ public:
 bool jit_compile(PyCodeObject* code);
 
 void setOptimizationLevel(unsigned short level);
-
 #endif

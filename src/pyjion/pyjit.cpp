@@ -403,18 +403,6 @@ static PyObject *pyjion_status(PyObject *self, PyObject* args) {
     Py_RETURN_FALSE;
 }
 
-static PyObject *pyjion_stats(PyObject *self, PyObject* func) {
-    auto res = PyDict_New();
-    if (res == nullptr) {
-        return nullptr;
-    }
-
-    PyDict_SetItemString(res, "failed", PyLong_FromLongLong(jitFailCounter));
-    PyDict_SetItemString(res, "compiled", PyLong_FromLongLong(jitPassCounter));
-
-    return res;
-}
-
 static PyObject *pyjion_info(PyObject *self, PyObject* func) {
 	PyObject* code;
 	if (PyFunction_Check(func)) {
@@ -468,7 +456,7 @@ static PyObject *pyjion_dump_il(PyObject *self, PyObject* func) {
     return res;
 }
 
-static PyObject *pyjion_dump_native(PyObject *self, PyObject* func) {
+static PyObject* pyjion_dump_native(PyObject *self, PyObject* func) {
     PyObject* code;
     if (PyFunction_Check(func)) {
         code = ((PyFunctionObject*)func)->func_code;
@@ -485,11 +473,30 @@ static PyObject *pyjion_dump_native(PyObject *self, PyObject* func) {
     if (jitted->j_failed || jitted->j_evalfunc == nullptr)
         Py_RETURN_NONE;
 
-    auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(jitted->j_evalfunc), jitted->j_nativeSize);
-    if (res == nullptr) {
+    auto result_t = PyTuple_New(3);
+    if (result_t == nullptr)
         return nullptr;
-    }
-    return res;
+
+    auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(jitted->j_evalfunc), jitted->j_nativeSize);
+    if (res == nullptr)
+        return nullptr;
+
+    PyTuple_SET_ITEM(result_t, 0, res);
+    Py_INCREF(res);
+
+    auto codeLen = PyLong_FromUnsignedLong(jitted->j_nativeSize);
+    if (codeLen == nullptr)
+        return nullptr;
+    PyTuple_SET_ITEM(result_t, 1, codeLen);
+    Py_INCREF(codeLen);
+
+    auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&jitted->j_evalfunc));
+    if (codePosition == nullptr)
+        return nullptr;
+    PyTuple_SET_ITEM(result_t, 2, codePosition);
+    Py_INCREF(codePosition);
+
+    return result_t;
 }
 
 static PyObject* pyjion_set_threshold(PyObject *self, PyObject* args) {
@@ -574,12 +581,6 @@ static PyMethodDef PyjionMethods[] = {
 		METH_O,
 		"Returns a dictionary describing information about a function or code objects current JIT status."
 	},
-    {
-        "stats",
-        pyjion_stats,
-        METH_O,
-        "Returns a dictionary with stats about the JIT compiler."
-    },
     {
         "dump_il",
         pyjion_dump_il,
