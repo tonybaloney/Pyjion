@@ -760,8 +760,14 @@ void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractV
     switch(container.Value->kind()){
         case AVK_Dict:
             if (constIndex){
-                m_il.ld_i4(dynamic_cast<ConstSource*>(key.Sources)->getHash());
-                m_il.emit_call(METHOD_STORE_SUBSCR_DICT_HASH);
+                auto hash_t = dynamic_cast<ConstSource*>(key.Sources)->getHash();
+                if (hash_t != -1)
+                {
+                    m_il.ld_i4(hash_t);
+                    m_il.emit_call(METHOD_STORE_SUBSCR_DICT_HASH);
+                } else {
+                    m_il.emit_call(METHOD_STORE_SUBSCR_DICT);
+                }
             } else {
                 m_il.emit_call(METHOD_STORE_SUBSCR_DICT);
             }
@@ -802,8 +808,14 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
     switch(container.Value->kind()){
         case AVK_Dict:
             if (constIndex){
-                m_il.ld_i((void*)dynamic_cast<ConstSource*>(index.Sources)->getHash());
-                m_il.emit_call(METHOD_SUBSCR_DICT_HASH);
+                auto hash_t = dynamic_cast<ConstSource*>(index.Sources)->getHash();
+                if (hash_t != -1)
+                {
+                    m_il.ld_i4(hash_t);
+                    m_il.emit_call(METHOD_SUBSCR_DICT_HASH);
+                } else {
+                    m_il.emit_call(METHOD_SUBSCR_DICT);
+                }
             } else {
                 m_il.emit_call(METHOD_SUBSCR_DICT);
             }

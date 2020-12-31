@@ -118,13 +118,16 @@ struct AbstractSources {
 class ConstSource : public AbstractSource {
     Py_hash_t hash;
 public:
-    explicit ConstSource(Py_hash_t hash) {
-        this->hash = hash;
+    explicit ConstSource(PyObject* value) {
+        this->hash = PyObject_Hash(value);
+        if (PyErr_Occurred()){
+            PyErr_Clear();
+        }
     }
 
     bool hasConstValue() { return true; }
 
-    Py_hash_t getHash (){
+    Py_hash_t getHash () const{
         return this->hash;
     }
 

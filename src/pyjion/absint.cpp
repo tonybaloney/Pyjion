@@ -1126,7 +1126,7 @@ AbstractSource* AbstractInterpreter::addLocalSource(size_t opcodeIndex, size_t l
 AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new ConstSource(PyObject_Hash(value)));
+        return m_opcodeSources[opcodeIndex] = newSource(new ConstSource(value));
     }
 
     return store->second;
