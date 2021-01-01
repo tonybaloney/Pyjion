@@ -838,7 +838,7 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             break;
         default:
             if (indexIsIntern){
-                //m_il.ld_i4(dynamic_cast<InternIntegerValue*>(index.Value)->absoluteValue());
+                m_il.ld_i4(dynamic_cast<InternIntegerValue*>(index.Value)->absoluteValue());
                 m_il.emit_call(METHOD_SUBSCR_OBJ);
             } else {
                 m_il.emit_call(METHOD_SUBSCR_OBJ);

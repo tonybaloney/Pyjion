@@ -309,14 +309,14 @@ class IntegerValue : public AbstractValue {
 };
 
 class InternIntegerValue : public IntegerValue {
-    int constValue = 0 ;
+    int constValue = -1 ;
 
     bool isIntern() override {
         return true;
     }
 
 public:
-    InternIntegerValue() = default ;
+    InternIntegerValue() = default;
     explicit InternIntegerValue(int value) {
         constValue = value;
     }
