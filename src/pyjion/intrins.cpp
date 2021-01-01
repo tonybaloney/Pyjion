@@ -130,11 +130,11 @@ PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, int index)
     ms = Py_TYPE(o)->tp_as_sequence;
     if (ms && ms->sq_item) {
         res = PySequence_GetItem(o, index);
-        Py_DECREF(o);
-        Py_DECREF(key);
     } else {
-        res = PyJit_Subscr(o, key);
+        res = PyObject_GetItem(o, key);
     }
+    Py_DECREF(o);
+    Py_DECREF(key);
 
     return res;
 }
@@ -144,7 +144,7 @@ PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key){
         return PyJit_Subscr(o, key);
 
     PyObject* res = PyDict_GetItem(o, key);
-    Py_INCREF(res);
+    Py_XINCREF(res);
     Py_DECREF(o);
     Py_DECREF(key);
     return res;
@@ -154,7 +154,7 @@ PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash){
     if (!PyDict_CheckExact(o))
         return PyJit_Subscr(o, key);
     PyObject* value = _PyDict_GetItem_KnownHash(o, key, hash);
-    Py_INCREF(value);
+    Py_XINCREF(value);
     Py_DECREF(o);
     Py_DECREF(key);
     return value;
@@ -173,7 +173,7 @@ PyObject* PyJit_SubscrList(PyObject *o, PyObject *key){
             res = nullptr;
         } else {
             res = PyList_GetItem(o, key_value);
-            Py_INCREF(res);
+            Py_XINCREF(res);
         }
     }
     else {
@@ -188,7 +188,7 @@ PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, int index){
     if (!PyList_CheckExact(o))
         return PyJit_Subscr(o, key);
     PyObject* res = PyList_GetItem(o, index);
-    Py_INCREF(res);
+    Py_XINCREF(res);
     Py_DECREF(o);
     Py_DECREF(key);
     return res;
@@ -207,7 +207,7 @@ PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
             goto error;
         } else {
             res = PyTuple_GetItem(o, key_value);
-            Py_INCREF(res);
+            Py_XINCREF(res);
         }
     }
     else {
@@ -223,7 +223,7 @@ PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, int index){
     if (!PyTuple_CheckExact(o))
         return PyJit_Subscr(o, key);
     PyObject* res = PyTuple_GetItem(o, index);
-    Py_INCREF(res);
+    Py_XINCREF(res);
     Py_DECREF(o);
     Py_DECREF(key);
     return res;

@@ -12,7 +12,7 @@ class TupleTestCase(unittest.TestCase):
 
     def test_tuple_prepopulated(self):
         l = (0, 1, 2, 3, 4)
-        self.assertEqual(l, (0, 1, 2, 3, 4, 5))
+        self.assertEqual(l, (0, 1, 2, 3, 4))
         for i in range(0, 5):
             self.assertEqual(l[i], i)
         self.assertEqual(l[4], 4)
@@ -28,6 +28,13 @@ class TupleTestCase(unittest.TestCase):
         self.assertEqual(second, 1)
         self.assertEqual(last, 4)
 
+    def test_unknown_type(self):
+        def get_vals():
+            return (0, 1, 2, 3)
+        res = get_vals()
+        self.assertEqual(res[0], 0)
+        self.assertEqual(res[1], 1)
+        self.assertEqual(res[2], 2)
 
 if __name__ == "__main__":
     unittest.main()
