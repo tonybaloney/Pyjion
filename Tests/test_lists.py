@@ -23,7 +23,7 @@ class ListTestCase(unittest.TestCase):
 
     def test_list_slice(self):
         l = [0, 1, 2, 3, 4]
-        self.assertEqual(l[1:2], [1, 2])
+        self.assertEqual(l[1:3], [1, 2])
 
 
 if __name__ == "__main__":
