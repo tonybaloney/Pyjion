@@ -102,6 +102,36 @@ public:
     BYTE* il (){
         return m_jittedcode->j_il;
     }
+
+    unsigned long native_len(){
+        return m_jittedcode->j_nativeSize;
+    }
+
+    PyObject* native(){
+        auto result_t = PyTuple_New(3);
+        if (result_t == nullptr)
+            return nullptr;
+
+        auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(m_jittedcode->j_evalfunc), m_jittedcode->j_nativeSize);
+        if (res == nullptr)
+            return nullptr;
+
+        PyTuple_SET_ITEM(result_t, 0, res);
+        Py_INCREF(res);
+
+        auto codeLen = PyLong_FromUnsignedLong(m_jittedcode->j_nativeSize);
+        if (codeLen == nullptr)
+            return nullptr;
+        PyTuple_SET_ITEM(result_t, 1, codeLen);
+        Py_INCREF(codeLen);
+
+        auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&m_jittedcode->j_evalfunc));
+        if (codePosition == nullptr)
+            return nullptr;
+        PyTuple_SET_ITEM(result_t, 2, codePosition);
+        Py_INCREF(codePosition);
+        return result_t;
+    }
 };
 
 TEST_CASE("Test ITER", "[float][binary op][inference]") {
@@ -124,6 +154,18 @@ TEST_CASE("Annotation tests") {
                 "def f():\n    def f(self) -> 42 : pass\n    return 42"
         );
         CHECK(t.returns() == "42");
+    }
+}
+
+TEST_CASE("Native tests") {
+    SECTION("test annotations") {
+        auto t = CompilerTest(
+                "def f():\n    def f(self) -> 42 : pass\n    return 42"
+        );
+        CHECK(t.returns() == "42");
+        CHECK(PyLong_AsUnsignedLong(PyTuple_GetItem(t.native(), 1)) == t.native_len());
+        CHECK(PyByteArray_Size(PyTuple_GetItem(t.native(), 0)) == t.native_len());
+        CHECK(PyLong_AsUnsignedLong(PyTuple_GetItem(t.native(), 2)) != 0);
     }
 }
 
