@@ -196,7 +196,7 @@ void PythonCompiler::emit_incref(bool maybeTagged = false) {
     LD_FIELDA(PyObject, ob_refcnt);
     m_il.dup();
     m_il.ld_ind_i();
-    m_il.ld_i4(1);
+    m_il.load_one();
     m_il.add();
     m_il.st_ind_i();
 }

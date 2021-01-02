@@ -1289,7 +1289,7 @@ int PyJit_StoreSubscrIndexHash(PyObject* value, PyObject *container, PyObject *o
 }
 
 int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index) {
-    if(PyDict_CheckExact(container)) // just incase we got the type wrong.
+    if(!PyDict_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, index);
     auto res = PyDict_SetItem(container, index, value);
     Py_DECREF(index);
@@ -1299,7 +1299,7 @@ int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index)
 }
 
 int PyJit_StoreSubscrDictHash(PyObject* value, PyObject *container, PyObject *index, Py_hash_t hash) {
-    if(PyDict_CheckExact(container)) // just incase we got the type wrong.
+    if(!PyDict_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, index);
     auto res = _PyDict_SetItem_KnownHash(container, index, value, hash);
     Py_DECREF(index);
@@ -1310,15 +1310,17 @@ int PyJit_StoreSubscrDictHash(PyObject* value, PyObject *container, PyObject *in
 
 int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index) {
     int res ;
-    if(PyList_CheckExact(container)) // just incase we got the type wrong.
+    if(!PyList_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, index);
     if (PyIndex_Check(index)) {
         Py_ssize_t key_value;
         key_value = PyNumber_AsSsize_t(index, PyExc_IndexError);
         if (key_value == -1 && PyErr_Occurred())
             res = -1;
-        else
+        else {
             res = PyList_SetItem(container, key_value, value);
+            Py_INCREF(value);
+        }
     }
     else {
         return PyJit_StoreSubscr(value, container, index);
@@ -1331,9 +1333,10 @@ int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index)
 
 int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject * objIndex, Py_ssize_t index) {
     int res ;
-    if(PyList_CheckExact(container)) // just incase we got the type wrong.
+    if(!PyList_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, objIndex);
     res = PyList_SetItem(container, index, value);
+    Py_INCREF(value);
     Py_DECREF(objIndex);
     Py_DECREF(value);
     Py_DECREF(container);

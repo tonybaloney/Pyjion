@@ -259,6 +259,16 @@ TEST_CASE("General dict building") {
         auto t = EmissionTest("def f():\n  a = dict()\n  a[4]='d'\n  return a");
         CHECK(t.returns() == "{4: 'd'}");
     }
+    SECTION("subclass") {
+        auto t = EmissionTest("def f():\n"
+                              "    class MyDict(dict):\n"
+                              "       def __setitem__(self, key, value):\n"
+                              "           super().__setitem__(key.upper(), value * 2)\n"
+                              "    x = MyDict()\n"
+                              "    x['a'] = 2\n"
+                              "    return x");
+        CHECK(t.returns() == "{'A': 4}");
+    }
 }
 
 TEST_CASE("General dict unpacking") {
