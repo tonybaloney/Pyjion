@@ -142,8 +142,7 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertNotIn("MethodTokens.METHOD_STORE_SUBSCR_OBJ_I", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_OBJ_HASH", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_DICT_HASH", f.getvalue())
 
     def test_unknown_int_string_const(self):
         def test_f(x):
@@ -156,7 +155,6 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertNotIn("MethodTokens.METHOD_STORE_SUBSCR_OBJ_I", f.getvalue())
         self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_OBJ_I_HASH", f.getvalue())
 
 
