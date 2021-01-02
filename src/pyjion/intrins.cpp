@@ -178,6 +178,9 @@ PyObject* PyJit_SubscrList(PyObject *o, PyObject *key){
         key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
         if (key_value == -1 && PyErr_Occurred()) {
             res = nullptr;
+        } else if (key_value < 0){
+            // Supports negative indexes without converting back to PyLong..
+            res = PySequence_GetItem(o, key_value);
         } else {
             res = PyList_GetItem(o, key_value);
             Py_XINCREF(res);
@@ -211,7 +214,9 @@ PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
         key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
         if (key_value == -1 && PyErr_Occurred()) {
             res = nullptr;
-            goto error;
+        } else if (key_value < 0){
+            // Supports negative indexes without converting back to PyLong..
+            res = PySequence_GetItem(o, key_value);
         } else {
             res = PyTuple_GetItem(o, key_value);
             Py_XINCREF(res);
@@ -1315,9 +1320,12 @@ int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index)
     if (PyIndex_Check(index)) {
         Py_ssize_t key_value;
         key_value = PyNumber_AsSsize_t(index, PyExc_IndexError);
-        if (key_value == -1 && PyErr_Occurred())
+        if (key_value == -1 && PyErr_Occurred()) {
             res = -1;
-        else {
+        } else if (key_value < 0){
+            // Supports negative indexes without converting back to PyLong..
+            res = PySequence_SetItem(container, key_value, value);
+        } else {
             res = PyList_SetItem(container, key_value, value);
             Py_INCREF(value);
         }

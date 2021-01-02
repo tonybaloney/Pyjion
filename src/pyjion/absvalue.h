@@ -117,6 +117,7 @@ struct AbstractSources {
 
 class ConstSource : public AbstractSource {
     Py_hash_t hash;
+    bool hasHashValueSet = false;
     bool hasNumericValueSet = false;
     Py_ssize_t numericValue = -1;
 public:
@@ -124,6 +125,8 @@ public:
         this->hash = PyObject_Hash(value);
         if (PyErr_Occurred()){
             PyErr_Clear();
+        } else {
+            hasHashValueSet = true;
         }
         if (PyLong_CheckExact(value)){
             numericValue = PyLong_AsSsize_t(value);
@@ -137,6 +140,8 @@ public:
     }
 
     bool hasConstValue() override { return true; }
+
+    bool hasHashValue() const { return hasHashValueSet; }
 
     bool hasNumericValue() const { return hasNumericValueSet; }
 

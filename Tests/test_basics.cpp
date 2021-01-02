@@ -116,6 +116,51 @@ TEST_CASE("General list unpacking") {
     }
 }
 
+TEST_CASE("General list indexing") {
+    SECTION("common case") {
+        auto t = EmissionTest("def f(): l = [4,3,2,1,0]; return l[0]");
+        CHECK(t.returns() == "4");
+    }
+
+    SECTION("var case") {
+        auto t = EmissionTest("def f(): i =2 ; l = [4,3,2,1,0]; return l[i]");
+        CHECK(t.returns() == "2");
+    }
+
+    SECTION("negative case") {
+        auto t = EmissionTest("def f(): l = [4,3,2,1,0]; return l[-1]");
+        CHECK(t.returns() == "0");
+    }
+
+    SECTION("range case") {
+        auto t = EmissionTest("def f(): l = [4,3,2,1,0]; return l[::-1]");
+        CHECK(t.returns() == "[0, 1, 2, 3, 4]");
+    }
+}
+
+TEST_CASE("General tuple indexing") {
+    SECTION("common case") {
+        auto t = EmissionTest("def f(): l = (4,3,2,1,0); return l[0]");
+        CHECK(t.returns() == "4");
+    }
+
+    SECTION("var case") {
+        auto t = EmissionTest("def f(): i =2 ; l = (4,3,2,1,0); return l[i]");
+        CHECK(t.returns() == "2");
+    }
+
+    SECTION("negative case") {
+        auto t = EmissionTest("def f(): l = (4,3,2,1,0); return l[-1]");
+        CHECK(t.returns() == "0");
+    }
+
+    SECTION("range case") {
+        auto t = EmissionTest("def f(): l = (4,3,2,1,0); return l[::-1]");
+        CHECK(t.returns() == "(0, 1, 2, 3, 4)");
+    }
+}
+
+
 TEST_CASE("List assignments from const values") {
     SECTION("common case") {
         auto t = EmissionTest("def f():\n"

@@ -750,15 +750,17 @@ void PythonCompiler::emit_store_subscr() {
 
 void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractValueWithSources container, AbstractValueWithSources key) {
     bool constIndex = false;
+    bool hasValidIndex = false;
     ConstSource* constSource = nullptr;
     if (key.Sources != nullptr && key.Sources->hasConstValue()){
         constIndex = true;
         constSource = dynamic_cast<ConstSource*>(key.Sources);
+        hasValidIndex = (constSource->hasNumericValue() && constSource->getNumericValue() >= 0);
     }
     switch(container.Value->kind()){
         case AVK_Dict:
             if (constIndex){
-                if (constSource->getHash() != -1)
+                if (constSource->hasHashValue())
                 {
                     m_il.ld_i8(constSource->getHash());
                     m_il.emit_call(METHOD_STORE_SUBSCR_DICT_HASH);
@@ -771,7 +773,7 @@ void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractV
             break;
         case AVK_List:
             if (constIndex){
-                if (constSource->hasNumericValue()){
+                if (hasValidIndex){
                     m_il.ld_i8(constSource->getNumericValue());
                     m_il.emit_call(METHOD_STORE_SUBSCR_LIST_I);
                 } else {
@@ -783,14 +785,14 @@ void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractV
             break;
         default:
             if (constIndex){
-                if (constSource->hasNumericValue() && constSource->getHash() != -1){
+                if (hasValidIndex && constSource->hasHashValue()){
                     m_il.ld_i8(constSource->getNumericValue());
                     m_il.ld_i8(constSource->getHash());
                     m_il.emit_call(METHOD_STORE_SUBSCR_OBJ_I_HASH);
-                } else if (!constSource->hasNumericValue() && constSource->getHash() != -1) {
+                } else if (!hasValidIndex && constSource->hasHashValue()) {
                     m_il.ld_i8(constSource->getHash());
                     m_il.emit_call(METHOD_STORE_SUBSCR_DICT_HASH);
-                } else if (constSource->hasNumericValue() && constSource->getHash() == -1){
+                } else if (hasValidIndex && !constSource->hasHashValue()){
                     m_il.ld_i8(constSource->getNumericValue());
                     m_il.emit_call(METHOD_STORE_SUBSCR_OBJ_I);
                 } else {
@@ -811,14 +813,17 @@ void PythonCompiler::emit_delete_subscr() {
 void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources key) {
     bool constIndex = false;
     ConstSource* constSource = nullptr;
+    bool hasValidIndex = false;
+
     if (key.Sources != nullptr && key.Sources->hasConstValue()){
         constIndex = true;
         constSource = dynamic_cast<ConstSource*>(key.Sources);
+        hasValidIndex = (constSource->hasNumericValue() && constSource->getNumericValue() >= 0);
     }
     switch(container.Value->kind()){
         case AVK_Dict:
             if (constIndex){
-                if (constSource->getHash() != -1)
+                if (constSource->hasHashValue())
                 {
                     m_il.ld_i8(constSource->getHash());
                     m_il.emit_call(METHOD_SUBSCR_DICT_HASH);
@@ -831,7 +836,7 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             break;
         case AVK_List:
             if (constIndex){
-                if (constSource->hasNumericValue()){
+                if (hasValidIndex){
                     m_il.ld_i8(constSource->getNumericValue());
                     m_il.emit_call(METHOD_SUBSCR_LIST_I);
                 } else {
@@ -843,7 +848,7 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             break;
         case AVK_Tuple:
             if (constIndex){
-                if (constSource->hasNumericValue()){
+                if (hasValidIndex){
                     m_il.ld_i8(constSource->getNumericValue());
                     m_il.emit_call(METHOD_SUBSCR_TUPLE_I);
                 } else {
@@ -855,14 +860,14 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             break;
         default:
             if (constIndex){
-                if (constSource->hasNumericValue() && constSource->getHash() != -1){
+                if (hasValidIndex && constSource->hasHashValue()){
                     m_il.ld_i8(constSource->getNumericValue());
                     m_il.ld_i8(constSource->getHash());
                     m_il.emit_call(METHOD_SUBSCR_OBJ_I_HASH);
-                } else if (!constSource->hasNumericValue() && constSource->getHash() != -1) {
+                } else if (!hasValidIndex && constSource->hasHashValue()) {
                     m_il.ld_i8(constSource->getHash());
                     m_il.emit_call(METHOD_SUBSCR_DICT_HASH);
-                } else if (constSource->hasNumericValue() && constSource->getHash() == -1){
+                } else if (hasValidIndex && !constSource->hasHashValue()){
                     m_il.ld_i8(constSource->getNumericValue());
                     m_il.emit_call(METHOD_SUBSCR_OBJ_I);
                 } else {
