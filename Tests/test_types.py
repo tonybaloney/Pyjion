@@ -1,6 +1,7 @@
 import pyjion
 import unittest
 import os
+import gc
 
 
 class DictTypeTestCase(unittest.TestCase):
@@ -10,6 +11,7 @@ class DictTypeTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         pyjion.disable()
+        gc.collect()
 
     def test_subclassdict(self):
         """Test that a subclass of dict can be merged into a static dict"""

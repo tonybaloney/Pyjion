@@ -4,6 +4,7 @@ import pyjion
 import io
 import pyjion.dis
 import contextlib
+import gc
 
 class LocalsTestCase(unittest.TestCase):
 
@@ -12,6 +13,7 @@ class LocalsTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         pyjion.disable()
+        gc.collect()
 
     def assertOptimized(self, func) -> None:
         self.assertFalse(func())

@@ -1,5 +1,6 @@
 import pyjion
 import unittest
+import gc
 
 
 
@@ -10,6 +11,7 @@ class ListTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         pyjion.disable()
+        gc.collect()
 
     def test_list_init(self):
         l = []
