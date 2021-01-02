@@ -1149,8 +1149,7 @@ void AbstractInterpreter::errorCheck(const char *reason) {
     auto noErr = m_comp->emit_define_label();
     m_comp->emit_dup();
     m_comp->emit_store_local(mErrorCheckLocal);
-    m_comp->emit_null();
-    m_comp->emit_branch(BranchNotEqual, noErr);
+    m_comp->emit_branch(BranchTrue, noErr);
 
     branchRaise(reason);
     m_comp->emit_mark_label(noErr);
@@ -2037,8 +2036,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                     auto noErr = m_comp->emit_define_label();
                     m_comp->emit_dup();
                     m_comp->emit_store_local(mErrorCheckLocal);
-                    m_comp->emit_null();
-                    m_comp->emit_branch(BranchNotEqual, noErr);
+                    m_comp->emit_branch(BranchTrue, noErr);
 
                     if ((oparg & FVS_MASK) == FVS_HAVE_SPEC) {
                         m_comp->emit_load_local(fmtSpec);

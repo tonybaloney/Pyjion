@@ -701,6 +701,7 @@ void PythonCompiler::emit_delete_fast(int index) {
 void PythonCompiler::emit_new_tuple(size_t size) {
     if (size == 0) {
         m_il.ld_i(PyTuple_New(0));
+        // TODO : Why does this have an incref?
         m_il.dup();
         emit_incref(false);
     }
@@ -723,6 +724,7 @@ void PythonCompiler::emit_tuple_store(size_t argCnt) {
     m_il.st_loc(tupleTmp);
 
     for (size_t i = 0, arg = argCnt - 1; i < argCnt; i++, arg--) {
+        auto noErr = emit_define_label();
         // save the argument into a temporary...
         m_il.st_loc(valueTmp);
 
@@ -733,7 +735,12 @@ void PythonCompiler::emit_tuple_store(size_t argCnt) {
 
         // reload the value
         m_il.ld_loc(valueTmp);
+        m_il.dup();
+        m_il.branch(BranchTrue, noErr);
 
+        emit_debug_msg("Null value stored in tuple");
+
+        emit_mark_label(noErr);
         // store into the array
         m_il.st_ind_i();
     }

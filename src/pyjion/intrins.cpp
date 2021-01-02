@@ -1900,6 +1900,7 @@ inline PyObject* Call(PyObject *target, Args...args) {
         std::vector<PyObject*> args_v = {args...};
         for (int i = 0; i < args_v.size() ; i ++) {
             Py_INCREF(args_v[i]);
+            assert(args_v[i] != nullptr);
             PyTuple_SET_ITEM(t_args, i, args_v[i]);
         }
 #ifdef GIL
@@ -2121,11 +2122,14 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         }
         auto obj =  method_info->object;
         auto args_tuple = PyTuple_New(PyTuple_Size(args) + 1);
+        assert(obj != nullptr);
         PyTuple_SET_ITEM(args_tuple, 0, obj);
         Py_INCREF(obj);
         for (int i = 0 ; i < PyTuple_Size(args) ; i ++){
-            PyTuple_SET_ITEM(args_tuple, i+1, PyTuple_GET_ITEM(args, i));
-            Py_INCREF(PyTuple_GET_ITEM(args, i));
+            auto ix = PyTuple_GET_ITEM(args, i);
+            assert(ix != nullptr);
+            PyTuple_SET_ITEM(args_tuple, i+1, ix);
+            Py_INCREF(ix);
         }
 #ifdef GIL
         PyGILState_STATE gstate;
@@ -2171,6 +2175,7 @@ PyObject* PyJit_KwCallN(PyObject *target, PyObject* args, PyObject* names) {
 	for (auto i = 0; i < argCount; i++) {
 		auto item = PyTuple_GET_ITEM(args, i);
 		Py_INCREF(item);
+		assert(item != nullptr);
 		PyTuple_SET_ITEM(posArgs, i, item);
 	}
 	kwArgs = PyDict_New();
