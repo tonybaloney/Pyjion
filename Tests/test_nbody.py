@@ -8,6 +8,7 @@
 
 import pyjion
 import timeit
+import gc
 
 def combinations(l):
     result = []
@@ -119,3 +120,4 @@ if __name__ == "__main__":
     pyjion.enable()
     print("Took {0} with Pyjion".format(timeit.timeit(main, number=1)))
     pyjion.disable()
+    gc.collect()

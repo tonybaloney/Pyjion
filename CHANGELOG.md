@@ -1,5 +1,17 @@
 # Release notes
 
+## 0.6.0
+
+* Added OPT-6 optimization. Frame constants are now used to speed up assignments to lists and dictionaries. STORE_SUBSCR will assert if something is a list, or dict and shortcut
+the assignment logic.
+* Added OPT-7 optimization. The binary subscript operator is compiled to faster path under a set of circumstances, especially if the index/key is a frame constant. Hashes are precomputed
+ and indexes for integer constants are converted to native numbers at compile-time.
+* The native machine-code disassembler will show the actual position of the JITed code in memory, instead of starting the offset at 0
+* The `pyjion.dump_native()` function returns a tuple with bytes, length and position
+* Type inferencing has been improved for all inplace and binary operations
+* Windows builds from source are fixed for when the user wants to compile against a checkout of .NET
+* Implemented FAST_DISPATCH for additional opcodes
+
 ## 0.5.0
 
 * Added OPT-4 optimization. Frame locals (named variables known at compilation) using the LOAD_FAST, STORE_FAST and DELETE_FAST
