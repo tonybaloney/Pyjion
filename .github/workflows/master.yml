@@ -69,11 +69,11 @@ jobs:
 
       - name: Run smoke tests
         shell: bash
-        run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests.txt
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests.txt -v
 
       - name: Install scikit-build for wheel
         shell: bash
@@ -160,11 +160,11 @@ jobs:
 
       - name: Run smoke tests
         shell: bash
-        run: python -X dev Tests/runlibregr.py -f Tests/python_smoke_tests.txt
+        run: python -X dev Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_macos10.txt
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_macos10.txt -v
 
       - name: Build Python Wheel
         shell: bash
@@ -237,11 +237,11 @@ jobs:
 
       - name: Run smoke tests
         shell: bash
-        run: python -X dev Tests/runlibregr.py -f Tests/python_smoke_tests.txt
+        run: python -X dev Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_macos11.txt
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_macos11.txt -v
 
       - name: Build Python Wheel
         shell: bash
@@ -329,9 +329,9 @@ jobs:
 
       - name: Run smoke tests
         shell: bash
-        run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_win.txt
+        run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_win.txt -v
 
