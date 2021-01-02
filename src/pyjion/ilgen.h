@@ -481,6 +481,10 @@ public:
         m_il.push_back(CEE_CONV_I); // Pop1, PushI
     }
 
+    void ld_i(Py_ssize_t i) {
+        ld_i((void*)i);
+    }
+
     void ld_i(size_t i) {
         ld_i((void*)i);
     }

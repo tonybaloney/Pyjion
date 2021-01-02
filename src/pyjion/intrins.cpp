@@ -117,7 +117,7 @@ PyObject* PyJit_Subscr(PyObject *left, PyObject *right) {
     return res;
 }
 
-PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, int index)
+PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, Py_ssize_t index)
 {
     PyMappingMethods *m;
     PySequenceMethods *ms;
@@ -137,6 +137,14 @@ PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, int index)
     Py_DECREF(key);
 
     return res;
+}
+
+PyObject* PyJit_SubscrIndexHash(PyObject *o, PyObject *key, Py_ssize_t index, Py_hash_t hash)
+{
+    if (PyDict_CheckExact(o))
+        return PyJit_SubscrDictHash(o, key, hash);
+    else
+        return PyJit_SubscrIndex(o, key, index);
 }
 
 PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key){
@@ -159,7 +167,6 @@ PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash){
     Py_DECREF(key);
     return value;
 }
-
 
 PyObject* PyJit_SubscrList(PyObject *o, PyObject *key){
     if (!PyList_CheckExact(o))
@@ -184,7 +191,7 @@ PyObject* PyJit_SubscrList(PyObject *o, PyObject *key){
     return res;
 }
 
-PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, int index){
+PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, Py_ssize_t index){
     if (!PyList_CheckExact(o))
         return PyJit_Subscr(o, key);
     PyObject* res = PyList_GetItem(o, index);
@@ -219,7 +226,7 @@ PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
     return res;
 }
 
-PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, int index){
+PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, Py_ssize_t index){
     if (!PyTuple_CheckExact(o))
         return PyJit_Subscr(o, key);
     PyObject* res = PyTuple_GetItem(o, index);
@@ -1248,7 +1255,7 @@ int PyJit_StoreSubscr(PyObject* value, PyObject *container, PyObject *index) {
     return res;
 }
 
-int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIndex, int index) {
+int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index) {
     PyMappingMethods *m;
     int res;
 
@@ -1271,6 +1278,14 @@ int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIn
     Py_DECREF(value);
     Py_DECREF(container);
     return res;
+}
+
+int PyJit_StoreSubscrIndexHash(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index, Py_hash_t hash)
+{
+    if (PyDict_CheckExact(container))
+        return PyJit_StoreSubscrDictHash(value, container, objIndex, hash);
+    else
+        return PyJit_StoreSubscrIndex(value, container, objIndex, index);
 }
 
 int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index) {
@@ -1314,7 +1329,7 @@ int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index)
     return res;
 }
 
-int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject * objIndex, int index) {
+int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject * objIndex, Py_ssize_t index) {
     int res ;
     if(PyList_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, objIndex);

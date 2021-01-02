@@ -53,14 +53,14 @@ format_exc_unbound(PyCodeObject *co, int oparg);
 PyObject* PyJit_Add(PyObject *left, PyObject *right);
 
 PyObject* PyJit_Subscr(PyObject *left, PyObject *right);
-PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, int index);
+PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, Py_ssize_t index);
+PyObject* PyJit_SubscrIndexHash(PyObject *o, PyObject *key, Py_ssize_t index, Py_hash_t hash);
 PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key);
 PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash);
 PyObject* PyJit_SubscrList(PyObject *o, PyObject *key);
-PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, int index);
+PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, Py_ssize_t index);
 PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key);
-PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, int index);
-
+PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, Py_ssize_t index);
 
 PyObject* PyJit_RichCompare(PyObject *left, PyObject *right, size_t op);
 
@@ -194,11 +194,12 @@ PyObject * PyJit_BuildDictFromTuples(PyObject *keys_and_values);
 PyObject* PyJit_DictMerge(PyObject* dict, PyObject* other);
 
 int PyJit_StoreSubscr(PyObject* value, PyObject *container, PyObject *index);
-int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIndex, int index);
+int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index);
+int PyJit_StoreSubscrIndexHash(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index, Py_hash_t hash);
 int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrDictHash(PyObject* value, PyObject *container, PyObject *index, Py_hash_t hash);
 int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index);
-int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject *objIndex, int index);
+int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index);
 
 int PyJit_DeleteSubscr(PyObject *container, PyObject *index);
 
