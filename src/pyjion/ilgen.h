@@ -193,6 +193,14 @@ public:
         }
     }
 
+    void ld_i8(long long i) {
+        push_back(CEE_LDC_I8); // Pop0 + PushI8
+        auto* value = (unsigned char*)(&i);
+        for (int j = 0; j < 8; j++) {
+            push_back(value[j]);
+        }
+    }
+
     void new_array(size_t len){
         /*Stack Transition:
 
