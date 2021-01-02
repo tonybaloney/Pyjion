@@ -131,6 +131,32 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         self.assertNotIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
         self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST", f.getvalue())
 
+    def test_unknown_key_string_const(self):
+        def test_f(x):
+            x['y'] = 'b'
+            return x['y'] == 'b'
+
+        self.assertTrue(test_f({}))
+        self.assertTrue(pyjion.info(test_f)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(test_f)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_DICT_HASH", f.getvalue())
+
+    def test_unknown_int_string_const(self):
+        def test_f(x):
+            x[10] = 'b'
+            return x[10] == 'b'
+
+        self.assertTrue(test_f({}))
+        self.assertTrue(pyjion.info(test_f)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(test_f)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_OBJ_I_HASH", f.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

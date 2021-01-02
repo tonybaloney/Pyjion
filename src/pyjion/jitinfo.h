@@ -655,7 +655,8 @@ public:
         CorInfoInline inlineResult,
         const char * reason) override {
         if (inlineResult == CorInfoInline::INLINE_FAIL) {
-            WARN("Inlining failed : %s.\r\n", reason);
+            // This happens a lot. Investigate why far in the future...
+            // WARN("Inlining failed : %s.\r\n", reason);
         }
     }
 

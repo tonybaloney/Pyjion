@@ -88,6 +88,8 @@ public:
 
     bool needsBoxing() const;
 
+    virtual bool hasConstValue() { return false; }
+
     virtual const char* describe() {
         return "unknown source";
     }
@@ -114,7 +116,41 @@ struct AbstractSources {
 };
 
 class ConstSource : public AbstractSource {
+    Py_hash_t hash;
+    bool hasHashValueSet = false;
+    bool hasNumericValueSet = false;
+    Py_ssize_t numericValue = -1;
 public:
+    explicit ConstSource(PyObject* value) {
+        this->hash = PyObject_Hash(value);
+        if (PyErr_Occurred()){
+            PyErr_Clear();
+        } else {
+            hasHashValueSet = true;
+        }
+        if (PyLong_CheckExact(value)){
+            numericValue = PyLong_AsSsize_t(value);
+            if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_OverflowError)) {
+                hasNumericValueSet = false;
+                PyErr_Clear();
+            } else {
+                hasNumericValueSet = true;
+            }
+        }
+    }
+
+    bool hasConstValue() override { return true; }
+
+    bool hasHashValue() const { return hasHashValueSet; }
+
+    bool hasNumericValue() const { return hasNumericValueSet; }
+
+    Py_ssize_t getNumericValue() const { return numericValue; }
+
+    Py_hash_t getHash () const{
+        return this->hash;
+    }
+
     const char* describe() override {
         if (needsBoxing()) {
             return "Source: Const (escapes)";
@@ -293,21 +329,12 @@ class IntegerValue : public AbstractValue {
 };
 
 class InternIntegerValue : public IntegerValue {
-    int constValue = 0 ;
-
     bool isIntern() override {
         return true;
     }
 
 public:
-    InternIntegerValue() = default ;
-    explicit InternIntegerValue(int value) {
-        constValue = value;
-    }
-
-    int absoluteValue() const {
-        return constValue;
-    }
+    InternIntegerValue() = default;
 };
 
 class StringValue : public AbstractValue {

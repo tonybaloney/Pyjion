@@ -255,7 +255,6 @@ TEST_CASE("Test method loads and calls") {
     }
 }
 
-
 TEST_CASE("Test math operations") {
     SECTION("test binary multiply") {
         auto t = CompilerTest(
@@ -377,8 +376,8 @@ TEST_CASE("Test boxing") {
         );
         CHECK(t.returns() == "None");
     }
-
 }
+
 TEST_CASE("Conditional returns") {
     // +=, -= checks are to avoid constant folding
     SECTION("test") {

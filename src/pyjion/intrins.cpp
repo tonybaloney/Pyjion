@@ -117,6 +117,130 @@ PyObject* PyJit_Subscr(PyObject *left, PyObject *right) {
     return res;
 }
 
+PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, Py_ssize_t index)
+{
+    PyMappingMethods *m;
+    PySequenceMethods *ms;
+    PyObject* res;
+
+    if (o == nullptr || key == nullptr) {
+        return nullptr;
+    }
+
+    ms = Py_TYPE(o)->tp_as_sequence;
+    if (ms && ms->sq_item) {
+        res = PySequence_GetItem(o, index);
+    } else {
+        res = PyObject_GetItem(o, key);
+    }
+    Py_DECREF(o);
+    Py_DECREF(key);
+
+    return res;
+}
+
+PyObject* PyJit_SubscrIndexHash(PyObject *o, PyObject *key, Py_ssize_t index, Py_hash_t hash)
+{
+    if (PyDict_CheckExact(o))
+        return PyJit_SubscrDictHash(o, key, hash);
+    else
+        return PyJit_SubscrIndex(o, key, index);
+}
+
+PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key){
+    if (!PyDict_CheckExact(o))
+        return PyJit_Subscr(o, key);
+
+    PyObject* res = PyDict_GetItem(o, key);
+    Py_XINCREF(res);
+    Py_DECREF(o);
+    Py_DECREF(key);
+    return res;
+}
+
+PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash){
+    if (!PyDict_CheckExact(o))
+        return PyJit_Subscr(o, key);
+    PyObject* value = _PyDict_GetItem_KnownHash(o, key, hash);
+    Py_XINCREF(value);
+    Py_DECREF(o);
+    Py_DECREF(key);
+    return value;
+}
+
+PyObject* PyJit_SubscrList(PyObject *o, PyObject *key){
+    if (!PyList_CheckExact(o))
+        return PyJit_Subscr(o, key);
+    PyObject* res;
+
+    if (PyIndex_Check(key)) {
+        Py_ssize_t key_value;
+        key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
+        if (key_value == -1 && PyErr_Occurred()) {
+            res = nullptr;
+        } else if (key_value < 0){
+            // Supports negative indexes without converting back to PyLong..
+            res = PySequence_GetItem(o, key_value);
+        } else {
+            res = PyList_GetItem(o, key_value);
+            Py_XINCREF(res);
+        }
+    }
+    else {
+        return PyJit_Subscr(o, key);
+    }
+    Py_DECREF(o);
+    Py_DECREF(key);
+    return res;
+}
+
+PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, Py_ssize_t index){
+    if (!PyList_CheckExact(o))
+        return PyJit_Subscr(o, key);
+    PyObject* res = PyList_GetItem(o, index);
+    Py_XINCREF(res);
+    Py_DECREF(o);
+    Py_DECREF(key);
+    return res;
+}
+
+PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
+    if (!PyTuple_CheckExact(o))
+        return PyJit_Subscr(o, key);
+    PyObject* res;
+
+    if (PyIndex_Check(key)) {
+        Py_ssize_t key_value;
+        key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
+        if (key_value == -1 && PyErr_Occurred()) {
+            res = nullptr;
+        } else if (key_value < 0){
+            // Supports negative indexes without converting back to PyLong..
+            res = PySequence_GetItem(o, key_value);
+        } else {
+            res = PyTuple_GetItem(o, key_value);
+            Py_XINCREF(res);
+        }
+    }
+    else {
+        return PyJit_Subscr(o, key);
+    }
+    error:
+    Py_DECREF(key);
+    Py_DECREF(o);
+    return res;
+}
+
+PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, Py_ssize_t index){
+    if (!PyTuple_CheckExact(o))
+        return PyJit_Subscr(o, key);
+    PyObject* res = PyTuple_GetItem(o, index);
+    Py_XINCREF(res);
+    Py_DECREF(o);
+    Py_DECREF(key);
+    return res;
+}
+
 PyObject* PyJit_RichCompare(PyObject *left, PyObject *right, size_t op) {
     auto res = PyObject_RichCompare(left, right, op);
     Py_DECREF(left);
@@ -1136,7 +1260,7 @@ int PyJit_StoreSubscr(PyObject* value, PyObject *container, PyObject *index) {
     return res;
 }
 
-int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIndex, int index) {
+int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index) {
     PyMappingMethods *m;
     int res;
 
@@ -1161,8 +1285,16 @@ int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIn
     return res;
 }
 
+int PyJit_StoreSubscrIndexHash(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index, Py_hash_t hash)
+{
+    if (PyDict_CheckExact(container))
+        return PyJit_StoreSubscrDictHash(value, container, objIndex, hash);
+    else
+        return PyJit_StoreSubscrIndex(value, container, objIndex, index);
+}
+
 int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index) {
-    if(PyDict_Check(container)) // just incase we got the type wrong.
+    if(!PyDict_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, index);
     auto res = PyDict_SetItem(container, index, value);
     Py_DECREF(index);
@@ -1171,23 +1303,35 @@ int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index)
     return res;
 }
 
+int PyJit_StoreSubscrDictHash(PyObject* value, PyObject *container, PyObject *index, Py_hash_t hash) {
+    if(!PyDict_CheckExact(container)) // just incase we got the type wrong.
+        return PyJit_StoreSubscr(value, container, index);
+    auto res = _PyDict_SetItem_KnownHash(container, index, value, hash);
+    Py_DECREF(index);
+    Py_DECREF(value);
+    Py_DECREF(container);
+    return res;
+}
+
 int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index) {
     int res ;
-    if(PyList_Check(container)) // just incase we got the type wrong.
+    if(!PyList_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, index);
     if (PyIndex_Check(index)) {
         Py_ssize_t key_value;
         key_value = PyNumber_AsSsize_t(index, PyExc_IndexError);
-        if (key_value == -1 && PyErr_Occurred())
+        if (key_value == -1 && PyErr_Occurred()) {
             res = -1;
-        else
+        } else if (key_value < 0){
+            // Supports negative indexes without converting back to PyLong..
+            res = PySequence_SetItem(container, key_value, value);
+        } else {
             res = PyList_SetItem(container, key_value, value);
+            Py_INCREF(value);
+        }
     }
     else {
-        PyErr_Format(PyExc_TypeError,
-                     "sequence index must be "
-                     "integer, not '%.200s'", index);
-        res = -1;
+        return PyJit_StoreSubscr(value, container, index);
     }
     Py_DECREF(index);
     Py_DECREF(value);
@@ -1195,11 +1339,12 @@ int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index)
     return res;
 }
 
-int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject * objIndex, int index) {
+int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject * objIndex, Py_ssize_t index) {
     int res ;
-    if(PyList_Check(container)) // just incase we got the type wrong.
+    if(!PyList_CheckExact(container)) // just incase we got the type wrong.
         return PyJit_StoreSubscr(value, container, objIndex);
     res = PyList_SetItem(container, index, value);
+    Py_INCREF(value);
     Py_DECREF(objIndex);
     Py_DECREF(value);
     Py_DECREF(container);

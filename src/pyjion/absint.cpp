@@ -320,9 +320,10 @@ bool AbstractInterpreter::interpret() {
                     break;
                 }
                 case LOAD_CONST: {
-                    auto constSource = addConstSource(opcodeIndex, oparg);
+                    PyObject* item = PyTuple_GetItem(mCode->co_consts, oparg);
+                    auto constSource = addConstSource(opcodeIndex, oparg, item);
                     auto value = AbstractValueWithSources(
-                            toAbstract(PyTuple_GetItem(mCode->co_consts, oparg)),
+                            toAbstract(item),
                             constSource
                     );
                     lastState.push(value);
@@ -933,7 +934,7 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
         int value;
         if (Py_SIZE(obj) < 4)
             if (IS_SMALL_INT(PyLong_AsLongLongAndOverflow(obj, &value)))
-                return new InternIntegerValue(value);
+                return &InternInteger;
         return &Integer;
     }
     else if (PyUnicode_Check(obj)) {
@@ -1122,10 +1123,10 @@ AbstractSource* AbstractInterpreter::addLocalSource(size_t opcodeIndex, size_t l
     return store->second;
 }
 
-AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t constIndex) {
+AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new ConstSource());
+        return m_opcodeSources[opcodeIndex] = newSource(new ConstSource(value));
     }
 
     return store->second;
@@ -1802,7 +1803,10 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case INPLACE_AND:
             case INPLACE_XOR:
             case INPLACE_OR:
-                m_comp->emit_binary_object(byte);
+                if (stackInfo.size() >= 2)
+                    m_comp->emit_binary_object(byte, stackInfo[0], stackInfo[1]);
+                else
+                    m_comp->emit_binary_object(byte);
                 decStack(2);
                 errorCheck("binary op failed");
                 incStack();
