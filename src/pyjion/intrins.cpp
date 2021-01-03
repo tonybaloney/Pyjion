@@ -1187,6 +1187,7 @@ PyObject * PyJit_BuildDictFromTuples(PyObject *keys_and_values) {
     assert(keys_and_values != nullptr);
     auto len = PyTuple_GET_SIZE(keys_and_values) - 1;
     PyObject* keys = PyTuple_GET_ITEM(keys_and_values, len);
+    assert(keys != nullptr);
     if (!PyTuple_Check(keys)){
         PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are %s,not tuple type.", keys->ob_type->tp_name);
         return nullptr;
@@ -1359,12 +1360,19 @@ int PyJit_DeleteSubscr(PyObject *container, PyObject *index) {
 }
 
 PyObject* PyJit_CallN(PyObject *target, PyObject* args) {
+    assert(target != nullptr);
     // we stole references for the tuple...
 #ifdef GIL
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
 #endif
-    auto res = PyObject_Call(target, args, nullptr);
+    int n_args = PyTuple_Size(args);
+    PyObject *stack[n_args];
+    for (int i = 0 ; i  < n_args ; i++) {
+        stack[i] = PyTuple_GET_ITEM(args, i);
+    }
+    // TODO implement tracing.
+    auto res = PyObject_Vectorcall(target, stack, n_args | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
 #ifdef GIL
     PyGILState_Release(gstate);
 #endif
