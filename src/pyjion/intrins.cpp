@@ -2122,7 +2122,6 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         delete method_info;
         return nullptr;
     }
-    // TODO : Support vector arg calls.
     if (method_info->object != nullptr)
     {
         auto target = method_info->method;
@@ -2135,33 +2134,53 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
             return nullptr;
         }
         auto obj =  method_info->object;
-        auto args_tuple = PyTuple_New(PyTuple_Size(args) + 1);
+        if (PyCFunction_Check(target)) {
+            const auto args_vec_size = PyTuple_Size(args) + 1;
+            auto* args_vec = new PyObject*[args_vec_size];
+            args_vec[0] = obj;
+            Py_INCREF(obj);
+            for (int i = 0; i < PyTuple_Size(args); ++i) {
+                auto* arg = PyTuple_GET_ITEM(args, i);
+                args_vec[i + 1] = arg;
+                Py_INCREF(arg);
+            }
+#ifdef GIL
+            PyGILState_STATE gstate;
+            gstate = PyGILState_Ensure();
+#endif
+            res = PyObject_Vectorcall(target, args_vec, args_vec_size, nullptr);
+#ifdef GIL
+            PyGILState_Release(gstate);
+#endif
+            delete[] args_vec;
+        } else {
+            auto args_tuple = PyTuple_New(PyTuple_Size(args) + 1);
 
-        assert(obj != nullptr);
-        if (PyTuple_SetItem(args_tuple, 0, obj) == -1){
-            return nullptr;
-        }
-
-        Py_INCREF(obj);
-
-        for (int i = 0 ; i < PyTuple_Size(args) ; i ++){
-            auto ix = PyTuple_GET_ITEM(args, i);
-            assert(ix != nullptr);
-            if (PyTuple_SetItem(args_tuple, i+1, ix) == -1){
+            assert(obj != nullptr);
+            if (PyTuple_SetItem(args_tuple, 0, obj) == -1){
                 return nullptr;
             }
-            Py_INCREF(ix);
-        }
 
+            Py_INCREF(obj);
+
+            for (int i = 0 ; i < PyTuple_Size(args) ; i ++){
+                auto ix = PyTuple_GET_ITEM(args, i);
+                assert(ix != nullptr);
+                if (PyTuple_SetItem(args_tuple, i+1, ix) == -1){
+                    return nullptr;
+                }
+                Py_INCREF(ix);
+            }
 #ifdef GIL
-        PyGILState_STATE gstate;
-        gstate = PyGILState_Ensure();
+            PyGILState_STATE gstate;
+            gstate = PyGILState_Ensure();
 #endif
-        res = PyObject_Call(target, args_tuple, nullptr);
+            res = PyObject_Call(target, args_tuple, nullptr);
 #ifdef GIL
-        PyGILState_Release(gstate);
+            PyGILState_Release(gstate);
 #endif
-        Py_DECREF(args_tuple);
+            Py_DECREF(args_tuple);
+        }
         Py_DECREF(args);
         Py_DECREF(target);
         Py_DECREF(obj);
