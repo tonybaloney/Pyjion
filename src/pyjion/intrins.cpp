@@ -1921,8 +1921,12 @@ inline PyObject* Call(PyObject *target, Args...args) {
 PyObject* Call0(PyObject *target) {
     PyObject* res = nullptr;
     auto tstate = PyThreadState_GET();
-    if (target == nullptr)
+    if (target == nullptr){
+        if (!PyErr_Occurred())
+            PyErr_Format(PyExc_TypeError,
+                         "missing target in call");
         return nullptr;
+    }
 #ifdef GIL
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
@@ -2116,6 +2120,8 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         auto target = method_info->method;
         if (target == nullptr)
         {
+            PyErr_Format(PyExc_ValueError,
+                         "cannot resolve method call");
             Py_DECREF(args);
             delete method_info;
             return nullptr;

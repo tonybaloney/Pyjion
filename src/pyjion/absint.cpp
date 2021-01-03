@@ -1385,7 +1385,6 @@ void AbstractInterpreter::makeFunction(int oparg) {
             m_comp->emit_load_and_free_local(tmp);
             m_comp->emit_set_closure();
             decStack();
-
         }
         if (oparg & 0x04) {
             // annoations
