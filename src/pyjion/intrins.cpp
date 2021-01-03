@@ -2135,20 +2135,27 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         }
         auto obj =  method_info->object;
         if (PyCFunction_Check(target)) {
-            const auto args_vec_size = PyTuple_Size(args) + 1;
+            // We allocate an additional two slots. One is for the `self` argument since we're
+            // executing a method. The other is to leave space at the beginning of the vector so we
+            // can use the `PY_VECTORCALL_ARGUMENTS_OFFSET` flag and avoid an allocation in the callee.
+            const auto args_vec_size = PyTuple_Size(args) + 2;
             auto* args_vec = new PyObject*[args_vec_size];
-            args_vec[0] = obj;
+            args_vec[1] = obj;
             Py_INCREF(obj);
             for (int i = 0; i < PyTuple_Size(args); ++i) {
                 auto* arg = PyTuple_GET_ITEM(args, i);
-                args_vec[i + 1] = arg;
+                assert(i + 2 < args_vec_size);
+                args_vec[i + 2] = arg;
                 Py_INCREF(arg);
             }
 #ifdef GIL
             PyGILState_STATE gstate;
             gstate = PyGILState_Ensure();
 #endif
-            res = PyObject_Vectorcall(target, args_vec, args_vec_size, nullptr);
+            // The `PY_VECTORCALL_ARGUMENTS_OFFSET` flag lets callees know that they're allowed to
+            // write to `args[-1]` so we should pass the pointer to the first item in our vector and
+            // subtract one from the size argument.
+            res = PyObject_Vectorcall(target, args_vec + 1, (args_vec_size - 1) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
 #ifdef GIL
             PyGILState_Release(gstate);
 #endif
