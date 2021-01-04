@@ -25,8 +25,12 @@ with open(os.path.join(SAVEDCWD, args.fromfile)) as fp:
 
 for test in tests:
     test_cases = unittest.defaultTestLoader.loadTestsFromName(f"test.{test}")
-    pyjion.enable()
-    result = test_cases.run(unittest.result.TestResult())
-    print(result)
-    pyjion.disable()
-    gc.collect()
+    print(f"Testing {test}")
+    for case in test_cases:
+        pyjion.enable()
+        r = unittest.result.TestResult()
+        case.run(r)
+        print(r)
+        pyjion.disable()
+        gc.collect()
+
