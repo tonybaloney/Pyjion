@@ -2448,7 +2448,7 @@ void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound) {
     }
 
     m_comp->emit_dup();
-    m_comp->emit_incref(false);
+    m_comp->emit_incref();
 }
 
 void AbstractInterpreter::unpackEx(size_t size, int opcode) {

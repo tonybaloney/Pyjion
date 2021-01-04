@@ -124,6 +124,8 @@ PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, Py_ssize_t index)
     PyObject* res;
 
     if (o == nullptr || key == nullptr) {
+        PyErr_SetString(PyExc_ValueError,
+                        "Internal call, PyJit_SubscrIndex with key or container null");
         return nullptr;
     }
 
@@ -1864,8 +1866,12 @@ template<typename T, typename ... Args>
 inline PyObject* Call(PyObject *target, Args...args) {
     auto tstate = PyThreadState_GET();
     PyObject* res = nullptr;
-    if (target == nullptr)
+    if (target == nullptr) {
+        if (!PyErr_Occurred())
+            PyErr_Format(PyExc_TypeError,
+                         "missing target in call");
         return nullptr;
+    }
     if (PyCFunction_Check(target)) {
         PyObject* _args[sizeof...(args)] = {args...};
 #ifdef GIL
@@ -2187,9 +2193,8 @@ PyObject* PyJit_KwCallN(PyObject *target, PyObject* args, PyObject* names) {
 		goto error;
 	}
 	for (auto i = 0; i < argCount; i++) {
-		auto item = PyTuple_GET_ITEM(args, i);
+		auto item = PyTuple_GetItem(args, i);
 		Py_INCREF(item);
-		assert(item != nullptr);
 		if (PyTuple_SetItem(posArgs, i, item) == -1){
 		    goto error;
 		}

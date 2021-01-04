@@ -192,7 +192,7 @@ void PythonCompiler::emit_trace_exception() {
     m_il.emit_call(METHOD_TRACE_EXCEPTION);
 }
 
-void PythonCompiler::emit_incref(bool maybeTagged = false) {
+void PythonCompiler::emit_incref() {
     LD_FIELDA(PyObject, ob_refcnt);
     m_il.dup();
     m_il.ld_ind_i();
@@ -486,7 +486,7 @@ void PythonCompiler::emit_dup_top() {
     // Dup top and incref
     m_il.dup();
     m_il.dup();
-    emit_incref(true);
+    emit_incref();
 }
 
 void PythonCompiler::emit_dup_top_two() {
@@ -502,9 +502,9 @@ void PythonCompiler::emit_dup_top_two() {
     m_il.ld_loc(top);
 
     m_il.ld_loc(top);
-    emit_incref(true);
+    emit_incref();
     m_il.ld_loc(second);
-    emit_incref(true);
+    emit_incref();
 
     m_il.free_local(top);
     m_il.free_local(second);
@@ -703,7 +703,7 @@ void PythonCompiler::emit_new_tuple(size_t size) {
         m_il.ld_i(PyTuple_New(0));
         m_il.dup();
         // incref 0-tuple so it never gets freed
-        emit_incref(false);
+        emit_incref();
     }
     else {
         m_il.ld_i4(size);
@@ -737,6 +737,9 @@ void PythonCompiler::emit_tuple_store(size_t argCnt) {
 
         // store into the array
         m_il.st_ind_i();
+
+        m_il.ld_loc(valueTmp);
+        emit_incref();
     }
     m_il.ld_loc(tupleTmp);
 
