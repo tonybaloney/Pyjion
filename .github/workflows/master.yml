@@ -70,10 +70,12 @@ jobs:
       - name: Run smoke tests
         shell: bash
         run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
+        continue-on-error: true
 
       - name: Run full test suite
         shell: bash
         run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests.txt -v
+        continue-on-error: true
 
       - name: Install scikit-build for wheel
         shell: bash
@@ -157,10 +159,12 @@ jobs:
       - name: Run smoke tests
         shell: bash
         run: python -X dev Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
+        continue-on-error: true
 
       - name: Run full test suite
         shell: bash
         run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_macos10.txt -v
+        continue-on-error: true
 
       - name: Build Python Wheel
         shell: bash
@@ -234,10 +238,12 @@ jobs:
       - name: Run smoke tests
         shell: bash
         run: python -X dev Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
+        continue-on-error: true
 
       - name: Run full test suite
         shell: bash
         run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_macos11.txt -v
+        continue-on-error: true
 
       - name: Build Python Wheel
         shell: bash
@@ -326,8 +332,12 @@ jobs:
       - name: Run smoke tests
         shell: bash
         run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
+        continue-on-error: true
+
 
       - name: Run full test suite
         shell: bash
         run: python -X dev -q Tests/runlibregr.py -f Tests/python_tests_win.txt -v
+        continue-on-error: true
+
 
