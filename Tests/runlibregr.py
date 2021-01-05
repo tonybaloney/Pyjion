@@ -31,7 +31,16 @@ for test in tests:
         pyjion.enable()
         r = unittest.result.TestResult()
         case.run(r)
-        print(r)
+        if r.wasSuccessful():
+            print(f"All tests in case successful.")
+        else:
+            print(f"Failures occurred.")
+            for failedcase, reason in r.failures:
+                print(f"---------------------------------------------------------------")
+                print(f"Test case {failedcase} failed:")
+                print(reason)
+                print(f"---------------------------------------------------------------")
+
         pyjion.disable()
         gc.collect()
 
