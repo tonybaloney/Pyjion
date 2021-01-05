@@ -1,5 +1,6 @@
 import pyjion
 import unittest
+import gc
 
 
 class JitInfoModuleTestCase(unittest.TestCase):
@@ -9,6 +10,7 @@ class JitInfoModuleTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         pyjion.disable()
+        gc.collect()
 
     def test_once(self):
         def test_f():

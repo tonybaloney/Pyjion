@@ -1,3 +1,4 @@
+import gc
 import pyjion
 import unittest
 
@@ -9,6 +10,7 @@ class FunctionCallsTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         pyjion.disable()
+        gc.collect()
 
     def test_arg0(self):
         def arg0() -> int:

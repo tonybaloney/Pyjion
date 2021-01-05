@@ -3,6 +3,7 @@ import pyjion
 import unittest
 import io
 import contextlib
+import gc
 
 
 class DisassemblerModuleTestCase(unittest.TestCase):
@@ -12,6 +13,7 @@ class DisassemblerModuleTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         pyjion.disable()
+        gc.collect()
 
     def test_fat(self):
         def test_f():

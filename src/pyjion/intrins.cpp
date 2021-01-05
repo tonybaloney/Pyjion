@@ -124,6 +124,8 @@ PyObject* PyJit_SubscrIndex(PyObject *o, PyObject *key, Py_ssize_t index)
     PyObject* res;
 
     if (o == nullptr || key == nullptr) {
+        PyErr_SetString(PyExc_ValueError,
+                        "Internal call, PyJit_SubscrIndex with key or container null");
         return nullptr;
     }
 
@@ -1187,6 +1189,10 @@ PyObject * PyJit_BuildDictFromTuples(PyObject *keys_and_values) {
     assert(keys_and_values != nullptr);
     auto len = PyTuple_GET_SIZE(keys_and_values) - 1;
     PyObject* keys = PyTuple_GET_ITEM(keys_and_values, len);
+    if (keys == nullptr){
+        PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are null.");
+        return nullptr;
+    }
     if (!PyTuple_Check(keys)){
         PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are %s,not tuple type.", keys->ob_type->tp_name);
         return nullptr;
@@ -1864,8 +1870,12 @@ template<typename T, typename ... Args>
 inline PyObject* Call(PyObject *target, Args...args) {
     auto tstate = PyThreadState_GET();
     PyObject* res = nullptr;
-    if (target == nullptr)
+    if (target == nullptr) {
+        if (!PyErr_Occurred())
+            PyErr_Format(PyExc_TypeError,
+                         "missing target in call");
         return nullptr;
+    }
     if (PyCFunction_Check(target)) {
         PyObject* _args[sizeof...(args)] = {args...};
 #ifdef GIL
@@ -1900,7 +1910,8 @@ inline PyObject* Call(PyObject *target, Args...args) {
         std::vector<PyObject*> args_v = {args...};
         for (int i = 0; i < args_v.size() ; i ++) {
             Py_INCREF(args_v[i]);
-            PyTuple_SET_ITEM(t_args, i, args_v[i]);
+            assert(args_v[i] != nullptr);
+            PyTuple_SetItem(t_args, i, args_v[i]);
         }
 #ifdef GIL
         PyGILState_STATE gstate;
@@ -1920,8 +1931,12 @@ inline PyObject* Call(PyObject *target, Args...args) {
 PyObject* Call0(PyObject *target) {
     PyObject* res = nullptr;
     auto tstate = PyThreadState_GET();
-    if (target == nullptr)
+    if (target == nullptr){
+        if (!PyErr_Occurred())
+            PyErr_Format(PyExc_TypeError,
+                         "missing target in call");
         return nullptr;
+    }
 #ifdef GIL
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
@@ -2115,18 +2130,31 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         auto target = method_info->method;
         if (target == nullptr)
         {
+            PyErr_Format(PyExc_ValueError,
+                         "cannot resolve method call");
             Py_DECREF(args);
             delete method_info;
             return nullptr;
         }
         auto obj =  method_info->object;
         auto args_tuple = PyTuple_New(PyTuple_Size(args) + 1);
-        PyTuple_SET_ITEM(args_tuple, 0, obj);
-        Py_INCREF(obj);
-        for (int i = 0 ; i < PyTuple_Size(args) ; i ++){
-            PyTuple_SET_ITEM(args_tuple, i+1, PyTuple_GET_ITEM(args, i));
-            Py_INCREF(PyTuple_GET_ITEM(args, i));
+
+        assert(obj != nullptr);
+        if (PyTuple_SetItem(args_tuple, 0, obj) == -1){
+            return nullptr;
         }
+
+        Py_INCREF(obj);
+
+        for (int i = 0 ; i < PyTuple_Size(args) ; i ++){
+            auto ix = PyTuple_GET_ITEM(args, i);
+            assert(ix != nullptr);
+            if (PyTuple_SetItem(args_tuple, i+1, ix) == -1){
+                return nullptr;
+            }
+            Py_INCREF(ix);
+        }
+
 #ifdef GIL
         PyGILState_STATE gstate;
         gstate = PyGILState_Ensure();
@@ -2169,9 +2197,11 @@ PyObject* PyJit_KwCallN(PyObject *target, PyObject* args, PyObject* names) {
 		goto error;
 	}
 	for (auto i = 0; i < argCount; i++) {
-		auto item = PyTuple_GET_ITEM(args, i);
+		auto item = PyTuple_GetItem(args, i);
 		Py_INCREF(item);
-		PyTuple_SET_ITEM(posArgs, i, item);
+		if (PyTuple_SetItem(posArgs, i, item) == -1){
+		    goto error;
+		}
 	}
 	kwArgs = PyDict_New();
 	if (kwArgs == nullptr) {

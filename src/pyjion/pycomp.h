@@ -431,7 +431,7 @@ public:
     // Dups the current value on the stack, performing no operations related to reference counting
     void emit_dup() override;
 
-    void emit_incref(bool maybeTagged) override;
+    void emit_incref() override;
 
     void emit_debug_msg(const char* msg) override;
 

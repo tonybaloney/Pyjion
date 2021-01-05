@@ -1,5 +1,6 @@
 import pyjion
 import unittest
+import gc
 
 
 class RecursionTestCase(unittest.TestCase):
@@ -9,6 +10,7 @@ class RecursionTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         pyjion.disable()
+        gc.collect()
 
     def test_basic(self):
         def _f():

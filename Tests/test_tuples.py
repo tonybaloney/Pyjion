@@ -1,6 +1,6 @@
 import unittest
 import pyjion
-
+import gc
 
 class TupleTestCase(unittest.TestCase):
 
@@ -9,6 +9,7 @@ class TupleTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         pyjion.disable()
+        gc.collect()
 
     def test_tuple_prepopulated(self):
         l = (0, 1, 2, 3, 4)

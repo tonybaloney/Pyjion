@@ -5,6 +5,7 @@ import io
 import contextlib
 import dis
 import sys
+import gc
 
 
 class TracingTestCase(unittest.TestCase):
@@ -22,6 +23,7 @@ class TracingTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         pyjion.disable()
+        gc.collect()
 
     def test_traces_in_code(self):
         def test_f():

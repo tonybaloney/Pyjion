@@ -1386,7 +1386,6 @@ void AbstractInterpreter::makeFunction(int oparg) {
             m_comp->emit_load_and_free_local(tmp);
             m_comp->emit_set_closure();
             decStack();
-
         }
         if (oparg & 0x04) {
             // annoations
@@ -2451,7 +2450,7 @@ void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound) {
     }
 
     m_comp->emit_dup();
-    m_comp->emit_incref(false);
+    m_comp->emit_incref();
 }
 
 void AbstractInterpreter::unpackEx(size_t size, int opcode) {
