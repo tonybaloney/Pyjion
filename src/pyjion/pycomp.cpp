@@ -706,7 +706,7 @@ void PythonCompiler::emit_new_tuple(size_t size) {
         emit_incref();
     }
     else {
-        m_il.ld_i4(size);
+        m_il.ld_i8(size);
         m_il.emit_call(METHOD_PYTUPLE_NEW);
     }
 }
