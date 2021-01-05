@@ -667,11 +667,27 @@ def dis(f):
 
 
 def dis_native(f):
+
     try:
         import distorm3
+        from rich.console import Console
+        from rich.syntax import Syntax
     except ImportError:
-        raise ModuleNotFoundError("Install distorm3 before disassembling native functions")
+        raise ModuleNotFoundError("Install distorm3 and rich before disassembling native functions")
+
     code, code_length, position = dump_native(f)
     iterable = distorm3.DecodeGenerator(position, bytes(code), distorm3.Decode64Bits)
-    for (offset, size, instruction, hexdump) in iterable:
-        print("%.8x: %s" % (offset, instruction))
+
+    disassembled = [(offset, instruction) for (offset, size, instruction, hexdump) in iterable]
+
+    console = Console()
+
+    offsets = ["%.8x" % offset for (offset, instruction) in disassembled]
+    instructions = [instruction for (offset, instruction) in disassembled]
+
+    syntax = Syntax("", lexer_name="nasm", theme="ansi_dark")
+    highlighted_lines = syntax.highlight("\n".join(instructions)).split("\n")
+
+    for (offset, line) in zip(offsets, highlighted_lines):
+        console.print("[grey]%s" % offset, style="dim", end=" ")
+        console.print(line)
