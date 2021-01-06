@@ -1898,20 +1898,16 @@ inline PyObject* Call(PyObject *target, Args...args) {
 #ifdef GIL
         PyGILState_Release(gstate);
 #endif
-    }
-    else {
+    } else {
         auto t_args = PyTuple_New(sizeof...(args));
         if (t_args == nullptr) {
-            std::vector<PyObject*> argsVector = {args...};
-            for (auto &i: argsVector)
-                Py_DECREF(i);
             goto error;
         }
         std::vector<PyObject*> args_v = {args...};
         for (int i = 0; i < args_v.size() ; i ++) {
-            Py_INCREF(args_v[i]);
             assert(args_v[i] != nullptr);
             PyTuple_SetItem(t_args, i, args_v[i]);
+            Py_INCREF(args_v[i]);
         }
 #ifdef GIL
         PyGILState_STATE gstate;
@@ -1925,6 +1921,8 @@ inline PyObject* Call(PyObject *target, Args...args) {
     }
     error:
     Py_DECREF(target);
+    for (auto &i: {args...})
+        Py_DECREF(i);
     return res;
 }
 
