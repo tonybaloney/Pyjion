@@ -1,7 +1,4 @@
 import sys
-# TODO : Remove this!
-sys.path.append("/Users/anthonyshaw/CLionProjects/pyjion/src")
-
 import pyjion
 import re
 import os
@@ -35,6 +32,12 @@ for test in tests:
             print(f"All tests in case successful.")
         else:
             print(f"Failures occurred.")
+            for failedcase, reason in r.expectedFailures:
+                print(f"---------------------------------------------------------------")
+                print(f"Test case {failedcase} was expected to fail:")
+                print(reason)
+                print(f"---------------------------------------------------------------")
+
             for failedcase, reason in r.failures:
                 print(f"---------------------------------------------------------------")
                 print(f"Test case {failedcase} failed:")

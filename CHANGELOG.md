@@ -11,6 +11,12 @@ the assignment logic.
 * Type inferencing has been improved for all inplace and binary operations
 * Windows builds from source are fixed for when the user wants to compile against a checkout of .NET
 * Implemented FAST_DISPATCH for additional opcodes
+* Added a test runner for the CPython regression suite that tests the JIT in isolation
+* Fixed a reference leak of (self) for the LOAD_METHOD opcode
+* Fixed a reference leak of non C functions being called via Call<N> (CALL_FUNCTION)
+* Fixed a bug where (very) large tuples being created via the BUILD_TUPLE opcode would cause an overflow error
+* Fixed a bug on BUILD_MAP being called with very large dictionaries caused a fatal error
+
 
 ## 0.5.0
 
