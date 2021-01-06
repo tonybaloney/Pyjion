@@ -719,6 +719,7 @@ void PythonCompiler::emit_tuple_load(size_t index) {
 }
 
 void PythonCompiler::emit_tuple_store(size_t argCnt) {
+    /// This function emits a tuple from the stack, only using borrowed references.
     auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     auto tupleTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     m_il.st_loc(tupleTmp);

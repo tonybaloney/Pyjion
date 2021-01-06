@@ -196,7 +196,7 @@ class FunctionCallsTestCase(unittest.TestCase):
         self.assertTrue(info['compiled'])
 
 
-class MethodCallsTestCase(unittest.TestCase):
+class ClassMethodCallsTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
@@ -214,7 +214,9 @@ class MethodCallsTestCase(unittest.TestCase):
                 d = 4
                 return a + b + c + d
 
+        self.assertEqual(sys.getrefcount(F.arg0), 1)
         self.assertEqual(F.arg0(), 10)
+        self.assertEqual(sys.getrefcount(F.arg0), 1)
         info = pyjion.info(F.arg0.__code__)
         self.assertTrue(info['compiled'])
 
@@ -222,13 +224,21 @@ class MethodCallsTestCase(unittest.TestCase):
         class F:
             @classmethod
             def arg1(cls, e):
-                a = 1
-                b = 2
-                c = 3
-                d = 4
+                a = '1'
+                b = '2'
+                c = '3'
+                d = '4'
                 return a + b + c + d + e
 
-        self.assertEqual(F.arg1(5), 15)
+        arg_a = 'e'
+        pre_ref_cnt = sys.getrefcount(arg_a)
+        self.assertEqual(sys.getrefcount(F), 5)
+        self.assertEqual(sys.getrefcount(F.arg1), 1)
+        self.assertEqual(F.arg1(arg_a), '1234e')
+        self.assertEqual(sys.getrefcount(arg_a), pre_ref_cnt)
+        self.assertEqual(sys.getrefcount(F), 5)
+        self.assertEqual(sys.getrefcount(F.arg1), 1)
+
         info = pyjion.info(F.arg1.__code__)
         self.assertTrue(info['compiled'])
 
