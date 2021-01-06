@@ -167,4 +167,20 @@ TEST_CASE("Test refcnt for Call methods"){
         CHECK(func->ob_refcnt == 1);
         CHECK(arg1->ob_refcnt == 1);
     }
+
+    SECTION("Test CallN") {
+        PyObject * func = CompileFunction("def f(x): return 1");
+        PyObject* arg1 = PyUnicode_FromString("hans shot first");
+        Py_INCREF(func); // imitate the loading of the function
+        Py_INCREF(arg1); // imitate the loading of the arg
+        CHECK(func->ob_refcnt == 2);
+        CHECK(arg1->ob_refcnt == 2);
+        auto args = PyTuple_New(1);
+        PyTuple_SET_ITEM(args, 0, arg1);
+        auto res = PyJit_CallN(func, args);
+
+        CHECK_THAT(PyUnicode_AsUTF8(PyObject_Repr(res)), Catch::Equals("1"));
+        CHECK(func->ob_refcnt == 1);
+        CHECK(arg1->ob_refcnt == 1);
+    }
 }

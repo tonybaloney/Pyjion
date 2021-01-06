@@ -175,6 +175,26 @@ class FunctionCallsTestCase(unittest.TestCase):
         info = pyjion.info(arg11)
         self.assertTrue(info['compiled'])
 
+    def test_arg15(self):
+        def arg15(e, f, g, h, i, j, k, l, m, n, o, p, q, r, s):
+            a = '1'
+            b = '2'
+            c = '3'
+            d = '4'
+            return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o
+
+        a = '5'
+        b = '6'
+        pre_ref_a = sys.getrefcount(a)
+        pre_ref_b = sys.getrefcount(b)
+        self.assertEqual(sys.getrefcount(arg15), 2)
+        self.assertEqual(arg15(a, b, '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'), '123456789101112131415')
+        self.assertEqual(sys.getrefcount(arg15), 2)
+        self.assertEqual(sys.getrefcount(a), pre_ref_a)
+        self.assertEqual(sys.getrefcount(b), pre_ref_b)
+        info = pyjion.info(arg15)
+        self.assertTrue(info['compiled'])
+
 
 class MethodCallsTestCase(unittest.TestCase):
 

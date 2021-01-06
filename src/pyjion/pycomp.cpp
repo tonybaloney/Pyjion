@@ -737,9 +737,6 @@ void PythonCompiler::emit_tuple_store(size_t argCnt) {
 
         // store into the array
         m_il.st_ind_i();
-
-        m_il.ld_loc(valueTmp);
-        emit_incref();
     }
     m_il.ld_loc(tupleTmp);
 
