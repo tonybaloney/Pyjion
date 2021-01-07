@@ -28,6 +28,17 @@ class FunctionCallsTestCase(unittest.TestCase):
         info = pyjion.info(arg0)
         self.assertTrue(info['compiled'])
 
+    def test_arg0_exc(self):
+        def arg0() -> int:
+            raise ValueError
+
+        self.assertEqual(sys.getrefcount(arg0), 2)
+        with self.assertRaises(ValueError):
+            arg0()
+        self.assertEqual(sys.getrefcount(arg0), 2)
+        info = pyjion.info(arg0)
+        self.assertTrue(info['compiled'])
+
     def test_arg1(self):
         def arg1(e):
             a = '1'
@@ -40,6 +51,21 @@ class FunctionCallsTestCase(unittest.TestCase):
         pre_ref = sys.getrefcount(a)
         self.assertEqual(sys.getrefcount(arg1), 2)
         self.assertEqual(arg1(a), '12345')
+        self.assertEqual(sys.getrefcount(arg1), 2)
+        self.assertEqual(sys.getrefcount(a), pre_ref)
+
+        info = pyjion.info(arg1)
+        self.assertTrue(info['compiled'])
+
+    def test_arg1_exc(self):
+        def arg1(e):
+            raise ValueError
+
+        a = '5'
+        pre_ref = sys.getrefcount(a)
+        self.assertEqual(sys.getrefcount(arg1), 2)
+        with self.assertRaises(ValueError):
+            arg1(a)
         self.assertEqual(sys.getrefcount(arg1), 2)
         self.assertEqual(sys.getrefcount(a), pre_ref)
 
@@ -195,6 +221,23 @@ class FunctionCallsTestCase(unittest.TestCase):
         info = pyjion.info(arg15)
         self.assertTrue(info['compiled'])
 
+    def test_arg15_exc(self):
+        def arg15(e, f, g, h, i, j, k, l, m, n, o, p, q, r, s):
+            raise ValueError
+
+        a = '5'
+        b = '6'
+        pre_ref_a = sys.getrefcount(a)
+        pre_ref_b = sys.getrefcount(b)
+        self.assertEqual(sys.getrefcount(arg15), 2)
+        with self.assertRaises(ValueError):
+            arg15(a, b, '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19')
+        self.assertEqual(sys.getrefcount(arg15), 2)
+        self.assertEqual(sys.getrefcount(a), pre_ref_a)
+        self.assertEqual(sys.getrefcount(b), pre_ref_b)
+        info = pyjion.info(arg15)
+        self.assertTrue(info['compiled'])
+
 
 class ClassMethodCallsTestCase(unittest.TestCase):
 
@@ -220,6 +263,19 @@ class ClassMethodCallsTestCase(unittest.TestCase):
         info = pyjion.info(F.arg0.__code__)
         self.assertTrue(info['compiled'])
 
+    def test_arg0_exc(self):
+        class F:
+            @classmethod
+            def arg0(cls) -> int:
+                raise ValueError
+
+        self.assertEqual(sys.getrefcount(F.arg0), 1)
+        with self.assertRaises(ValueError):
+            F.arg0()
+        self.assertEqual(sys.getrefcount(F.arg0), 1)
+        info = pyjion.info(F.arg0.__code__)
+        self.assertTrue(info['compiled'])
+
     def test_arg1(self):
         class F:
             @classmethod
@@ -235,6 +291,25 @@ class ClassMethodCallsTestCase(unittest.TestCase):
         self.assertEqual(sys.getrefcount(F), 5)
         self.assertEqual(sys.getrefcount(F.arg1), 1)
         self.assertEqual(F.arg1(arg_a), '1234e')
+        self.assertEqual(sys.getrefcount(arg_a), pre_ref_cnt)
+        self.assertEqual(sys.getrefcount(F), 5)
+        self.assertEqual(sys.getrefcount(F.arg1), 1)
+
+        info = pyjion.info(F.arg1.__code__)
+        self.assertTrue(info['compiled'])
+
+    def test_arg1_exc(self):
+        class F:
+            @classmethod
+            def arg1(cls, e):
+                raise ValueError
+
+        arg_a = 'e'
+        pre_ref_cnt = sys.getrefcount(arg_a)
+        self.assertEqual(sys.getrefcount(F), 5)
+        self.assertEqual(sys.getrefcount(F.arg1), 1)
+        with self.assertRaises(ValueError):
+            F.arg1(arg_a)
         self.assertEqual(sys.getrefcount(arg_a), pre_ref_cnt)
         self.assertEqual(sys.getrefcount(F), 5)
         self.assertEqual(sys.getrefcount(F.arg1), 1)
@@ -380,6 +455,110 @@ class ClassMethodCallsTestCase(unittest.TestCase):
 
         self.assertEqual(F.arg11(5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15), 120)
         info = pyjion.info(F.arg11.__code__)
+        self.assertTrue(info['compiled'])
+
+    def test_arg15_exc(self):
+        class F:
+            @classmethod
+            def arg15(cls, e, f, g, h, i, j, k, l, m, n, o, p ,q ,r,s):
+                raise ValueError
+
+        a = '1'
+        pre_ref_cnt = sys.getrefcount(a)
+        with self.assertRaises(ValueError):
+            F.arg15(a, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19)
+        self.assertEqual(sys.getrefcount(a), pre_ref_cnt)
+        info = pyjion.info(F.arg15.__code__)
+        self.assertTrue(info['compiled'])
+
+
+class FunctionKwCallsTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        pyjion.enable()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+        gc.collect()
+
+    def test_arg1(self):
+        def arg1(e):
+            a = '1'
+            b = '2'
+            c = '3'
+            d = '4'
+            return a + b + c + d + e
+
+        a = '5'
+        pre_ref = sys.getrefcount(a)
+        self.assertEqual(sys.getrefcount(arg1), 2)
+        self.assertEqual(arg1(e=a), '12345')
+        self.assertEqual(sys.getrefcount(arg1), 2)
+        self.assertEqual(sys.getrefcount(a), pre_ref)
+
+        info = pyjion.info(arg1)
+        self.assertTrue(info['compiled'])
+
+    def test_arg1_exc(self):
+        def arg1(e):
+            raise ValueError
+
+        a = '5'
+        pre_ref = sys.getrefcount(a)
+        self.assertEqual(sys.getrefcount(arg1), 2)
+        with self.assertRaises(ValueError):
+            arg1(e=a)
+        self.assertEqual(sys.getrefcount(arg1), 2)
+        self.assertEqual(sys.getrefcount(a), pre_ref)
+
+        info = pyjion.info(arg1)
+        self.assertTrue(info['compiled'])
+
+    def test_arg3(self):
+        def arg3(e, f=None, *args, **kwargs):
+            a = '1'
+            b = '2'
+            c = '3'
+            d = '4'
+            return a + b + c + d + e + f
+
+        a = '5'
+        b = '6'
+        c = '7'
+        pre_ref_a = sys.getrefcount(a)
+        pre_ref_b = sys.getrefcount(b)
+        pre_ref_c = sys.getrefcount(c)
+        self.assertEqual(sys.getrefcount(arg3), 2)
+        self.assertEqual(arg3(a, f=b, g=c), '123456')
+
+        self.assertEqual(sys.getrefcount(arg3), 2)
+        self.assertEqual(sys.getrefcount(a), pre_ref_a)
+        self.assertEqual(sys.getrefcount(b), pre_ref_b)
+        self.assertEqual(sys.getrefcount(c), pre_ref_c)
+
+        info = pyjion.info(arg3)
+        self.assertTrue(info['compiled'])
+
+    def test_arg3_exc(self):
+        def arg3(e, f=None, *args, **kwargs):
+            raise ValueError
+
+        a = '5'
+        b = '6'
+        c = '7'
+        pre_ref_a = sys.getrefcount(a)
+        pre_ref_b = sys.getrefcount(b)
+        pre_ref_c = sys.getrefcount(c)
+        self.assertEqual(sys.getrefcount(arg3), 2)
+        with self.assertRaises(ValueError):
+            arg3(a, f=b, g=c)
+
+        self.assertEqual(sys.getrefcount(arg3), 2)
+        self.assertEqual(sys.getrefcount(a), pre_ref_a)
+        self.assertEqual(sys.getrefcount(b), pre_ref_b)
+        self.assertEqual(sys.getrefcount(c), pre_ref_c)
+
+        info = pyjion.info(arg3)
         self.assertTrue(info['compiled'])
 
 
