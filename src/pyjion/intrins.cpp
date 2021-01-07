@@ -2159,6 +2159,9 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
 #ifdef GIL
             PyGILState_Release(gstate);
 #endif
+            for (int i = 1; i < args_vec_size; ++i) {
+                Py_DECREF(args_vec[i]);
+            }
             delete[] args_vec;
         } else {
             auto args_tuple = PyTuple_New(PyTuple_Size(args) + 1);
