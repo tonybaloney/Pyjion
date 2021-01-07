@@ -3,6 +3,8 @@ import sys
 import pyjion
 import pyjion.dis
 import unittest
+import math
+import time
 
 
 class FunctionCallsTestCase(unittest.TestCase):
@@ -28,6 +30,14 @@ class FunctionCallsTestCase(unittest.TestCase):
         info = pyjion.info(arg0)
         self.assertTrue(info['compiled'])
 
+    def test_arg0_cfunction(self):
+        target = time.time
+        pre_ref_cnt = sys.getrefcount(target)
+        self.assertIsNotNone(target())
+        self.assertEqual(sys.getrefcount(target), pre_ref_cnt)
+        info = pyjion.info(self.test_arg0_cfunction.__code__)
+        self.assertTrue(info['compiled'])
+
     def test_arg0_exc(self):
         def arg0() -> int:
             raise ValueError
@@ -37,6 +47,15 @@ class FunctionCallsTestCase(unittest.TestCase):
             arg0()
         self.assertEqual(sys.getrefcount(arg0), 2)
         info = pyjion.info(arg0)
+        self.assertTrue(info['compiled'])
+
+    def test_arg0_cfunction_exc(self):
+        target = math.sqrt
+        pre_ref_cnt = sys.getrefcount(target)
+        with self.assertRaises(TypeError):
+            target()
+        self.assertEqual(sys.getrefcount(target), pre_ref_cnt)
+        info = pyjion.info(self.test_arg0_cfunction_exc.__code__)
         self.assertTrue(info['compiled'])
 
     def test_arg1(self):
@@ -57,6 +76,17 @@ class FunctionCallsTestCase(unittest.TestCase):
         info = pyjion.info(arg1)
         self.assertTrue(info['compiled'])
 
+    def test_arg1_cfunction(self):
+        target = math.sqrt
+        four = 4
+        pre_ref_cnt = sys.getrefcount(target)
+        arg1_pre_ref_cnt = sys.getrefcount(four)
+        self.assertEqual(target(four), 2)
+        self.assertEqual(sys.getrefcount(target), pre_ref_cnt)
+        self.assertEqual(sys.getrefcount(four), arg1_pre_ref_cnt)
+        info = pyjion.info(self.test_arg1_cfunction.__code__)
+        self.assertTrue(info['compiled'])
+
     def test_arg1_exc(self):
         def arg1(e):
             raise ValueError
@@ -70,6 +100,18 @@ class FunctionCallsTestCase(unittest.TestCase):
         self.assertEqual(sys.getrefcount(a), pre_ref)
 
         info = pyjion.info(arg1)
+        self.assertTrue(info['compiled'])
+
+    def test_arg1_cfunction_exc(self):
+        target = math.sqrt
+        four = 'four'
+        pre_ref_cnt = sys.getrefcount(target)
+        arg1_pre_ref_cnt = sys.getrefcount(four)
+        with self.assertRaises(TypeError):
+            target(four)
+        self.assertEqual(sys.getrefcount(target), pre_ref_cnt)
+        self.assertEqual(sys.getrefcount(four), arg1_pre_ref_cnt)
+        info = pyjion.info(self.test_arg1_cfunction_exc.__code__)
         self.assertTrue(info['compiled'])
 
     def test_arg2(self):
@@ -219,6 +261,20 @@ class FunctionCallsTestCase(unittest.TestCase):
         self.assertEqual(sys.getrefcount(a), pre_ref_a)
         self.assertEqual(sys.getrefcount(b), pre_ref_b)
         info = pyjion.info(arg15)
+        self.assertTrue(info['compiled'])
+
+    def test_arg15_cfunction(self):
+        a = '5'
+        b = '6'
+        target = print
+        pre_ref_target = sys.getrefcount(target)
+        pre_ref_a = sys.getrefcount(a)
+        pre_ref_b = sys.getrefcount(b)
+        self.assertEqual(target(a, b, '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'), None)
+        self.assertEqual(sys.getrefcount(target), pre_ref_target)
+        self.assertEqual(sys.getrefcount(a), pre_ref_a)
+        self.assertEqual(sys.getrefcount(b), pre_ref_b)
+        info = pyjion.info(self.test_arg15_cfunction.__code__)
         self.assertTrue(info['compiled'])
 
     def test_arg15_exc(self):
