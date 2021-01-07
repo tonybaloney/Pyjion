@@ -12,6 +12,12 @@ class TupleTestCase(unittest.TestCase):
         pyjion.disable()
         gc.collect()
 
+    def test_identical_tuples(self):
+        l = ('0', '1')
+        m = ('0', '1')
+        self.assertEqual(sys.getrefcount(l), 4)
+        self.assertEqual(sys.getrefcount(m), 4)
+
     def test_tuple_prepopulated(self):
         l = ('0', '1', '2', '3', '4')
         r = sys.getrefcount(l)
