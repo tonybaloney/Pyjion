@@ -294,6 +294,21 @@ class FunctionCallsTestCase(unittest.TestCase):
         info = pyjion.info(arg15)
         self.assertTrue(info['compiled'])
 
+    def test_arg15_cfunction_exc(self):
+        a = '5'
+        b = '6'
+        target = any
+        pre_ref_a = sys.getrefcount(a)
+        pre_ref_b = sys.getrefcount(b)
+        pre_ref_target = sys.getrefcount(target)
+        with self.assertRaises(TypeError):
+            target(a, b, '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19')
+        self.assertEqual(sys.getrefcount(target), pre_ref_target)
+        self.assertEqual(sys.getrefcount(a), pre_ref_a)
+        self.assertEqual(sys.getrefcount(b), pre_ref_b)
+        info = pyjion.info(self.test_arg15_cfunction_exc.__code__)
+        self.assertTrue(info['compiled'])
+
 
 class ClassMethodCallsTestCase(unittest.TestCase):
 
