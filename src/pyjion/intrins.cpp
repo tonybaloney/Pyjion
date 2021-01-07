@@ -1365,17 +1365,59 @@ int PyJit_DeleteSubscr(PyObject *container, PyObject *index) {
 }
 
 PyObject* PyJit_CallN(PyObject *target, PyObject* args) {
-    // we stole references for the tuple...
+    PyObject* res;
+    auto tstate = PyThreadState_GET();
+    if(!PyTuple_Check(args)) {
+        PyErr_Format(PyExc_TypeError,
+                     "invalid arguments for function call");
+        Py_DECREF(args);
+        return nullptr;
+    }
+
+    if (PyCFunction_Check(target)) {
+        const auto args_vec_size = PyTuple_Size(args);
+        auto* args_vec = new PyObject*[args_vec_size];
+        for (int i = 0; i < args_vec_size; ++i) {
+            auto* arg = PyTuple_GET_ITEM(args, i);
+            assert(i < args_vec_size);
+            args_vec[i] = arg;
+            Py_INCREF(arg);
+        }
 #ifdef GIL
-    PyGILState_STATE gstate;
-    gstate = PyGILState_Ensure();
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
 #endif
-    auto res = PyObject_Call(target, args, nullptr);
+        if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
+            // Call the function with profiling hooks
+            trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
+            res = PyObject_Vectorcall(target, args_vec, args_vec_size | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+            if (res == nullptr)
+                trace(tstate, tstate->frame, PyTrace_C_EXCEPTION, target, tstate->c_profilefunc, tstate->c_profileobj);
+            else
+                trace(tstate, tstate->frame, PyTrace_C_RETURN, target, tstate->c_profilefunc, tstate->c_profileobj);
+        } else {
+            // Regular function call
+            res = PyObject_Vectorcall(target, args_vec, args_vec_size | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+        }
 #ifdef GIL
-    PyGILState_Release(gstate);
+        PyGILState_Release(gstate);
 #endif
-    Py_DECREF(target);
+        for (int i = 0; i < args_vec_size; ++i) {
+            Py_DECREF(args_vec[i]);
+        }
+        delete[] args_vec;
+    } else {
+#ifdef GIL
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
+#endif
+        res = PyObject_Call(target, args, nullptr);
+#ifdef GIL
+        PyGILState_Release(gstate);
+#endif
+    }
     Py_DECREF(args);
+    Py_DECREF(target);
     return res;
 }
 
