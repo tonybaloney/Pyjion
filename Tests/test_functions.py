@@ -383,5 +383,58 @@ class ClassMethodCallsTestCase(unittest.TestCase):
         self.assertTrue(info['compiled'])
 
 
+class FunctionKwCallsTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        pyjion.enable()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+        gc.collect()
+
+    def test_arg1(self):
+        def arg1(e):
+            a = '1'
+            b = '2'
+            c = '3'
+            d = '4'
+            return a + b + c + d + e
+
+        a = '5'
+        pre_ref = sys.getrefcount(a)
+        self.assertEqual(sys.getrefcount(arg1), 2)
+        self.assertEqual(arg1(e=a), '12345')
+        self.assertEqual(sys.getrefcount(arg1), 2)
+        self.assertEqual(sys.getrefcount(a), pre_ref)
+
+        info = pyjion.info(arg1)
+        self.assertTrue(info['compiled'])
+
+    def test_arg3(self):
+        def arg3(e, f=None, *args, **kwargs):
+            a = '1'
+            b = '2'
+            c = '3'
+            d = '4'
+            return a + b + c + d + e + f
+
+        a = '5'
+        b = '6'
+        c = '7'
+        pre_ref_a = sys.getrefcount(a)
+        pre_ref_b = sys.getrefcount(b)
+        pre_ref_c = sys.getrefcount(c)
+        self.assertEqual(sys.getrefcount(arg3), 2)
+        self.assertEqual(arg3(a, f=b, g=c), '123456')
+
+        self.assertEqual(sys.getrefcount(arg3), 2)
+        self.assertEqual(sys.getrefcount(a), pre_ref_a)
+        self.assertEqual(sys.getrefcount(b), pre_ref_b)
+        self.assertEqual(sys.getrefcount(c), pre_ref_c)
+
+        info = pyjion.info(arg3)
+        self.assertTrue(info['compiled'])
+
+
 if __name__ == "__main__":
     unittest.main()
