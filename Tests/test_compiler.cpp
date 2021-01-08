@@ -1642,3 +1642,30 @@ TEST_CASE("Test augassign"){
     }
 
 }
+
+TEST_CASE("Test and return"){
+    SECTION("test func ret builtin") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    l = [1,1,1,1]\n"
+                "    return all(x==1 for x in l) and all(x==2 for x in l)"
+        );
+        CHECK(t.returns() == "True");
+    }
+    SECTION("test func ret double") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    l = [1,1,1,1]\n"
+                "    return all(l) and all(l)"
+        );
+        CHECK(t.returns() == "True");
+    }
+    SECTION("test func ret simple") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    l = [1,1,1,1]\n"
+                "    return all(l)"
+        );
+        CHECK(t.returns() == "True");
+    }
+}

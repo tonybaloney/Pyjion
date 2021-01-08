@@ -2572,7 +2572,7 @@ void AbstractInterpreter::popJumpIf(bool isTrue, int opcodeIndex, int jumpTo) {
 
     // Branching, pop the value and branch
     m_comp->emit_mark_label(willJump);
-    m_comp->emit_pop_top();
+    m_comp->emit_pop(); // TODO : Remove this pop function without breaking the value stack logic.
     m_comp->emit_branch(BranchAlways, target);
 
     // Not branching, just pop the value and fall through
