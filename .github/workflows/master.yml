@@ -67,10 +67,13 @@ jobs:
         shell: bash
         run: python -m unittest discover Tests/
 
+      - name: Run nbody test
+        shell: bash
+        run: python Tests/test_nbody.py
+
       - name: Run smoke tests
         shell: bash
         run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
-        continue-on-error: true
 
       - name: Run full test suite
         shell: bash
@@ -159,7 +162,6 @@ jobs:
       - name: Run smoke tests
         shell: bash
         run: python -X dev Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
-        continue-on-error: true
 
       - name: Run full test suite
         shell: bash
@@ -235,10 +237,13 @@ jobs:
         shell: bash
         run: python -m unittest discover Tests/
 
+      - name: Run nbody test
+        shell: bash
+        run: python Tests/test_nbody.py
+
       - name: Run smoke tests
         shell: bash
         run: python -X dev Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
-        continue-on-error: true
 
       - name: Run full test suite
         shell: bash
@@ -329,11 +334,13 @@ jobs:
         shell: bash
         run: python -m unittest discover Tests/ -v
 
+      - name: Run nbody test
+        shell: bash
+        run: python Tests/test_nbody.py
+
       - name: Run smoke tests
         shell: bash
         run: python -X dev -q Tests/runlibregr.py -f Tests/python_smoke_tests.txt -v
-        continue-on-error: true
-
 
       - name: Run full test suite
         shell: bash
