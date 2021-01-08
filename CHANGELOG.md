@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.7.0
+
+* Fixed a bug in JUMP_IF_FALSE_OR_POP/JUMP_IF_TRUE_OR_POP opcodes emitting a stack growth, which would cause a stack underflow on subsequent branch checks. JIT will compile a broader range of functions now
+* Implemented PEP590 vector calls for methods with 10+ arguments (thanks @tetsuo-cpp)
+* Implemented PEP590 vector calls for functions with 10+ arguments
+* Fixed a reference leak on method calls with large number of arguments
+* Support for tracing of function calls with 10+ arguments
+
 ## 0.6.0
 
 * Added OPT-6 optimization. Frame constants are now used to speed up assignments to lists and dictionaries. STORE_SUBSCR will assert if something is a list, or dict and shortcut
