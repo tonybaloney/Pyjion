@@ -1753,11 +1753,13 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 intErrorCheck("delete subscr failed");
                 break;
             case BUILD_SLICE:
-                decStack(oparg);
+                assert(oparg == 2 || 3);
                 if (oparg != 3) {
                     m_comp->emit_null();
                 }
                 m_comp->emit_build_slice();
+                decStack(oparg);
+                errorCheck("slice failed");
                 incStack();
                 break;
             case BUILD_SET:
