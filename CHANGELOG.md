@@ -7,6 +7,7 @@
 * Implemented PEP590 vector calls for functions with 10+ arguments
 * Fixed a reference leak on method calls with large number of arguments
 * Support for tracing of function calls with 10+ arguments
+* Disabled OPT-4 as it is causing reference leaks
 
 ## 0.6.0
 
