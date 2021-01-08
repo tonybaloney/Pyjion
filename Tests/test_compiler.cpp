@@ -1650,7 +1650,7 @@ TEST_CASE("Test and return"){
                 "    l = [1,1,1,1]\n"
                 "    return all(x==1 for x in l) and all(x==2 for x in l)"
         );
-        CHECK(t.returns() == "True");
+        CHECK(t.returns() == "False");
     }
     SECTION("test func ret double") {
         auto t = CompilerTest(

@@ -1614,7 +1614,9 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 jumpAbsolute(oparg + curByte + sizeof(_Py_CODEUNIT), opcodeIndex); break;
             case JUMP_IF_FALSE_OR_POP:
             case JUMP_IF_TRUE_OR_POP:
-                jumpIfOrPop(byte != JUMP_IF_FALSE_OR_POP, opcodeIndex, oparg); break;
+                jumpIfOrPop(byte != JUMP_IF_FALSE_OR_POP, opcodeIndex, oparg);
+                skipEffect = true;
+                break;
             case JUMP_IF_NOT_EXC_MATCH:
                 jumpIfNotExact(opcodeIndex, oparg);
                 break;
@@ -2541,7 +2543,6 @@ void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) 
     m_comp->emit_pop_top();
 
     m_comp->emit_free_local(tmp);
-    incStack();
 }
 
 void AbstractInterpreter::popJumpIf(bool isTrue, int opcodeIndex, int jumpTo) {
