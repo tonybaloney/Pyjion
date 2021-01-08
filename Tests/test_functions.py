@@ -1,5 +1,4 @@
 import gc
-import pathlib
 import sys
 import pyjion
 import pyjion.dis
@@ -7,6 +6,33 @@ import unittest
 import math
 import time
 
+
+class ScopeLeaksTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        pyjion.enable()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+        gc.collect()
+
+    def test_slice(self):
+        a = "12345"
+
+        def x(a):
+            a = a[1:]
+        before = sys.getrefcount(a)
+        x(a)
+        self.assertEqual(before, sys.getrefcount(a))
+
+    def test_inplace_operator(self):
+        a = "12345"
+
+        def x(a):
+            a += a
+        before = sys.getrefcount(a)
+        x(a)
+        self.assertEqual(before, sys.getrefcount(a), pyjion.dis.dis(x))
 
 class FunctionCallsTestCase(unittest.TestCase):
 
