@@ -1,5 +1,4 @@
 import gc
-import pathlib
 import sys
 import pyjion
 import pyjion.dis
