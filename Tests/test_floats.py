@@ -2,6 +2,7 @@ import sys
 import gc
 import pyjion
 import pyjion.dis
+import dis
 import unittest
 
 INF = float("inf")
