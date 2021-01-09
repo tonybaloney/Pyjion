@@ -48,14 +48,20 @@ jobs:
         shell: bash
         run: cmake --build . --config $BUILD_TYPE
 
+
+      - name: Build Python Package
+        shell: bash
+        run: python -m pip install --upgrade pip && pip install .
+
+      - name: Run nbody test
+        shell: bash
+        run: python Tests/test_nbody.py
+
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build
         shell: bash
         run: ./unit_tests
 
-      - name: Build Python Package
-        shell: bash
-        run: python -m pip install --upgrade pip && pip install .
 
       - name: Test IPython REPL
         shell: bash
@@ -67,9 +73,6 @@ jobs:
         shell: bash
         run: python -m unittest discover Tests/
 
-      - name: Run nbody test
-        shell: bash
-        run: python Tests/test_nbody.py
 
       - name: Run smoke tests
         shell: bash
