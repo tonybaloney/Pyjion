@@ -143,6 +143,7 @@
 #define METHOD_SETUP_ANNOTATIONS                 0x00000078
 #define METHOD_DEALLOC_OBJECT                    0x00000079
 #define METHOD_LOAD_CLOSURE                      0x0000007A
+#define METHOD_TRIPLE_BINARY_OP                  0x0000007B
 
 // call helpers
 #define METHOD_CALL_0_TOKEN        0x00010000
@@ -460,7 +461,7 @@ public:
     void emit_profile_frame_exit() override;
 
     void emit_load_frame_locals() override;
-
+    void emit_triple_binary_op(int firstOp, int secondOp) override;
     JittedCode* emit_compile() override;
     void lift_n_to_top(int pos) override;
     void lift_n_to_second(int pos) override;

@@ -32,9 +32,12 @@
 
 #include "absint.h"
 #include "pyjit.h"
+#include "pyjitmath.h"
 
-#define GET_OPARG(index)  _Py_OPARG(mByteCode[(index)/sizeof(_Py_CODEUNIT)])
-#define GET_OPCODE(index) _Py_OPCODE(mByteCode[(index)/sizeof(_Py_CODEUNIT)])
+#define SIZEOF_CODEUNIT sizeof(_Py_CODEUNIT)
+#define GET_OPARG(index)  _Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
+#define GET_OPCODE(index) _Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
+
 
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
@@ -71,7 +74,7 @@ bool AbstractInterpreter::preprocess() {
     int oparg;
     vector<bool> ehKind;
     vector<AbsIntBlockInfo> blockStarts;
-    for (size_t curByte = 0; curByte < mSize; curByte += sizeof(_Py_CODEUNIT)) {
+    for (size_t curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
         auto opcodeIndex = curByte;
         auto byte = GET_OPCODE(curByte);
         oparg = GET_OPARG(curByte);
@@ -96,7 +99,7 @@ bool AbstractInterpreter::preprocess() {
             }
             case EXTENDED_ARG:
             {
-                curByte += sizeof(_Py_CODEUNIT);
+                curByte += SIZEOF_CODEUNIT;
                 oparg = (oparg << 8) | GET_OPARG(curByte);
                 byte = GET_OPCODE(curByte);
                 goto processOpCode;
@@ -131,7 +134,7 @@ bool AbstractInterpreter::preprocess() {
             case SETUP_ASYNC_WITH:
             case SETUP_FINALLY:
             case FOR_ITER:
-                blockStarts.emplace_back(opcodeIndex, oparg + curByte + sizeof(_Py_CODEUNIT));
+                blockStarts.emplace_back(opcodeIndex, oparg + curByte + SIZEOF_CODEUNIT);
                 ehKind.push_back(true);
                 break;
             case LOAD_GLOBAL:
@@ -154,7 +157,7 @@ bool AbstractInterpreter::preprocess() {
             }
             break;
             case JUMP_FORWARD:
-                m_jumpsTo.insert(oparg + curByte + sizeof(_Py_CODEUNIT));
+                m_jumpsTo.insert(oparg + curByte + SIZEOF_CODEUNIT);
                 break;
             case JUMP_ABSOLUTE:
             case JUMP_IF_FALSE_OR_POP:
@@ -211,7 +214,7 @@ bool AbstractInterpreter::interpret() {
         int oparg;
         auto cur = queue.front();
         queue.pop_front();
-        for (size_t curByte = cur; curByte < mSize; curByte += sizeof(_Py_CODEUNIT)) {
+        for (size_t curByte = cur; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
             // get our starting state when we entered this opcode
             InterpreterState lastState = mStartStates.find(curByte)->second;
 
@@ -226,7 +229,7 @@ bool AbstractInterpreter::interpret() {
             bool skipEffect = false;
             switch (opcode) {
                 case EXTENDED_ARG: {
-                    curByte += sizeof(_Py_CODEUNIT);
+                    curByte += SIZEOF_CODEUNIT;
                     oparg = (oparg << 8) | GET_OPARG(curByte);
                     opcode = GET_OPCODE(curByte);
                     updateStartState(lastState, curByte);
@@ -459,8 +462,8 @@ bool AbstractInterpreter::interpret() {
                     // to the following opcodes before we'll process them.
                     goto next;
                 case JUMP_FORWARD:
-                    if (updateStartState(lastState, (size_t) oparg + curByte + sizeof(_Py_CODEUNIT))) {
-                        queue.push_back((size_t) oparg + curByte + sizeof(_Py_CODEUNIT));
+                    if (updateStartState(lastState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
+                        queue.push_back((size_t) oparg + curByte + SIZEOF_CODEUNIT);
                     }
                     // Done processing this basic block, we'll need to see a branch
                     // to the following opcodes before we'll process them.
@@ -677,7 +680,6 @@ bool AbstractInterpreter::interpret() {
                     // about their deletion.
                     break;
                 case GET_ITER:
-                    // TODO: Push iterable type on GET_ITER
                     lastState.pop();
                     lastState.push(&Iterable);
                     break;
@@ -685,8 +687,8 @@ bool AbstractInterpreter::interpret() {
                     // For branches out with the value consumed
                     auto leaveState = lastState;
                     leaveState.pop();
-                    if (updateStartState(leaveState, (size_t) oparg + curByte + sizeof(_Py_CODEUNIT))) {
-                        queue.push_back((size_t) oparg + curByte + sizeof(_Py_CODEUNIT));
+                    if (updateStartState(leaveState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
+                        queue.push_back((size_t) oparg + curByte + SIZEOF_CODEUNIT);
                     }
 
                     // When we compile this we don't actually leave the value on the stack,
@@ -742,9 +744,9 @@ bool AbstractInterpreter::interpret() {
                 case SETUP_WITH: {
                     auto finallyState = lastState;
                     finallyState.push(&Any);
-                    if (updateStartState(finallyState, (size_t) oparg + curByte + sizeof(_Py_CODEUNIT))) {
+                    if (updateStartState(finallyState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
                         jump = 1;
-                        queue.push_back((size_t) oparg + curByte + sizeof(_Py_CODEUNIT));
+                        queue.push_back((size_t) oparg + curByte + SIZEOF_CODEUNIT);
                     }
                     lastState.push(&Any);
                     goto next;
@@ -759,8 +761,8 @@ bool AbstractInterpreter::interpret() {
                     ehState.push(&Any);
                     ehState.push(&Any);
                     ehState.push(&Any);
-                    if (updateStartState(ehState, (size_t) oparg + curByte + sizeof(_Py_CODEUNIT))) {
-                        queue.push_back((size_t)oparg + curByte + sizeof(_Py_CODEUNIT));
+                    if (updateStartState(ehState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
+                        queue.push_back((size_t)oparg + curByte + SIZEOF_CODEUNIT);
                     }
                     break;
                 }
@@ -864,7 +866,7 @@ bool AbstractInterpreter::interpret() {
 #ifdef DEBUG
             assert(skipEffect || PyCompile_OpcodeStackEffectWithJump(opcode, oparg, jump) == (lastState.stackSize() - curStackLen));
 #endif
-            updateStartState(lastState, curByte + sizeof(_Py_CODEUNIT));
+            updateStartState(lastState, curByte + SIZEOF_CODEUNIT);
         }
 
     next:;
@@ -1518,8 +1520,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_blockStack.push_back(BlockInfo(-1, NOP, rootHandler));
 
     // Loop through all opcodes in this frame
-    for (int curByte = 0; curByte < mSize; curByte += sizeof(_Py_CODEUNIT)) {
-        assert(curByte % sizeof(_Py_CODEUNIT) == 0);
+    for (int curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
+        assert(curByte % SIZEOF_CODEUNIT == 0);
 
         // opcodeIndex is the opcode position (matches the dis.dis() output)
         auto opcodeIndex = curByte;
@@ -1559,6 +1561,17 @@ JittedCode* AbstractInterpreter::compileWorker() {
 
         int curStackSize = m_stack.size();
         bool skipEffect = false;
+
+        auto next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
+
+        if (OPT_ENABLED(tripleBinaryFunctions) && isBinaryMathOp(byte) && isMathOp(next_byte)){
+            m_comp->emit_triple_binary_op(byte, next_byte);
+            decStack(3);
+            errorCheck("binary math op failed");
+            incStack();
+            curByte += SIZEOF_CODEUNIT;
+            continue;
+        }
 
         switch (byte) {
             case NOP: break;
@@ -1611,7 +1624,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case JUMP_ABSOLUTE:
                 jumpAbsolute(oparg, opcodeIndex); break;
             case JUMP_FORWARD:
-                jumpAbsolute(oparg + curByte + sizeof(_Py_CODEUNIT), opcodeIndex); break;
+                jumpAbsolute(oparg + curByte + SIZEOF_CODEUNIT, opcodeIndex); break;
             case JUMP_IF_FALSE_OR_POP:
             case JUMP_IF_TRUE_OR_POP:
                 jumpIfOrPop(byte != JUMP_IF_FALSE_OR_POP, opcodeIndex, oparg);
@@ -1818,7 +1831,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 returnValue(opcodeIndex); break;
             case EXTENDED_ARG:
             {
-                curByte += sizeof(_Py_CODEUNIT);
+                curByte += SIZEOF_CODEUNIT;
                 oparg = (oparg << 8) | GET_OPARG(curByte);
                 byte = GET_OPCODE(curByte);
 
@@ -1853,7 +1866,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             {
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
-                auto jumpTo = curByte + oparg + sizeof(_Py_CODEUNIT);
+                auto jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
                 forIter(
                         jumpTo
                 );
@@ -1940,7 +1953,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case SETUP_FINALLY:
             {
                 auto current = m_blockStack.back();
-                auto jumpTo = oparg + curByte + sizeof(_Py_CODEUNIT);
+                auto jumpTo = oparg + curByte + SIZEOF_CODEUNIT;
                 auto handlerLabel = m_comp->emit_define_label();
 
                 auto newHandler = m_exceptionHandler.AddSetupFinallyHandler(
