@@ -93,6 +93,8 @@ PyObject* PyJitMath_TripleBinaryOp(PyObject* c, PyObject* a, PyObject* b, int fi
         res =  PyJitMath_TripleBinaryOpIntFloatFloat(a, b, c, firstOp, secondOp);
     else if (PyFloat_CheckExact(a) && PyLong_CheckExact(b) && PyLong_CheckExact(c))
         res =  PyJitMath_TripleBinaryOpFloatIntInt(a, b, c, firstOp, secondOp);
+    else if (PyUnicode_Check(a) && PyUnicode_Check(b) && PyUnicode_Check(c))
+        res =  PyJitMath_TripleBinaryOpStrStrStr(a, b, c, firstOp, secondOp);
     else
         res =  PyJitMath_TripleBinaryOpObjObjObj(a, b, c, firstOp, secondOp);
     // Decref first op
@@ -369,6 +371,7 @@ PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b, PyObje
 
 PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
     PyObject* res;
+    PyObject* res2;
     switch(firstOp) {
         case BINARY_TRUE_DIVIDE:
             res = PyNumber_TrueDivide(a, b);
@@ -377,8 +380,8 @@ PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyObject* 
             res = PyNumber_FloorDivide(a, b);
             break;
         case BINARY_MODULO:
-            UNSUPPORTED_MATH_OP(firstOp);
-            return nullptr;
+            res = PyNumber_Remainder(a, b);
+            break;
         case BINARY_MATRIX_MULTIPLY:
             res = PyNumber_MatrixMultiply(a, b);
             break;
@@ -392,41 +395,94 @@ PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyObject* 
             res = PyNumber_Add(a, b);
             break;
     }
+
     switch (secondOp){
         case BINARY_TRUE_DIVIDE:
-            return PyNumber_TrueDivide(c, res);
+            res2 = PyNumber_TrueDivide(c, res);
+            break;
         case BINARY_FLOOR_DIVIDE:
-            return PyNumber_FloorDivide(c, res);
+            res2 = PyNumber_FloorDivide(c, res);
+            break;
         case BINARY_POWER:
-            return PyNumber_TrueDivide(c, res);
+            res2 = PyNumber_TrueDivide(c, res);
+            break;
         case BINARY_MODULO:
-            UNSUPPORTED_MATH_OP(firstOp);
-            return nullptr;
+            res2 = PyNumber_Remainder(c, res);
+            break;
         case BINARY_MATRIX_MULTIPLY:
-            return PyNumber_MatrixMultiply(c, res);
+            res2 = PyNumber_MatrixMultiply(c, res);
+            break;
         case BINARY_MULTIPLY:
-            return PyNumber_Multiply(c, res);
+            res2 =  PyNumber_Multiply(c, res);
+            break;
         case BINARY_SUBTRACT:
-            return PyNumber_Subtract(c, res);
+            res2 =  PyNumber_Subtract(c, res);
+            break;
         case BINARY_ADD:
-            return PyNumber_Add(c, res);
+            res2 =  PyNumber_Add(c, res);
+            break;
         case INPLACE_POWER:
-            UNSUPPORTED_MATH_OP(firstOp);
-            return nullptr;
+            res2 =  PyNumber_InPlacePower(c, res, Py_None);
+            break;
         case INPLACE_MULTIPLY:
-            return PyNumber_InPlaceMultiply(c, res);
+            res2 =  PyNumber_InPlaceMultiply(c, res);
+            break;
         case INPLACE_MATRIX_MULTIPLY:
-            return PyNumber_InPlaceMatrixMultiply(c, res);
+            res2 =  PyNumber_InPlaceMatrixMultiply(c, res);
+            break;
         case INPLACE_TRUE_DIVIDE:
-            return PyNumber_InPlaceTrueDivide(c, res);
+            res2 =  PyNumber_InPlaceTrueDivide(c, res);
+            break;
         case INPLACE_FLOOR_DIVIDE:
-            return PyNumber_InPlaceFloorDivide(c, res);
+            res2 =  PyNumber_InPlaceFloorDivide(c, res);
+            break;
         case INPLACE_MODULO:
-            return PyNumber_TrueDivide(c, res);
+            res2 =  PyNumber_InPlaceRemainder(c, res);
+            break;
         case INPLACE_ADD:
-            return PyNumber_InPlaceAdd(c, res);
+            res2 =  PyNumber_InPlaceAdd(c, res);
+            break;
         case INPLACE_SUBTRACT:
-            return PyNumber_InPlaceSubtract(c, res);
+            res2 =  PyNumber_InPlaceSubtract(c, res);
+            break;
     }
-    return nullptr;
+    Py_DECREF(res);
+    return res2;
+}
+
+PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
+    PyObject* res;
+    PyObject* res2;
+    switch(firstOp) {
+        case BINARY_ADD:
+            PyUnicode_Append(&a, b);
+            res = a;
+            break;
+    }
+
+    switch (secondOp){
+        case INPLACE_POWER:
+        case INPLACE_MULTIPLY:
+        case INPLACE_MATRIX_MULTIPLY:
+        case INPLACE_TRUE_DIVIDE:
+        case INPLACE_FLOOR_DIVIDE:
+        case INPLACE_MODULO:
+        case INPLACE_SUBTRACT:
+        case BINARY_TRUE_DIVIDE:
+        case BINARY_FLOOR_DIVIDE:
+        case BINARY_POWER:
+        case BINARY_MODULO:
+        case BINARY_MATRIX_MULTIPLY:
+        case BINARY_MULTIPLY:
+        case BINARY_SUBTRACT:
+        case BINARY_ADD:
+            PyUnicode_Append(&c, res);
+            res2 = c;
+            break;
+        case INPLACE_ADD:
+            PyUnicode_Append(&c, res);
+            res2 = c;
+            break;
+    }
+    return res2;
 }

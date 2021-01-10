@@ -55,13 +55,12 @@ jobs:
 
       - name: Run nbody test
         shell: bash
-        run: python Tests/test_nbody.py
+        run: python -X dev Tests/test_nbody.py
 
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build
         shell: bash
         run: ./unit_tests
-
 
       - name: Test IPython REPL
         shell: bash

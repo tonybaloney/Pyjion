@@ -80,4 +80,13 @@ TEST_CASE("Test inplace") {
                               "  return c");
         CHECK(t.returns() == "8");
     }
+    SECTION("inplace addition of two strs ") {
+        auto t = EmissionTest("def f():\n"
+                              "  a = 'a'\n"
+                              "  b = 'b'\n"
+                              "  c = 'c'\n"
+                              "  c += a + b\n"
+                              "  return c");
+        CHECK(t.returns() == "'cab'");
+    }
 }

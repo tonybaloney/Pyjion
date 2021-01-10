@@ -39,6 +39,6 @@ PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyObject* 
 PyObject* PyJitMath_TripleBinaryOpFloatIntInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp);
 PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp);
 PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject*, PyObject*, PyObject*, int, int);
-
+PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject*, PyObject*, PyObject*, int, int);
 
 #endif //SRC_PYJION_PYJITMATH_H
