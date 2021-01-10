@@ -94,7 +94,7 @@ PyObject* PyJitMath_TripleBinaryOp(PyObject* c, PyObject* a, PyObject* b, int fi
     else if (PyFloat_CheckExact(a) && PyLong_CheckExact(b) && PyLong_CheckExact(c))
         res =  PyJitMath_TripleBinaryOpFloatIntInt(a, b, c, firstOp, secondOp);
     else if (PyUnicode_Check(a) && PyUnicode_Check(b) && PyUnicode_Check(c))
-        res =  PyJitMath_TripleBinaryOpStrStrStr(a, b, c, firstOp, secondOp);
+        return PyJitMath_TripleBinaryOpStrStrStr(a, b, c, firstOp, secondOp);
     else
         res =  PyJitMath_TripleBinaryOpObjObjObj(a, b, c, firstOp, secondOp);
     // Decref first op
@@ -105,7 +105,7 @@ PyObject* PyJitMath_TripleBinaryOp(PyObject* c, PyObject* a, PyObject* b, int fi
     return res;
 }
 
-PyObject* PyJitMath_TripleBinaryOpFloatFloatFloat(PyFloatObject* a, PyFloatObject* b, PyFloatObject * c, int firstOp, int secondOp){
+inline PyObject* PyJitMath_TripleBinaryOpFloatFloatFloat(PyFloatObject* a, PyFloatObject* b, PyFloatObject * c, int firstOp, int secondOp){
     double val_a = PyFloat_AS_DOUBLE(a);
     double val_b = PyFloat_AS_DOUBLE(b);
     double val_c = PyFloat_AS_DOUBLE(c);
@@ -136,8 +136,16 @@ PyObject* PyJitMath_TripleBinaryOpFloatFloatFloat(PyFloatObject* a, PyFloatObjec
     }
     switch (secondOp){
         case BINARY_TRUE_DIVIDE:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             return PyFloat_FromDouble(val_c / res);
         case BINARY_FLOOR_DIVIDE:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             return PyFloat_FromDouble(floor(val_c / res));
         case BINARY_POWER:
             return PyFloat_FromDouble(pow(val_c, res));
@@ -175,16 +183,24 @@ PyObject* PyJitMath_TripleBinaryOpFloatFloatFloat(PyFloatObject* a, PyFloatObjec
     return nullptr;
 }
 
-PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
+inline PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
     long val_a = PyLong_AsLong(a);
     long val_b = PyLong_AsLong(b);
     long val_c = PyLong_AsLong(c);
     long res;
     switch(firstOp) {
         case BINARY_TRUE_DIVIDE:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             res = val_a / val_b;
             break;
         case BINARY_FLOOR_DIVIDE:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             res = floor(val_a / val_b);
             break;
         case BINARY_POWER:
@@ -206,8 +222,16 @@ PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyObject* 
     }
     switch (secondOp){
         case BINARY_TRUE_DIVIDE:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             return PyFloat_FromDouble(val_c / res);
         case BINARY_FLOOR_DIVIDE:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             return PyLong_FromLong(floor(val_c / res));
         case BINARY_POWER:
             return PyLong_FromLong(pow(val_c, res));
@@ -239,16 +263,24 @@ PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyObject* 
     }
     return nullptr;
 }
-PyObject* PyJitMath_TripleBinaryOpFloatIntInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
+inline PyObject* PyJitMath_TripleBinaryOpFloatIntInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
     double val_a = PyFloat_AS_DOUBLE(a);
-    long val_b = PyLong_AsLong(b);
-    long val_c = PyLong_AsLong(c);
+    long long val_b = PyLong_AsLongLong(b);
+    long long val_c = PyLong_AsLongLong(c);
     double res;
     switch(firstOp) {
         case BINARY_TRUE_DIVIDE:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             res = val_a / val_b;
             break;
         case BINARY_FLOOR_DIVIDE:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             res = floor(val_a / val_b);
             break;
         case BINARY_POWER:
@@ -270,8 +302,16 @@ PyObject* PyJitMath_TripleBinaryOpFloatIntInt(PyObject* a, PyObject* b, PyObject
     }
     switch (secondOp){
         case BINARY_TRUE_DIVIDE:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             return PyFloat_FromDouble(res / val_c);
         case BINARY_FLOOR_DIVIDE:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             return PyFloat_FromDouble(floor(res / val_c));
         case BINARY_POWER:
             return PyFloat_FromDouble(pow(res, val_c));
@@ -305,16 +345,24 @@ PyObject* PyJitMath_TripleBinaryOpFloatIntInt(PyObject* a, PyObject* b, PyObject
     return nullptr;
 }
 
-PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
-    long val_a = PyLong_AsLong(a); // TODO : Handle overflow gracefully
+inline PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
+    long long val_a = PyLong_AsLongLong(a); // TODO : Handle overflow gracefully
     double val_b = PyFloat_AS_DOUBLE(b);
     double val_c = PyFloat_AS_DOUBLE(c);
     double res;
     switch(firstOp) {
         case BINARY_TRUE_DIVIDE:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             res = val_a / val_b;
             break;
         case BINARY_FLOOR_DIVIDE:
+            if (val_b== 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             res = floor(val_a / val_b);
             break;
         case BINARY_POWER:
@@ -336,8 +384,16 @@ PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b, PyObje
     }
     switch (secondOp){
         case BINARY_TRUE_DIVIDE:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             return PyFloat_FromDouble(res / val_c);
         case BINARY_FLOOR_DIVIDE:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
             return PyFloat_FromDouble(floor(res / val_c));
         case BINARY_POWER:
             return PyFloat_FromDouble(pow(res, val_c));
@@ -369,7 +425,7 @@ PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b, PyObje
     return nullptr;
 }
 
-PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
+inline PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
     PyObject* res = nullptr;
     PyObject* res2 = nullptr;
     switch(firstOp) {
@@ -395,7 +451,8 @@ PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyObject* 
             res = PyNumber_Add(a, b);
             break;
     }
-
+    if (res == nullptr)
+        return nullptr;
     switch (secondOp){
         case BINARY_TRUE_DIVIDE:
             res2 = PyNumber_TrueDivide(c, res);
@@ -450,14 +507,22 @@ PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyObject* 
     return res2;
 }
 
-PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
-    PyObject* res = nullptr;
-    PyObject* res2 = nullptr;
+inline PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
     switch(firstOp) {
+        case BINARY_TRUE_DIVIDE:
+        case BINARY_FLOOR_DIVIDE:
+        case BINARY_POWER:
+        case BINARY_MODULO:
+        case BINARY_MATRIX_MULTIPLY:
+        case BINARY_MULTIPLY:
+        case BINARY_SUBTRACT:
+            UNSUPPORTED_MATH_OP(firstOp);
+            return nullptr;
         case BINARY_ADD:
             PyUnicode_Append(&a, b);
-            assert(a != nullptr);
-            res = a;
+            if (a == nullptr)
+                return nullptr;
+            Py_DECREF(b);
             break;
     }
 
@@ -476,16 +541,16 @@ PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject* a, PyObject* b, PyObject* 
         case BINARY_MATRIX_MULTIPLY:
         case BINARY_MULTIPLY:
         case BINARY_SUBTRACT:
-        case BINARY_ADD:
-            PyUnicode_Append(&c, res);
-            assert(c != nullptr);
-            res2 = c;
-            break;
+            UNSUPPORTED_MATH_OP(firstOp);
+            return nullptr;
         case INPLACE_ADD:
-            PyUnicode_Append(&c, res);
-            assert(c != nullptr);
-            res2 = c;
-            break;
+        case BINARY_ADD:
+            PyUnicode_Append(&c, a);
+            if (c == nullptr)
+                return nullptr;
+            Py_DECREF(a);
+            return c;
     }
-    return res2;
+    UNSUPPORTED_MATH_OP(firstOp);
+    return nullptr;
 }

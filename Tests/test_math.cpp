@@ -28,6 +28,7 @@
 */
 
 #include <catch2/catch.hpp>
+#include <pyjitmath.h>
 #include "testing_util.h"
 
 TEST_CASE("Test inplace") {
@@ -88,5 +89,115 @@ TEST_CASE("Test inplace") {
                               "  c += a + b\n"
                               "  return c");
         CHECK(t.returns() == "'cab'");
+    }
+}
+
+TEST_CASE("Test math functions directly"){
+    SECTION("Binary then inplace all floats") {
+        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
+        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
+        printf("Float %d by %d", firstOpcode, secondOpcode);
+        PyObject* a = PyFloat_FromDouble(6.0);
+        PyObject* b = PyFloat_FromDouble(2.0);
+        PyObject* c = PyFloat_FromDouble(4.0);
+        Py_INCREF(a);
+        Py_INCREF(b);
+        Py_INCREF(c);
+
+        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
+        CHECK(res != nullptr);
+        CHECK(a->ob_refcnt == 1);
+        CHECK(b->ob_refcnt == 1);
+        CHECK(c->ob_refcnt == 1);
+    }
+
+    SECTION("Binary then inplace all ints") {
+        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
+        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
+        printf("int %d by %d", firstOpcode, secondOpcode);
+        PyObject* a = PyLong_FromLong(600);
+        PyObject* b = PyLong_FromLong(300);
+        PyObject* c = PyLong_FromLong(402);
+        Py_INCREF(a);
+        Py_INCREF(b);
+        Py_INCREF(c);
+
+        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
+        CHECK(res != nullptr);
+        CHECK(a->ob_refcnt == 1);
+        CHECK(b->ob_refcnt == 1);
+        CHECK(c->ob_refcnt == 1);
+    }
+
+    SECTION("Binary then inplace int float float") {
+        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
+        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
+        printf("int/float/float %d by %d", firstOpcode, secondOpcode);
+        PyObject* a = PyLong_FromLong(600);
+        PyObject* b = PyFloat_FromDouble(300.0);
+        PyObject* c = PyFloat_FromDouble(400.0);
+        Py_INCREF(a);
+        Py_INCREF(b);
+        Py_INCREF(c);
+
+        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
+        CHECK(res != nullptr);
+        CHECK(a->ob_refcnt == 1);
+        CHECK(b->ob_refcnt == 1);
+        CHECK(c->ob_refcnt == 1);
+    }
+
+    SECTION("Binary then inplace float int int") {
+        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
+        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
+        printf("int/float/float %d by %d", firstOpcode, secondOpcode);
+        PyObject* a = PyFloat_FromDouble(600.0);
+        PyObject* b = PyLong_FromLong(300);
+        PyObject* c = PyLong_FromLong(400);
+        Py_INCREF(a);
+        Py_INCREF(b);
+        Py_INCREF(c);
+
+        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
+        CHECK(res != nullptr);
+        CHECK(a->ob_refcnt == 1);
+        CHECK(b->ob_refcnt == 1);
+        CHECK(c->ob_refcnt == 1);
+    }
+
+    SECTION("Binary then inplace all ints") {
+        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
+        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
+        printf("int %d by %d", firstOpcode, secondOpcode);
+        PyObject* a = PyLong_FromLong(600);
+        PyObject* b = PyLong_FromLong(300);
+        PyObject* c = PyLong_FromLong(402);
+        Py_INCREF(a);
+        Py_INCREF(b);
+        Py_INCREF(c);
+
+        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
+        CHECK(res != nullptr);
+        CHECK(a->ob_refcnt == 1);
+        CHECK(b->ob_refcnt == 1);
+        CHECK(c->ob_refcnt == 1);
+    }
+
+    SECTION("Binary then inplace all strings") {
+        auto firstOpcode = GENERATE(BINARY_ADD);
+        auto secondOpcode = GENERATE(BINARY_ADD, INPLACE_ADD);
+
+        PyObject* a = PyUnicode_FromString("123");
+        PyObject* b = PyUnicode_FromString("1234");
+        PyObject* c = PyUnicode_FromString("12345");
+        Py_INCREF(a);
+        Py_INCREF(b);
+        Py_INCREF(c);
+
+        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
+        CHECK(res != nullptr);
+        CHECK(a->ob_refcnt == 1);
+        CHECK(b->ob_refcnt == 1);
+        CHECK(c->ob_refcnt == 1);
     }
 }
