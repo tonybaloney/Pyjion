@@ -370,8 +370,8 @@ PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b, PyObje
 }
 
 PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
-    PyObject* res;
-    PyObject* res2;
+    PyObject* res = nullptr;
+    PyObject* res2 = nullptr;
     switch(firstOp) {
         case BINARY_TRUE_DIVIDE:
             res = PyNumber_TrueDivide(a, b);
@@ -451,8 +451,8 @@ PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyObject* 
 }
 
 PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
-    PyObject* res;
-    PyObject* res2;
+    PyObject* res = nullptr;
+    PyObject* res2 = nullptr;
     switch(firstOp) {
         case BINARY_ADD:
             PyUnicode_Append(&a, b);
