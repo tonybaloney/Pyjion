@@ -31,7 +31,7 @@
 #include "testing_util.h"
 
 TEST_CASE("Test inplace") {
-    SECTION("inplace addition of multiple") {
+    SECTION("inplace addition of multiple floats") {
         auto t = EmissionTest("def f():\n"
                               "  a = 2.0\n"
                               "  b = 3.0\n"
@@ -39,5 +39,45 @@ TEST_CASE("Test inplace") {
                               "  c += a * b\n"
                               "  return c");
         CHECK(t.returns() == "10.0");
+    }
+
+    SECTION("inplace addition of multiple ints") {
+        auto t = EmissionTest("def f():\n"
+                              "  a = 2\n"
+                              "  b = 3\n"
+                              "  c = 4\n"
+                              "  c += a * b\n"
+                              "  return c");
+        CHECK(t.returns() == "10");
+    }
+
+    SECTION("inplace addition of two floats assigned to an int") {
+        auto t = EmissionTest("def f():\n"
+                              "  a = 2.0\n"
+                              "  b = 3.0\n"
+                              "  c = 4\n"
+                              "  c += a * b\n"
+                              "  return c");
+        CHECK(t.returns() == "10.0");
+    }
+
+    SECTION("inplace addition of two ints assigned to a float") {
+        auto t = EmissionTest("def f():\n"
+                              "  a = 2\n"
+                              "  b = 3\n"
+                              "  c = 4.0\n"
+                              "  c += a * b\n"
+                              "  return c");
+        CHECK(t.returns() == "10.0");
+    }
+
+    SECTION("inplace multiplication of two ints assigned to an int") {
+        auto t = EmissionTest("def f():\n"
+                              "  a = 5\n"
+                              "  b = 3\n"
+                              "  c = 4\n"
+                              "  c *= a - b\n"
+                              "  return c");
+        CHECK(t.returns() == "8");
     }
 }
