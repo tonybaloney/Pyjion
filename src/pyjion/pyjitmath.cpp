@@ -456,6 +456,7 @@ PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject* a, PyObject* b, PyObject* 
     switch(firstOp) {
         case BINARY_ADD:
             PyUnicode_Append(&a, b);
+            assert(a != nullptr);
             res = a;
             break;
     }
@@ -477,10 +478,12 @@ PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject* a, PyObject* b, PyObject* 
         case BINARY_SUBTRACT:
         case BINARY_ADD:
             PyUnicode_Append(&c, res);
+            assert(c != nullptr);
             res2 = c;
             break;
         case INPLACE_ADD:
             PyUnicode_Append(&c, res);
+            assert(c != nullptr);
             res2 = c;
             break;
     }
