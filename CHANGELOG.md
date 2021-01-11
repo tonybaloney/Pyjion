@@ -1,5 +1,9 @@
 # Release notes
 
+## 0.8.0
+
+* Added OPT-8
+
 ## 0.7.0
 
 * Fixed a bug in JUMP_IF_FALSE_OR_POP/JUMP_IF_TRUE_OR_POP opcodes emitting a stack growth, which would cause a stack underflow on subsequent branch checks. JIT will compile a broader range of functions now
