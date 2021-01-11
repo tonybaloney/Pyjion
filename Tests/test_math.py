@@ -4,7 +4,6 @@ import unittest
 import gc
 
 
-
 class MathTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -27,6 +26,42 @@ class MathTestCase(unittest.TestCase):
         self.assertEqual(sys.getrefcount(a), 3)
         self.assertEqual(sys.getrefcount(b), 3)
         self.assertEqual(sys.getrefcount(c), 2)
+        self.assertEqual(c, 2.0)
+
+    def test_ints(self):
+        a = 2
+        b = 3
+        c = 4
+        c += a * b
+        self.assertEqual(c, 10)
+        c /= a + b
+        self.assertEqual(c, 2.0)
+
+    def test_mixed(self):
+        a = 2
+        b = 3.0
+        c = 4
+        c += a * b
+        self.assertEqual(c, 10.0)
+        c /= a + b
+        self.assertEqual(c, 2.0)
+
+    def test_mixed2(self):
+        a = 2.0
+        b = 3
+        c = 4
+        c += a * b
+        self.assertEqual(c, 10.0)
+        c /= a + b
+        self.assertEqual(c, 2.0)
+
+    def test_mixed3(self):
+        a = 2
+        b = 3
+        c = 4.0
+        c += a * b
+        self.assertEqual(c, 10.0)
+        c /= a + b
         self.assertEqual(c, 2.0)
 
 

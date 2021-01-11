@@ -54,5 +54,5 @@ def fannkuch(n=DEFAULT_ARG):
 if __name__ == "__main__":
     print("Fannkuch({1}) took {0} without Pyjion".format(timeit.timeit(fannkuch, number=10), DEFAULT_ARG))
     pyjion.enable()
-    print("Fannkuch({1}) took with Pyjion".format(timeit.timeit(fannkuch, number=10), DEFAULT_ARG))
+    print("Fannkuch({1}) took {0} with Pyjion".format(timeit.timeit(fannkuch, number=10), DEFAULT_ARG))
     pyjion.disable()
