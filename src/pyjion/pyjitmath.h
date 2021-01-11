@@ -36,8 +36,15 @@ bool isInplaceMathOp(int opcode);
 PyObject* PyJitMath_TripleBinaryOp(PyObject*, PyObject*, PyObject*, int, int);
 PyObject* PyJitMath_TripleBinaryOpFloatFloatFloat(PyFloatObject * a, PyFloatObject* b, PyFloatObject* c, int firstOp, int secondOp);
 PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp);
+
 PyObject* PyJitMath_TripleBinaryOpFloatIntInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp);
+PyObject* PyJitMath_TripleBinaryOpIntFloatInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp);
+PyObject* PyJitMath_TripleBinaryOpIntIntFloat(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp);
+
 PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp);
+PyObject* PyJitMath_TripleBinaryOpFloatFloatInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp);
+PyObject* PyJitMath_TripleBinaryOpFloatIntFloat(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp);
+
 PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject*, PyObject*, PyObject*, int, int);
 PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject*, PyObject*, PyObject*, int, int);
 
