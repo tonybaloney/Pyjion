@@ -242,9 +242,12 @@ jobs:
         shell: bash
         run: python -m unittest discover Tests/
 
-      - name: Run nbody test
+      - name: Run benchmark tests
         shell: bash
-        run: python Tests/test_nbody.py
+        run: |
+          python -X dev Tests/benchmarks/test_nbody.py
+          python -X dev Tests/benchmarks/test_nqueens.py
+          python -X dev Tests/benchmarks/test_fannkuch.py
 
       - name: Run smoke tests
         shell: bash
@@ -339,9 +342,12 @@ jobs:
         shell: bash
         run: python -m unittest discover Tests/ -v
 
-      - name: Run nbody test
+      - name: Run benchmark tests
         shell: bash
-        run: python Tests/test_nbody.py
+        run: |
+          python -X dev Tests/benchmarks/test_nbody.py
+          python -X dev Tests/benchmarks/test_nqueens.py
+          python -X dev Tests/benchmarks/test_fannkuch.py
 
       - name: Run smoke tests
         shell: bash
