@@ -18,14 +18,8 @@ class MathTestCase(unittest.TestCase):
         b = 3.0
         c = 4.0
         c += a * b
-        self.assertEqual(sys.getrefcount(a), 3)
-        self.assertEqual(sys.getrefcount(b), 3)
-        self.assertEqual(sys.getrefcount(c), 2)
         self.assertEqual(c, 10.0)
         c /= a + b
-        self.assertEqual(sys.getrefcount(a), 3)
-        self.assertEqual(sys.getrefcount(b), 3)
-        self.assertEqual(sys.getrefcount(c), 2)
         self.assertEqual(c, 2.0)
 
     def test_ints(self):
@@ -59,6 +53,33 @@ class MathTestCase(unittest.TestCase):
         a = 2
         b = 3
         c = 4.0
+        c += a * b
+        self.assertEqual(c, 10.0)
+        c /= a + b
+        self.assertEqual(c, 2.0)
+
+    def test_mixed4(self):
+        a = 2
+        b = 3.0
+        c = 4.0
+        c += a * b
+        self.assertEqual(c, 10.0)
+        c /= a + b
+        self.assertEqual(c, 2.0)
+
+    def test_mixed5(self):
+        a = 2.0
+        b = 3
+        c = 4.0
+        c += a * b
+        self.assertEqual(c, 10.0)
+        c /= a + b
+        self.assertEqual(c, 2.0)
+
+    def test_mixed6(self):
+        a = 2.0
+        b = 3.0
+        c = 4
         c += a * b
         self.assertEqual(c, 10.0)
         c /= a + b
