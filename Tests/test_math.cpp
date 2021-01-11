@@ -115,18 +115,15 @@ TEST_CASE("Test math functions directly"){
         auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
         auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
         printf("int %d by %d", firstOpcode, secondOpcode);
-        PyObject* a = PyLong_FromLong(600);
-        PyObject* b = PyLong_FromLong(300);
-        PyObject* c = PyLong_FromLong(402);
+        PyObject* a = PyLong_FromLong(6);
+        PyObject* b = PyLong_FromLong(3);
+        PyObject* c = PyLong_FromLong(4);
         Py_INCREF(a);
         Py_INCREF(b);
         Py_INCREF(c);
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
         CHECK(res != nullptr);
-        CHECK(a->ob_refcnt == 1);
-        CHECK(b->ob_refcnt == 1);
-        CHECK(c->ob_refcnt == 1);
     }
 
     SECTION("Binary then inplace int float float") {
