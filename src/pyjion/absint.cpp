@@ -487,7 +487,7 @@ bool AbstractInterpreter::interpret(PyObject* builtins) {
                     break;
                 case LOAD_GLOBAL: {
                     auto name = PyTuple_GetItem(mCode->co_names, oparg);
-                    if (!PyDict_Contains(builtins, name)) {
+                    if (!PyDict_CheckExact(builtins) || !PyDict_Contains(builtins, name)) {
                         lastState.push(&Any);
                     } else {
                         auto item = PyDict_GetItem(builtins, name);
