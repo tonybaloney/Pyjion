@@ -284,8 +284,8 @@ public:
     AbstractInterpreter(PyCodeObject *code, IPythonCompiler* compiler);
     ~AbstractInterpreter();
 
-    JittedCode* compile(PyObject* builtins);
-    bool interpret(PyObject* builtins);
+    JittedCode* compile(PyObject* builtins, PyObject* globals);
+    bool interpret(PyObject* builtins, PyObject* globals);
 
     void setLocalType(int index, AbstractValueKind kind);
     // Returns information about the specified local variable at a specific

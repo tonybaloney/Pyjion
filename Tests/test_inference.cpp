@@ -35,6 +35,7 @@
 #include <Python.h>
 #include <absint.h>
 #include <memory>
+#include <util.h>
 
 class InferenceTest {
 private:
@@ -45,7 +46,8 @@ public:
         auto pyCode = CompileCode(code);
         m_absint = std::make_unique<AbstractInterpreter>(pyCode, nullptr);
         auto builtins = PyEval_GetBuiltins();
-        auto success = m_absint->interpret(builtins);
+        auto globals_dict = PyObject_ptr(PyDict_New());
+        auto success = m_absint->interpret(builtins, globals_dict.get());
         if (!success) {
             Py_DECREF(pyCode);
             FAIL("Failed to interpret code");

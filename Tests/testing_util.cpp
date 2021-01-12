@@ -103,7 +103,8 @@ void VerifyOldTest(AITestCase testCase) {
 
     AbstractInterpreter interpreter(codeObj, nullptr);
     auto builtins = PyEval_GetBuiltins();
-    if (!interpreter.interpret(builtins)) {
+    auto globals_dict = PyObject_ptr(PyDict_New());
+    if (!interpreter.interpret(builtins, globals_dict.get())) {
         FAIL("Failed to interpret code");
     }
 

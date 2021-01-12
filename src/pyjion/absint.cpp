@@ -198,7 +198,7 @@ void AbstractInterpreter::initStartingState() {
     updateStartState(lastState, 0);
 }
 
-bool AbstractInterpreter::interpret(PyObject* builtins) {
+bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
     if (!preprocess()) {
         return false;
     }
@@ -487,14 +487,30 @@ bool AbstractInterpreter::interpret(PyObject* builtins) {
                     break;
                 case LOAD_GLOBAL: {
                     auto name = PyTuple_GetItem(mCode->co_names, oparg);
-                    auto builtin = PyObject_GetItem(builtins, name);
-                    if (builtin == nullptr && PyErr_ExceptionMatches(PyExc_KeyError)) {
+
+                    PyObject* v = PyObject_GetItem(globals, name);
+                    if (v == nullptr) {
                         PyErr_Clear();
-                        lastState.push(&Any);
+                        v = PyObject_GetItem(builtins, name);
+                        if (v == nullptr) {
+                            PyErr_Clear();
+                            // Neither. Maybe it'll appear at runtime!!
+                            lastState.push(&Any);
+                        }
+                        else {
+                            // Builtin source
+                            auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), v);
+                            auto value = AbstractValueWithSources(
+                                    &Builtin,
+                                    globalSource
+                            );
+                            lastState.push(value);
+                        }
                     } else {
-                        auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), builtin);
+                        // global source
+                        auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), v);
                         auto value = AbstractValueWithSources(
-                                &Builtin,
+                                &Any,
                                 globalSource
                         );
                         lastState.push(value);
@@ -2292,8 +2308,8 @@ void AbstractInterpreter::unaryNot(int& opcodeIndex) {
     incStack();
 }
 
-JittedCode* AbstractInterpreter::compile(PyObject* builtins) {
-    bool interpreted = interpret(builtins);
+JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals) {
+    bool interpreted = interpret(builtins, globals);
     if (!interpreted) {
 #ifdef DEBUG
         printf("Failed to interpret");
