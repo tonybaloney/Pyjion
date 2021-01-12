@@ -1458,7 +1458,6 @@ PyObject* PyJit_LoadGlobal(PyFrameObject* f, PyObject* name) {
     }
     else {
         /* Slow-path if globals or builtins is not a dict */
-        auto asciiName = PyUnicode_AsUTF8(name);
         v = PyObject_GetItem(f->f_globals, name);
         if (v == nullptr) {
             v = PyObject_GetItem(f->f_builtins, name);

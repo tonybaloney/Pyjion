@@ -487,11 +487,12 @@ bool AbstractInterpreter::interpret(PyObject* builtins) {
                     break;
                 case LOAD_GLOBAL: {
                     auto name = PyTuple_GetItem(mCode->co_names, oparg);
-                    if (!PyDict_CheckExact(builtins) || !PyDict_Contains(builtins, name)) {
+                    auto builtin = PyObject_GetItem(builtins, name);
+                    if (builtin == nullptr && PyErr_ExceptionMatches(PyExc_KeyError)) {
+                        PyErr_Clear();
                         lastState.push(&Any);
                     } else {
-                        auto item = PyDict_GetItem(builtins, name);
-                        auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), item);
+                        auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), builtin);
                         auto value = AbstractValueWithSources(
                                 &Builtin,
                                 globalSource
