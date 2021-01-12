@@ -567,8 +567,15 @@ bool AbstractInterpreter::interpret(PyObject* builtins) {
 
                     // pop the function...
                     auto func = lastState.popNoEscape();
+                    if (func.Value->kind() == AVK_Function){
+                        auto source = AbstractValueWithSources(
+                            avkToAbstractValue(knownFunctionReturnType(func)),
+                            newSource(new LocalSource()));
+                        lastState.push(source);
 
-                    lastState.push(&Any);
+                    } else {
+                        lastState.push(&Any);
+                    }
                     break;
                 }
                 case CALL_FUNCTION_KW: {
