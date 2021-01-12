@@ -1096,7 +1096,7 @@ const char* BuiltinValue::describe() {
 }
 
 // Written for 3.9.1
-static const unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
+unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
         {"abs",         AVK_Any},
         {"all",         AVK_Bool},
         {"any",         AVK_Bool},
@@ -1166,9 +1166,9 @@ AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source){
     // IS this a builtin?
     if (source.Value == &Builtin){
         auto globalSource = dynamic_cast<GlobalSource*>(source.Sources);
-        auto builtinFunc = builtinReturnTypes.find(globalSource->getName());
-        if (builtinFunc != builtinReturnTypes.end()) {
-            return builtinFunc->second;
+        for (auto const &b: builtinReturnTypes){
+            if (strcmp(globalSource->getName(), b.first) == 0)
+                return b.second;
         }
     }
     return AVK_Any;

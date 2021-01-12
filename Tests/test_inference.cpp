@@ -4481,3 +4481,26 @@ TEST_CASE("Generalize unpacking within a dict", "[dict][BUILD_MAP_UNPACK][infere
         REQUIRE(t.kind(24, 0) == AVK_Dict);       // LOAD_CONST 0
     }
 }
+
+TEST_CASE("builtin functions") {
+    SECTION("dict builtin") {
+        auto t = InferenceTest("def f():\n    x = dict()");
+        REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet
+        REQUIRE(t.kind(6, 0) == AVK_Dict);       // x assigned
+    }
+    SECTION("list builtin") {
+        auto t = InferenceTest("def f():\n    x = list()");
+        REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet
+        REQUIRE(t.kind(6, 0) == AVK_List);       // x assigned
+    }
+    SECTION("set builtin") {
+        auto t = InferenceTest("def f():\n    x = set()");
+        REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet
+        REQUIRE(t.kind(6, 0) == AVK_Set);       // x assigned
+    }
+    SECTION("tuple builtin") {
+        auto t = InferenceTest("def f():\n    x = tuple()");
+        REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet
+        REQUIRE(t.kind(6, 0) == AVK_Tuple);       // x assigned
+    }
+}
