@@ -1295,8 +1295,9 @@ void PythonCompiler::emit_mark_label(Label label) {
 void PythonCompiler::emit_for_next() {
     m_il.emit_call(METHOD_ITERNEXT_TOKEN);
 }
-void emit_for_next(AbstractValueWithSources iterator) {
+void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
     // TODO:
+    m_il.emit_call(METHOD_ITERNEXT_TOKEN);
 }
 void PythonCompiler::emit_debug_msg(const char* msg) {
     m_il.ld_i((void*)msg);
