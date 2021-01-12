@@ -34,6 +34,7 @@ typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 
 #include "pycomp.h"
 #include "pyjit.h"
+#include "pyjitmath.h"
 
 using namespace std;
 
@@ -1408,6 +1409,11 @@ void PythonCompiler::emit_binary_object(int opcode) {
             m_il.emit_call(METHOD_INPLACE_OR_TOKEN); break;
     }
 }
+void PythonCompiler::emit_triple_binary_op(int firstOp, int secondOp) {
+    m_il.ld_i4(firstOp);
+    m_il.ld_i4(secondOp);
+    m_il.emit_call(METHOD_TRIPLE_BINARY_OP);
+}
 
 void PythonCompiler::emit_is(bool isNot) {
     if (OPT_ENABLED(inlineIs)){
@@ -1772,3 +1778,5 @@ GLOBAL_METHOD(METHOD_PROFILE_FRAME_ENTRY, &PyJit_ProfileFrameEntry, CORINFO_TYPE
 GLOBAL_METHOD(METHOD_PROFILE_FRAME_EXIT, &PyJit_ProfileFrameExit, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), );
 
 GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
+
+GLOBAL_METHOD(METHOD_TRIPLE_BINARY_OP, &PyJitMath_TripleBinaryOp, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));

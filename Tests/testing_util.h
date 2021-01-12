@@ -5,6 +5,8 @@
 
 #include <Python.h>
 #include <absint.h>
+#include <util.h>
+#include <pyjit.h>
 
 PyCodeObject* CompileCode(const char*);
 PyCodeObject* CompileCode(const char* code, vector<const char*> locals, vector<const char*> globals);
@@ -130,5 +132,74 @@ public:
 void VerifyOldTest(AITestCase testCase);
 
 PyObject* Incremented(PyObject*o);
+
+class EmissionTest {
+private:
+    py_ptr<PyCodeObject> m_code;
+    py_ptr<PyjionJittedCode> m_jittedcode;
+
+    PyObject* run() {
+        auto sysModule = PyObject_ptr(PyImport_ImportModule("sys"));
+        auto globals = PyObject_ptr(PyDict_New());
+        auto builtins = PyEval_GetBuiltins();
+        PyDict_SetItemString(globals.get(), "__builtins__", builtins);
+        PyDict_SetItemString(globals.get(), "sys", sysModule.get());
+
+        auto tstate = PyThreadState_Get();
+        // Don't DECREF as frames are recycled.
+        auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
+        auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
+        _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
+        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate);
+        _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
+
+        size_t collected = PyGC_Collect();
+        printf("Collected %zu values\n", collected);
+        REQUIRE(!m_jittedcode->j_failed);
+        return res;
+    }
+
+public:
+    explicit EmissionTest(const char *code) {
+        PyErr_Clear();
+        m_code.reset(CompileCode(code));
+        if (m_code.get() == nullptr) {
+            FAIL("failed to compile in JIT code");
+        }
+        auto jitted = PyJit_EnsureExtra((PyObject*)*m_code);
+        if (!jit_compile(m_code.get())) {
+            FAIL("failed to JIT code");
+        }
+        m_jittedcode.reset(jitted);
+    }
+
+    std::string returns() {
+        auto res = PyObject_ptr(run());
+        REQUIRE(res.get() != nullptr);
+        if (PyErr_Occurred()){
+            PyErr_PrintEx(-1);
+            FAIL("Error on Python execution");
+            return nullptr;
+        }
+
+        auto repr = PyUnicode_AsUTF8(PyObject_Repr(res.get()));
+        auto tstate = PyThreadState_GET();
+        REQUIRE(tstate->curexc_value == nullptr);
+        REQUIRE(tstate->curexc_traceback == nullptr);
+        if (tstate->curexc_type != nullptr) {
+            REQUIRE(tstate->curexc_type == Py_None);
+        }
+
+        return std::string(repr);
+    }
+
+    PyObject* raises() {
+        auto res = run();
+        REQUIRE(res == nullptr);
+        auto excType = PyErr_Occurred();
+        PyErr_Clear();
+        return excType;
+    }
+};
 
 #endif // !PYJION_TESTING_UTIL_H

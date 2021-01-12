@@ -428,6 +428,7 @@ public:
     virtual void emit_dec_local(Local local, int value) = 0;
 
     virtual void emit_load_frame_locals() = 0;
+    virtual void emit_triple_binary_op(int firstOp, int secondOp) = 0;
 };
 
 #endif

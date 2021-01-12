@@ -6,6 +6,7 @@ option(OPTIMIZE_NATIVE_LOCALS "Optimize frame locals into native JIT locals" OFF
 option(OPTIMIZE_PUSH_FRAME "Optimize push/pop frame into inline instructions" ON)
 option(OPTIMIZE_KNOWN_STORE_SUBSCR "Optimize STORE_SUBSCR for known types" ON)
 option(OPTIMIZE_KNOWN_BINARY_SUBSCR "Optimize BINARY_SUBSCR for known types" ON)
+option(OPTIMIZE_BINARY_FUNCTIONS "Optimize pairs of binary functions as a triple sequence" ON)
 
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
 
@@ -50,6 +51,12 @@ if (OPTIMIZE_KNOWN_BINARY_SUBSCR)
     add_definitions(-DOPTIMIZE_KNOWN_BINARY_SUBSCR=1)
 else()
     add_definitions(-DOPTIMIZE_KNOWN_BINARY_SUBSCR=0)
+endif()
+
+if (OPTIMIZE_BINARY_FUNCTIONS)
+    add_definitions(-DOPTIMIZE_BINARY_FUNCTIONS=1)
+else()
+    add_definitions(-DOPTIMIZE_BINARY_FUNCTIONS=0)
 endif()
 
 if (EE_DEBUG_CODE)

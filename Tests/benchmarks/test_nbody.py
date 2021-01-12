@@ -5,10 +5,10 @@
 # modified by Tupteq, Fredrik Johansson, and Daniel Nanz
 # modified by Maciej Fijalkowski
 # 2to3
-
 import pyjion
 import timeit
 import gc
+
 
 def combinations(l):
     result = []
@@ -17,6 +17,7 @@ def combinations(l):
         for y in ls:
             result.append((l[x],y))
     return result
+
 
 PI = 3.14159265358979323
 SOLAR_MASS = 4 * PI * PI
@@ -97,6 +98,7 @@ def report_energy(bodies=SYSTEM, pairs=PAIRS, e=0.0):
         e += m * (vx * vx + vy * vy + vz * vz) / 2.
     print("%.9f" % e)
 
+
 def offset_momentum(ref, bodies=SYSTEM, px=0.0, py=0.0, pz=0.0):
 
     for (r, [vx, vy, vz], m) in bodies:
@@ -108,6 +110,7 @@ def offset_momentum(ref, bodies=SYSTEM, px=0.0, py=0.0, pz=0.0):
     v[1] = py / m
     v[2] = pz / m
 
+
 def main(n=5000000, ref='sun'):
     offset_momentum(BODIES[ref])
     report_energy()
@@ -116,8 +119,8 @@ def main(n=5000000, ref='sun'):
 
 
 if __name__ == "__main__":
-    print("Took {0} without Pyjion".format(timeit.timeit(main, number=1)))
+    print("N-body took {0} without Pyjion".format(timeit.timeit(main, number=1)))
     pyjion.enable()
-    print("Took {0} with Pyjion".format(timeit.timeit(main, number=1)))
+    print("N-body took {0} with Pyjion".format(timeit.timeit(main, number=1)))
     pyjion.disable()
     gc.collect()
