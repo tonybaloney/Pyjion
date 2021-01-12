@@ -161,6 +161,25 @@ public:
     }
 };
 
+class GlobalSource : public AbstractSource {
+    const char* _name;
+    PyObject* _value;
+public:
+    explicit GlobalSource(const char* name, PyObject* value) {
+        _name = name;
+        _value = value;
+    }
+
+    const char* describe() override {
+        if (needsBoxing()) {
+            return "Source: Global (escapes)";
+        }
+        else {
+            return "Source: Global";
+        }
+    }
+};
+
 class LocalSource : public AbstractSource {
 public:
     const char* describe() override {
@@ -403,6 +422,12 @@ class IterableValue : public AbstractValue {
     const char* describe() override;
 };
 
+class BuiltinValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
 extern UndefinedValue Undefined;
 extern AnyValue Any;
 extern BoolValue Bool;
@@ -420,6 +445,7 @@ extern FunctionValue Function;
 extern SliceValue Slice;
 extern ComplexValue Complex;
 extern IterableValue Iterable;
+extern BuiltinValue Builtin;
 
 #endif
 

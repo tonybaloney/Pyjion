@@ -276,7 +276,7 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame, PyThreadS
 			    interp.disableProfiling();
 			}
 
-			auto res = interp.compile();
+			auto res = interp.compile(frame->f_builtins);
 
 			if (res == nullptr) {
 				static int failCount;

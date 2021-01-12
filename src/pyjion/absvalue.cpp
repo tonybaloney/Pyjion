@@ -42,6 +42,8 @@ FunctionValue Function;
 SliceValue Slice;
 ComplexValue Complex;
 IterableValue Iterable;
+BuiltinValue Builtin;
+
 
 AbstractSource::AbstractSource() {
     Sources = shared_ptr<AbstractSources>(new AbstractSources());
@@ -1080,4 +1082,15 @@ AbstractValue* IterableValue::unary(AbstractSource* selfSources, int op) {
 }
 const char* IterableValue::describe() {
     return "iterable";
+}
+
+// Builtin methods
+AbstractValueKind BuiltinValue::kind() {
+    return AVK_Function;
+}
+AbstractValue* BuiltinValue::unary(AbstractSource* selfSources, int op) {
+    return AbstractValue::unary(selfSources, op);
+}
+const char* BuiltinValue::describe() {
+    return "builtin";
 }

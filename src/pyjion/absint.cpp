@@ -198,7 +198,7 @@ void AbstractInterpreter::initStartingState() {
     updateStartState(lastState, 0);
 }
 
-bool AbstractInterpreter::interpret() {
+bool AbstractInterpreter::interpret(PyObject* builtins) {
     if (!preprocess()) {
         return false;
     }
@@ -483,9 +483,23 @@ bool AbstractInterpreter::interpret() {
                 case DELETE_NAME:
                     break;
                 case LOAD_CLASSDEREF:
-                case LOAD_GLOBAL:
                     lastState.push(&Any);
                     break;
+                case LOAD_GLOBAL: {
+                    auto name = PyTuple_GetItem(mCode->co_names, oparg);
+                    if (!PyDict_Contains(builtins, name)) {
+                        lastState.push(&Any);
+                    } else {
+                        auto item = PyDict_GetItem(builtins, name);
+                        auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), item);
+                        auto value = AbstractValueWithSources(
+                                &Builtin,
+                                globalSource
+                        );
+                        lastState.push(value);
+                    }
+                    break;
+                }
                 case STORE_GLOBAL:
                     lastState.pop();
                     break;
@@ -552,7 +566,7 @@ bool AbstractInterpreter::interpret() {
                     }
 
                     // pop the function...
-                    lastState.pop();
+                    auto func = lastState.popNoEscape();
 
                     lastState.push(&Any);
                     break;
@@ -967,8 +981,6 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
     else if (PyFunction_Check(obj)) {
         return &Function;
     }
-
-
     return &Any;
 }
 
@@ -1118,6 +1130,15 @@ AbstractSource* AbstractInterpreter::addLocalSource(size_t opcodeIndex, size_t l
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
         return m_opcodeSources[opcodeIndex] = newSource(new LocalSource());
+    }
+
+    return store->second;
+}
+
+AbstractSource* AbstractInterpreter::addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value) {
+    auto store = m_opcodeSources.find(opcodeIndex);
+    if (store == m_opcodeSources.end()) {
+        return m_opcodeSources[opcodeIndex] = newSource(new GlobalSource(name, value));
     }
 
     return store->second;
@@ -2263,8 +2284,8 @@ void AbstractInterpreter::unaryNot(int& opcodeIndex) {
     incStack();
 }
 
-JittedCode* AbstractInterpreter::compile() {
-    bool interpreted = interpret();
+JittedCode* AbstractInterpreter::compile(PyObject* builtins) {
+    bool interpreted = interpret(builtins);
     if (!interpreted) {
 #ifdef DEBUG
         printf("Failed to interpret");

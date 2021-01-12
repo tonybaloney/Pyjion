@@ -44,7 +44,8 @@ public:
     explicit InferenceTest(const char* code) {
         auto pyCode = CompileCode(code);
         m_absint = std::make_unique<AbstractInterpreter>(pyCode, nullptr);
-        auto success = m_absint->interpret();
+        auto builtins = PyEval_GetBuiltins();
+        auto success = m_absint->interpret(builtins);
         if (!success) {
             Py_DECREF(pyCode);
             FAIL("Failed to interpret code");
