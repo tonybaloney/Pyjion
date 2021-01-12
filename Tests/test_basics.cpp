@@ -30,9 +30,6 @@
 #include <catch2/catch.hpp>
 #include "testing_util.h"
 #include <Python.h>
-#include <frameobject.h>
-#include <util.h>
-#include <pyjit.h>
 
 TEST_CASE("General list unpacking") {
     SECTION("common case") {
@@ -346,5 +343,17 @@ TEST_CASE("*args and **kwargs") {
                               "     return kwargs['x']\n"
                               "  return g(x=1)\n");
         CHECK(t.returns() == "1");
+    }
+}
+
+TEST_CASE("Iterators") {
+    SECTION("list iterator") {
+        auto t = EmissionTest("def f():\n"
+                              " x = [1,2,3]\n"
+                              " total = 0\n"
+                              " for y in x:\n"
+                              "   total += y\n"
+                              " return total");
+        CHECK(t.returns() == "6");
     }
 }

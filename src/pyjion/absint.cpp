@@ -717,14 +717,18 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     // Since cell variables are not tracked, no need to worry
                     // about their deletion.
                     break;
-                case GET_ITER:
-                    lastState.pop();
-                    lastState.push(&Iterable);
+                case GET_ITER: {
+                    auto iteratorType = lastState.popNoEscape();
+                    auto source = AbstractValueWithSources(
+                            &Iterable,
+                            iteratorType.Sources);
+                    lastState.push(source);
+                }
                     break;
                 case FOR_ITER: {
                     // For branches out with the value consumed
                     auto leaveState = lastState;
-                    leaveState.pop();
+                    leaveState.pop(); // Iterator
                     if (updateStartState(leaveState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
                         queue.push_back((size_t) oparg + curByte + SIZEOF_CODEUNIT);
                     }
@@ -1912,9 +1916,16 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
                 auto jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
-                forIter(
-                        jumpTo
-                );
+                if (OPT_ENABLED(inlineIterators) && stackInfo.size() >= 1){
+                    forIter(
+                            jumpTo,
+                            &stackInfo[0]
+                    );
+                } else {
+                    forIter(
+                            jumpTo
+                    );
+                }
                 m_offsetStack[jumpTo] = postIterStack;
                 skipEffect = true; // has jump effect
                 break;
@@ -2454,12 +2465,15 @@ void AbstractInterpreter::unpackSequence(size_t size, int opcode) {
     m_comp->emit_free_local(fastTmp);
 }
 
-void AbstractInterpreter::forIter(int loopIndex) {
+void AbstractInterpreter::forIter(int loopIndex, AbstractValueWithSources* iterator) {
     // dup the iter so that it stays on the stack for the next iteration
     m_comp->emit_dup(); // ..., iter -> iter, iter, ...
 
     // emits NULL on error, 0xff on StopIter and ptr on next
-    m_comp->emit_for_next(); // ..., iter, iter -> "next", iter, ...
+    if (iterator == nullptr)
+        m_comp->emit_for_next(); // ..., iter, iter -> "next", iter, ...
+    else
+        m_comp->emit_for_next(*iterator);
 
     /* Start error branch */
     errorCheck("failed to fetch iter");
@@ -2482,6 +2496,10 @@ void AbstractInterpreter::forIter(int loopIndex) {
     /* End stop iter error branch */
 
     m_comp->emit_mark_label(next);
+}
+
+void AbstractInterpreter::forIter(int loopIndex) {
+    forIter(loopIndex, nullptr);
 }
 
 void AbstractInterpreter::loadFast(int local, int opcodeIndex) {

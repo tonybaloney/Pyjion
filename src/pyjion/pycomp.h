@@ -388,6 +388,7 @@ public:
     void emit_load_classderef(int index) override;
     void emit_getiter() override;
     void emit_for_next() override;
+    void emit_for_next(AbstractValueWithSources) override;
 
     void emit_binary_float(int opcode) override;
     void emit_binary_object(int opcode) override;

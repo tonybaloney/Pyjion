@@ -7,9 +7,9 @@ option(OPTIMIZE_PUSH_FRAME "Optimize push/pop frame into inline instructions" ON
 option(OPTIMIZE_KNOWN_STORE_SUBSCR "Optimize STORE_SUBSCR for known types" ON)
 option(OPTIMIZE_KNOWN_BINARY_SUBSCR "Optimize BINARY_SUBSCR for known types" ON)
 option(OPTIMIZE_BINARY_FUNCTIONS "Optimize pairs of binary functions as a triple sequence" ON)
+option(OPTIMIZE_ITERATORS "Optimize iterators of common types into inline instructions" ON)
 
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
-
 
 if (OPTIMIZE_DECREF)
     add_definitions(-DOPTIMIZE_DECREF=1)
@@ -57,6 +57,12 @@ if (OPTIMIZE_BINARY_FUNCTIONS)
     add_definitions(-DOPTIMIZE_BINARY_FUNCTIONS=1)
 else()
     add_definitions(-DOPTIMIZE_BINARY_FUNCTIONS=0)
+endif()
+
+if (OPTIMIZE_ITERATORS)
+    add_definitions(-DOPTIMIZE_ITERATORS=1)
+else()
+    add_definitions(-DOPTIMIZE_ITERATORS=0)
 endif()
 
 if (EE_DEBUG_CODE)

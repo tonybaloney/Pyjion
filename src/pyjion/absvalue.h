@@ -444,8 +444,8 @@ extern NoneValue None;
 extern FunctionValue Function;
 extern SliceValue Slice;
 extern ComplexValue Complex;
-extern IterableValue Iterable;
 extern BuiltinValue Builtin;
+extern IterableValue Iterable;
 
 AbstractValue* avkToAbstractValue(AbstractValueKind);
 
