@@ -1,4 +1,3 @@
-import sys
 import pyjion
 import unittest
 import gc
@@ -30,6 +29,8 @@ class MathTestCase(unittest.TestCase):
         self.assertEqual(c, 10)
         c /= a + b
         self.assertEqual(c, 2.0)
+        c //= a + b
+        self.assertEqual(c, 0)
 
     def test_mixed(self):
         a = 2
