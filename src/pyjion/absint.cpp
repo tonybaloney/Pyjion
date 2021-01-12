@@ -198,7 +198,7 @@ void AbstractInterpreter::initStartingState() {
     updateStartState(lastState, 0);
 }
 
-bool AbstractInterpreter::interpret() {
+bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
     if (!preprocess()) {
         return false;
     }
@@ -483,9 +483,40 @@ bool AbstractInterpreter::interpret() {
                 case DELETE_NAME:
                     break;
                 case LOAD_CLASSDEREF:
-                case LOAD_GLOBAL:
                     lastState.push(&Any);
                     break;
+                case LOAD_GLOBAL: {
+                    auto name = PyTuple_GetItem(mCode->co_names, oparg);
+
+                    PyObject* v = PyObject_GetItem(globals, name);
+                    if (v == nullptr) {
+                        PyErr_Clear();
+                        v = PyObject_GetItem(builtins, name);
+                        if (v == nullptr) {
+                            PyErr_Clear();
+                            // Neither. Maybe it'll appear at runtime!!
+                            lastState.push(&Any);
+                        }
+                        else {
+                            // Builtin source
+                            auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), v);
+                            auto value = AbstractValueWithSources(
+                                    &Builtin,
+                                    globalSource
+                            );
+                            lastState.push(value);
+                        }
+                    } else {
+                        // global source
+                        auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), v);
+                        auto value = AbstractValueWithSources(
+                                &Any,
+                                globalSource
+                        );
+                        lastState.push(value);
+                    }
+                    break;
+                }
                 case STORE_GLOBAL:
                     lastState.pop();
                     break;
@@ -552,9 +583,16 @@ bool AbstractInterpreter::interpret() {
                     }
 
                     // pop the function...
-                    lastState.pop();
+                    auto func = lastState.popNoEscape();
+                    if (func.Value->kind() == AVK_Function){
+                        auto source = AbstractValueWithSources(
+                            avkToAbstractValue(knownFunctionReturnType(func)),
+                            newSource(new LocalSource()));
+                        lastState.push(source);
 
-                    lastState.push(&Any);
+                    } else {
+                        lastState.push(&Any);
+                    }
                     break;
                 }
                 case CALL_FUNCTION_KW: {
@@ -967,8 +1005,6 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
     else if (PyFunction_Check(obj)) {
         return &Function;
     }
-
-
     return &Any;
 }
 
@@ -1118,6 +1154,15 @@ AbstractSource* AbstractInterpreter::addLocalSource(size_t opcodeIndex, size_t l
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
         return m_opcodeSources[opcodeIndex] = newSource(new LocalSource());
+    }
+
+    return store->second;
+}
+
+AbstractSource* AbstractInterpreter::addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value) {
+    auto store = m_opcodeSources.find(opcodeIndex);
+    if (store == m_opcodeSources.end()) {
+        return m_opcodeSources[opcodeIndex] = newSource(new GlobalSource(name, value));
     }
 
     return store->second;
@@ -2263,8 +2308,8 @@ void AbstractInterpreter::unaryNot(int& opcodeIndex) {
     incStack();
 }
 
-JittedCode* AbstractInterpreter::compile() {
-    bool interpreted = interpret();
+JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals) {
+    bool interpreted = interpret(builtins, globals);
     if (!interpreted) {
 #ifdef DEBUG
         printf("Failed to interpret");

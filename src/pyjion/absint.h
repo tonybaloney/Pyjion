@@ -284,8 +284,8 @@ public:
     AbstractInterpreter(PyCodeObject *code, IPythonCompiler* compiler);
     ~AbstractInterpreter();
 
-    JittedCode* compile();
-    bool interpret();
+    JittedCode* compile(PyObject* builtins, PyObject* globals);
+    bool interpret(PyObject* builtins, PyObject* globals);
 
     void setLocalType(int index, AbstractValueKind kind);
     // Returns information about the specified local variable at a specific
@@ -317,6 +317,7 @@ private:
 
     AbstractSource* addLocalSource(size_t opcodeIndex, size_t localIndex);
     AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
+    AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
 
     void makeFunction(int oparg);
     bool canSkipLastiUpdate(int opcodeIndex);

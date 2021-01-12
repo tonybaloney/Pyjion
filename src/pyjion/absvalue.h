@@ -28,7 +28,7 @@
 
 #include <Python.h>
 #include <opcode.h>
-
+#include <unordered_map>
 #include "cowvector.h"
 
 class AbstractValue;
@@ -47,36 +47,30 @@ enum AbstractValueKind {
     AVK_Dict,
     AVK_Tuple,
     AVK_Set,
+    AVK_Frozenset,
     AVK_String,
     AVK_Bytes,
+    AVK_Bytearray,
     AVK_None,
     AVK_Function,
     AVK_Slice,
     AVK_Complex,
-    AVK_Iterable
+    AVK_Iterable,
+    AVK_Code,
+    AVK_Enumerate,
+    AVK_File,
+    AVK_Type,
+    AVK_Module
 };
 
 static bool isKnownType(AbstractValueKind kind) {
     switch (kind) {
-        case AVK_Integer:
-        case AVK_Float:
-        case AVK_Bool:
-        case AVK_List:
-        case AVK_Dict:
-        case AVK_Tuple:
-        case AVK_Set:
-        case AVK_String:
-        case AVK_Bytes:
-        case AVK_None:
-        case AVK_Function:
-        case AVK_Slice:
-        case AVK_Complex:
-        case AVK_Iterable:
-            return true;
+        case AVK_Any:
+        case AVK_Undefined:
+            return false;
     }
-    return false;
+    return true;
 }
-
 
 class AbstractSource {
 public:
@@ -158,6 +152,29 @@ public:
         else {
             return "Source: Const";
         }
+    }
+};
+
+class GlobalSource : public AbstractSource {
+    const char* _name;
+    PyObject* _value;
+public:
+    explicit GlobalSource(const char* name, PyObject* value) {
+        _name = name;
+        _value = value;
+    }
+
+    const char* describe() override {
+        if (needsBoxing()) {
+            return "Source: Global (escapes)";
+        }
+        else {
+            return "Source: Global";
+        }
+    }
+
+    const char* getName() {
+        return _name;
     }
 };
 
@@ -403,6 +420,14 @@ class IterableValue : public AbstractValue {
     const char* describe() override;
 };
 
+class BuiltinValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
+AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);
+
 extern UndefinedValue Undefined;
 extern AnyValue Any;
 extern BoolValue Bool;
@@ -420,6 +445,9 @@ extern FunctionValue Function;
 extern SliceValue Slice;
 extern ComplexValue Complex;
 extern IterableValue Iterable;
+extern BuiltinValue Builtin;
+
+AbstractValue* avkToAbstractValue(AbstractValueKind);
 
 #endif
 

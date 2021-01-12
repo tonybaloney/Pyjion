@@ -35,6 +35,7 @@
 #include <Python.h>
 #include <absint.h>
 #include <memory>
+#include <util.h>
 
 class InferenceTest {
 private:
@@ -44,7 +45,9 @@ public:
     explicit InferenceTest(const char* code) {
         auto pyCode = CompileCode(code);
         m_absint = std::make_unique<AbstractInterpreter>(pyCode, nullptr);
-        auto success = m_absint->interpret();
+        auto builtins = PyEval_GetBuiltins();
+        auto globals_dict = PyObject_ptr(PyDict_New());
+        auto success = m_absint->interpret(builtins, globals_dict.get());
         if (!success) {
             Py_DECREF(pyCode);
             FAIL("Failed to interpret code");
@@ -4478,5 +4481,28 @@ TEST_CASE("Generalize unpacking within a dict", "[dict][BUILD_MAP_UNPACK][infere
         auto t = InferenceTest("def f():\n  x = {1:1, **{2:2}, 3:3}");
         REQUIRE(t.kind(20, 0) == AVK_Undefined);  // STORE_FAST 0
         REQUIRE(t.kind(24, 0) == AVK_Dict);       // LOAD_CONST 0
+    }
+}
+
+TEST_CASE("builtin functions") {
+    SECTION("dict builtin") {
+        auto t = InferenceTest("def f():\n    x = dict()");
+        REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet
+        REQUIRE(t.kind(6, 0) == AVK_Dict);       // x assigned
+    }
+    SECTION("list builtin") {
+        auto t = InferenceTest("def f():\n    x = list()");
+        REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet
+        REQUIRE(t.kind(6, 0) == AVK_List);       // x assigned
+    }
+    SECTION("set builtin") {
+        auto t = InferenceTest("def f():\n    x = set()");
+        REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet
+        REQUIRE(t.kind(6, 0) == AVK_Set);       // x assigned
+    }
+    SECTION("tuple builtin") {
+        auto t = InferenceTest("def f():\n    x = tuple()");
+        REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet
+        REQUIRE(t.kind(6, 0) == AVK_Tuple);       // x assigned
     }
 }

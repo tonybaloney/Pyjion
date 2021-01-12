@@ -6,6 +6,7 @@ import pyjion.dis
 import contextlib
 import gc
 
+
 class InternIntegerTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -39,7 +40,6 @@ class InternIntegerTestCase(unittest.TestCase):
             b = 2
             return a == b
         self.assertOptimized(test_f)
-
 
     def test_const_compare_big_left(self):
         def test_f():
@@ -118,9 +118,38 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         self.assertIn("ldarg.1", f.getvalue())
         self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
 
+    def test_list_key_builtin(self):
+        def test_f():
+            a = list(('a',))
+            a[0] = 'b'
+            return a[0] == 'b'
+
+        self.assertTrue(test_f())
+        self.assertTrue(pyjion.info(test_f)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(test_f)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
+
     def test_list_key_non_const(self):
         def test_f(b):
             a = ['a']
+            a[b] = 'b'
+            return a[b] == 'b'
+
+        self.assertTrue(test_f(0))
+        self.assertTrue(pyjion.info(test_f)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(test_f)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertNotIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST", f.getvalue())
+
+    def test_list_from_builtin_key_non_const(self):
+        def test_f(b):
+            a = list(('a',))
             a[b] = 'b'
             return a[b] == 'b'
 
