@@ -32,6 +32,7 @@
 typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #endif
 
+#include <Python.h>
 #include "pycomp.h"
 #include "pyjit.h"
 #include "pyjitmath.h"
@@ -1295,10 +1296,73 @@ void PythonCompiler::emit_mark_label(Label label) {
 void PythonCompiler::emit_for_next() {
     m_il.emit_call(METHOD_ITERNEXT_TOKEN);
 }
+
 void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
-    // TODO:
-    m_il.emit_call(METHOD_ITERNEXT_TOKEN);
+    if (iterator.Value->kind() != AVK_Iterable)
+        return emit_for_next();
+    auto iterable = dynamic_cast<IteratorSource*>(iterator.Sources);
+    switch (iterable->kind()){
+        case AVK_List: // list iterator object, this is a CIL implementation of listiter_next
+        {
+            auto exhaust = emit_define_label();
+            auto exhausted = emit_define_label();
+            auto end = emit_define_label();
+            auto it = emit_define_local(false);
+            auto it_seq = emit_define_local(false);
+            auto item = emit_define_local(false);
+
+            emit_store_local(it);
+            LD_FIELD(_listiterobject, it_seq);
+            emit_store_local(it_seq);
+
+            emit_load_local(it_seq);
+            emit_null();
+            emit_branch(BranchEqual, exhausted);
+
+            emit_store_local(it_seq);
+
+            // Get next iteration
+            emit_load_local(it);
+            LD_FIELD(_listiterobject, it_index);
+            emit_load_local(it_seq);
+            LD_FIELD(PyVarObject, ob_size);
+            emit_branch(BranchLessThanEqualUnsigned, exhaust);
+
+            emit_load_local(it_seq);
+            emit_load_local(it);
+            LD_FIELD(_listiterobject, it_index);
+            m_il.ld_i(sizeof(size_t));
+            m_il.mul();
+
+            m_il.ld_i(offsetof(PyListObject, ob_item));
+            m_il.add();
+
+            m_il.ld_ind_i();
+            emit_store_local(item);
+
+            emit_load_local(item);
+            emit_branch(BranchAlways, end);
+
+            emit_mark_label(exhaust);
+            emit_null();
+            emit_load_local(it);
+            LD_FIELD(_listiterobject, it_seq);
+            m_il.st_ind_i();
+
+            emit_load_local(it);
+            decref();
+
+            emit_mark_label(exhausted);
+            emit_ptr((void*)0xff);
+
+            emit_mark_label(end);
+            emit_free_local(it);
+            emit_free_local(it_seq);
+        }
+        break;
+    }
 }
+
 void PythonCompiler::emit_debug_msg(const char* msg) {
     m_il.ld_i((void*)msg);
     m_il.emit_call(METHOD_DEBUG_TRACE);

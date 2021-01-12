@@ -202,6 +202,19 @@ public:
     }
 };
 
+class IteratorSource : public AbstractSource {
+    AbstractValueKind _kind;
+public:
+    explicit IteratorSource(AbstractValueKind iterableKind){
+        _kind = iterableKind;
+    }
+
+    const char* describe() override {
+        return "Source: Iterator";
+    }
+
+    AbstractValueKind kind() { return _kind; }
+};
 
 class AbstractValue {
 public:

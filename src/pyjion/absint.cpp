@@ -721,7 +721,7 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     auto iteratorType = lastState.popNoEscape();
                     auto source = AbstractValueWithSources(
                             &Iterable,
-                            iteratorType.Sources);
+                            newSource(new IteratorSource(iteratorType.Value->kind())));
                     lastState.push(source);
                 }
                     break;
