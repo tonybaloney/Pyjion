@@ -105,7 +105,7 @@ TEST_CASE("Test math functions directly"){
         Py_INCREF(c);
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
-        CHECK(res != nullptr);
+        REQUIRE(res != nullptr);
         if (firstOpcode == BINARY_TRUE_DIVIDE)
             CHECK(PyFloat_Check(res));
         if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
@@ -119,14 +119,15 @@ TEST_CASE("Test math functions directly"){
         auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
         auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
         printf("int %d by %d", firstOpcode, secondOpcode);
-        PyObject* a = PyLong_FromLong(6);
-        PyObject* b = PyLong_FromLong(3);
-        PyObject* c = PyLong_FromLong(4);
+        PyObject* a = PyLong_FromLong(300);
+        PyObject* b = PyLong_FromLong(301);
+        PyObject* c = PyLong_FromLong(302);
         Py_INCREF(a);
         Py_INCREF(b);
         Py_INCREF(c);
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
+        REQUIRE(res != nullptr);
         if (firstOpcode == BINARY_TRUE_DIVIDE)
             CHECK(PyFloat_Check(res));
         if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
@@ -138,7 +139,7 @@ TEST_CASE("Test math functions directly"){
         auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
         auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
         printf("int/float/float %d by %d", firstOpcode, secondOpcode);
-        PyObject* a = PyLong_FromLong(600);
+        PyObject* a = PyLong_FromLong(300);
         PyObject* b = PyFloat_FromDouble(300.0);
         PyObject* c = PyFloat_FromDouble(400.0);
         Py_INCREF(a);
@@ -146,7 +147,7 @@ TEST_CASE("Test math functions directly"){
         Py_INCREF(c);
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
-        CHECK(res != nullptr);
+        REQUIRE(res != nullptr);
         if (firstOpcode == BINARY_TRUE_DIVIDE)
             CHECK(PyFloat_Check(res));
         if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
@@ -168,7 +169,7 @@ TEST_CASE("Test math functions directly"){
         Py_INCREF(c);
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
-        CHECK(res != nullptr);
+        REQUIRE(res != nullptr);
         if (firstOpcode == BINARY_TRUE_DIVIDE)
             CHECK(PyFloat_Check(res));
         if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
@@ -179,8 +180,9 @@ TEST_CASE("Test math functions directly"){
     }
 
     SECTION("Binary then inplace all ints") {
-        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
-        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
+        // Dont test the power operation here because it will cause havoc with these numbers!!
+        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
+        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
         printf("int %d by %d", firstOpcode, secondOpcode);
         PyObject* a = PyLong_FromLong(600);
         PyObject* b = PyLong_FromLong(300);
@@ -190,7 +192,7 @@ TEST_CASE("Test math functions directly"){
         Py_INCREF(c);
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
-        CHECK(res != nullptr);
+        REQUIRE(res != nullptr);
         if (firstOpcode == BINARY_TRUE_DIVIDE)
             CHECK(PyFloat_Check(res));
         if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
@@ -212,7 +214,7 @@ TEST_CASE("Test math functions directly"){
         Py_INCREF(c);
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
-        CHECK(res != nullptr);
+        REQUIRE(res != nullptr);
         CHECK(a->ob_refcnt == 1);
         CHECK(b->ob_refcnt == 1);
         CHECK(c->ob_refcnt == 1);

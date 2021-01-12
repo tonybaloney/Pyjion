@@ -88,7 +88,7 @@ PyObject* PyJitMath_TripleBinaryOp(PyObject* c, PyObject* a, PyObject* b, int fi
     PyObject* res = nullptr;
     if (PyFloat_CheckExact(a) && PyFloat_CheckExact(b) && PyFloat_CheckExact(c))
         res = PyJitMath_TripleBinaryOpFloatFloatFloat((PyFloatObject*)a, (PyFloatObject*)b, (PyFloatObject*)c, firstOp, secondOp);
-    else if (PyLong_CheckExact(a) && PyLong_CheckExact(b) && PyLong_CheckExact(c))
+    else if (PyLong_CheckExact(a) && PyLong_CheckExact(b) && PyLong_CheckExact(c) && firstOp == BINARY_TRUE_DIVIDE)
         res =  PyJitMath_TripleBinaryOpIntIntInt(a, b, c, firstOp, secondOp);
     else if (PyFloat_CheckExact(a) && PyLong_CheckExact(b) && PyLong_CheckExact(c))
         res =  PyJitMath_TripleBinaryOpFloatIntInt(a, b, c, firstOp, secondOp);
@@ -117,22 +117,11 @@ PyObject* PyJitMath_TripleBinaryOp(PyObject* c, PyObject* a, PyObject* b, int fi
 inline PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
     // This optimization only makes sense if the first opcode is a division. The abstract/PyNumber API works
     // out to be more efficient that converting to a long long, doing a native calculation and converting back again
-    if (firstOp != BINARY_TRUE_DIVIDE && firstOp != BINARY_FLOOR_DIVIDE)
-        return PyJitMath_TripleBinaryOpObjObjObj(a, b, c, firstOp, secondOp);
-    int overflow_c;
-    long long val_c = PyLong_AsLongLongAndOverflow(c, &overflow_c);
-    if (overflow_c){
-        return PyJitMath_TripleBinaryOpObjObjObj(a, b, c, firstOp, secondOp);
+    double val_c = PyLong_AsDouble(c);
+    if (val_c == -1.0 && PyErr_Occurred()){
+        return nullptr; // probably an overflow error
     }
-    PyFloatObject * res_obj;
-    switch(firstOp) {
-        case BINARY_TRUE_DIVIDE:
-            res_obj = (PyFloatObject*)PyNumber_TrueDivide(a, b);
-            break;
-        case BINARY_FLOOR_DIVIDE:
-            res_obj = (PyFloatObject*)PyNumber_FloorDivide(a, b);
-            break;
-    }
+    PyFloatObject * res_obj = (PyFloatObject*)PyNumber_TrueDivide(a, b);
     double res = res_obj->ob_fval;
     Py_DECREF(res_obj); // should destroy the value.
     switch (secondOp){
