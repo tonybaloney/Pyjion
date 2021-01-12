@@ -106,6 +106,10 @@ TEST_CASE("Test math functions directly"){
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
         CHECK(res != nullptr);
+        if (firstOpcode == BINARY_TRUE_DIVIDE)
+            CHECK(PyFloat_Check(res));
+        if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
+            CHECK(PyFloat_Check(res));
         CHECK(a->ob_refcnt == 1);
         CHECK(b->ob_refcnt == 1);
         CHECK(c->ob_refcnt == 1);
@@ -123,6 +127,10 @@ TEST_CASE("Test math functions directly"){
         Py_INCREF(c);
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
+        if (firstOpcode == BINARY_TRUE_DIVIDE)
+            CHECK(PyFloat_Check(res));
+        if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
+            CHECK(PyFloat_Check(res));
         CHECK(res != nullptr);
     }
 
@@ -139,6 +147,10 @@ TEST_CASE("Test math functions directly"){
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
         CHECK(res != nullptr);
+        if (firstOpcode == BINARY_TRUE_DIVIDE)
+            CHECK(PyFloat_Check(res));
+        if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
+            CHECK(PyFloat_Check(res));
         CHECK(a->ob_refcnt == 1);
         CHECK(b->ob_refcnt == 1);
         CHECK(c->ob_refcnt == 1);
@@ -157,6 +169,10 @@ TEST_CASE("Test math functions directly"){
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
         CHECK(res != nullptr);
+        if (firstOpcode == BINARY_TRUE_DIVIDE)
+            CHECK(PyFloat_Check(res));
+        if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
+            CHECK(PyFloat_Check(res));
         CHECK(a->ob_refcnt == 1);
         CHECK(b->ob_refcnt == 1);
         CHECK(c->ob_refcnt == 1);
@@ -175,6 +191,10 @@ TEST_CASE("Test math functions directly"){
 
         PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
         CHECK(res != nullptr);
+        if (firstOpcode == BINARY_TRUE_DIVIDE)
+            CHECK(PyFloat_Check(res));
+        if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
+            CHECK(PyFloat_Check(res));
         CHECK(a->ob_refcnt == 1);
         CHECK(b->ob_refcnt == 1);
         CHECK(c->ob_refcnt == 1);

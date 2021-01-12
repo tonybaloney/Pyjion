@@ -114,57 +114,27 @@ PyObject* PyJitMath_TripleBinaryOp(PyObject* c, PyObject* a, PyObject* b, int fi
     return res;
 }
 
-
 inline PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
-    int overflow_a;
-    int overflow_b;
+    // This optimization only makes sense if the first opcode is a division. The abstract/PyNumber API works
+    // out to be more efficient that converting to a long long, doing a native calculation and converting back again
+    if (firstOp != BINARY_TRUE_DIVIDE && firstOp != BINARY_FLOOR_DIVIDE)
+        return PyJitMath_TripleBinaryOpObjObjObj(a, b, c, firstOp, secondOp);
     int overflow_c;
-    long long val_a = PyLong_AsLongLongAndOverflow(a, &overflow_a);
-    if (overflow_a){
-        return PyJitMath_TripleBinaryOpObjObjObj(a, b, c, firstOp, secondOp);
-    }
-    long long val_b = PyLong_AsLongLongAndOverflow(b, &overflow_b);
-    if (overflow_b){
-        return PyJitMath_TripleBinaryOpObjObjObj(a, b, c, firstOp, secondOp);
-    }
     long long val_c = PyLong_AsLongLongAndOverflow(c, &overflow_c);
     if (overflow_c){
         return PyJitMath_TripleBinaryOpObjObjObj(a, b, c, firstOp, secondOp);
     }
-    long long res = -1;
+    PyFloatObject * res_obj;
     switch(firstOp) {
         case BINARY_TRUE_DIVIDE:
-            if (val_b == 0){
-                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
-                return nullptr;
-            }
-            // TODO : Should be float.
-            res = val_a / val_b;
+            res_obj = (PyFloatObject*)PyNumber_TrueDivide(a, b);
             break;
         case BINARY_FLOOR_DIVIDE:
-            if (val_b == 0){
-                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
-                return nullptr;
-            }
-            res = floor(val_a / val_b);
-            break;
-        case BINARY_POWER:
-            res = pow(val_a, val_b);
-            break;
-        case BINARY_MODULO:
-        case BINARY_MATRIX_MULTIPLY:
-            UNSUPPORTED_MATH_OP(firstOp);
-            return nullptr;
-        case BINARY_MULTIPLY:
-            res = val_a * val_b;
-            break;
-        case BINARY_SUBTRACT:
-            res = val_a - val_b;
-            break;
-        case BINARY_ADD:
-            res = val_a + val_b;
+            res_obj = (PyFloatObject*)PyNumber_FloorDivide(a, b);
             break;
     }
+    double res = res_obj->ob_fval;
+    Py_DECREF(res_obj); // should destroy the value.
     switch (secondOp){
         case INPLACE_TRUE_DIVIDE:
         case BINARY_TRUE_DIVIDE:
@@ -179,19 +149,19 @@ inline PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyO
                 PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
                 return nullptr;
             }
-            return PyLong_FromLongLong(floor(val_c / res));
+            return PyFloat_FromDouble(floor(val_c / res));
         case INPLACE_POWER:
         case BINARY_POWER:
-            return PyLong_FromLongLong(pow(val_c, res));
+            return PyFloat_FromDouble(pow(val_c, res));
         case INPLACE_SUBTRACT:
         case BINARY_SUBTRACT:
-            return PyLong_FromLongLong(val_c - res);
+            return PyFloat_FromDouble(val_c - res);
         case INPLACE_ADD:
         case BINARY_ADD:
-            return PyLong_FromLongLong(val_c + res);
+            return PyFloat_FromDouble(val_c + res);
         case BINARY_MULTIPLY:
         case INPLACE_MULTIPLY:
-            return PyLong_FromLongLong(val_c * res);
+            return PyFloat_FromDouble(val_c * res);
         case INPLACE_MATRIX_MULTIPLY:
         case BINARY_MODULO:
         case BINARY_MATRIX_MULTIPLY:
@@ -781,8 +751,11 @@ inline PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyO
             res = PyNumber_Power(a, b, Py_None);
             break;
     }
-    if (res == nullptr)
+    if (res == nullptr) {
+        if (!PyErr_Occurred())
+            PyErr_SetString(PyExc_ValueError, "Failure in math operation");
         return nullptr;
+    }
     switch (secondOp){
         case BINARY_TRUE_DIVIDE:
             res2 = PyNumber_TrueDivide(c, res);
