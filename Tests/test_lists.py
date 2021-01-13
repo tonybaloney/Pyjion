@@ -69,15 +69,6 @@ class ListIteratorsTestCase(unittest.TestCase):
         self.assertEqual(test_f(), 10)
         self.assertOptimized(test_f)
 
-    def test_inline_list_is_optimized(self):
-        def test_f():
-            o = 0
-            for x in [0, 1, 2, 3, 4]:
-                o += x
-            return o
-        self.assertEqual(test_f(), 10)
-        self.assertOptimized(test_f)
-
 
 if __name__ == "__main__":
     unittest.main()
