@@ -356,6 +356,31 @@ TEST_CASE("Iterators") {
                               " return total");
         CHECK(t.returns() == "6");
     }
+
+    SECTION("extended list iterator") {
+        auto t = EmissionTest("def f():\n"
+                              " x = ['1', '2', '3']\n"
+                              " x.append('4')\n"
+                              " total = 0\n"
+                              " for y in x:\n"
+                              "   total += int(y)\n"
+                              " return total");
+        CHECK(t.returns() == "10");
+    }
+
+    SECTION("nested list iterator") {
+        auto t = EmissionTest("def f():\n"
+                              " x = ['1', '2', '3']\n"
+                              " y = ['4', '5', '6']\n"
+                              " x.append('4')\n"
+                              " total = 0\n"
+                              " for i in x:\n"
+                              "  for j in y:\n"
+                              "   total += int(i) + int(j)\n"
+                              " return total");
+        CHECK(t.returns() == "90");
+    }
+
     SECTION("tuple iterator") {
         auto t = EmissionTest("def f():\n"
                               " x = ('1', '2', '3')\n"
