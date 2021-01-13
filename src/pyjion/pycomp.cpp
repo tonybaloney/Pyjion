@@ -32,6 +32,7 @@
 typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #endif
 
+#include <Python.h>
 #include "pycomp.h"
 #include "pyjit.h"
 #include "pyjitmath.h"
@@ -1296,9 +1297,111 @@ void PythonCompiler::emit_for_next() {
     m_il.emit_call(METHOD_ITERNEXT_TOKEN);
 }
 
+void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset){
+    auto exhaust = emit_define_label();
+    auto exhausted = emit_define_label();
+    auto end = emit_define_label();
+    auto it_seq = emit_define_local(LK_Pointer);
+    auto item = emit_define_local(LK_Pointer);
+
+    auto it = emit_spill();
+
+    emit_load_local(it);
+    m_il.ld_i(seq_offset);
+    m_il.add();
+    m_il.ld_ind_i();
+    emit_dup();
+    emit_store_local(it_seq); // it_seq = it->it_seq
+
+    emit_null();
+    emit_branch(BranchEqual, exhausted); // if (it_seq ==nullptr) goto exhausted;
+
+    // Get next iteration
+    emit_load_local(it);
+    m_il.ld_i(index_offset);
+    m_il.add();
+    m_il.ld_ind_i();
+    emit_load_local(it_seq);
+    LD_FIELD(PyVarObject, ob_size);
+    emit_branch(BranchGreaterThanEqual, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
+
+    emit_load_local(it_seq);
+    m_il.ld_i(ob_item_offset);
+    m_il.add();
+    m_il.ld_ind_i();
+    emit_load_local(it);
+    m_il.ld_i(index_offset);
+    m_il.add();
+    m_il.ld_ind_i();
+    m_il.ld_i(sizeof(PyObject*));
+    m_il.mul();
+    m_il.add();
+    m_il.ld_ind_i();
+    emit_store_local(item);
+
+    emit_load_local(it);
+    m_il.ld_i(index_offset);
+    m_il.add();
+    m_il.dup();
+    m_il.ld_ind_i();
+    m_il.load_one();
+    m_il.add();
+    m_il.st_ind_i(); // it->it_index++
+
+    emit_load_local(item);
+    emit_incref(); // Py_INCREF(item);
+
+    emit_load_and_free_local(item);
+    emit_branch(BranchAlways, end); // Return item
+
+    emit_mark_label(exhaust);
+    emit_load_local(it);
+    m_il.ld_i(seq_offset);
+    m_il.add();
+    emit_null();
+    m_il.st_ind_i();   // it->it_seq = nullptr;
+
+    emit_load_local(it_seq);
+    decref();             // Py_DECREF(it->it_seq); return 0xff
+
+    emit_mark_label(exhausted);
+    emit_ptr((void *) 0xff); // Return 0xff
+
+    emit_mark_label(end); // Clean-up
+    emit_free_local(it);
+    emit_free_local(it_seq);
+}
+
+void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
+    /*
+     * Stack will have 1 value, the iterator object created by GET_ITER.
+     * Function should leave a 64-bit ptr on the stack:
+     *  - NULL (error occurred)
+     *  - 0xff (StopIter/ iterator exhausted)
+     *  - PyObject* (next item in iteration)
+     */
+    if (iterator.Value->kind() != AVK_Iterable)
+        return emit_for_next();
+    auto iterable = dynamic_cast<IteratorSource*>(iterator.Sources);
+    switch (iterable->kind()) {
+        case AVK_List:
+            emit_varobject_iter_next(offsetof(_listiterobject, it_seq), offsetof(_listiterobject, it_index), offsetof(PyListObject, ob_item));
+            break;
+//        case AVK_Tuple:
+//            emit_varobject_iter_next(offsetof(_tupleiterobject , it_seq), offsetof(_tupleiterobject , it_index), offsetof(PyTupleObject, ob_item));
+//            break;
+        default:
+            return emit_for_next();
+    }
+}
+
 void PythonCompiler::emit_debug_msg(const char* msg) {
     m_il.ld_i((void*)msg);
     m_il.emit_call(METHOD_DEBUG_TRACE);
+}
+
+void PythonCompiler::emit_debug_pyobject() {
+    m_il.emit_call(METHOD_DEBUG_PYOBJECT);
 }
 
 void PythonCompiler::emit_binary_float(int opcode) {
@@ -1600,7 +1703,6 @@ GLOBAL_METHOD(METHOD_STORE_SUBSCR_DICT_HASH, &PyJit_StoreSubscrDictHash, CORINFO
 GLOBAL_METHOD(METHOD_STORE_SUBSCR_LIST, &PyJit_StoreSubscrList, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_STORE_SUBSCR_LIST_I, &PyJit_StoreSubscrListIndex, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
-
 GLOBAL_METHOD(METHOD_DELETESUBSCR_TOKEN, &PyJit_DeleteSubscr, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_BUILD_DICT_FROM_TUPLES, &PyJit_BuildDictFromTuples, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DICT_MERGE, &PyJit_DictMerge, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
@@ -1714,6 +1816,7 @@ GLOBAL_METHOD(METHOD_UNBOUND_LOCAL, &PyJit_UnboundLocal, CORINFO_TYPE_VOID, Para
 GLOBAL_METHOD(METHOD_PYERR_RESTORE, &PyJit_PyErrRestore, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_DEBUG_TRACE, &PyJit_DebugTrace, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_DEBUG_PYOBJECT, &PyJit_DebugPyObject, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_PY_POPFRAME, &PyJit_PopFrame, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_PY_PUSHFRAME, &PyJit_PushFrame, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));

@@ -144,6 +144,7 @@
 #define METHOD_DEALLOC_OBJECT                    0x00000079
 #define METHOD_LOAD_CLOSURE                      0x0000007A
 #define METHOD_TRIPLE_BINARY_OP                  0x0000007B
+#define METHOD_DEBUG_PYOBJECT                    0x0000007C
 
 // call helpers
 #define METHOD_CALL_0_TOKEN        0x00010000
@@ -237,6 +238,7 @@
 
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
 #define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
+#define LD_FIELDI(type, field) m_il.ld_i(offsetof(type, field)); m_il.mul(); m_il.ld_ind_i();
 
 extern ICorJitCompiler* g_jit;
 class PythonCompiler : public IPythonCompiler {
@@ -388,6 +390,7 @@ public:
     void emit_load_classderef(int index) override;
     void emit_getiter() override;
     void emit_for_next() override;
+    void emit_for_next(AbstractValueWithSources) override;
 
     void emit_binary_float(int opcode) override;
     void emit_binary_object(int opcode) override;
@@ -435,6 +438,7 @@ public:
     void emit_incref() override;
 
     void emit_debug_msg(const char* msg) override;
+    void emit_debug_pyobject() override;
 
     void emit_load_method(void* name) override;
     bool emit_method_call(size_t argCnt) override;
@@ -475,7 +479,21 @@ private:
     CorInfoType to_clr_type(LocalKind kind);
     void pop_top() override;
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
-
+    void emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset );
 };
+
+// Copies of internal CPython structures
+
+typedef struct {
+    PyObject_HEAD
+    Py_ssize_t it_index;
+    PyListObject *it_seq; /* Set to NULL when iterator is exhausted */
+} _listiterobject;
+
+typedef struct {
+    PyObject_HEAD
+    Py_ssize_t it_index;
+    PyTupleObject *it_seq; /* Set to NULL when iterator is exhausted */
+} _tupleiterobject;
 
 #endif

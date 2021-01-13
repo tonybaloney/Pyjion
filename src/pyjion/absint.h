@@ -332,6 +332,7 @@ private:
 
     Label getOffsetLabel(int jumpTo);
     void forIter(int loopIndex);
+    void forIter(int loopIndex, AbstractValueWithSources* iterator);
 
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.

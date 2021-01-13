@@ -378,6 +378,18 @@ public:
                 case BranchGreaterThanUnsigned:
                     m_il.push_back(CEE_BGT_UN_S); // Pop1+Pop1, Push0
                     break;
+                case BranchGreaterThanEqual:
+                    m_il.push_back(CEE_BGE_S); // Pop1+Pop1, Push0
+                    break;
+                case BranchGreaterThanEqualUnsigned:
+                    m_il.push_back(CEE_BGE_UN_S); // Pop1+Pop1, Push0
+                    break;
+                case BranchLessThan:
+                    m_il.push_back(CEE_BLT_S); // Pop1+Pop1, Push0
+                    break;
+                case BranchLessThanUnsigned:
+                    m_il.push_back(CEE_BLT_UN_S); // Pop1+Pop1, Push0
+                    break;
             }
             m_il.push_back((BYTE)offset - 2);
         }
@@ -412,6 +424,18 @@ public:
                     break;
                 case BranchGreaterThanUnsigned:
                     m_il.push_back(CEE_BGT_UN); // Pop1+Pop1, Push0
+                    break;
+                case BranchGreaterThanEqual:
+                    m_il.push_back(CEE_BGE); // Pop1+Pop1, Push0
+                    break;
+                case BranchGreaterThanEqualUnsigned:
+                    m_il.push_back(CEE_BGE_UN); // Pop1+Pop1, Push0
+                    break;
+                case BranchLessThan:
+                    m_il.push_back(CEE_BLT); // Pop1+Pop1, Push0
+                    break;
+                case BranchLessThanUnsigned:
+                    m_il.push_back(CEE_BLT_UN); // Pop1+Pop1, Push0
                     break;
             }
             emit_int(offset - 5);

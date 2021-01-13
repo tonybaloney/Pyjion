@@ -155,6 +155,7 @@ PyObject* PyJit_CompareExceptions(PyObject*v, PyObject* w);
 void PyJit_UnboundLocal(PyObject* name);
 
 void PyJit_DebugTrace(char* msg);
+void PyJit_DebugPyObject(PyObject* obj);
 
 void PyJit_PyErrRestore(PyObject*tb, PyObject*value, PyObject*exception);
 

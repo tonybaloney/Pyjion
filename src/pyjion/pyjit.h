@@ -74,6 +74,8 @@ typedef struct PyjionSettings {
     bool opt_knownStoreSubscr = OPTIMIZE_KNOWN_STORE_SUBSCR; // OPT-6
     bool opt_knownBinarySubscr = OPTIMIZE_KNOWN_BINARY_SUBSCR; // OPT-7
     bool opt_tripleBinaryFunctions = OPTIMIZE_BINARY_FUNCTIONS; // OPT-8
+    bool opt_inlineIterators = OPTIMIZE_ITERATORS; // OPT-9
+
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;

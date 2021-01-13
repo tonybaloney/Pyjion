@@ -49,6 +49,14 @@ class InternIntegerTestCase(unittest.TestCase):
 
         self.assertOptimized(test_f)
 
+    def test_const_from_builtin(self):
+        def test_f():
+            a = 2
+            b = int("3")
+            return a == b
+
+        self.assertOptimized(test_f)
+
     def test_const_compare_big_right(self):
         def test_f():
             a = 1

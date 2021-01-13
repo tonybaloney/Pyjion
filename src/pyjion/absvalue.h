@@ -202,6 +202,19 @@ public:
     }
 };
 
+class IteratorSource : public AbstractSource {
+    AbstractValueKind _kind;
+public:
+    explicit IteratorSource(AbstractValueKind iterableKind){
+        _kind = iterableKind;
+    }
+
+    const char* describe() override {
+        return "Source: Iterator";
+    }
+
+    AbstractValueKind kind() { return _kind; }
+};
 
 class AbstractValue {
 public:
@@ -444,8 +457,8 @@ extern NoneValue None;
 extern FunctionValue Function;
 extern SliceValue Slice;
 extern ComplexValue Complex;
-extern IterableValue Iterable;
 extern BuiltinValue Builtin;
+extern IterableValue Iterable;
 
 AbstractValue* avkToAbstractValue(AbstractValueKind);
 

@@ -173,6 +173,8 @@ class MethodTokens (Enum):
     METHOD_SETUP_ANNOTATIONS                 = 0x00000078
     METHOD_DEALLOC_OBJECT                    = 0x00000079
     METHOD_LOAD_CLOSURE                      = 0x0000007A
+    METHOD_TRIPLE_BINARY_OP                  = 0x0000007B
+    METHOD_DEBUG_PYOBJECT                    = 0x0000007C
 
     METHOD_CALL_0_TOKEN        = 0x00010000
     METHOD_CALL_1_TOKEN        = 0x00010001
