@@ -713,6 +713,11 @@ void PyJit_DebugTrace(char* msg) {
     puts(msg);
 }
 
+void PyJit_DebugPyObject(PyObject* obj) {
+    printf("Object at %p", obj);
+    printf("%s", PyUnicode_AsUTF8(PyObject_Repr(obj)));
+}
+
 void PyJit_PyErrRestore(PyObject*tb, PyObject*value, PyObject*exception) {
     if (exception == Py_None) {
         exception = nullptr;

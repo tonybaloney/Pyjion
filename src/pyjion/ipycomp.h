@@ -68,7 +68,11 @@ enum BranchType {
     BranchLessThanEqual,
     BranchLessThanEqualUnsigned,
     BranchGreaterThan,
-    BranchGreaterThanUnsigned
+    BranchGreaterThanUnsigned,
+    BranchGreaterThanEqual,
+    BranchGreaterThanEqualUnsigned,
+    BranchLessThan,
+    BranchLessThanUnsigned
 };
 
 class JittedCode {
@@ -396,6 +400,7 @@ public:
     virtual void emit_incref() = 0;
 
     virtual void emit_debug_msg(const char* msg) = 0;
+    virtual void emit_debug_pyobject() = 0;
 
     // Python 3.7 method calls
     virtual void emit_load_method(void* name) = 0;

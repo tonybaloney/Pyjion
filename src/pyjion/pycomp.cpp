@@ -1314,16 +1314,16 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
             auto exhaust = emit_define_label();
             auto exhausted = emit_define_label();
             auto end = emit_define_label();
-            auto it_seq = emit_define_local(false);
-            auto item = emit_define_local(false);
+            auto it_seq = emit_define_local(LK_Pointer);
+            auto item = emit_define_local(LK_Pointer);
 
             auto it = emit_spill();
 
             emit_load_local(it);
             LD_FIELD(_listiterobject, it_seq);
+            emit_dup();
             emit_store_local(it_seq); // it_seq = it->it_seq
 
-            emit_load_local(it_seq);
             emit_null();
             emit_branch(BranchEqual, exhausted); // if (it_seq ==nullptr) goto exhausted;
 
@@ -1332,27 +1332,37 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
             LD_FIELD(_listiterobject, it_index);
             emit_load_local(it_seq);
             LD_FIELD(PyVarObject, ob_size);
-            emit_branch(BranchLessThanEqualUnsigned, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
+            emit_branch(BranchGreaterThanEqual, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
+            emit_debug_msg("Loop.");
 
-            //emit_load_local(it_seq);
+            emit_load_local(it_seq);
+            emit_debug_pyobject();
+
             emit_load_local(it);
             LD_FIELD(_listiterobject, it_index);
-            m_il.ld_i(sizeof(size_t));
+            m_il.ld_i(sizeof(PyObject*));
             m_il.mul();
 
             m_il.ld_i(offsetof(PyListObject, ob_item));
             m_il.add();
 
-            m_il.ld_ind_i();
+            emit_load_local(it_seq);
+            m_il.add();
+
+            emit_dup();
             emit_store_local(item);
 
+            emit_debug_pyobject();
+
             emit_load_local(it);
-            LD_FIELD(_listiterobject, it_index);
+            LD_FIELDA(_listiterobject, it_index);
             m_il.dup();
             m_il.ld_ind_i();
             m_il.load_one();
             m_il.add();
-            m_il.st_ind_i(); // it->it_index++;
+            m_il.st_ind_i(); // it->it_index++
+
+            emit_debug_msg("Incremented index.");
 
             emit_load_local(item);
             emit_incref(); // Py_INCREF(item);
@@ -1361,6 +1371,7 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
             emit_branch(BranchAlways, end); // Return item
 
             emit_mark_label(exhaust);
+            emit_debug_msg("End of loop.");
             emit_load_local(it);
             LD_FIELD(_listiterobject, it_seq);
             emit_null();
@@ -1370,6 +1381,7 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
             decref();             // Py_DECREF(it->it_seq); return 0xff
 
             emit_mark_label(exhausted);
+            emit_debug_msg("Exhausted.");
             emit_ptr((void *) 0xff); // Return 0xff
 
             emit_mark_label(end); // Clean-up
@@ -1385,6 +1397,10 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
 void PythonCompiler::emit_debug_msg(const char* msg) {
     m_il.ld_i((void*)msg);
     m_il.emit_call(METHOD_DEBUG_TRACE);
+}
+
+void PythonCompiler::emit_debug_pyobject() {
+    m_il.emit_call(METHOD_DEBUG_PYOBJECT);
 }
 
 void PythonCompiler::emit_binary_float(int opcode) {
@@ -1686,7 +1702,6 @@ GLOBAL_METHOD(METHOD_STORE_SUBSCR_DICT_HASH, &PyJit_StoreSubscrDictHash, CORINFO
 GLOBAL_METHOD(METHOD_STORE_SUBSCR_LIST, &PyJit_StoreSubscrList, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_STORE_SUBSCR_LIST_I, &PyJit_StoreSubscrListIndex, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
-
 GLOBAL_METHOD(METHOD_DELETESUBSCR_TOKEN, &PyJit_DeleteSubscr, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_BUILD_DICT_FROM_TUPLES, &PyJit_BuildDictFromTuples, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DICT_MERGE, &PyJit_DictMerge, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
@@ -1800,6 +1815,7 @@ GLOBAL_METHOD(METHOD_UNBOUND_LOCAL, &PyJit_UnboundLocal, CORINFO_TYPE_VOID, Para
 GLOBAL_METHOD(METHOD_PYERR_RESTORE, &PyJit_PyErrRestore, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_DEBUG_TRACE, &PyJit_DebugTrace, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_DEBUG_PYOBJECT, &PyJit_DebugPyObject, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_PY_POPFRAME, &PyJit_PopFrame, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_PY_PUSHFRAME, &PyJit_PushFrame, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));

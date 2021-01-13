@@ -144,6 +144,7 @@
 #define METHOD_DEALLOC_OBJECT                    0x00000079
 #define METHOD_LOAD_CLOSURE                      0x0000007A
 #define METHOD_TRIPLE_BINARY_OP                  0x0000007B
+#define METHOD_DEBUG_PYOBJECT                    0x0000007C
 
 // call helpers
 #define METHOD_CALL_0_TOKEN        0x00010000
@@ -437,6 +438,7 @@ public:
     void emit_incref() override;
 
     void emit_debug_msg(const char* msg) override;
+    void emit_debug_pyobject() override;
 
     void emit_load_method(void* name) override;
     bool emit_method_call(size_t argCnt) override;
@@ -477,7 +479,6 @@ private:
     CorInfoType to_clr_type(LocalKind kind);
     void pop_top() override;
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
-
 };
 
 // Copies of internal CPython structures
