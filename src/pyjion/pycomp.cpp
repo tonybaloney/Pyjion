@@ -1341,13 +1341,12 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
 #endif
             emit_load_local(it_seq);
             LD_FIELD(PyListObject, ob_item);
-            m_il.ld_ind_i();
             emit_load_local(it);
             LD_FIELD(_listiterobject, it_index);
             m_il.ld_i(sizeof(PyObject*));
             m_il.mul();
             m_il.add();
-
+            m_il.ld_ind_i();
             emit_store_local(item);
 #ifdef DEBUG
             emit_load_local(item);
@@ -1362,8 +1361,6 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
             m_il.add();
             m_il.st_ind_i(); // it->it_index++
 
-            emit_debug_msg("Incremented index.");
-
             emit_load_local(item);
             emit_incref(); // Py_INCREF(item);
 
@@ -1371,7 +1368,6 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
             emit_branch(BranchAlways, end); // Return item
 
             emit_mark_label(exhaust);
-            emit_debug_msg("End of loop.");
             emit_load_local(it);
             LD_FIELD(_listiterobject, it_seq);
             emit_null();
@@ -1381,7 +1377,6 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
             decref();             // Py_DECREF(it->it_seq); return 0xff
 
             emit_mark_label(exhausted);
-            emit_debug_msg("Exhausted.");
             emit_ptr((void *) 0xff); // Return 0xff
 
             emit_mark_label(end); // Clean-up
