@@ -1298,37 +1298,43 @@ void PythonCompiler::emit_for_next() {
 }
 
 void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
+    /*
+     * Stack will have 1 value, the iterator object created by GET_ITER.
+     * Function should leave a 64-bit ptr on the stack:
+     *  - NULL (error occurred)
+     *  - 0xff (StopIter/ iterator exhausted)
+     *  - PyObject* (next item in iteration)
+     */
     if (iterator.Value->kind() != AVK_Iterable)
         return emit_for_next();
     auto iterable = dynamic_cast<IteratorSource*>(iterator.Sources);
-    switch (iterable->kind()){
+    switch (iterable->kind()) {
         case AVK_List: // list iterator object, this is a CIL implementation of listiter_next
         {
             auto exhaust = emit_define_label();
             auto exhausted = emit_define_label();
             auto end = emit_define_label();
-            auto it = emit_define_local(false);
             auto it_seq = emit_define_local(false);
             auto item = emit_define_local(false);
 
-            emit_store_local(it);
+            auto it = emit_spill();
+
+            emit_load_local(it);
             LD_FIELD(_listiterobject, it_seq);
-            emit_store_local(it_seq);
+            emit_store_local(it_seq); // it_seq = it->it_seq
 
             emit_load_local(it_seq);
             emit_null();
-            emit_branch(BranchEqual, exhausted);
-
-            emit_store_local(it_seq);
+            emit_branch(BranchEqual, exhausted); // if (it_seq ==nullptr) goto exhausted;
 
             // Get next iteration
             emit_load_local(it);
             LD_FIELD(_listiterobject, it_index);
             emit_load_local(it_seq);
             LD_FIELD(PyVarObject, ob_size);
-            emit_branch(BranchLessThanEqualUnsigned, exhaust);
+            emit_branch(BranchLessThanEqualUnsigned, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
 
-            emit_load_local(it_seq);
+            //emit_load_local(it_seq);
             emit_load_local(it);
             LD_FIELD(_listiterobject, it_index);
             m_il.ld_i(sizeof(size_t));
@@ -1340,26 +1346,39 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
             m_il.ld_ind_i();
             emit_store_local(item);
 
+            emit_load_local(it);
+            LD_FIELD(_listiterobject, it_index);
+            m_il.dup();
+            m_il.ld_ind_i();
+            m_il.load_one();
+            m_il.add();
+            m_il.st_ind_i(); // it->it_index++;
+
             emit_load_local(item);
-            emit_branch(BranchAlways, end);
+            emit_incref(); // Py_INCREF(item);
+
+            emit_load_and_free_local(item);
+            emit_branch(BranchAlways, end); // Return item
 
             emit_mark_label(exhaust);
-            emit_null();
             emit_load_local(it);
             LD_FIELD(_listiterobject, it_seq);
-            m_il.st_ind_i();
+            emit_null();
+            m_il.st_ind_i();   // it->it_seq = nullptr;
 
-            emit_load_local(it);
-            decref();
+            emit_load_local(it_seq);
+            decref();             // Py_DECREF(it->it_seq); return 0xff
 
             emit_mark_label(exhausted);
-            emit_ptr((void*)0xff);
+            emit_ptr((void *) 0xff); // Return 0xff
 
-            emit_mark_label(end);
+            emit_mark_label(end); // Clean-up
             emit_free_local(it);
             emit_free_local(it_seq);
         }
-        break;
+            break;
+        default:
+            return emit_for_next();
     }
 }
 
