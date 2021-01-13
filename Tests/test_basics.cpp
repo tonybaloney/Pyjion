@@ -349,10 +349,10 @@ TEST_CASE("*args and **kwargs") {
 TEST_CASE("Iterators") {
     SECTION("list iterator") {
         auto t = EmissionTest("def f():\n"
-                              " x = [1,2,3]\n"
+                              " x = ['1', '2', '3']\n"
                               " total = 0\n"
                               " for y in x:\n"
-                              "   total += y\n"
+                              "   total += int(y)\n"
                               " return total");
         CHECK(t.returns() == "6");
     }

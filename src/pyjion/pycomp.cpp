@@ -1340,16 +1340,15 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
             emit_debug_pyobject();
 #endif
             emit_load_local(it_seq);
+            LD_FIELD(PyListObject, ob_item);
+            m_il.ld_ind_i();
             emit_load_local(it);
             LD_FIELD(_listiterobject, it_index);
             m_il.ld_i(sizeof(PyObject*));
             m_il.mul();
+            m_il.add();
 
-            m_il.ld_i(offsetof(PyListObject, ob_item));
-            m_il.add();
-            m_il.add();
             emit_store_local(item);
-
 #ifdef DEBUG
             emit_load_local(item);
             emit_debug_pyobject();
