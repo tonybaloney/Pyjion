@@ -1325,11 +1325,6 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     LD_FIELD(PyVarObject, ob_size);
     emit_branch(BranchGreaterThanEqual, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
 
-#ifdef DEBUG
-    emit_debug_msg("Loop.");
-    emit_load_local(it_seq);
-    emit_debug_pyobject();
-#endif
     emit_load_local(it_seq);
     m_il.ld_i(ob_item_offset);
     m_il.add();
@@ -1343,10 +1338,6 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     m_il.add();
     m_il.ld_ind_i();
     emit_store_local(item);
-#ifdef DEBUG
-    emit_load_local(item);
-    emit_debug_pyobject();
-#endif
 
     emit_load_local(it);
     m_il.ld_i(index_offset);
