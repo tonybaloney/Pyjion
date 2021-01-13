@@ -356,4 +356,13 @@ TEST_CASE("Iterators") {
                               " return total");
         CHECK(t.returns() == "6");
     }
+    SECTION("tuple iterator") {
+        auto t = EmissionTest("def f():\n"
+                              " x = ('1', '2', '3')\n"
+                              " total = 0\n"
+                              " for y in x:\n"
+                              "   total += int(y)\n"
+                              " return total");
+        CHECK(t.returns() == "6");
+    }
 }

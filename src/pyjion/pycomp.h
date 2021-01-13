@@ -479,6 +479,7 @@ private:
     CorInfoType to_clr_type(LocalKind kind);
     void pop_top() override;
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
+    void emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset );
 };
 
 // Copies of internal CPython structures
@@ -489,5 +490,10 @@ typedef struct {
     PyListObject *it_seq; /* Set to NULL when iterator is exhausted */
 } _listiterobject;
 
+typedef struct {
+    PyObject_HEAD
+    Py_ssize_t it_index;
+    PyTupleObject *it_seq; /* Set to NULL when iterator is exhausted */
+} _tupleiterobject;
 
 #endif

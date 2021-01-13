@@ -1297,6 +1297,91 @@ void PythonCompiler::emit_for_next() {
     m_il.emit_call(METHOD_ITERNEXT_TOKEN);
 }
 
+void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset){
+    auto exhaust = emit_define_label();
+    auto exhausted = emit_define_label();
+    auto end = emit_define_label();
+    auto it_seq = emit_define_local(LK_Pointer);
+    auto item = emit_define_local(LK_Pointer);
+
+    auto it = emit_spill();
+
+    emit_load_local(it);
+    m_il.ld_i(seq_offset);
+    m_il.add();
+    m_il.ld_ind_i();
+    emit_dup();
+    emit_store_local(it_seq); // it_seq = it->it_seq
+
+    emit_null();
+    emit_branch(BranchEqual, exhausted); // if (it_seq ==nullptr) goto exhausted;
+
+    // Get next iteration
+    emit_load_local(it);
+    m_il.ld_i(index_offset);
+    m_il.add();
+    m_il.ld_ind_i();
+    emit_load_local(it_seq);
+    LD_FIELD(PyVarObject, ob_size);
+    emit_branch(BranchGreaterThanEqual, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
+
+#ifdef DEBUG
+    emit_debug_msg("Loop.");
+    emit_load_local(it_seq);
+    emit_debug_pyobject();
+#endif
+    emit_load_local(it_seq);
+    m_il.ld_i(ob_item_offset);
+    m_il.add();
+    m_il.ld_ind_i();
+    emit_load_local(it);
+    m_il.ld_i(index_offset);
+    m_il.add();
+    m_il.ld_ind_i();
+    m_il.ld_i(sizeof(PyObject*));
+    m_il.mul();
+    m_il.add();
+    m_il.ld_ind_i();
+    emit_store_local(item);
+#ifdef DEBUG
+    emit_load_local(item);
+    emit_debug_pyobject();
+#endif
+
+    emit_load_local(it);
+    m_il.ld_i(index_offset);
+    m_il.add();
+    m_il.dup();
+    m_il.ld_ind_i();
+    m_il.load_one();
+    m_il.add();
+    m_il.st_ind_i(); // it->it_index++
+
+    emit_load_local(item);
+    emit_incref(); // Py_INCREF(item);
+
+    emit_load_and_free_local(item);
+    emit_branch(BranchAlways, end); // Return item
+
+    emit_mark_label(exhaust);
+    emit_load_local(it);
+    m_il.ld_i(seq_offset);
+    m_il.add();
+    m_il.ld_ind_i();
+    emit_null();
+    m_il.st_ind_i();   // it->it_seq = nullptr;
+
+    emit_load_local(it_seq);
+    decref();             // Py_DECREF(it->it_seq); return 0xff
+
+    emit_mark_label(exhausted);
+    emit_ptr((void *) 0xff); // Return 0xff
+
+    emit_mark_label(end); // Clean-up
+    emit_free_local(it);
+    emit_free_local(it_seq);
+}
+
 void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
     /*
      * Stack will have 1 value, the iterator object created by GET_ITER.
@@ -1309,81 +1394,12 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
         return emit_for_next();
     auto iterable = dynamic_cast<IteratorSource*>(iterator.Sources);
     switch (iterable->kind()) {
-        case AVK_List: // list iterator object, this is a CIL implementation of listiter_next
-        {
-            auto exhaust = emit_define_label();
-            auto exhausted = emit_define_label();
-            auto end = emit_define_label();
-            auto it_seq = emit_define_local(LK_Pointer);
-            auto item = emit_define_local(LK_Pointer);
-
-            auto it = emit_spill();
-
-            emit_load_local(it);
-            LD_FIELD(_listiterobject, it_seq);
-            emit_dup();
-            emit_store_local(it_seq); // it_seq = it->it_seq
-
-            emit_null();
-            emit_branch(BranchEqual, exhausted); // if (it_seq ==nullptr) goto exhausted;
-
-            // Get next iteration
-            emit_load_local(it);
-            LD_FIELD(_listiterobject, it_index);
-            emit_load_local(it_seq);
-            LD_FIELD(PyVarObject, ob_size);
-            emit_branch(BranchGreaterThanEqual, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
-
-#ifdef DEBUG
-            emit_debug_msg("Loop.");
-            emit_load_local(it_seq);
-            emit_debug_pyobject();
-#endif
-            emit_load_local(it_seq);
-            LD_FIELD(PyListObject, ob_item);
-            emit_load_local(it);
-            LD_FIELD(_listiterobject, it_index);
-            m_il.ld_i(sizeof(PyObject*));
-            m_il.mul();
-            m_il.add();
-            m_il.ld_ind_i();
-            emit_store_local(item);
-#ifdef DEBUG
-            emit_load_local(item);
-            emit_debug_pyobject();
-#endif
-
-            emit_load_local(it);
-            LD_FIELDA(_listiterobject, it_index);
-            m_il.dup();
-            m_il.ld_ind_i();
-            m_il.load_one();
-            m_il.add();
-            m_il.st_ind_i(); // it->it_index++
-
-            emit_load_local(item);
-            emit_incref(); // Py_INCREF(item);
-
-            emit_load_and_free_local(item);
-            emit_branch(BranchAlways, end); // Return item
-
-            emit_mark_label(exhaust);
-            emit_load_local(it);
-            LD_FIELD(_listiterobject, it_seq);
-            emit_null();
-            m_il.st_ind_i();   // it->it_seq = nullptr;
-
-            emit_load_local(it_seq);
-            decref();             // Py_DECREF(it->it_seq); return 0xff
-
-            emit_mark_label(exhausted);
-            emit_ptr((void *) 0xff); // Return 0xff
-
-            emit_mark_label(end); // Clean-up
-            emit_free_local(it);
-            emit_free_local(it_seq);
-        }
+        case AVK_List:
+            emit_varobject_iter_next(offsetof(_listiterobject, it_seq), offsetof(_listiterobject, it_index), offsetof(PyListObject, ob_item));
             break;
+//        case AVK_Tuple:
+//            emit_varobject_iter_next(offsetof(_tupleiterobject , it_seq), offsetof(_tupleiterobject , it_index), offsetof(PyTupleObject, ob_item));
+//            break;
         default:
             return emit_for_next();
     }
