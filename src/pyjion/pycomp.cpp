@@ -1333,11 +1333,13 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
             emit_load_local(it_seq);
             LD_FIELD(PyVarObject, ob_size);
             emit_branch(BranchGreaterThanEqual, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
-            emit_debug_msg("Loop.");
 
+#ifdef DEBUG
+            emit_debug_msg("Loop.");
             emit_load_local(it_seq);
             emit_debug_pyobject();
-
+#endif
+            emit_load_local(it_seq);
             emit_load_local(it);
             LD_FIELD(_listiterobject, it_index);
             m_il.ld_i(sizeof(PyObject*));
@@ -1345,14 +1347,13 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
 
             m_il.ld_i(offsetof(PyListObject, ob_item));
             m_il.add();
-
-            emit_load_local(it_seq);
             m_il.add();
-
-            emit_dup();
             emit_store_local(item);
 
+#ifdef DEBUG
+            emit_load_local(item);
             emit_debug_pyobject();
+#endif
 
             emit_load_local(it);
             LD_FIELDA(_listiterobject, it_index);
