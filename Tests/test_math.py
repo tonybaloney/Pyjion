@@ -21,7 +21,7 @@ class MathTestCase(unittest.TestCase):
         c /= a + b
         self.assertEqual(c, 2.0)
         c %= a % b
-        self.assertEqual(c, 2.0)
+        self.assertEqual(c, 0.0)
 
     def test_ints(self):
         a = 2
@@ -35,7 +35,7 @@ class MathTestCase(unittest.TestCase):
         self.assertEqual(c, 0)
         c = 4
         c %= a % b
-        self.assertEqual(c, 1.0)
+        self.assertEqual(c, 0)
 
     def test_mixed(self):
         a = 2
@@ -114,7 +114,7 @@ class MathTestCase(unittest.TestCase):
         self.assertEqual(c, 10.0)
         c /= a + b
         self.assertEqual(c, 2.0)
-        c %= a + b
+        c %= a % b
         self.assertEqual(c, 2)
 
 
