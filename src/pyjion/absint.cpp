@@ -1781,12 +1781,13 @@ JittedCode* AbstractInterpreter::compileWorker() {
                     incStack();
                     m_comp->emit_call_with_tuple();
                     decStack(2);// target + args
+                    errorCheck("call n-function failed");
                 }
                 else {
                     decStack(oparg + 1); // target + args(oparg)
+                    errorCheck("call function failed");
                 }
 
-                errorCheck("call function failed");
                 incStack();
                 break;
             }

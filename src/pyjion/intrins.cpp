@@ -1969,6 +1969,11 @@ inline PyObject* Call(PyObject *target, Args...args) {
     Py_DECREF(target);
     for (auto &i: {args...})
         Py_DECREF(i);
+
+    if (res == nullptr)
+        if (!PyErr_Occurred())
+            PyErr_Format(PyExc_SystemError,
+                         "Function failed to respond with exception at %s", PyUnicode_AsUTF8(PyObject_Repr(target)));
     return res;
 }
 

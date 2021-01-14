@@ -158,6 +158,7 @@ inline PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyO
             PyErr_SetString(PyExc_NotImplementedError, "Operation not supported");
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -224,6 +225,7 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatFloatFloat(PyFloatObject* a, PyFlo
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -306,6 +308,7 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatIntInt(PyObject* a, PyObject* b, P
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -388,6 +391,7 @@ inline PyObject* PyJitMath_TripleBinaryOpIntFloatInt(PyObject* a, PyObject* b, P
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -471,6 +475,7 @@ inline PyObject* PyJitMath_TripleBinaryOpIntIntFloat(PyObject* a, PyObject* b, P
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -551,6 +556,7 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatFloatInt(PyObject* a, PyObject* b,
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -630,6 +636,7 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatIntFloat(PyObject* a, PyObject* b,
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -708,6 +715,7 @@ inline PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b,
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
