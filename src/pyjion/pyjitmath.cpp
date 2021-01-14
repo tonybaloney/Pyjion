@@ -84,6 +84,20 @@ bool isInplaceMathOp(int opcode) {
     return false;
 }
 
+double dmod(double left, double right){
+    double mod = fmod(left, right);
+    if (mod) {
+        /* ensure the remainder has the same sign as the denominator */
+        if ((right < 0) != (mod < 0)) {
+            mod += right;
+        }
+    }
+    else {
+        mod = copysign(0.0, right);
+    }
+    return mod;
+}
+
 PyObject* PyJitMath_TripleBinaryOp(PyObject* c, PyObject* a, PyObject* b, int firstOp, int secondOp) {
     PyObject* res = nullptr;
     if (PyFloat_CheckExact(a) && PyFloat_CheckExact(b) && PyFloat_CheckExact(c))
@@ -152,12 +166,18 @@ inline PyObject* PyJitMath_TripleBinaryOpIntIntInt(PyObject* a, PyObject* b, PyO
         case INPLACE_MULTIPLY:
             return PyFloat_FromDouble(val_c * res);
         case INPLACE_MATRIX_MULTIPLY:
-        case BINARY_MODULO:
         case BINARY_MATRIX_MULTIPLY:
-        case INPLACE_MODULO:
             PyErr_SetString(PyExc_NotImplementedError, "Operation not supported");
             return nullptr;
+        case BINARY_MODULO:
+        case INPLACE_MODULO:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            return PyFloat_FromDouble(dmod(val_c, res));
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -177,6 +197,12 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatFloatFloat(PyFloatObject* a, PyFlo
             res = pow(val_a, val_b);
             break;
         case BINARY_MODULO:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            res = dmod(val_a, val_b);
+            break;
         case BINARY_MATRIX_MULTIPLY:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
@@ -218,12 +244,18 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatFloatFloat(PyFloatObject* a, PyFlo
             }
             return PyFloat_FromDouble(floor(val_c / res));
         case BINARY_MODULO:
+        case INPLACE_MODULO:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            return PyFloat_FromDouble(dmod(val_c, res));
         case BINARY_MATRIX_MULTIPLY:
         case INPLACE_MATRIX_MULTIPLY:
-        case INPLACE_MODULO:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -259,6 +291,12 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatIntInt(PyObject* a, PyObject* b, P
             res = pow(val_a, val_b);
             break;
         case BINARY_MODULO:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            res = dmod(val_a, val_b);
+            break;
         case BINARY_MATRIX_MULTIPLY:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
@@ -300,12 +338,18 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatIntInt(PyObject* a, PyObject* b, P
             }
             return PyFloat_FromDouble(floor(val_c / res));
         case BINARY_MODULO:
+        case INPLACE_MODULO:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            return PyFloat_FromDouble(dmod(val_c, res));
         case BINARY_MATRIX_MULTIPLY:
         case INPLACE_MATRIX_MULTIPLY:
-        case INPLACE_MODULO:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -341,6 +385,12 @@ inline PyObject* PyJitMath_TripleBinaryOpIntFloatInt(PyObject* a, PyObject* b, P
             res = pow(val_a, val_b);
             break;
         case BINARY_MODULO:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            res = dmod(val_a, val_b);
+            break;
         case BINARY_MATRIX_MULTIPLY:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
@@ -382,12 +432,18 @@ inline PyObject* PyJitMath_TripleBinaryOpIntFloatInt(PyObject* a, PyObject* b, P
             }
             return PyFloat_FromDouble(floor(val_c / res));
         case BINARY_MODULO:
+        case INPLACE_MODULO:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            return PyFloat_FromDouble(dmod(val_c, res));
         case BINARY_MATRIX_MULTIPLY:
         case INPLACE_MATRIX_MULTIPLY:
-        case INPLACE_MODULO:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -424,6 +480,12 @@ inline PyObject* PyJitMath_TripleBinaryOpIntIntFloat(PyObject* a, PyObject* b, P
             res = pow(val_a, val_b);
             break;
         case BINARY_MODULO:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            res = dmod(val_a, val_b);
+            break;
         case BINARY_MATRIX_MULTIPLY:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
@@ -465,12 +527,18 @@ inline PyObject* PyJitMath_TripleBinaryOpIntIntFloat(PyObject* a, PyObject* b, P
             }
             return PyFloat_FromDouble(floor(val_c / res));
         case BINARY_MODULO:
+        case INPLACE_MODULO:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            return PyFloat_FromDouble(dmod(val_c, res));
         case BINARY_MATRIX_MULTIPLY:
         case INPLACE_MATRIX_MULTIPLY:
-        case INPLACE_MODULO:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -504,6 +572,12 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatFloatInt(PyObject* a, PyObject* b,
             res = pow(val_a, val_b);
             break;
         case BINARY_MODULO:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            res = dmod(val_a, val_b);
+            break;
         case BINARY_MATRIX_MULTIPLY:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
@@ -545,12 +619,18 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatFloatInt(PyObject* a, PyObject* b,
             }
             return PyFloat_FromDouble(floor(val_c / res));
         case BINARY_MODULO:
+        case INPLACE_MODULO:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            return PyFloat_FromDouble(dmod(val_c, res));
         case BINARY_MATRIX_MULTIPLY:
         case INPLACE_MATRIX_MULTIPLY:
-        case INPLACE_MODULO:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -583,6 +663,12 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatIntFloat(PyObject* a, PyObject* b,
             res = pow(val_a, val_b);
             break;
         case BINARY_MODULO:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            res = dmod(val_a, val_b);
+            break;
         case BINARY_MATRIX_MULTIPLY:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
@@ -624,12 +710,18 @@ inline PyObject* PyJitMath_TripleBinaryOpFloatIntFloat(PyObject* a, PyObject* b,
             }
             return PyFloat_FromDouble(floor(val_c / res));
         case BINARY_MODULO:
+        case INPLACE_MODULO:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            return PyFloat_FromDouble(dmod(val_c, res));
         case BINARY_MATRIX_MULTIPLY:
         case INPLACE_MATRIX_MULTIPLY:
-        case INPLACE_MODULO:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -651,7 +743,7 @@ inline PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b,
             res = val_a / val_b;
             break;
         case BINARY_FLOOR_DIVIDE:
-            if (val_b== 0){
+            if (val_b == 0){
                 PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
                 return nullptr;
             }
@@ -661,6 +753,12 @@ inline PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b,
             res = pow(val_a, val_b);
             break;
         case BINARY_MODULO:
+            if (val_b == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            res = dmod(val_a, val_b);
+            break;
         case BINARY_MATRIX_MULTIPLY:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
@@ -702,12 +800,18 @@ inline PyObject* PyJitMath_TripleBinaryOpIntFloatFloat(PyObject* a, PyObject* b,
             }
             return PyFloat_FromDouble(floor(val_c / res));
         case BINARY_MODULO:
+        case INPLACE_MODULO:
+            if (res == 0){
+                PyErr_SetString(PyExc_ZeroDivisionError, "Cannot divide by zero");
+                return nullptr;
+            }
+            return PyFloat_FromDouble(dmod(val_c, res));
         case BINARY_MATRIX_MULTIPLY:
         case INPLACE_MATRIX_MULTIPLY:
-        case INPLACE_MODULO:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
     }
+    UNSUPPORTED_MATH_OP(secondOp);
     return nullptr;
 }
 
@@ -722,7 +826,10 @@ inline PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyO
             res = PyNumber_FloorDivide(a, b);
             break;
         case BINARY_MODULO:
-            res = PyNumber_Remainder(a, b);
+            res = (PyUnicode_CheckExact(a) && (
+                    !PyUnicode_Check(b) || PyUnicode_CheckExact(b))) ?
+                       PyUnicode_Format(a, b) :
+                       PyNumber_Remainder(a, b);
             break;
         case BINARY_MATRIX_MULTIPLY:
             res = PyNumber_MatrixMultiply(a, b);
@@ -756,7 +863,10 @@ inline PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyO
             res2 = PyNumber_TrueDivide(c, res);
             break;
         case BINARY_MODULO:
-            res2 = PyNumber_Remainder(c, res);
+            res2 =  (PyUnicode_CheckExact(c) && (
+                    !PyUnicode_Check(res) || PyUnicode_CheckExact(res))) ?
+                              PyUnicode_Format(c, res) :
+                              PyNumber_Remainder(c, res);
             break;
         case BINARY_MATRIX_MULTIPLY:
             res2 = PyNumber_MatrixMultiply(c, res);
