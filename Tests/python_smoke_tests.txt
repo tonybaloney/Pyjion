@@ -12,4 +12,4 @@ test_listcomps
 test_long
 test_tuple
 test_builtin
-
+test_unicode
