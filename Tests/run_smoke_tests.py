@@ -21,6 +21,8 @@ with open(os.path.join(SAVEDCWD, args.fromfile)) as fp:
         if match is not None:
             tests.append(match.group())
 
+has_failures = False
+
 for test in tests:
     test_cases = unittest.defaultTestLoader.loadTestsFromName(f"test.{test}")
     print(f"Testing {test}")
@@ -32,6 +34,7 @@ for test in tests:
             print(f"All tests in case successful.")
         else:
             print(f"Failures occurred.")
+            has_failures = True
             for failedcase, reason in r.expectedFailures:
                 print(f"---------------------------------------------------------------")
                 print(f"Test case {failedcase} was expected to fail:")
@@ -47,3 +50,7 @@ for test in tests:
         pyjion.disable()
         gc.collect()
 
+if has_failures:
+    exit(1)
+else:
+    exit(0)
