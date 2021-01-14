@@ -1931,14 +1931,14 @@ inline PyObject* Call(PyObject *target, Args...args) {
         if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
             // Call the function with profiling hooks
             trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
-            res = PyObject_Vectorcall(target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+            res = _PyObject_VectorcallTstate(tstate, target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
             if (res == nullptr)
                 trace(tstate, tstate->frame, PyTrace_C_EXCEPTION, target, tstate->c_profilefunc, tstate->c_profileobj);
             else
                 trace(tstate, tstate->frame, PyTrace_C_RETURN, target, tstate->c_profilefunc, tstate->c_profileobj);
         } else {
             // Regular function call
-            res = PyObject_Vectorcall(target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+            res = _PyObject_VectorcallTstate(tstate, target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
         }
 
 #ifdef GIL
@@ -1970,10 +1970,6 @@ inline PyObject* Call(PyObject *target, Args...args) {
     for (auto &i: {args...})
         Py_DECREF(i);
 
-    if (res == nullptr)
-        if (!PyErr_Occurred())
-            PyErr_Format(PyExc_SystemError,
-                         "Function failed to respond with exception at %s", PyUnicode_AsUTF8(PyObject_Repr(target)));
     return res;
 }
 
@@ -1994,14 +1990,14 @@ PyObject* Call0(PyObject *target) {
         if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
             // Call the function with profiling hooks
             trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
-            res = PyObject_Vectorcall(target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+            res = _PyObject_VectorcallTstate(tstate, target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
             if (res == nullptr)
                 trace(tstate, tstate->frame, PyTrace_C_EXCEPTION, target, tstate->c_profilefunc, tstate->c_profileobj);
             else
                 trace(tstate, tstate->frame, PyTrace_C_RETURN, target, tstate->c_profilefunc, tstate->c_profileobj);
         } else {
             // Regular function call
-            res = PyObject_Vectorcall(target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+            res = _PyObject_VectorcallTstate(tstate, target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
         }
     }
     else {
