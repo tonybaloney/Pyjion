@@ -115,7 +115,14 @@ class MathTestCase(unittest.TestCase):
         c /= a + b
         self.assertEqual(c, 2.0)
         c %= a % b
-        self.assertEqual(c, 2)
+        self.assertEqual(c, 0.0)
+
+    def test_modulo(self):
+        a = 1
+        b = 2
+        c = "boo %s"
+        x = c % (a + b)
+        self.assertEqual(x, "boo 3")
 
 
 if __name__ == "__main__":
