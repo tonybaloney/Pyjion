@@ -35,6 +35,7 @@ for test in tests:
         else:
             print(f"Failures occurred.")
             has_failures = True
+
             for failedcase, reason in r.expectedFailures:
                 print(f"---------------------------------------------------------------")
                 print(f"Test case {failedcase} was expected to fail:")
@@ -44,6 +45,12 @@ for test in tests:
             for failedcase, reason in r.failures:
                 print(f"---------------------------------------------------------------")
                 print(f"Test case {failedcase} failed:")
+                print(reason)
+                print(f"---------------------------------------------------------------")
+
+            for failedcase, reason in r.errors:
+                print(f"---------------------------------------------------------------")
+                print(f"Test case {failedcase} failed with errors:")
                 print(reason)
                 print(f"---------------------------------------------------------------")
 
