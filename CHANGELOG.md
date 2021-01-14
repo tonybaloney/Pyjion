@@ -2,7 +2,10 @@
 
 ## 0.8.0
 
-* Added OPT-8
+* Enhanced the process stage of the compiler with new abstract types, iterable, bytearray, codeobject, frozenset, enumerator, file, type and module
+* Process stage will assert the abstract return type of any call to a builtin function (e.g. list(), tuple()), which will kick in the optimizations for a broader set of scenarios
+* Added OPT-8 (OPTIMIZE_BINARY_FUNCTIONS) to combine 2 sequential binary operations into a single operation. Adds about 15-20% performance gain on PyFloat operations.
+* Added OPT-9 (OPTIMIZE_ITERATORS) to inline the FOR_ITER opcode of a listiter (List iterator) into native assembly instructions.
 
 ## 0.7.0
 
