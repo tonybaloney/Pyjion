@@ -860,7 +860,7 @@ inline PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyO
             res2 = PyNumber_FloorDivide(c, res);
             break;
         case BINARY_POWER:
-            res2 = PyNumber_TrueDivide(c, res);
+            res2 = PyNumber_Power(c, res, Py_None);
             break;
         case BINARY_MODULO:
             res2 =  (PyUnicode_CheckExact(c) && (
