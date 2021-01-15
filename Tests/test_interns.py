@@ -124,7 +124,7 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f_subscr)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_DICT", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_SUBSCR_DICT_HASH", f.getvalue())
 
     def test_list_key(self):
         def test_f():
