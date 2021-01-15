@@ -637,6 +637,13 @@ void PythonCompiler::emit_load_name(void* name) {
     m_il.emit_call(METHOD_LOADNAME_TOKEN);
 }
 
+void PythonCompiler::emit_load_name_hashed(void* name, ssize_t name_hash) {
+    load_frame();
+    m_il.ld_i(name);
+    m_il.ld_i((void*)name_hash);
+    m_il.emit_call(METHOD_LOADNAME_HASH);
+}
+
 void PythonCompiler::emit_store_name(void* name) {
     load_frame();
     m_il.ld_i(name);
@@ -681,6 +688,13 @@ void PythonCompiler::emit_load_global(void* name) {
     load_frame();
     m_il.ld_i(name);
     m_il.emit_call(METHOD_LOADGLOBAL_TOKEN);
+}
+
+void PythonCompiler::emit_load_global_hashed(void* name, ssize_t name_hash) {
+    load_frame();
+    m_il.ld_i(name);
+    m_il.ld_i((void*)name_hash);
+    m_il.emit_call(METHOD_LOADGLOBAL_HASH);
 }
 
 void PythonCompiler::emit_delete_fast(int index) {
@@ -1749,12 +1763,16 @@ GLOBAL_METHOD(METHOD_KWCALLN_TOKEN, &PyJit_KwCallN, CORINFO_TYPE_NATIVEINT, Para
 GLOBAL_METHOD(METHOD_STOREGLOBAL_TOKEN, &PyJit_StoreGlobal, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DELETEGLOBAL_TOKEN, &PyJit_DeleteGlobal, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_LOADGLOBAL_TOKEN, &PyJit_LoadGlobal, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_LOADGLOBAL_HASH, &PyJit_LoadGlobalHash, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+
 GLOBAL_METHOD(METHOD_LOADATTR_TOKEN, &PyJit_LoadAttr, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_STOREATTR_TOKEN, &PyJit_StoreAttr, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DELETEATTR_TOKEN, &PyJit_DeleteAttr, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_LOADNAME_TOKEN, &PyJit_LoadName, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_LOADNAME_HASH, &PyJit_LoadNameHash, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+
 GLOBAL_METHOD(METHOD_STORENAME_TOKEN, &PyJit_StoreName, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DELETENAME_TOKEN, &PyJit_DeleteName, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 

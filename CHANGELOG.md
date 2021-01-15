@@ -6,6 +6,7 @@
 * Process stage will assert the abstract return type of any call to a builtin function (e.g. list(), tuple()), which will kick in the optimizations for a broader set of scenarios
 * Added OPT-8 (OPTIMIZE_BINARY_FUNCTIONS) to combine 2 sequential binary operations into a single operation. Adds about 15-20% performance gain on PyFloat operations.
 * Added OPT-9 (OPTIMIZE_ITERATORS) to inline the FOR_ITER opcode of a listiter (List iterator) into native assembly instructions.
+* Added OPT-10 (OPTIMIZE_HASHED_NAMES) to precompute the hashes for LOAD_NAME and LOAD_GLOBAL dictionary lookups
 * Fixed a bug where looking up a known hash for a dictionary object (optimized BINARY_SUBSCR) wouldn't raise a KeyError. Seen in #157
 
 ## 0.7.0

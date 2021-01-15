@@ -211,6 +211,7 @@ int PyJit_StoreGlobal(PyObject* v, PyFrameObject* f, PyObject* name);
 int PyJit_DeleteGlobal(PyFrameObject* f, PyObject* name);
 
 PyObject* PyJit_LoadGlobal(PyFrameObject* f, PyObject* name);
+PyObject* PyJit_LoadGlobalHash(PyFrameObject* f, PyObject* name, Py_hash_t name_hash);
 
 PyObject* PyJit_GetIter(PyObject* iterable);
 
@@ -237,6 +238,7 @@ int PyJit_StoreAttr(PyObject* value, PyObject* owner, PyObject* name);
 int PyJit_DeleteAttr(PyObject* owner, PyObject* name);
 
 PyObject* PyJit_LoadName(PyFrameObject* f, PyObject* name);
+PyObject* PyJit_LoadNameHash(PyFrameObject* f, PyObject* name, Py_hash_t name_hash);
 
 int PyJit_StoreName(PyObject* v, PyFrameObject* f, PyObject* name);
 int PyJit_DeleteName(PyFrameObject* f, PyObject* name);

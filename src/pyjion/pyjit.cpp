@@ -68,6 +68,7 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(knownStoreSubscr, level, 1);
     SET_OPT(knownBinarySubscr, level, 1);
     SET_OPT(inlineIterators, level, 1);
+    SET_OPT(hashedNames, level, 1);
 }
 
 PyjionJittedCode::~PyjionJittedCode() {

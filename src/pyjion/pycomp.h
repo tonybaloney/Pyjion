@@ -145,6 +145,8 @@
 #define METHOD_LOAD_CLOSURE                      0x0000007A
 #define METHOD_TRIPLE_BINARY_OP                  0x0000007B
 #define METHOD_DEBUG_PYOBJECT                    0x0000007C
+#define METHOD_LOADNAME_HASH                     0x0000007D
+#define METHOD_LOADGLOBAL_HASH                   0x0000007E
 
 // call helpers
 #define METHOD_CALL_0_TOKEN        0x00010000
@@ -269,6 +271,8 @@ public:
     void emit_dup_top_two() override;
 
     void emit_load_name(void* name) override;
+    void emit_load_name_hashed(void* name, ssize_t name_hash) override;
+
     void emit_is_true() override;
 
     void emit_push_frame() override;
@@ -288,6 +292,7 @@ public:
     void emit_store_global(void* name) override;
     void emit_delete_global(void* name) override;
     void emit_load_global(void* name) override;
+    void emit_load_global_hashed(void* name, ssize_t name_hash) override;
     void emit_delete_fast(int index) override;
 
     void emit_new_tuple(size_t size) override;
