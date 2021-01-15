@@ -1926,7 +1926,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
                 auto jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
-                if (OPT_ENABLED(inlineIterators) && stackInfo.size() >= 1){
+                if (OPT_ENABLED(inlineIterators) && stackInfo.size() == 1){
                     forIter(
                             jumpTo,
                             &stackInfo[0]
