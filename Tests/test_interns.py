@@ -112,6 +112,20 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         self.assertIn("ldarg.1", f.getvalue())
         self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_DICT", f.getvalue())
 
+    def test_dict_key_invalid_index(self):
+        def test_f_subscr():
+            a = {0: 'a'}
+            return a[1] == 'b'
+
+        with self.assertRaises(KeyError):
+            test_f_subscr()
+        self.assertTrue(pyjion.info(test_f_subscr)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(test_f_subscr)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_DICT", f.getvalue())
+
     def test_list_key(self):
         def test_f():
             a = ['a']
@@ -169,6 +183,20 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         self.assertIn("ldarg.1", f.getvalue())
         self.assertNotIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
         self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST", f.getvalue())
+
+    def test_list_key_invalid_index(self):
+        def test_f_subscr():
+            l = [0, 1, 2]
+            return l[4] == 'b'
+
+        with self.assertRaises(IndexError):
+            test_f_subscr()
+        self.assertTrue(pyjion.info(test_f_subscr)['compiled'])
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            pyjion.dis.dis(test_f_subscr)
+        self.assertIn("ldarg.1", f.getvalue())
+        self.assertIn("MethodTokens.METHOD_SUBSCR_LIST_I", f.getvalue())
 
     def test_unknown_key_string_const(self):
         def test_f(x):

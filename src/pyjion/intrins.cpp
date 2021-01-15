@@ -153,11 +153,13 @@ PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key){
     if (!PyDict_CheckExact(o))
         return PyJit_Subscr(o, key);
 
-    PyObject* res = PyDict_GetItem(o, key);
-    Py_XINCREF(res);
+    PyObject* value = PyDict_GetItem(o, key);
+    Py_XINCREF(value);
+    if (value == nullptr && !PyErr_Occurred())
+        _PyErr_SetKeyError(key);
     Py_DECREF(o);
     Py_DECREF(key);
-    return res;
+    return value;
 }
 
 PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash){
@@ -165,6 +167,8 @@ PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash){
         return PyJit_Subscr(o, key);
     PyObject* value = _PyDict_GetItem_KnownHash(o, key, hash);
     Py_XINCREF(value);
+    if (value == nullptr && !PyErr_Occurred())
+        _PyErr_SetKeyError(key);
     Py_DECREF(o);
     Py_DECREF(key);
     return value;
