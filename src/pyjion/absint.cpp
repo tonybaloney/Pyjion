@@ -169,6 +169,11 @@ bool AbstractInterpreter::preprocess() {
                 break;
         }
     }
+    if (OPT_ENABLED(hashedNames)){
+        for (int i = 0; i < PyTuple_Size(mCode->co_names); i++) {
+            nameHashes[i] = PyObject_Hash(PyTuple_GetItem(mCode->co_names, i));
+        }
+    }
     return true;
 }
 
@@ -191,6 +196,11 @@ void AbstractInterpreter::initStartingState() {
     }
     if (mCode->co_flags & CO_VARKEYWORDS) {
         lastState.replaceLocal(localIndex++, AbstractLocalInfo(&Dict));
+    }
+
+    for (; localIndex < mCode->co_nlocals; localIndex++) {
+        // All locals are initially undefined
+        lastState.replaceLocal(localIndex, AbstractLocalInfo(&Undefined, true));
     }
 
     for (; localIndex < mCode->co_nlocals; localIndex++) {
@@ -1687,7 +1697,11 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 popJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
                 break;
             case LOAD_NAME:
-                m_comp->emit_load_name(PyTuple_GetItem(mCode->co_names, oparg));
+                if (OPT_ENABLED(hashedNames)){
+                    m_comp->emit_load_name_hashed(PyTuple_GetItem(mCode->co_names, oparg), nameHashes[oparg]);
+                } else {
+                    m_comp->emit_load_name(PyTuple_GetItem(mCode->co_names, oparg));
+                }
                 errorCheck("load name failed");
                 incStack();
                 break;

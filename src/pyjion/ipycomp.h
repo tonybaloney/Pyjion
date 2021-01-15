@@ -183,6 +183,7 @@ public:
 
     // Loads/stores/deletes by name for values not known to be in fast locals
     virtual void emit_load_name(void* name) = 0;
+    virtual void emit_load_name_hashed(void* name, long name_hash) = 0;
     virtual void emit_store_name(void* name) = 0;
     virtual void emit_delete_name(void* name) = 0;
 

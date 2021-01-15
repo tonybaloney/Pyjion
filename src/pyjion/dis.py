@@ -175,7 +175,7 @@ class MethodTokens (Enum):
     METHOD_LOAD_CLOSURE                      = 0x0000007A
     METHOD_TRIPLE_BINARY_OP                  = 0x0000007B
     METHOD_DEBUG_PYOBJECT                    = 0x0000007C
-
+    METHOD_LOADNAME_HASH                     = 0x0000007D
     METHOD_CALL_0_TOKEN        = 0x00010000
     METHOD_CALL_1_TOKEN        = 0x00010001
     METHOD_CALL_2_TOKEN        = 0x00010002

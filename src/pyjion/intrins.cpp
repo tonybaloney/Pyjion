@@ -1827,7 +1827,7 @@ PyObject* PyJit_LoadName(PyFrameObject* f, PyObject* name) {
     PyObject *v;
     if (locals == nullptr) {
         PyErr_Format(PyExc_SystemError,
-            "no locals when loading %R", name);
+                     "no locals when loading %R", name);
         return nullptr;
     }
     if (PyDict_CheckExact(locals)) {
@@ -1848,6 +1848,55 @@ PyObject* PyJit_LoadName(PyFrameObject* f, PyObject* name) {
         if (v == nullptr) {
             if (PyDict_CheckExact(f->f_builtins)) {
                 v = PyDict_GetItem(f->f_builtins, name);
+                if (v == nullptr) {
+                    format_exc_check_arg(
+                            PyExc_NameError,
+                            NAME_ERROR_MSG, name);
+                    return nullptr;
+                }
+                Py_INCREF(v);
+            }
+            else {
+                v = PyObject_GetItem(f->f_builtins, name);
+                if (v == nullptr) {
+                    if (PyErr_ExceptionMatches(PyExc_KeyError))
+                        format_exc_check_arg(
+                                PyExc_NameError,
+                                NAME_ERROR_MSG, name);
+                    return nullptr;
+                }
+            }
+        }
+    }
+    return v;
+}
+
+PyObject* PyJit_LoadNameHash(PyFrameObject* f, PyObject* name, Py_hash_t name_hash) {
+    PyObject *locals = f->f_locals;
+    PyObject *v;
+    if (locals == nullptr) {
+        PyErr_Format(PyExc_SystemError,
+            "no locals when loading %R", name);
+        return nullptr;
+    }
+    if (PyDict_CheckExact(locals)) {
+        v = _PyDict_GetItem_KnownHash(locals, name, name_hash);
+        Py_XINCREF(v);
+    }
+    else {
+        v = PyObject_GetItem(locals, name);
+        if (v == nullptr && _PyErr_OCCURRED()) {
+            if (!PyErr_ExceptionMatches(PyExc_KeyError))
+                return nullptr;
+            PyErr_Clear();
+        }
+    }
+    if (v == nullptr) {
+        v = _PyDict_GetItem_KnownHash(f->f_globals, name, name_hash);
+        Py_XINCREF(v);
+        if (v == nullptr) {
+            if (PyDict_CheckExact(f->f_builtins)) {
+                v = _PyDict_GetItem_KnownHash(f->f_builtins, name, name_hash);
                 if (v == nullptr) {
                     format_exc_check_arg(
                         PyExc_NameError,

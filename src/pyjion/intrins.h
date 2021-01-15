@@ -237,6 +237,7 @@ int PyJit_StoreAttr(PyObject* value, PyObject* owner, PyObject* name);
 int PyJit_DeleteAttr(PyObject* owner, PyObject* name);
 
 PyObject* PyJit_LoadName(PyFrameObject* f, PyObject* name);
+PyObject* PyJit_LoadNameHash(PyFrameObject* f, PyObject* name, Py_hash_t name_hash);
 
 int PyJit_StoreName(PyObject* v, PyFrameObject* f, PyObject* name);
 int PyJit_DeleteName(PyFrameObject* f, PyObject* name);

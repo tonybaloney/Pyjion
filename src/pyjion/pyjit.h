@@ -75,6 +75,7 @@ typedef struct PyjionSettings {
     bool opt_knownBinarySubscr = OPTIMIZE_KNOWN_BINARY_SUBSCR; // OPT-7
     bool opt_tripleBinaryFunctions = OPTIMIZE_BINARY_FUNCTIONS; // OPT-8
     bool opt_inlineIterators = OPTIMIZE_ITERATORS; // OPT-9
+    bool opt_hashedNames = OPTIMIZE_HASHED_NAMES; // OPT-10
 
 } PyjionSettings;
 

@@ -8,6 +8,8 @@ option(OPTIMIZE_KNOWN_STORE_SUBSCR "Optimize STORE_SUBSCR for known types" ON)
 option(OPTIMIZE_KNOWN_BINARY_SUBSCR "Optimize BINARY_SUBSCR for known types" ON)
 option(OPTIMIZE_BINARY_FUNCTIONS "Optimize pairs of binary functions as a triple sequence" ON)
 option(OPTIMIZE_ITERATORS "Optimize iterators of common types into inline instructions" ON)
+option(OPTIMIZE_HASHED_NAMES "Optimize LOAD_NAME/STORE_NAME with precomputed hashes" ON)
+
 
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
 
@@ -63,6 +65,12 @@ if (OPTIMIZE_ITERATORS)
     add_definitions(-DOPTIMIZE_ITERATORS=1)
 else()
     add_definitions(-DOPTIMIZE_ITERATORS=0)
+endif()
+
+if (OPTIMIZE_HASHED_NAMES)
+    add_definitions(-DOPTIMIZE_HASHED_NAMES=1)
+else()
+    add_definitions(-DOPTIMIZE_HASHED_NAMES=0)
 endif()
 
 if (EE_DEBUG_CODE)
