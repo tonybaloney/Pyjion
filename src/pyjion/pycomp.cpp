@@ -1438,17 +1438,11 @@ void PythonCompiler::emit_binary_float(int opcode) {
     }
 }
 
-void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
-    switch (opcode) {
-        case BINARY_SUBSCR:
-            if (OPT_ENABLED(knownBinarySubscr)){
-                emit_binary_subscr(left, right);
-            } else {
-                m_il.emit_call(METHOD_SUBSCR_OBJ);
-            }
-            break;
-        default:
-            emit_binary_object(opcode);
+void PythonCompiler::emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
+    if (OPT_ENABLED(knownBinarySubscr)){
+        emit_binary_subscr(left, right);
+    } else {
+        m_il.emit_call(METHOD_SUBSCR_OBJ);
     }
 }
 

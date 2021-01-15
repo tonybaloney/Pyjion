@@ -3,7 +3,6 @@ test_abstract_numbers
 test_dict
 test_grammar
 test_opcodes
-test_types
 test_float
 test_int
 test_int_literal
@@ -12,4 +11,4 @@ test_listcomps
 test_long
 test_tuple
 test_builtin
-
+test_unicode

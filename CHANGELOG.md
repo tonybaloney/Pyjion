@@ -33,7 +33,6 @@ the assignment logic.
 * Fixed a bug where (very) large tuples being created via the BUILD_TUPLE opcode would cause an overflow error
 * Fixed a bug on BUILD_MAP being called with very large dictionaries caused a fatal error
 
-
 ## 0.5.0
 
 * Added OPT-4 optimization. Frame locals (named variables known at compilation) using the LOAD_FAST, STORE_FAST and DELETE_FAST

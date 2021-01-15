@@ -1843,6 +1843,18 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 incStack();
                 break;
             case BINARY_SUBSCR:
+                if (stackInfo.size() >= 2) {
+                    m_comp->emit_binary_subscr(byte, stackInfo[0], stackInfo[1]);
+                    decStack(2);
+                    errorCheck("optimized binary subscr failed");
+                }
+                else {
+                    m_comp->emit_binary_object(byte);
+                    decStack(2);
+                    errorCheck("binary subscr failed");
+                }
+                incStack();
+                break;
             case BINARY_ADD:
             case BINARY_TRUE_DIVIDE:
             case BINARY_FLOOR_DIVIDE:
@@ -1869,10 +1881,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case INPLACE_AND:
             case INPLACE_XOR:
             case INPLACE_OR:
-                if (stackInfo.size() >= 2)
-                    m_comp->emit_binary_object(byte, stackInfo[0], stackInfo[1]);
-                else
-                    m_comp->emit_binary_object(byte);
+                m_comp->emit_binary_object(byte);
                 decStack(2);
                 errorCheck("binary op failed");
                 incStack();

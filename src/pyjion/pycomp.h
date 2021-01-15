@@ -394,7 +394,7 @@ public:
 
     void emit_binary_float(int opcode) override;
     void emit_binary_object(int opcode) override;
-    void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
+    void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     void emit_tagged_int_to_float() override;
 
     void emit_in() override;

@@ -170,6 +170,7 @@ bool jit_compile(PyCodeObject* code) {
     return true;
 }
 
+// TODO: This doesn't belong in this file
 AbstractValueKind GetAbstractType(PyTypeObject* type) {
     if (type == nullptr) {
         return AVK_Any;
