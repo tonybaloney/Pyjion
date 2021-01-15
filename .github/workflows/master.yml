@@ -79,6 +79,7 @@ jobs:
       - name: Run smoke tests
         shell: bash
         run: python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
+        continue-on-error: true
 
       - name: Run full test suite
         shell: bash
@@ -167,6 +168,7 @@ jobs:
       - name: Run smoke tests
         shell: bash
         run: python -X dev Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
+        continue-on-error: true
 
       - name: Run full test suite
         shell: bash
@@ -253,6 +255,7 @@ jobs:
       - name: Run smoke tests
         shell: bash
         run: python -X dev Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
+        continue-on-error: true
 
       - name: Run full test suite
         shell: bash
@@ -354,6 +357,7 @@ jobs:
       - name: Run smoke tests
         shell: bash
         run: python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
+        continue-on-error: true
 
       - name: Run full test suite
         shell: bash
