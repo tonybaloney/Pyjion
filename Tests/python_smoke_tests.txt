@@ -1,5 +1,6 @@
 test_abc
 test_abstract_numbers
+test_class
 test_dict
 test_grammar
 test_opcodes
