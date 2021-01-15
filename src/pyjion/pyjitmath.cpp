@@ -117,7 +117,7 @@ PyObject* PyJitMath_TripleBinaryOp(PyObject* c, PyObject* a, PyObject* b, int fi
     else if (PyFloat_CheckExact(a) && PyLong_CheckExact(b) && PyFloat_CheckExact(c))
         res =  PyJitMath_TripleBinaryOpFloatIntFloat(a, b, c, firstOp, secondOp);
     else if (PyUnicode_Check(a) && PyUnicode_Check(b) && PyUnicode_Check(c))
-        return PyJitMath_TripleBinaryOpStrStrStr(a, b, c, firstOp, secondOp);
+        return PyJitMath_TripleBinaryOpStrStrStr(a, b, c, firstOp, secondOp); // special rules on references
     else
         res =  PyJitMath_TripleBinaryOpObjObjObj(a, b, c, firstOp, secondOp);
     // Decref first op
@@ -910,19 +910,25 @@ inline PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyO
 }
 
 inline PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject* a, PyObject* b, PyObject* c, int firstOp, int secondOp) {
+    PyObject* res;
     switch(firstOp) {
         case BINARY_TRUE_DIVIDE:
         case BINARY_FLOOR_DIVIDE:
         case BINARY_POWER:
-        case BINARY_MODULO:
         case BINARY_MATRIX_MULTIPLY:
         case BINARY_MULTIPLY:
         case BINARY_SUBTRACT:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
+        case BINARY_MODULO:
+            res = PyUnicode_Format(a, b);
+            Py_DECREF(a);
+            Py_DECREF(b);
+            break;
         case BINARY_ADD:
-            PyUnicode_Append(&a, b);
-            if (a == nullptr)
+            res = a;
+            PyUnicode_Append(&res, b);
+            if (res == nullptr)
                 return nullptr;
             Py_DECREF(b);
             break;
@@ -934,23 +940,27 @@ inline PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject* a, PyObject* b, PyO
         case INPLACE_MATRIX_MULTIPLY:
         case INPLACE_TRUE_DIVIDE:
         case INPLACE_FLOOR_DIVIDE:
-        case INPLACE_MODULO:
         case INPLACE_SUBTRACT:
         case BINARY_TRUE_DIVIDE:
         case BINARY_FLOOR_DIVIDE:
         case BINARY_POWER:
-        case BINARY_MODULO:
         case BINARY_MATRIX_MULTIPLY:
         case BINARY_MULTIPLY:
         case BINARY_SUBTRACT:
             UNSUPPORTED_MATH_OP(firstOp);
             return nullptr;
+        case BINARY_MODULO:
+        case INPLACE_MODULO:
+            PyUnicode_Format(c, res);
+            Py_DECREF(c);
+            Py_DECREF(res);
+            return c;
         case INPLACE_ADD:
         case BINARY_ADD:
-            PyUnicode_Append(&c, a);
+            PyUnicode_Append(&c, res);
             if (c == nullptr)
                 return nullptr;
-            Py_DECREF(a);
+            Py_DECREF(res);
             return c;
     }
     UNSUPPORTED_MATH_OP(firstOp);
