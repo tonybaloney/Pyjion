@@ -194,6 +194,8 @@ public:
 
     // Loads/stores/deletes a global variable
     virtual void emit_load_global(void* name) = 0;
+    virtual void emit_load_global_hashed(void* name, long name_hash) = 0;
+
     virtual void emit_store_global(void* name) = 0;
     virtual void emit_delete_global(void* name) = 0;
 

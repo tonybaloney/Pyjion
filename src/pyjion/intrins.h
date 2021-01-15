@@ -211,6 +211,7 @@ int PyJit_StoreGlobal(PyObject* v, PyFrameObject* f, PyObject* name);
 int PyJit_DeleteGlobal(PyFrameObject* f, PyObject* name);
 
 PyObject* PyJit_LoadGlobal(PyFrameObject* f, PyObject* name);
+PyObject* PyJit_LoadGlobalHash(PyFrameObject* f, PyObject* name, Py_hash_t name_hash);
 
 PyObject* PyJit_GetIter(PyObject* iterable);
 

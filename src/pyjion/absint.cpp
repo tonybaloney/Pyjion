@@ -1731,7 +1731,11 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 intErrorCheck("delete global failed");
                 break;
             case LOAD_GLOBAL:
-                m_comp->emit_load_global(PyTuple_GetItem(mCode->co_names, oparg));
+                if (OPT_ENABLED(hashedNames)){
+                    m_comp->emit_load_global_hashed(PyTuple_GetItem(mCode->co_names, oparg), nameHashes[oparg]);
+                } else {
+                    m_comp->emit_load_global(PyTuple_GetItem(mCode->co_names, oparg));
+                }
                 errorCheck("load global failed");
                 incStack();
                 break;
