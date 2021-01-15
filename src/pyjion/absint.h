@@ -262,7 +262,7 @@ class AbstractInterpreter {
     // reload it when we begin processing at the stack.
     unordered_map<int, ValueStack> m_offsetStack;
 
-    unordered_map<int, Py_hash_t> nameHashes;
+    unordered_map<int, ssize_t> nameHashes;
 
     // Set of labels used for when we need to raise an error but have values on the stack
     // that need to be freed.  We have one set of labels which fall through to each other

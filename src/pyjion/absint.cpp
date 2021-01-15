@@ -1698,7 +1698,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 break;
             case LOAD_NAME:
                 if (OPT_ENABLED(hashedNames)){
-                    m_comp->emit_load_name_hashed(PyTuple_GetItem(mCode->co_names, oparg), nameHashes[oparg]);
+                    m_comp->emit_load_name_hashed(PyTuple_GetItem(mCode->co_names, oparg), (long)nameHashes[oparg]);
                 } else {
                     m_comp->emit_load_name(PyTuple_GetItem(mCode->co_names, oparg));
                 }

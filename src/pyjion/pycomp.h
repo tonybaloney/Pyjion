@@ -271,7 +271,7 @@ public:
     void emit_dup_top_two() override;
 
     void emit_load_name(void* name) override;
-    void emit_load_name_hashed(void* name, long name_hash) override;
+    void emit_load_name_hashed(void* name, ssize_t name_hash) override;
 
     void emit_is_true() override;
 
@@ -292,7 +292,7 @@ public:
     void emit_store_global(void* name) override;
     void emit_delete_global(void* name) override;
     void emit_load_global(void* name) override;
-    void emit_load_global_hashed(void* name, Py_hash_t name_hash) override;
+    void emit_load_global_hashed(void* name, ssize_t name_hash) override;
     void emit_delete_fast(int index) override;
 
     void emit_new_tuple(size_t size) override;

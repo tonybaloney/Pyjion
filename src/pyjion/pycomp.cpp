@@ -637,7 +637,7 @@ void PythonCompiler::emit_load_name(void* name) {
     m_il.emit_call(METHOD_LOADNAME_TOKEN);
 }
 
-void PythonCompiler::emit_load_name_hashed(void* name, long name_hash) {
+void PythonCompiler::emit_load_name_hashed(void* name, ssize_t name_hash) {
     load_frame();
     m_il.ld_i(name);
     m_il.ld_i((void*)name_hash);
@@ -690,7 +690,7 @@ void PythonCompiler::emit_load_global(void* name) {
     m_il.emit_call(METHOD_LOADGLOBAL_TOKEN);
 }
 
-void PythonCompiler::emit_load_global_hashed(void* name, long name_hash) {
+void PythonCompiler::emit_load_global_hashed(void* name, ssize_t name_hash) {
     load_frame();
     m_il.ld_i(name);
     m_il.ld_i((void*)name_hash);
