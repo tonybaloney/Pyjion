@@ -236,7 +236,8 @@
 #define METHOD_SUBSCR_LIST_I        0x00070006
 #define METHOD_SUBSCR_TUPLE         0x00070007
 #define METHOD_SUBSCR_TUPLE_I       0x00070008
-
+#define METHOD_SUBSCR_LIST_SLICE    0x00070009
+#define METHOD_SUBSCR_OBJ_SLICE     0x0007000A
 
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
 #define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();

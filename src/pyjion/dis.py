@@ -261,6 +261,8 @@ class MethodTokens (Enum):
     METHOD_SUBSCR_LIST_I       = 0x00070006
     METHOD_SUBSCR_TUPLE        = 0x00070007
     METHOD_SUBSCR_TUPLE_I      = 0x00070008
+    METHOD_SUBSCR_LIST_SLICE   = 0x00070009
+    METHOD_SUBSCR_OBJ_SLICE    = 0x0007000A
 
 
 # Copy + Paste these from opcode.def and wrap the CEE codes in quotes.

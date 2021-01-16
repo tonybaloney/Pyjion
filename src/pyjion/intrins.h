@@ -197,10 +197,12 @@ PyObject* PyJit_DictMerge(PyObject* dict, PyObject* other);
 int PyJit_StoreSubscr(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index);
 int PyJit_StoreSubscrIndexHash(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index, Py_hash_t hash);
+int PyJit_StoreSubscrSlice(PyObject* value, PyObject *container, PyObject *slice);
 int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrDictHash(PyObject* value, PyObject *container, PyObject *index, Py_hash_t hash);
 int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index);
+int PyJit_StoreSubscrListSlice(PyObject* value, PyObject *container, PyObject *slice);
 
 int PyJit_DeleteSubscr(PyObject *container, PyObject *index);
 
