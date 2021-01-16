@@ -43,6 +43,7 @@ SliceValue Slice;
 ComplexValue Complex;
 IterableValue Iterable;
 BuiltinValue Builtin;
+TypeValue Type;
 
 
 AbstractSource::AbstractSource() {
@@ -1095,6 +1096,19 @@ const char* BuiltinValue::describe() {
     return "builtin";
 }
 
+// Type methods
+AbstractValueKind TypeValue::kind() {
+    return AVK_Type;
+}
+
+AbstractValue *TypeValue::unary(AbstractSource *selfSources, int op) {
+    return AbstractValue::unary(selfSources, op);
+}
+
+const char *TypeValue::describe() {
+    return "type";
+}
+
 // Written for 3.9.1
 unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
         {"abs",         AVK_Any},
@@ -1219,7 +1233,7 @@ AbstractValue* avkToAbstractValue(AbstractValueKind kind){
         case AVK_File:
             return &Any; // TODO : Add fileobject type.
         case AVK_Type:
-            return &Any; // TODO : Add type type.
+            return &Type;
         case AVK_Module:
             return &Any; // TODO : Add module type.
 
