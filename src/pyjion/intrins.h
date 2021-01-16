@@ -59,6 +59,8 @@ PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key);
 PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash);
 PyObject* PyJit_SubscrList(PyObject *o, PyObject *key);
 PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, Py_ssize_t index);
+PyObject* PyJit_SubscrListSlice(PyObject *o, PyObject *slice);
+
 PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key);
 PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, Py_ssize_t index);
 
@@ -78,69 +80,44 @@ PyObject* PyJit_SetClosure(PyObject* closure, PyObject* func);
 PyObject* PyJit_BuildSlice(PyObject* start, PyObject* stop, PyObject* step);
 
 PyObject* PyJit_UnaryPositive(PyObject* value);
-
 PyObject* PyJit_UnaryNegative(PyObject* value);
-
 PyObject* PyJit_UnaryNot(PyObject* value);
 int PyJit_UnaryNot_Int(PyObject* value);
-
 PyObject* PyJit_UnaryInvert(PyObject* value);
 
 PyObject* PyJit_NewList(size_t size);
 PyObject* PyJit_ListAppend(PyObject* list, PyObject* value);
-
 PyObject* PyJit_SetAdd(PyObject* set, PyObject* value);
 PyObject* PyJit_UpdateSet(PyObject* iterable, PyObject* set);
-
 PyObject* PyJit_MapAdd(PyObject*map, PyObject*key, PyObject* value);
 
 PyObject* PyJit_Multiply(PyObject *left, PyObject *right);
-
 PyObject* PyJit_TrueDivide(PyObject *left, PyObject *right);
-
 PyObject* PyJit_FloorDivide(PyObject *left, PyObject *right);
-
 PyObject* PyJit_Power(PyObject *left, PyObject *right);
-
 PyObject* PyJit_Modulo(PyObject *left, PyObject *right);
-
 PyObject* PyJit_Subtract(PyObject *left, PyObject *right);
-
 PyObject* PyJit_MatrixMultiply(PyObject *left, PyObject *right);
-
 PyObject* PyJit_BinaryLShift(PyObject *left, PyObject *right);
 PyObject* PyJit_BinaryRShift(PyObject *left, PyObject *right);
-
 PyObject* PyJit_BinaryAnd(PyObject *left, PyObject *right);
 PyObject* PyJit_BinaryXor(PyObject *left, PyObject *right);
-
 PyObject* PyJit_BinaryOr(PyObject *left, PyObject *right);
 
 PyObject* PyJit_InplacePower(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceMultiply(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceMatrixMultiply(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceTrueDivide(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceFloorDivide(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceModulo(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceAdd(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceSubtract(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceLShift(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceRShift(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceAnd(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceXor(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceOr(PyObject *left, PyObject *right);
+
 int PyJit_PrintExpr(PyObject *value);
 
 const char * ObjInfo(PyObject *obj);

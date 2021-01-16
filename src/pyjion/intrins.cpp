@@ -210,6 +210,50 @@ PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, Py_ssize_t index){
     return res;
 }
 
+PyObject* PyJit_SubscrListSlice(PyObject *o, PyObject *slice){
+    if (!PyList_CheckExact(o) || !PySlice_Check(slice))
+        return PyJit_Subscr(o, slice);
+    Py_ssize_t start, stop, step, slicelength, i;
+    size_t cur;
+    PyObject* result;
+    PyListObject* self = (PyListObject*)o;
+    PyObject* it;
+    PyObject **src, **dest;
+
+    if (PySlice_Unpack(slice, &start, &stop, &step) < 0) {
+        return NULL;
+    }
+    slicelength = PySlice_AdjustIndices(Py_SIZE(o), &start, &stop,
+                                        step);
+
+    if (slicelength <= 0) {
+        result = PyList_New(0);
+    }
+    else if (step == 1) {
+        result = PyList_GetSlice(o, start, stop);
+    }
+    else {
+        result = PyList_New(slicelength);
+        if (!result) return NULL;
+
+        src = self->ob_item;
+        dest = ((PyListObject *)result)->ob_item;
+        for (cur = start, i = 0; i < slicelength;
+             cur += (size_t)step, i++) {
+            it = src[cur];
+            Py_INCREF(it);
+            dest[i] = it;
+        }
+        Py_SET_SIZE(result, slicelength);
+        return result;
+    }
+
+    Py_XINCREF(result);
+    Py_DECREF(o);
+    Py_DECREF(slice);
+    return result;
+}
+
 PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
     if (!PyTuple_CheckExact(o))
         return PyJit_Subscr(o, key);

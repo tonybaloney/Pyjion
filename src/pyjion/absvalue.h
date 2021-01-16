@@ -268,6 +268,14 @@ struct AbstractValueWithSources {
         return true;
     }
 
+    bool hasValue() const {
+        return Value != nullptr;
+    }
+
+    bool hasSource() const {
+        return Sources != nullptr;
+    }
+
     AbstractValueWithSources mergeWith(AbstractValueWithSources other) const {
         // TODO: Is defining a new source at the merge point better?
 

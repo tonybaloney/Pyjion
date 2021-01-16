@@ -833,7 +833,7 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
     ConstSource* constSource = nullptr;
     bool hasValidIndex = false;
 
-    if (key.Sources != nullptr && key.Sources->hasConstValue()){
+    if (key.hasSource() && key.Sources->hasConstValue()){
         constIndex = true;
         constSource = dynamic_cast<ConstSource*>(key.Sources);
         hasValidIndex = (constSource->hasNumericValue() && constSource->getNumericValue() >= 0);
@@ -861,7 +861,11 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
                     m_il.emit_call(METHOD_SUBSCR_LIST);
                 }
             } else {
-                m_il.emit_call(METHOD_SUBSCR_LIST);
+                if (key.hasValue() && key.Value->kind() == AVK_Slice) {
+                    m_il.emit_call(METHOD_SUBSCR_LIST_SLICE);
+                } else{
+                    m_il.emit_call(METHOD_SUBSCR_LIST);
+                }
             }
             break;
         case AVK_Tuple:
@@ -1680,6 +1684,8 @@ GLOBAL_METHOD(METHOD_SUBSCR_DICT, &PyJit_SubscrDict, CORINFO_TYPE_NATIVEINT, Par
 GLOBAL_METHOD(METHOD_SUBSCR_DICT_HASH, &PyJit_SubscrDictHash, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST, &PyJit_SubscrList, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST_I, &PyJit_SubscrListIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE, &PyJit_SubscrListSlice, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+
 GLOBAL_METHOD(METHOD_SUBSCR_TUPLE, &PyJit_SubscrTuple, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_TUPLE_I, &PyJit_SubscrTupleIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
