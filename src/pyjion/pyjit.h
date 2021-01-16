@@ -83,7 +83,7 @@ static PY_UINT64_T HOT_CODE = 0;
 static PY_UINT64_T jitPassCounter = 0;
 static PY_UINT64_T jitFailCounter = 0;
 
-static PyjionSettings g_pyjionSettings;
+extern PyjionSettings g_pyjionSettings;
 
 #define OPT_ENABLED(opt) g_pyjionSettings.opt_ ## opt
 
