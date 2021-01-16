@@ -1096,100 +1096,104 @@ const char* BuiltinValue::describe() {
 }
 
 // Builtin methods
-AbstractValueKind ModuleValue::kind()
-{
+AbstractValueKind ModuleValue::kind(){
     return AVK_Module;
 }
-AbstractValue *ModuleValue::unary(AbstractSource *selfSources, int op)
-{
+AbstractValue *ModuleValue::unary(AbstractSource *selfSources, int op){
     return AbstractValue::unary(selfSources, op);
 }
-const char *ModuleValue::describe()
-{
+const char *ModuleValue::describe(){
     return "module";
 }
 
-// Written for 3.9.1
-unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
-        {"abs",         AVK_Any},
-        {"all",         AVK_Bool},
-        {"any",         AVK_Bool},
-        {"ascii",       AVK_String},
-        {"bin",         AVK_String},
-        {"breakpoint",  AVK_None},
-        {"bytearray",   AVK_Bytearray},
-        {"bytes",       AVK_Bytes},
-        {"callable",    AVK_Function},
+    // Written for 3.9.1
+    unordered_map<const char *, AbstractValueKind> builtinReturnTypes = {
+        {"abs", AVK_Any},
+        {"all", AVK_Bool},
+        {"any", AVK_Bool},
+        {"ascii", AVK_String},
+        {"bin", AVK_String},
+        {"breakpoint", AVK_None},
+        {"bytearray", AVK_Bytearray},
+        {"bytes", AVK_Bytes},
+        {"callable", AVK_Function},
         {"classmethod", AVK_Any},
-        {"compile",     AVK_Code},
-        {"complex",     AVK_Complex},
-        {"delattr",     AVK_None},
-        {"dict",        AVK_Dict},
-        {"dir",         AVK_List},
-        {"enumerate",   AVK_Enumerate},
-        {"eval",        AVK_Any},
-        {"exec",        AVK_Any},
-        {"filter",      AVK_Iterable},
-        {"float",       AVK_Float},
-        {"format",      AVK_String},
-        {"frozenset",   AVK_Frozenset},
-        {"getattr",     AVK_Any},
-        {"globals",     AVK_Dict},
-        {"hasattr",     AVK_Bool},
-        {"hash",        AVK_Integer},
-        {"help",        AVK_Any},
-        {"hex",         AVK_String},
-        {"id",          AVK_Integer},
-        {"input",       AVK_String},
-        {"int",         AVK_Integer},
-        {"isinstance",  AVK_Bool},
-        {"issubclass",  AVK_Bool},
-        {"iter",        AVK_Iterable},
-        {"len",         AVK_Integer},
-        {"list",        AVK_List},
-        {"locals",      AVK_Dict},
-        {"map",         AVK_Iterable},
-        {"max",         AVK_Any},
-        {"memoryview",  AVK_Any},
-        {"min",         AVK_Any},
-        {"next",        AVK_Any},
-        {"oct",         AVK_String},
-        {"open",        AVK_File},
-        {"ord",         AVK_String},
-        {"pow",         AVK_Any},
-        {"print",       AVK_None},
-        {"range",       AVK_Iterable},
-        {"repr",        AVK_String},
-        {"reversed",    AVK_Any},
-        {"round",       AVK_Any},
-        {"set",         AVK_Set},
-        {"setattr",     AVK_None},
-        {"slice",       AVK_Slice},
-        {"sorted",      AVK_Any},
-        {"str",         AVK_String},
-        {"sum",         AVK_Any},
-        {"super",       AVK_Any},
-        {"tuple",       AVK_Tuple},
-        {"type",        AVK_Type},
-        {"vars",        AVK_Dict},
-        {"zip",         AVK_Iterable},
-        {"__import__",  AVK_Module},
-};
+        {"compile", AVK_Code},
+        {"complex", AVK_Complex},
+        {"delattr", AVK_None},
+        {"dict", AVK_Dict},
+        {"dir", AVK_List},
+        {"enumerate", AVK_Enumerate},
+        {"eval", AVK_Any},
+        {"exec", AVK_Any},
+        {"filter", AVK_Iterable},
+        {"float", AVK_Float},
+        {"format", AVK_String},
+        {"frozenset", AVK_Frozenset},
+        {"getattr", AVK_Any},
+        {"globals", AVK_Dict},
+        {"hasattr", AVK_Bool},
+        {"hash", AVK_Integer},
+        {"help", AVK_Any},
+        {"hex", AVK_String},
+        {"id", AVK_Integer},
+        {"input", AVK_String},
+        {"int", AVK_Integer},
+        {"isinstance", AVK_Bool},
+        {"issubclass", AVK_Bool},
+        {"iter", AVK_Iterable},
+        {"len", AVK_Integer},
+        {"list", AVK_List},
+        {"locals", AVK_Dict},
+        {"map", AVK_Iterable},
+        {"max", AVK_Any},
+        {"memoryview", AVK_Any},
+        {"min", AVK_Any},
+        {"next", AVK_Any},
+        {"oct", AVK_String},
+        {"open", AVK_File},
+        {"ord", AVK_String},
+        {"pow", AVK_Any},
+        {"print", AVK_None},
+        {"range", AVK_Iterable},
+        {"repr", AVK_String},
+        {"reversed", AVK_Any},
+        {"round", AVK_Any},
+        {"set", AVK_Set},
+        {"setattr", AVK_None},
+        {"slice", AVK_Slice},
+        {"sorted", AVK_Any},
+        {"str", AVK_String},
+        {"sum", AVK_Any},
+        {"super", AVK_Any},
+        {"tuple", AVK_Tuple},
+        {"type", AVK_Type},
+        {"vars", AVK_Dict},
+        {"zip", AVK_Iterable},
+        {"__import__", AVK_Module},
+    };
 
-AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source){
-    // IS this a builtin?
-    if (source.Value == &Builtin){
-        auto globalSource = dynamic_cast<GlobalSource*>(source.Sources);
-        for (auto const &b: builtinReturnTypes){
-            if (strcmp(globalSource->getName(), b.first) == 0)
-                return b.second;
+    AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source)
+    {
+        // IS this a builtin?
+        if (source.Value == &Builtin)
+        {
+            auto globalSource = dynamic_cast<GlobalSource *>(source.Sources);
+            for (auto const &b : builtinReturnTypes)
+            {
+                if (strcmp(globalSource->getName(), b.first) == 0)
+                    return b.second;
+            }
         }
+        return AVK_Any;
     }
-    return AVK_Any;
-}
 
-AbstractValue* avkToAbstractValue(AbstractValueKind kind){
-    switch (kind) {
+    AbstractValue *avkToAbstractValue(AbstractValueKind kind){
+        return &Module
+    }
+    {
+        switch (kind)
+        {
         case AVK_Any:
             return &Any;
         case AVK_Undefined:
