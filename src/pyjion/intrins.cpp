@@ -215,13 +215,13 @@ PyObject* PyJit_SubscrListSlice(PyObject *o, PyObject *slice){
         return PyJit_Subscr(o, slice);
     Py_ssize_t start, stop, step, slicelength, i;
     size_t cur;
-    PyObject* result;
+    PyObject* result = nullptr;
     PyListObject* self = (PyListObject*)o;
     PyObject* it;
     PyObject **src, **dest;
 
     if (PySlice_Unpack(slice, &start, &stop, &step) < 0) {
-        return NULL;
+        goto error;
     }
     slicelength = PySlice_AdjustIndices(Py_SIZE(o), &start, &stop,
                                         step);
@@ -234,7 +234,8 @@ PyObject* PyJit_SubscrListSlice(PyObject *o, PyObject *slice){
     }
     else {
         result = PyList_New(slicelength);
-        if (!result) return NULL;
+        if (!result)
+            goto error;
 
         src = self->ob_item;
         dest = ((PyListObject *)result)->ob_item;
@@ -245,9 +246,8 @@ PyObject* PyJit_SubscrListSlice(PyObject *o, PyObject *slice){
             dest[i] = it;
         }
         Py_SET_SIZE(result, slicelength);
-        return result;
     }
-
+    error:
     Py_XINCREF(result);
     Py_DECREF(o);
     Py_DECREF(slice);
