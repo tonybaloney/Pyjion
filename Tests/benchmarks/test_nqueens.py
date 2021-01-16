@@ -59,7 +59,7 @@ def bench_n_queens(queen_count=8):
 
 if __name__ == "__main__":
     queen_count = 8
-    print("N-Queens took {0} without Pyjion".format(timeit.timeit(bench_n_queens, number=10)))
+    print("N-Queens took {0} without Pyjion".format(timeit.timeit(bench_n_queens, number=1)))
     pyjion.enable()
-    print("N-Queens took {0} with Pyjion".format(timeit.timeit(bench_n_queens, number=10)))
+    print("N-Queens took {0} with Pyjion".format(timeit.timeit(bench_n_queens, number=1)))
     pyjion.disable()
