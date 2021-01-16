@@ -60,6 +60,7 @@ jobs:
           python -X dev Tests/benchmarks/test_nqueens.py
           python -X dev Tests/benchmarks/test_fannkuch.py
           python -X dev Tests/benchmarks/test_chaos.py
+          python -X dev Tests/benchmarks/test_float.py
 
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build
@@ -251,6 +252,7 @@ jobs:
           python -X dev Tests/benchmarks/test_nqueens.py
           python -X dev Tests/benchmarks/test_fannkuch.py
           python -X dev Tests/benchmarks/test_chaos.py
+          python -X dev Tests/benchmarks/test_float.py
 
       - name: Run smoke tests
         shell: bash
@@ -353,6 +355,7 @@ jobs:
           python -X dev Tests/benchmarks/test_nqueens.py
           python -X dev Tests/benchmarks/test_fannkuch.py
           python -X dev Tests/benchmarks/test_chaos.py
+          python -X dev Tests/benchmarks/test_float.py
 
       - name: Run smoke tests
         shell: bash
