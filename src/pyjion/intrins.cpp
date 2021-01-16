@@ -233,10 +233,12 @@ PyObject* PyJit_SubscrListSlice(PyObject *o, PyObject *slice){
         result = PyList_GetSlice(o, start, stop);
     }
     else {
-        result = PyList_New(slicelength);
-        if (!result)
+        result = PyList_New(0);
+        ((PyListObject*)result)->ob_item = PyMem_New(PyObject *, slicelength);
+        if (((PyListObject*)result)->ob_item == NULL) {
             goto error;
-
+        }
+        ((PyListObject*)result)->allocated = slicelength;
         src = self->ob_item;
         dest = ((PyListObject *)result)->ob_item;
         for (cur = start, i = 0; i < slicelength;
