@@ -55,6 +55,8 @@ struct SpecializedTreeNode {
 	}
 };
 
+PyjionSettings g_pyjionSettings;
+
 #define SET_OPT(opt, actualLevel, minLevel) \
     g_pyjionSettings.opt_ ## opt = (actualLevel) >= (minLevel) ? true : false;
 
