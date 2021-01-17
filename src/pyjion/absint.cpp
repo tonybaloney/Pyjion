@@ -1631,6 +1631,14 @@ JittedCode* AbstractInterpreter::compileWorker() {
             curByte += SIZEOF_CODEUNIT;
             continue;
         }
+        if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR){
+            m_comp->emit_triple_binary_op(byte, next_byte);
+            decStack(3);
+            errorCheck("binary math op failed");
+            incStack();
+            curByte += SIZEOF_CODEUNIT;
+            continue;
+        }
 
         switch (byte) {
             case NOP: break;

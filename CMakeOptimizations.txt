@@ -9,7 +9,7 @@ option(OPTIMIZE_KNOWN_BINARY_SUBSCR "Optimize BINARY_SUBSCR for known types" ON)
 option(OPTIMIZE_BINARY_FUNCTIONS "Optimize pairs of binary functions as a triple sequence" ON)
 option(OPTIMIZE_ITERATORS "Optimize iterators of common types into inline instructions" ON)
 option(OPTIMIZE_HASHED_NAMES "Optimize LOAD_NAME/STORE_NAME with precomputed hashes" ON)
-
+option(OPTIMIZE_BINARY_SLICE "Combine BUILD_SLICE/BINARY_SUBSCR" ON)
 
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
 
@@ -71,6 +71,12 @@ if (OPTIMIZE_HASHED_NAMES)
     add_definitions(-DOPTIMIZE_HASHED_NAMES=1)
 else()
     add_definitions(-DOPTIMIZE_HASHED_NAMES=0)
+endif()
+
+if (OPTIMIZE_BINARY_SLICE)
+    add_definitions(-DOPTIMIZE_BINARY_SLICE=1)
+else()
+    add_definitions(-DOPTIMIZE_BINARY_SLICE=0)
 endif()
 
 if (EE_DEBUG_CODE)
