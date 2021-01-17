@@ -55,7 +55,7 @@ You can see some basic stats by running `pyjion.info(f)`, where `f` is the funct
 
 You can see the machine code for the compiled function by disassembling it in the Python REPL.
 Pyjion has essentially compiled your small Python function into a small, standalone application.
-Install `distorm3` first to disassemble x86-64 assembly and run `pyjion.dis.dis_native(f)`:
+Install `distorm3` and `rich` first to disassemble x86-64 assembly and run `pyjion.dis.dis_native(f)`:
 
 ```
 >>> import pyjion.dis

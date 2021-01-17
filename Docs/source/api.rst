@@ -53,7 +53,7 @@ Disassembly module
 
 .. function:: dis_native(f)
 
-   Print the x86 assembly instructions in a disassembly table (required distorm3)
+   Print the x86 assembly instructions in a disassembly table (requires distorm3 and rich)
 
 WSGI middleware
 ---------------
