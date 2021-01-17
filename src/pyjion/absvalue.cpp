@@ -43,6 +43,7 @@ SliceValue Slice;
 ComplexValue Complex;
 IterableValue Iterable;
 BuiltinValue Builtin;
+ByteArrayValue ByteArray;
 
 
 AbstractSource::AbstractSource() {
@@ -1095,6 +1096,21 @@ const char* BuiltinValue::describe() {
     return "builtin";
 }
 
+// ByteArray methods
+AbstractValueKind ByteArrayValue::kind() {
+    return AVK_Bytearray;
+}
+
+AbstractValue *ByteArrayValue::unary(AbstractSource *selfSources, int op) {
+    if (op == UNARY_NOT)
+        return &Bool;
+    return AbstractValue::unary(selfSources, op);
+}
+
+const char *ByteArrayValue::describe() {
+    return "bytearray";
+}
+
 // Written for 3.9.1
 unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
         {"abs",         AVK_Any},
@@ -1201,7 +1217,7 @@ AbstractValue* avkToAbstractValue(AbstractValueKind kind){
         case AVK_Bytes:
             return &Bytes;
         case AVK_Bytearray:
-            return &Any; // TODO : Add bytearray type.
+            return &ByteArray;
         case AVK_None:
             return &None;
         case AVK_Function:
