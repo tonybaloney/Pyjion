@@ -445,6 +445,12 @@ class TypeValue : public AbstractValue {
     const char* describe() override;
 };
 
+class ByteArrayValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);
 
 extern UndefinedValue Undefined;
@@ -466,6 +472,7 @@ extern ComplexValue Complex;
 extern BuiltinValue Builtin;
 extern IterableValue Iterable;
 extern TypeValue Type;
+extern ByteArrayValue ByteArray;
 
 AbstractValue* avkToAbstractValue(AbstractValueKind);
 

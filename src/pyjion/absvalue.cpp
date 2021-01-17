@@ -44,6 +44,7 @@ ComplexValue Complex;
 IterableValue Iterable;
 BuiltinValue Builtin;
 TypeValue Type;
+ByteArrayValue ByteArray;
 
 
 AbstractSource::AbstractSource() {
@@ -1096,6 +1097,7 @@ const char* BuiltinValue::describe() {
     return "builtin";
 }
 
+
 // Type methods
 AbstractValueKind TypeValue::kind() {
     return AVK_Type;
@@ -1107,6 +1109,21 @@ AbstractValue *TypeValue::unary(AbstractSource *selfSources, int op) {
 
 const char *TypeValue::describe() {
     return "type";
+}
+
+// ByteArray methods
+AbstractValueKind ByteArrayValue::kind() {
+    return AVK_Bytearray;
+}
+
+AbstractValue *ByteArrayValue::unary(AbstractSource *selfSources, int op) {
+    if (op == UNARY_NOT)
+        return &Bool;
+    return AbstractValue::unary(selfSources, op);
+}
+
+const char *ByteArrayValue::describe() {
+    return "bytearray";
 }
 
 // Written for 3.9.1
@@ -1215,7 +1232,7 @@ AbstractValue* avkToAbstractValue(AbstractValueKind kind){
         case AVK_Bytes:
             return &Bytes;
         case AVK_Bytearray:
-            return &Any; // TODO : Add bytearray type.
+            return &ByteArray;
         case AVK_None:
             return &None;
         case AVK_Function:
