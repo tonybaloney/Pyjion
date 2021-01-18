@@ -861,11 +861,7 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
                     m_il.emit_call(METHOD_SUBSCR_LIST);
                 }
             } else {
-                if (key.hasValue() && key.Value->kind() == AVK_Slice) {
-                    m_il.emit_call(METHOD_SUBSCR_LIST_SLICE);
-                } else{
-                    m_il.emit_call(METHOD_SUBSCR_LIST);
-                }
+                m_il.emit_call(METHOD_SUBSCR_LIST);
             }
             break;
         case AVK_Tuple:
@@ -900,6 +896,94 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             }
     }
 }
+
+bool PythonCompiler::emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) {
+    bool startIndex, stopIndex = false;
+    Py_ssize_t start_i, stop_i;
+
+    if (start.hasSource() && start.Sources->hasConstValue()) {
+        if (start.Value->kind() == AVK_None) {
+            start_i = PY_SSIZE_T_MIN;
+            startIndex = true;
+        } else if (start.Value->kind() == AVK_Integer) {
+            start_i = dynamic_cast<ConstSource *>(start.Sources)->getNumericValue();
+            startIndex = true;
+        }
+    }
+    if (stop.hasSource() && stop.Sources->hasConstValue()) {
+        if (stop.Value->kind() == AVK_None) {
+            stop_i = PY_SSIZE_T_MAX;
+            stopIndex = true;
+        } else if (stop.Value->kind() == AVK_Integer) {
+            stop_i = dynamic_cast<ConstSource *>(stop.Sources)->getNumericValue();
+            stopIndex = true;
+        }
+    }
+    switch (container.Value->kind()) {
+        case AVK_List:
+            if (startIndex && stopIndex) {
+                decref(); decref(); // will also pop the values
+                m_il.ld_i8(start_i);
+                m_il.ld_i8(stop_i);
+                m_il.emit_call(METHOD_SUBSCR_LIST_SLICE);
+                return true;
+            }
+            break;
+    }
+    return false;
+}
+
+bool PythonCompiler::emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) {
+    bool startIndex, stopIndex, stepIndex = false;
+    Py_ssize_t start_i, stop_i, step_i;
+
+    if (start.hasSource() && start.Sources->hasConstValue()) {
+        if (start.Value->kind() == AVK_None) {
+            start_i = PY_SSIZE_T_MIN;
+            startIndex = true;
+        } else if (start.Value->kind() == AVK_Integer) {
+            start_i = dynamic_cast<ConstSource *>(start.Sources)->getNumericValue();
+            startIndex = true;
+        }
+    }
+    if (stop.hasSource() && stop.Sources->hasConstValue()) {
+        if (stop.Value->kind() == AVK_None) {
+            stop_i = PY_SSIZE_T_MAX;
+            stopIndex = true;
+        } else if (stop.Value->kind() == AVK_Integer) {
+            stop_i = dynamic_cast<ConstSource *>(stop.Sources)->getNumericValue();
+            stopIndex = true;
+        }
+    }
+    if (step.hasSource() && step.Sources->hasConstValue()) {
+        if (step.Value->kind() == AVK_None) {
+            step_i = 1;
+            stepIndex = true;
+        } else if (step.Value->kind() == AVK_Integer) {
+            step_i = dynamic_cast<ConstSource *>(step.Sources)->getNumericValue();
+            stepIndex = true;
+        }
+    }
+    switch (container.Value->kind()) {
+        case AVK_List:
+            if (start_i == PY_SSIZE_T_MIN && stop_i == PY_SSIZE_T_MAX && step_i == -1){
+                decref(); decref(); decref(); // will also pop the values
+                m_il.emit_call(METHOD_SUBSCR_LIST_SLICE_REVERSED);
+                return true;
+            }
+            else if (startIndex && stopIndex && stepIndex) {
+                decref(); decref(); decref(); // will also pop the values
+                m_il.ld_i8(start_i);
+                m_il.ld_i8(stop_i);
+                m_il.ld_i8(step_i);
+                m_il.emit_call(METHOD_SUBSCR_LIST_SLICE_STEPPED);
+                return true;
+            }
+            break;
+    }
+    return false;
+}
+
 
 void PythonCompiler::emit_build_slice() {
     m_il.emit_call(METHOD_BUILD_SLICE);
@@ -1684,7 +1768,9 @@ GLOBAL_METHOD(METHOD_SUBSCR_DICT, &PyJit_SubscrDict, CORINFO_TYPE_NATIVEINT, Par
 GLOBAL_METHOD(METHOD_SUBSCR_DICT_HASH, &PyJit_SubscrDictHash, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST, &PyJit_SubscrList, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST_I, &PyJit_SubscrListIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
-GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE, &PyJit_SubscrListSlice, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE, &PyJit_SubscrListSlice, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE_STEPPED, &PyJit_SubscrListSliceStepped, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE_REVERSED, &PyJit_SubscrListReversed, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_SUBSCR_TUPLE, &PyJit_SubscrTuple, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_TUPLE_I, &PyJit_SubscrTupleIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));

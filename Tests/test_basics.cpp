@@ -59,7 +59,7 @@ TEST_CASE("General list indexing") {
         CHECK(t.returns() == "0");
     }
 
-    SECTION("range case") {
+    SECTION("reverse slice case") {
         auto t = EmissionTest("def f(): l = [4,3,2,1,0]; return l[::-1]");
         CHECK(t.returns() == "[0, 1, 2, 3, 4]");
     }
@@ -389,5 +389,64 @@ TEST_CASE("Iterators") {
                               "   total += int(y)\n"
                               " return total");
         CHECK(t.returns() == "6");
+    }
+}
+
+TEST_CASE("Binary slice subscripts") {
+    SECTION("assert list case") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[0:1]");
+        CHECK(t.returns() == "[0]");
+    }
+    SECTION("assert list case empty start") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[:1]");
+        CHECK(t.returns() == "[0]");
+    }
+    SECTION("assert list case empty end") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[1:]");
+        CHECK(t.returns() == "[1, 2, 3]");
+    }
+    SECTION("assert list case negatives") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[-2:-1]");
+        CHECK(t.returns() == "[2]");
+    }
+    SECTION("assert list cross negatives") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[-1:-2]");
+        CHECK(t.returns() == "[]");
+    }
+    SECTION("assert list negative start") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[-1:]");
+        CHECK(t.returns() == "[3]");
+    }
+    SECTION("assert list negative end") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[:-1]");
+        CHECK(t.returns() == "[0, 1, 2]");
+    }
+    SECTION("assert list case missing step") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[0:1:]");
+        CHECK(t.returns() == "[0]");
+    }
+    SECTION("assert list case const step") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[0:1:1]");
+        CHECK(t.returns() == "[0]");
+    }
+    SECTION("assert list case step 1") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[::1]");
+        CHECK(t.returns() == "[0, 1, 2, 3]");
+    }
+    SECTION("assert list case step back") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[::-1]");
+        CHECK(t.returns() == "[3, 2, 1, 0]");
+    }
+    SECTION("assert list case step two") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[::2]");
+        CHECK(t.returns() == "[0, 2]");
+    }
+    SECTION("assert list weird indexes") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[False:True]");
+        CHECK(t.returns() == "[0]");
+    }
+    SECTION("assert complex scenario") {
+        auto t = EmissionTest("def f(): return 'The train to Oxford leaves at 3pm'[-1:3:-2]");
+        CHECK(t.returns() == "'m3t ealdox tnat'");
     }
 }

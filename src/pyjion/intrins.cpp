@@ -210,23 +210,25 @@ PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, Py_ssize_t index){
     return res;
 }
 
-PyObject* PyJit_SubscrListSlice(PyObject *o, PyObject *slice){
-    if (!PyList_CheckExact(o) || !PySlice_Check(slice))
-        return PyJit_Subscr(o, slice);
-    Py_ssize_t start, stop, step, slicelength, i;
+PyObject* PyJit_SubscrListSliceStepped(PyObject *o,  Py_ssize_t start,  Py_ssize_t stop,  Py_ssize_t step){
+    Py_ssize_t slicelength, i;
     size_t cur;
     PyObject* result = nullptr;
     PyListObject* self = (PyListObject*)o;
     PyObject* it;
     PyObject **src, **dest;
-
-    if (PySlice_Unpack(slice, &start, &stop, &step) < 0) {
+    if (!PyList_CheckExact(o) ) {
+        PyErr_SetString(PyExc_TypeError, "Invalid type for const slice");
         goto error;
     }
+    if (start == PY_SSIZE_T_MIN)
+        start = step < 0 ? PY_SSIZE_T_MAX : 0;
+    if (stop == PY_SSIZE_T_MAX)
+        stop = step < 0 ? PY_SSIZE_T_MIN : PY_SSIZE_T_MAX;
     slicelength = PySlice_AdjustIndices(Py_SIZE(o), &start, &stop,
                                         step);
 
-    if (slicelength <= 0) {
+    if (slicelength <= 0 && step > 0) {
         result = PyList_New(0);
     }
     else if (step == 1) {
@@ -252,7 +254,64 @@ PyObject* PyJit_SubscrListSlice(PyObject *o, PyObject *slice){
     error:
     Py_XINCREF(result);
     Py_DECREF(o);
-    Py_DECREF(slice);
+    return result;
+}
+
+
+PyObject* PyJit_SubscrListSlice(PyObject *o,  Py_ssize_t start,  Py_ssize_t stop){
+    Py_ssize_t slicelength;
+    PyObject* result = nullptr;
+    if (!PyList_CheckExact(o) ) {
+        PyErr_SetString(PyExc_TypeError, "Invalid type for const slice");
+        goto error;
+    }
+    if (start == PY_SSIZE_T_MIN)
+        start = 0;
+    if (stop == PY_SSIZE_T_MAX)
+        stop = Py_SIZE(o);
+    slicelength = stop - start;
+
+    if (slicelength <= 0 && start > 0 && stop > 0) {
+        result = PyList_New(0);
+    } else if (start > 0 && stop > 0) {
+        result = PyList_GetSlice(o, start, stop);
+    } else {
+        result = PySequence_GetSlice(o, start, stop);
+    }
+    error:
+    Py_XINCREF(result);
+    Py_DECREF(o);
+    return result;
+}
+
+// TODO: Rewrite this function more efficiently.
+PyObject* PyJit_SubscrListReversed(PyObject *o){
+    Py_ssize_t slicelength = Py_SIZE(o), i;
+    size_t cur;
+    PyObject* result = nullptr;
+    PyObject* it;
+    PyObject **src, **dest;
+    if (!PyList_CheckExact(o) ) {
+        PyErr_SetString(PyExc_TypeError, "Invalid type for const slice");
+        goto error;
+    }
+    result = PyList_New(0);
+    ((PyListObject*)result)->ob_item = PyMem_New(PyObject *, slicelength);
+    if (((PyListObject*)result)->ob_item == NULL) {
+        goto error;
+    }
+    ((PyListObject*)result)->allocated = slicelength;
+    src = ((PyListObject*)o)->ob_item;
+    dest = ((PyListObject *)result)->ob_item;
+    for (cur = slicelength - 1, i = 0; i < slicelength; cur--, i++) {
+        it = src[cur];
+        Py_INCREF(it);
+        dest[i] = it;
+    }
+    Py_SET_SIZE(result, slicelength);
+    error:
+    Py_XINCREF(result);
+    Py_DECREF(o);
     return result;
 }
 
@@ -277,7 +336,6 @@ PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
     else {
         return PyJit_Subscr(o, key);
     }
-    error:
     Py_DECREF(key);
     Py_DECREF(o);
     return res;
