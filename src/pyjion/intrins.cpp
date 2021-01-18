@@ -264,18 +264,12 @@ PyObject* PyJit_SubscrListSlice(PyObject *o,  Py_ssize_t start,  Py_ssize_t stop
         PyErr_SetString(PyExc_TypeError, "Invalid type for const slice");
         goto error;
     }
-    if (start == PY_SSIZE_T_MIN)
-        start = 0;
-    if (stop == PY_SSIZE_T_MAX)
-        stop = Py_SIZE(o);
-    slicelength = stop - start;
+    slicelength = PySlice_AdjustIndices(Py_SIZE(o), &start, &stop,1);
 
     if (slicelength <= 0 && start > 0 && stop > 0) {
         result = PyList_New(0);
-    } else if (start > 0 && stop > 0) {
-        result = PyList_GetSlice(o, start, stop);
     } else {
-        result = PySequence_GetSlice(o, start, stop);
+        result = PyList_GetSlice(o, start, stop);
     }
     error:
     Py_DECREF(o);
