@@ -405,6 +405,10 @@ TEST_CASE("Binary slice subscripts") {
         auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[1:]");
         CHECK(t.returns() == "[1, 2, 3]");
     }
+    SECTION("assert list case empty both") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[:]");
+        CHECK(t.returns() == "[0, 1, 2, 3]");
+    }
     SECTION("assert list case negatives") {
         auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[-2:-1]");
         CHECK(t.returns() == "[2]");
@@ -436,6 +440,10 @@ TEST_CASE("Binary slice subscripts") {
     SECTION("assert list case step back") {
         auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[::-1]");
         CHECK(t.returns() == "[3, 2, 1, 0]");
+    }
+    SECTION("assert list case step back negative 2") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[::-2]");
+        CHECK(t.returns() == "[3, 1]");
     }
     SECTION("assert list case step two") {
         auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[::2]");
