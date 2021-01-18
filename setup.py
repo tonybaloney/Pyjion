@@ -28,6 +28,9 @@ setup(
     packages=['pyjion'],
     package_dir={'': 'src'},
     setup_requires=setup_requires,
+    extras_require = {
+        'dis':  ["rich", "distorm3"]
+    },
     python_requires='>=3.9',
     include_package_data=True,
     long_description=long_description,
