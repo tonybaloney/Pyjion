@@ -252,7 +252,6 @@ PyObject* PyJit_SubscrListSliceStepped(PyObject *o,  Py_ssize_t start,  Py_ssize
         Py_SET_SIZE(result, slicelength);
     }
     error:
-    Py_XINCREF(result);
     Py_DECREF(o);
     return result;
 }
@@ -279,7 +278,6 @@ PyObject* PyJit_SubscrListSlice(PyObject *o,  Py_ssize_t start,  Py_ssize_t stop
         result = PySequence_GetSlice(o, start, stop);
     }
     error:
-    Py_XINCREF(result);
     Py_DECREF(o);
     return result;
 }
@@ -310,7 +308,6 @@ PyObject* PyJit_SubscrListReversed(PyObject *o){
     }
     Py_SET_SIZE(result, slicelength);
     error:
-    Py_XINCREF(result);
     Py_DECREF(o);
     return result;
 }

@@ -967,7 +967,7 @@ bool PythonCompiler::emit_binary_subscr_slice(AbstractValueWithSources container
     switch (container.Value->kind()) {
         case AVK_List:
             if (start_i == PY_SSIZE_T_MIN && stop_i == PY_SSIZE_T_MAX && step_i == -1){
-                decref(); decref(); decref(); // will also pop the values
+                // NB: Don't bother decref'ing None or -1 since they're permanent values anyway
                 m_il.emit_call(METHOD_SUBSCR_LIST_SLICE_REVERSED);
                 return true;
             }
