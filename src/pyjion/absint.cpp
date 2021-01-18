@@ -1631,7 +1631,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             curByte += SIZEOF_CODEUNIT;
             continue;
         }
-        if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() >= (1 + oparg)){
+        if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() == (1 + oparg)){
             bool optimized ;
             if (oparg == 3) {
                 optimized = m_comp->emit_binary_subscr_slice(stackInfo[0], stackInfo[1], stackInfo[2], stackInfo[3]);
