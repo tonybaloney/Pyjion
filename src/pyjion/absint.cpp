@@ -1677,7 +1677,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->emit_dup_top_two();
                 break;
             case COMPARE_OP: {
-                if (OPT_ENABLED(internRichCompare) && stackInfo.size() > 1){
+                if (OPT_ENABLED(internRichCompare) && stackInfo.size() == 2){
                     m_comp->emit_compare_known_object(oparg, stackInfo[0], stackInfo[1]);
                 } else {
                     m_comp->emit_compare_object(oparg);
@@ -1837,7 +1837,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 incStack();
                 break;
             case STORE_SUBSCR:
-                if (OPT_ENABLED(knownStoreSubscr) && stackInfo.size() >= 3){
+                if (OPT_ENABLED(knownStoreSubscr) && stackInfo.size() == 3){
                     m_comp->emit_store_subscr(stackInfo[0], stackInfo[1], stackInfo[2]);
                 } else {
                     m_comp->emit_store_subscr();
@@ -1876,7 +1876,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 incStack();
                 break;
             case BINARY_SUBSCR:
-                if (stackInfo.size() >= 2) {
+                if (stackInfo.size() == 2) {
                     m_comp->emit_binary_subscr(byte, stackInfo[0], stackInfo[1]);
                     decStack(2);
                     errorCheck("optimized binary subscr failed");
