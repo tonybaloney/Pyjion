@@ -4,6 +4,7 @@ http://benchmarksgame.alioth.debian.org/
 Contributed by Sokolov Yura, modified by Tupteq.
 """
 import pyjion
+import pyjion.dis
 import timeit
 
 DEFAULT_ARG = 9
@@ -36,7 +37,7 @@ def fannkuch(n=DEFAULT_ARG):
             while k:
                 perm[:k + 1] = perm[k::-1]
                 flips_count += 1
-                assert len(perm) > 0, "Invalid size after reverse slice assignment"
+                assert len(perm) > 0, f"Invalid size after reverse slice assignment for {k}"
                 k = perm[0]
 
             if flips_count > max_flips:
@@ -54,6 +55,9 @@ def fannkuch(n=DEFAULT_ARG):
 
 if __name__ == "__main__":
     print("Fannkuch({1}) took {0} without Pyjion".format(timeit.timeit(fannkuch, number=1), DEFAULT_ARG))
-    pyjion.enable()
-    print("Fannkuch({1}) took {0} with Pyjion".format(timeit.timeit(fannkuch, number=1), DEFAULT_ARG))
-    pyjion.disable()
+    try:
+        pyjion.enable()
+        print("Fannkuch({1}) took {0} with Pyjion".format(timeit.timeit(fannkuch, number=1), DEFAULT_ARG))
+        pyjion.disable()
+    except:
+        pyjion.dis.dis(fannkuch)

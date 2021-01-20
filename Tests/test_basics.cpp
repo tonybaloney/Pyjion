@@ -462,4 +462,8 @@ TEST_CASE("Binary slice subscripts") {
         auto t = EmissionTest("def f(): return 'The train to Oxford leaves at 3pm'[-1:3:-2]");
         CHECK(t.returns() == "'m3t ealdox tnat'");
     }
+    SECTION("assert assign slice from slice") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3,4]; l[:2] = l[1::-1]; return l");
+        CHECK(t.returns() == "[1, 0, 2, 3, 4]");
+    }
 }
