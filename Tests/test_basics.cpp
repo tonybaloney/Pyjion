@@ -466,4 +466,8 @@ TEST_CASE("Binary slice subscripts") {
         auto t = EmissionTest("def f(): l = [0,1,2,3,4]; l[:2] = l[1::-1]; return l");
         CHECK(t.returns() == "[1, 0, 2, 3, 4]");
     }
+    SECTION("assert assign slice from var") {
+        auto t = EmissionTest("def f(x): l = [0,1,2,3,4]; x=len(l); l[:2] = l[x::-1]; return l");
+        CHECK(t.returns() == "[4, 3, 2, 1, 0, 2, 3, 4]");
+    }
 }
