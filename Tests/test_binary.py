@@ -91,3 +91,19 @@ class BinaryOperationTestCase(unittest.TestCase):
         self.assertEqual(sys.getrefcount(b), before_ref_b)
         self.assertEqual(sys.getrefcount(c), before_ref_c - 1)
         self.assertEqual(c, 256)
+
+
+class CPythonComparison(unittest.TestCase):
+
+    def test_floor_division(self):
+        a = 7777777
+        b = 55555
+        c = 10040
+        before_ref_a = sys.getrefcount(a)
+        before_ref_b = sys.getrefcount(b)
+        before_ref_c = sys.getrefcount(c)
+        c = a // b
+        self.assertEqual(sys.getrefcount(a), before_ref_a)
+        self.assertEqual(sys.getrefcount(b), before_ref_b)
+        self.assertEqual(sys.getrefcount(c), before_ref_c + 1)
+        self.assertEqual(c, 140)
