@@ -61,7 +61,6 @@ jobs:
           python Tests/benchmarks/test_fannkuch.py
           python Tests/benchmarks/test_chaos.py
           python Tests/benchmarks/test_float.py
-          python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
 
 
@@ -110,7 +109,6 @@ jobs:
           python Tests/benchmarks/test_fannkuch.py
           python Tests/benchmarks/test_chaos.py
           python Tests/benchmarks/test_float.py
-          python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
 
 
@@ -156,7 +154,6 @@ jobs:
           python Tests/benchmarks/test_nqueens.py
           python Tests/benchmarks/test_fannkuch.py
           python Tests/benchmarks/test_chaos.py
-          python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
 
@@ -216,6 +213,5 @@ jobs:
           python Tests/benchmarks/test_nqueens.py
           python Tests/benchmarks/test_fannkuch.py
           python Tests/benchmarks/test_chaos.py
-          python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
