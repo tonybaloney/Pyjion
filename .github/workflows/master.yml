@@ -53,14 +53,6 @@ jobs:
         shell: bash
         run: python -m pip install --upgrade pip && pip install .
 
-      - name: Run benchmark tests
-        shell: bash
-        run: |
-          python -X dev Tests/benchmarks/test_nbody.py
-          python -X dev Tests/benchmarks/test_nqueens.py
-          python -X dev Tests/benchmarks/test_fannkuch.py
-          python -X dev Tests/benchmarks/test_chaos.py
-
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build
         shell: bash
@@ -85,6 +77,15 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests.txt -v
         continue-on-error: true
+
+      - name: Run benchmark tests
+        shell: bash
+        run: |
+          python -X dev Tests/benchmarks/test_nbody.py
+          python -X dev Tests/benchmarks/test_nqueens.py
+          python -X dev Tests/benchmarks/test_fannkuch.py
+          python -X dev Tests/benchmarks/test_chaos.py
+          python -X dev Tests/benchmarks/test_float.py
 
       - name: Install scikit-build for wheel
         shell: bash
@@ -175,6 +176,15 @@ jobs:
         run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos10.txt -v
         continue-on-error: true
 
+      - name: Run benchmark tests
+        shell: bash
+        run: |
+          python -X dev Tests/benchmarks/test_nbody.py
+          python -X dev Tests/benchmarks/test_nqueens.py
+          python -X dev Tests/benchmarks/test_fannkuch.py
+          python -X dev Tests/benchmarks/test_chaos.py
+          python -X dev Tests/benchmarks/test_float.py
+
       - name: Build Python Wheel
         shell: bash
         run: |
@@ -244,14 +254,6 @@ jobs:
         shell: bash
         run: python -m unittest discover Tests/
 
-      - name: Run benchmark tests
-        shell: bash
-        run: |
-          python -X dev Tests/benchmarks/test_nbody.py
-          python -X dev Tests/benchmarks/test_nqueens.py
-          python -X dev Tests/benchmarks/test_fannkuch.py
-          python -X dev Tests/benchmarks/test_chaos.py
-
       - name: Run smoke tests
         shell: bash
         run: python -X dev Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
@@ -261,6 +263,15 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos11.txt -v
         continue-on-error: true
+
+      - name: Run benchmark tests
+        shell: bash
+        run: |
+          python -X dev Tests/benchmarks/test_nbody.py
+          python -X dev Tests/benchmarks/test_nqueens.py
+          python -X dev Tests/benchmarks/test_fannkuch.py
+          python -X dev Tests/benchmarks/test_chaos.py
+          python -X dev Tests/benchmarks/test_float.py
 
       - name: Build Python Wheel
         shell: bash
@@ -346,14 +357,6 @@ jobs:
         shell: bash
         run: python -m unittest discover Tests/ -v
 
-      - name: Run benchmark tests
-        shell: bash
-        run: |
-          python -X dev Tests/benchmarks/test_nbody.py
-          python -X dev Tests/benchmarks/test_nqueens.py
-          python -X dev Tests/benchmarks/test_fannkuch.py
-          python -X dev Tests/benchmarks/test_chaos.py
-
       - name: Run smoke tests
         shell: bash
         run: python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
@@ -363,3 +366,12 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_win.txt -v
         continue-on-error: true
+
+      - name: Run benchmark tests
+        shell: bash
+        run: |
+          python -X dev Tests/benchmarks/test_nbody.py
+          python -X dev Tests/benchmarks/test_nqueens.py
+          python -X dev Tests/benchmarks/test_fannkuch.py
+          python -X dev Tests/benchmarks/test_chaos.py
+          python -X dev Tests/benchmarks/test_float.py

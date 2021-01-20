@@ -58,6 +58,13 @@ public:
         auto local = m_absint->getLocalInfo(byteCodeIndex, localIndex);
         return local.ValueInfo.Value->kind();
     }
+
+    bool hasConstValue(size_t byteCodeIndex, size_t stackIndex) {
+        auto stack = m_absint->getStackInfo(byteCodeIndex);
+        REQUIRE(stack.size() > stackIndex);
+        auto val = stack[stackIndex];
+        return val.Sources->hasConstValue();
+    }
 };
 
 TEST_CASE("float binary op type inference", "[float][binary op][inference]") {
