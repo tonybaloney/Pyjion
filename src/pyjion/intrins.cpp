@@ -204,6 +204,8 @@ PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, Py_ssize_t index){
     if (!PyList_CheckExact(o))
         return PyJit_Subscr(o, key);
     PyObject* res = PyList_GetItem(o, index);
+    if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_IndexError))
+        PyErr_Format(PyExc_IndexError, "list index %d out of range 0-%d", index, Py_SIZE(o));
     Py_XINCREF(res);
     Py_DECREF(o);
     Py_DECREF(key);
