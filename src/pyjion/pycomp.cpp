@@ -898,7 +898,7 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
 }
 
 bool PythonCompiler::emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) {
-    bool startIndex, stopIndex = false;
+    bool startIndex = false, stopIndex = false;
     Py_ssize_t start_i, stop_i;
 
     if (start.hasSource() && start.Sources->hasConstValue()) {
@@ -934,7 +934,7 @@ bool PythonCompiler::emit_binary_subscr_slice(AbstractValueWithSources container
 }
 
 bool PythonCompiler::emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) {
-    bool startIndex, stopIndex, stepIndex = false;
+    bool startIndex = false, stopIndex = false, stepIndex = false;
     Py_ssize_t start_i, stop_i, step_i;
 
     if (start.hasSource() && start.Sources->hasConstValue()) {
