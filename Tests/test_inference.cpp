@@ -58,6 +58,13 @@ public:
         auto local = m_absint->getLocalInfo(byteCodeIndex, localIndex);
         return local.ValueInfo.Value->kind();
     }
+
+    bool hasConstValue(size_t byteCodeIndex, size_t stackIndex) {
+        auto stack = m_absint->getStackInfo(byteCodeIndex);
+        REQUIRE(stack.size() > stackIndex);
+        auto val = stack[stackIndex];
+        return val.Sources->hasConstValue();
+    }
 };
 
 TEST_CASE("float binary op type inference", "[float][binary op][inference]") {
@@ -4504,5 +4511,28 @@ TEST_CASE("builtin functions") {
         auto t = InferenceTest("def f():\n    x = tuple()");
         REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet
         REQUIRE(t.kind(6, 0) == AVK_Tuple);       // x assigned
+    }
+}
+
+TEST_CASE("const values") {
+    SECTION("assignment to local") {
+//     2  0 LOAD_CONST               1 (1.0)
+//        2   STORE_FAST               0 (x)
+//
+//     3  4 LOAD_FAST                0 (x)
+//        6   LOAD_CONST               2 (1)
+//        8   INPLACE_ADD
+//        10  STORE_FAST               0 (x)
+//
+//     4  12 LOAD_FAST                0 (x)
+//        14 RETURN_VALUE
+        auto t = InferenceTest("def f():\n"
+                               "    x = 1.0\n"
+                               "    x += 1\n"
+                               "    return x\n");
+        REQUIRE(t.hasConstValue(2, 0) == true);
+        REQUIRE(t.hasConstValue(6, 0) == false);
+        REQUIRE(t.hasConstValue(8, 0) == false);
+        REQUIRE(t.hasConstValue(8, 1) == true);
     }
 }

@@ -353,6 +353,9 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                 }
                 case STORE_FAST: {
                     auto valueInfo = lastState.popNoEscape();
+                    if (valueInfo.hasSource() && valueInfo.Sources->hasConstValue()){
+                        valueInfo.Sources = new LocalSource();
+                    }
                     m_opcodeSources[opcodeIndex] = valueInfo.Sources;
                     lastState.replaceLocal(oparg, AbstractLocalInfo(valueInfo, valueInfo.Value == &Undefined));
                 }
@@ -377,6 +380,13 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                 case BINARY_MULTIPLY:
                 case BINARY_SUBTRACT:
                 case BINARY_ADD:
+                {
+                    auto two = lastState.popNoEscape();
+                    auto one = lastState.popNoEscape();
+                    auto out = one.Value->binary(one.Sources, opcode, two);
+                    lastState.push(out);
+                }
+                break;
                 case INPLACE_POWER:
                 case INPLACE_MULTIPLY:
                 case INPLACE_MATRIX_MULTIPLY:

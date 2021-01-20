@@ -59,6 +59,11 @@ TEST_CASE("General list indexing") {
         CHECK(t.returns() == "0");
     }
 
+    SECTION("local case") {
+        auto t = EmissionTest("def f(): l = [0]; a = 1; a -= 1; return l[a]");
+        CHECK(t.returns() == "0");
+    }
+
     SECTION("reverse slice case") {
         auto t = EmissionTest("def f(): l = [4,3,2,1,0]; return l[::-1]");
         CHECK(t.returns() == "[0, 1, 2, 3, 4]");
