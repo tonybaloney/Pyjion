@@ -83,6 +83,9 @@ class SliceTestCase(unittest.TestCase):
         self.assertEqual(l[:x-4], [0, 1])
         self.assertEqual(initial_ref, sys.getrefcount(l))
         self.assertEqual(initial_ref_x, sys.getrefcount(x))
+        self.assertEqual(l[x::-1], [2, 1, 0])
+        self.assertEqual(initial_ref, sys.getrefcount(l))
+        self.assertEqual(initial_ref_x, sys.getrefcount(x))
 
     def test_string_slicing(self):
         self.assertEqual('The train to Oxford leaves at 3pm'[-1:3:-2], 'm3t ealdox tnat')
