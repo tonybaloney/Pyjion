@@ -333,10 +333,9 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     break;
                 }
                 case LOAD_CONST: {
-                    PyObject* item = PyTuple_GetItem(mCode->co_consts, oparg);
-                    auto constSource = addConstSource(opcodeIndex, oparg, item);
+                    auto constSource = addConstSource(opcodeIndex, oparg, PyTuple_GetItem(mCode->co_consts, oparg));
                     auto value = AbstractValueWithSources(
-                            toAbstract(item),
+                            toAbstract(PyTuple_GetItem(mCode->co_consts, oparg)),
                             constSource
                     );
                     lastState.push(value);
@@ -353,13 +352,10 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                 }
                 case STORE_FAST: {
                     auto valueInfo = lastState.popNoEscape();
-                    if (valueInfo.hasSource() && valueInfo.Sources->hasConstValue()){
-                        valueInfo.Sources = new LocalSource();
-                    }
                     m_opcodeSources[opcodeIndex] = valueInfo.Sources;
                     lastState.replaceLocal(oparg, AbstractLocalInfo(valueInfo, valueInfo.Value == &Undefined));
                 }
-                    break;
+                break;
                 case DELETE_FAST:
                     // We need to box any previous stores so we can delete them...  Otherwise
                     // we won't know if we should raise an unbound local error
@@ -1497,8 +1493,8 @@ void AbstractInterpreter::incStack(size_t size, StackEntryKind kind) {
 }
 
 void AbstractInterpreter::periodicWork() {
-    m_comp->emit_periodic_work();
-    intErrorCheck("periodic work");
+//    m_comp->emit_periodic_work();
+//    intErrorCheck("periodic work");
 }
 
 // Checks to see if -1 is the current value on the stack, and if so, falls into

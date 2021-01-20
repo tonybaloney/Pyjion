@@ -143,6 +143,8 @@ AbstractSource* AbstractSource::combine(AbstractSource* one, AbstractSource* two
                     two->escapes();
                 }
                 one->Sources = two->Sources;
+                if (two->hasConstValue() && !one->hasConstValue())
+                    return one;
                 return two;
             }
         }

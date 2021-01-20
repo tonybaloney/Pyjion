@@ -4530,9 +4530,9 @@ TEST_CASE("const values") {
                                "    x = 1.0\n"
                                "    x += 1\n"
                                "    return x\n");
-        REQUIRE(t.hasConstValue(2, 0) == true);
-        REQUIRE(t.hasConstValue(6, 0) == false);
-        REQUIRE(t.hasConstValue(8, 0) == false);
-        REQUIRE(t.hasConstValue(8, 1) == true);
+        CHECK(t.hasConstValue(2, 0) == true);
+        CHECK(t.hasConstValue(6, 0) == false);
+        CHECK(t.hasConstValue(8, 0) == false);
+        CHECK(t.hasConstValue(8, 1) == true);
     }
 }
