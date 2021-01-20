@@ -339,16 +339,16 @@ private:
 
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
-    void errorCheck(const char* reason = nullptr);
-    void intErrorCheck(const char* reason = nullptr);
+    void errorCheck(const char* reason = nullptr, int curByte = -1);
+    void intErrorCheck(const char* reason = nullptr, int curByte = -1);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
     void ensureRaiseAndFreeLocals(size_t localCount);
 
     void ensureLabels(vector<Label>& labels, size_t count);
 
-    void branchRaise(const char* reason = nullptr);
-    void raiseOnNegativeOne();
+    void branchRaise(const char* reason = nullptr, int curByte = -1);
+    void raiseOnNegativeOne(int curByte);
 
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);
 
@@ -372,14 +372,14 @@ private:
     void returnValue(int opcodeIndex);
 
     void loadFast(int local, int opcodeIndex);
-    void loadFastWorker(int local, bool checkUnbound);
+    void loadFastWorker(int local, bool checkUnbound, int curByte);
     void unpackSequence(size_t size, int opcode);
 
     void popExcept();
 
     void unaryPositive(int opcodeIndex);
     void unaryNegative(int opcodeIndex);
-    void unaryNot(int& opcodeIndex);
+    void unaryNot(int opcodeIndex);
 
     void jumpIfOrPop(bool isTrue, int opcodeIndex, int offset);
     void popJumpIf(bool isTrue, int opcodeIndex, int offset);
