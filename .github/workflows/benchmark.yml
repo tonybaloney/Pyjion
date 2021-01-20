@@ -1,4 +1,4 @@
-name: Compile and test C++ package
+name: Benchmarks
 
 on:
   push:
@@ -48,54 +48,22 @@ jobs:
         shell: bash
         run: cmake --build . --config $BUILD_TYPE
 
-
       - name: Build Python Package
         shell: bash
         run: python -m pip install --upgrade pip && pip install .
 
-      - name: Run unit tests
-        working-directory: ${{runner.workspace}}/build
-        shell: bash
-        run: ./unit_tests
-
-      - name: Test IPython REPL
+      - name: Run benchmark tests
         shell: bash
         run: |
-          pip install ipython
-          python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
+          python -m pip install  django==3.1.4
+          python Tests/benchmarks/test_nbody.py
+          python Tests/benchmarks/test_nqueens.py
+          python Tests/benchmarks/test_fannkuch.py
+          python Tests/benchmarks/test_chaos.py
+          python Tests/benchmarks/test_float.py
+          python Tests/benchmarks/test_float.py
+          python Tests/benchmarks/test_django_template.py
 
-      - name: Run Python tests
-        shell: bash
-        run: python -m unittest discover Tests/
-
-      - name: Run smoke tests
-        shell: bash
-        run: python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
-        continue-on-error: true
-
-      - name: Run full test suite
-        shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests.txt -v
-        continue-on-error: true
-
-      - name: Install scikit-build for wheel
-        shell: bash
-        run: |
-          python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
-
-      - name: Build Linux Docker image
-        run: docker build -t pyjion -f Dockerfile.manylinux .
-
-      - name: Build manylinux wheel
-        run: |
-          docker run \
-            --rm \
-            -v "$(pwd):/github/workspace" pyjion
-
-      - uses: actions/upload-artifact@v1
-        with:
-          name: dist
-          path: dist
 
   build-macos-10:
     runs-on: macos-10.15
@@ -133,50 +101,18 @@ jobs:
         shell: bash
         run: python -m pip install --upgrade pip && pip install .
 
-      - name: Run unit tests
-        working-directory: ${{runner.workspace}}/build
-        shell: bash
-        run: ./unit_tests
-
-      - name: Run gcov
-        shell: bash
-        run: gcov Tests/
-
-      - name: Codecov
-        uses: codecov/codecov-action@v1.0.15
-        with:
-          directory: Tests/
-
-      - name: Test IPython REPL
+      - name: Run benchmark tests
         shell: bash
         run: |
-          pip install ipython
-          python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
+          python -m pip install  django==3.1.4
+          python Tests/benchmarks/test_nbody.py
+          python Tests/benchmarks/test_nqueens.py
+          python Tests/benchmarks/test_fannkuch.py
+          python Tests/benchmarks/test_chaos.py
+          python Tests/benchmarks/test_float.py
+          python Tests/benchmarks/test_float.py
+          python Tests/benchmarks/test_django_template.py
 
-      - name: Run Python tests
-        shell: bash
-        run: python -m unittest discover Tests/
-
-      - name: Run smoke tests
-        shell: bash
-        run: python -X dev Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
-        continue-on-error: true
-
-      - name: Run full test suite
-        shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos10.txt -v
-        continue-on-error: true
-
-      - name: Build Python Wheel
-        shell: bash
-        run: |
-          python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
-          python setup.py bdist_wheel
-
-      - uses: actions/upload-artifact@v1
-        with:
-          name: dist
-          path: dist
 
   build-macos-11:
     runs-on: macos-11.0
@@ -212,50 +148,18 @@ jobs:
         shell: bash
         run: python -m pip install --upgrade pip && pip install .
 
-      - name: Run unit tests
-        working-directory: ${{runner.workspace}}/build
-        shell: bash
-        run: ./unit_tests
-
-      - name: Run gcov
-        shell: bash
-        run: gcov Tests/
-
-      - name: Codecov
-        uses: codecov/codecov-action@v1.0.15
-        with:
-          directory: Tests/
-
-      - name: Test IPython REPL
+      - name: Run benchmark tests
         shell: bash
         run: |
-          pip install ipython
-          python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
+          python -m pip install  django==3.1.4
+          python Tests/benchmarks/test_nbody.py
+          python Tests/benchmarks/test_nqueens.py
+          python Tests/benchmarks/test_fannkuch.py
+          python Tests/benchmarks/test_chaos.py
+          python Tests/benchmarks/test_float.py
+          python Tests/benchmarks/test_float.py
+          python Tests/benchmarks/test_django_template.py
 
-      - name: Run Python tests
-        shell: bash
-        run: python -m unittest discover Tests/
-
-      - name: Run smoke tests
-        shell: bash
-        run: python -X dev Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
-        continue-on-error: true
-
-      - name: Run full test suite
-        shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos11.txt -v
-        continue-on-error: true
-
-      - name: Build Python Wheel
-        shell: bash
-        run: |
-          python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
-          python setup.py bdist_wheel
-
-      - uses: actions/upload-artifact@v1
-        with:
-          name: dist
-          path: dist
 
   build-windows:
     runs-on: windows-latest
@@ -304,38 +208,14 @@ jobs:
         shell: bash
         run: python setup.py install --generator "Visual Studio 16 2019"
 
-      - name: Build Python Wheel
+      - name: Run benchmark tests
         shell: bash
         run: |
-          python setup.py bdist_wheel --generator "Visual Studio 16 2019"
-          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
-          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
-
-      - uses: actions/upload-artifact@v1
-        with:
-          name: dist
-          path: ${{ env.WHEEL }}
-
-      - name: Run unit tests
-        working-directory: ${{runner.workspace}}/build/Release
-        run: .\unit_tests.exe
-
-      - name: Test IPython REPL
-        shell: bash
-        run: |
-          pip install ipython
-          python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
-
-      - name: Run Python tests
-        shell: bash
-        run: python -m unittest discover Tests/ -v
-
-      - name: Run smoke tests
-        shell: bash
-        run: python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
-        continue-on-error: true
-
-      - name: Run full test suite
-        shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_win.txt -v
-        continue-on-error: true
+          python -m pip install  django==3.1.4
+          python Tests/benchmarks/test_nbody.py
+          python Tests/benchmarks/test_nqueens.py
+          python Tests/benchmarks/test_fannkuch.py
+          python Tests/benchmarks/test_chaos.py
+          python Tests/benchmarks/test_float.py
+          python Tests/benchmarks/test_float.py
+          python Tests/benchmarks/test_django_template.py

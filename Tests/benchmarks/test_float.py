@@ -52,7 +52,7 @@ def benchmark(n=POINTS):
 
 
 if __name__ == "__main__":
-    print("Float took {0} without Pyjion".format(timeit.timeit(benchmark, number=1), ))
+    print("Float took {0} without Pyjion".format(timeit.repeat(benchmark, repeat=5, number=1), ))
     pyjion.enable()
-    print("Float took {0} with Pyjion".format(timeit.timeit(benchmark, number=1), ))
+    print("Float took {0} with Pyjion".format(timeit.repeat(benchmark, repeat=5, number=1), ))
     pyjion.disable()
