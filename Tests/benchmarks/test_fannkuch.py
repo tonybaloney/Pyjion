@@ -3,7 +3,6 @@ The Computer Language Benchmarks Game
 http://benchmarksgame.alioth.debian.org/
 Contributed by Sokolov Yura, modified by Tupteq.
 """
-
 import pyjion
 import timeit
 
