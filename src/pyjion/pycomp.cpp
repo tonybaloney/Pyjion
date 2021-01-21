@@ -797,6 +797,9 @@ void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractV
                 } else {
                     m_il.emit_call(METHOD_STORE_SUBSCR_LIST);
                 }
+            } else if (key.hasValue() && key.Value->kind() == AVK_Slice){
+                // TODO : Optimize storing a list subscript
+                m_il.emit_call(METHOD_STORE_SUBSCR_OBJ);
             } else {
                 m_il.emit_call(METHOD_STORE_SUBSCR_LIST);
             }
@@ -853,13 +856,16 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             }
             break;
         case AVK_List:
-            if (constIndex){
-                if (hasValidIndex){
+            if (constIndex) {
+                if (hasValidIndex) {
                     m_il.ld_i8(constSource->getNumericValue());
                     m_il.emit_call(METHOD_SUBSCR_LIST_I);
                 } else {
                     m_il.emit_call(METHOD_SUBSCR_LIST);
                 }
+            } else if (key.hasValue() && key.Value->kind() == AVK_Slice){
+                // TODO : Further optimize getting a slice subscript when the values are dynamic
+                m_il.emit_call(METHOD_SUBSCR_OBJ);
             } else {
                 m_il.emit_call(METHOD_SUBSCR_LIST);
             }
@@ -872,6 +878,8 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
                 } else {
                     m_il.emit_call(METHOD_SUBSCR_TUPLE);
                 }
+            } else if (key.hasValue() && key.Value->kind() == AVK_Slice){
+                m_il.emit_call(METHOD_SUBSCR_OBJ);
             } else {
                 m_il.emit_call(METHOD_SUBSCR_TUPLE);
             }
