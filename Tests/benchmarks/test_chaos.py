@@ -264,7 +264,7 @@ def main():
 
 
 if __name__ == "__main__":
-    print("Chaos took {0} without Pyjion".format(timeit.timeit(main, number=1)))
+    print("Chaos took {0} without Pyjion".format(timeit.repeat(main, repeat=5, number=1)))
     pyjion.enable()
-    print("Chaos took {0} with Pyjion".format(timeit.timeit(main, number=1)))
+    print("Chaos took {0} with Pyjion".format(timeit.repeat(main, repeat=5, number=1)))
     pyjion.disable()
