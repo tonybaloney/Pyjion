@@ -77,6 +77,7 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests.txt -v
         continue-on-error: true
+        timeout-minutes: 15
 
       - name: Install scikit-build for wheel
         shell: bash
@@ -166,6 +167,7 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos10.txt -v
         continue-on-error: true
+        timeout-minutes: 15
 
       - name: Build Python Wheel
         shell: bash
@@ -245,6 +247,7 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos11.txt -v
         continue-on-error: true
+        timeout-minutes: 15
 
       - name: Build Python Wheel
         shell: bash
@@ -339,3 +342,4 @@ jobs:
         shell: bash
         run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_win.txt -v
         continue-on-error: true
+        timeout-minutes: 15
