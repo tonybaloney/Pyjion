@@ -95,6 +95,9 @@ class BinaryOperationTestCase(unittest.TestCase):
 
 class CPythonComparison(unittest.TestCase):
 
+    def tearDown(self) -> None:
+        gc.collect()
+
     def test_floor_division(self):
         a = 7777777
         b = 55555
