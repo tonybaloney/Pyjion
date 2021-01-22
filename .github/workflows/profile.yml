@@ -45,14 +45,10 @@ jobs:
         shell: bash
         run: cmake --build . --config Release
 
-      - name: Run profile
-        working-directory: ${{runner.workspace}}/build
+      - name: Run smoke tests with PGO
         shell: bash
-        run: |
-          perf record -b ./unit_tests
-          create_llvm_prof --binary=./unit_tests --out=linux_profile.prof
+        run: python Tests/run_libregr_tests.py --pgo
 
       - uses: actions/upload-artifact@v1
         with:
           name: linux_profile.prof
-          path: ${{runner.workspace}}/build
