@@ -1558,6 +1558,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_comp->emit_int(0);
     m_comp->emit_store_local(mExcVarsOnStack);
 
+    m_comp->emit_init_instr_counter();
+
     if (mTracingEnabled){
         // push initial trace on entry to frame
         m_comp->emit_trace_frame_entry();

@@ -253,6 +253,7 @@ class PythonCompiler : public IPythonCompiler {
     ILGenerator m_il;
     UserModule* m_module;
     Local m_lasti;
+    Local m_instrCount;
     unordered_map<int, Local> m_frameLocals;
 
 public:
@@ -461,6 +462,7 @@ public:
 
     void emit_periodic_work() override;
     void emit_pending_calls() override;
+    void emit_init_instr_counter() override;
 
     void emit_setup_annotations() override;
 

@@ -1727,8 +1727,25 @@ void PythonCompiler::emit_periodic_work() {
     m_il.emit_call(METHOD_PERIODIC_WORK);
 }
 
+void PythonCompiler::emit_init_instr_counter() {
+    m_instrCount = emit_define_local(LK_Int);
+    m_il.load_null();
+    emit_store_local(m_instrCount);
+}
+
 void PythonCompiler::emit_pending_calls(){
+    Label skipPending = emit_define_label();
+    m_il.ld_loc(m_instrCount);
+    m_il.load_one();
+    m_il.add();
+    m_il.dup();
+    m_il.st_loc(m_instrCount);
+    m_il.ld_i4(10);
+    m_il.mod();
+    emit_branch(BranchTrue, skipPending);
     m_il.emit_call(METHOD_PENDING_CALLS);
+    m_il.pop(); // TODO : Handle error from Py_MakePendingCalls?
+    emit_mark_label(skipPending);
 }
 
 JittedCode* PythonCompiler::emit_compile() {
