@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [ master ]
 
-env:
-  BUILD_TYPE: Debug
-
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -141,11 +138,6 @@ jobs:
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
-
-      - name: Build
-        working-directory: ${{runner.workspace}}/build
-        shell: bash
-        run: cmake --build . --config Release
 
       - name: Install build deps
         shell: bash
