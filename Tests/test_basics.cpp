@@ -471,3 +471,11 @@ TEST_CASE("Binary slice subscripts") {
         CHECK(t.returns() == "[4, 3, 2, 1, 0, 2, 3, 4]");
     }
 }
+
+TEST_CASE("Simple methods") {
+    SECTION("assert simple string case") {
+        auto t = EmissionTest("def f(): x = 'hello'; return x.upper()");
+        CHECK(t.returns() == "'HELLO'");
+    }
+
+}

@@ -45,7 +45,7 @@ IterableValue Iterable;
 BuiltinValue Builtin;
 TypeValue Type;
 ByteArrayValue ByteArray;
-
+MethodValue Method;
 
 AbstractSource::AbstractSource() {
     Sources = shared_ptr<AbstractSources>(new AbstractSources());
@@ -737,6 +737,59 @@ const char* StringValue::describe() {
     return "str";
 }
 
+unordered_map<const char*, AbstractValueKind> stringMethodReturnTypes = {
+        {"capitalize", AVK_String},
+        {"casefold", AVK_String},
+        {"center", AVK_String},
+        {"count", AVK_Integer},
+        {"encode", AVK_Bytes},
+        {"endswith", AVK_Bool},
+        {"expandtabs", AVK_String},
+        {"format", AVK_String},
+        {"format_map", AVK_String},
+        {"isalnum", AVK_Bool},
+        {"isalpha", AVK_Bool},
+        {"isascii", AVK_Bool},
+        {"isdecimal", AVK_Bool},
+        {"isdigit", AVK_Bool},
+        {"isidentifier", AVK_Bool},
+        {"islower", AVK_Bool},
+        {"isnumeric", AVK_Bool},
+        {"isprintable", AVK_Bool},
+        {"isspace", AVK_Bool},
+        {"istitle", AVK_Bool},
+        {"isupper", AVK_Bool},
+        {"join", AVK_String},
+        {"ljust", AVK_String},
+        {"lower", AVK_String},
+        {"partition", AVK_String},
+        {"removeprefix", AVK_String},
+        {"removesuffix", AVK_String},
+        {"replace", AVK_String},
+        {"rfind", AVK_Integer},
+        {"rindex", AVK_Integer},
+        {"rjust", AVK_String},
+        {"rpartition", AVK_Tuple},
+        {"rsplit", AVK_List},
+        {"rstrip", AVK_String},
+        {"split", AVK_List},
+        {"splitlines", AVK_List},
+        {"startswith", AVK_Bool},
+        {"strip", AVK_String},
+        {"swapcase", AVK_String},
+        {"title", AVK_String},
+        {"translate", AVK_String},
+        {"upper", AVK_String},
+        {"zfill", AVK_String},
+};
+
+AbstractValueKind StringValue::resolveMethod(const char *name) {
+    for (auto const &b: stringMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+}
+
 // FloatValue methods
 AbstractValueKind FloatValue::kind() {
     return AVK_Float;
@@ -1125,6 +1178,20 @@ AbstractValue *ByteArrayValue::unary(AbstractSource *selfSources, int op) {
 const char *ByteArrayValue::describe() {
     return "bytearray";
 }
+
+// Method methods
+AbstractValueKind MethodValue::kind() {
+    return AVK_Method;
+}
+
+AbstractValue *MethodValue::unary(AbstractSource *selfSources, int op) {
+    return AbstractValue::unary(selfSources, op);
+}
+
+const char *MethodValue::describe() {
+    return "method";
+}
+
 
 // Written for 3.9.1
 unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
