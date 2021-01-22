@@ -797,6 +797,9 @@ void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractV
                 } else {
                     m_il.emit_call(METHOD_STORE_SUBSCR_LIST);
                 }
+            } else if (key.hasValue() && key.Value->kind() == AVK_Slice){
+                // TODO : Optimize storing a list subscript
+                m_il.emit_call(METHOD_STORE_SUBSCR_OBJ);
             } else {
                 m_il.emit_call(METHOD_STORE_SUBSCR_LIST);
             }
@@ -853,13 +856,16 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             }
             break;
         case AVK_List:
-            if (constIndex){
-                if (hasValidIndex){
+            if (constIndex) {
+                if (hasValidIndex) {
                     m_il.ld_i8(constSource->getNumericValue());
                     m_il.emit_call(METHOD_SUBSCR_LIST_I);
                 } else {
                     m_il.emit_call(METHOD_SUBSCR_LIST);
                 }
+            } else if (key.hasValue() && key.Value->kind() == AVK_Slice){
+                // TODO : Further optimize getting a slice subscript when the values are dynamic
+                m_il.emit_call(METHOD_SUBSCR_OBJ);
             } else {
                 m_il.emit_call(METHOD_SUBSCR_LIST);
             }
@@ -872,6 +878,8 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
                 } else {
                     m_il.emit_call(METHOD_SUBSCR_TUPLE);
                 }
+            } else if (key.hasValue() && key.Value->kind() == AVK_Slice){
+                m_il.emit_call(METHOD_SUBSCR_OBJ);
             } else {
                 m_il.emit_call(METHOD_SUBSCR_TUPLE);
             }
@@ -1719,6 +1727,27 @@ void PythonCompiler::emit_periodic_work() {
     m_il.emit_call(METHOD_PERIODIC_WORK);
 }
 
+void PythonCompiler::emit_init_instr_counter() {
+    m_instrCount = emit_define_local(LK_Int);
+    m_il.load_null();
+    emit_store_local(m_instrCount);
+}
+
+void PythonCompiler::emit_pending_calls(){
+    Label skipPending = emit_define_label();
+    m_il.ld_loc(m_instrCount);
+    m_il.load_one();
+    m_il.add();
+    m_il.dup();
+    m_il.st_loc(m_instrCount);
+    m_il.ld_i4(10);
+    m_il.mod();
+    emit_branch(BranchTrue, skipPending);
+    m_il.emit_call(METHOD_PENDING_CALLS);
+    m_il.pop(); // TODO : Handle error from Py_MakePendingCalls?
+    emit_mark_label(skipPending);
+}
+
 JittedCode* PythonCompiler::emit_compile() {
     auto* jitInfo = new CorJitInfo(m_code, m_module);
     auto addr = m_il.compile(jitInfo, g_jit, m_code->co_stacksize + 100).m_addr;
@@ -1987,3 +2016,4 @@ GLOBAL_METHOD(METHOD_PROFILE_FRAME_EXIT, &PyJit_ProfileFrameExit, CORINFO_TYPE_V
 GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
 
 GLOBAL_METHOD(METHOD_TRIPLE_BINARY_OP, &PyJitMath_TripleBinaryOp, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));
+GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );

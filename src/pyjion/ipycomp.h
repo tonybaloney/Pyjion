@@ -212,6 +212,8 @@ public:
 
     virtual void emit_delete_subscr() = 0;
     virtual void emit_periodic_work() = 0;
+    virtual void emit_pending_calls() = 0;
+    virtual void emit_init_instr_counter() = 0;
 
     /*****************************************************
      * Collection operations */

@@ -147,6 +147,7 @@
 #define METHOD_DEBUG_PYOBJECT                    0x0000007C
 #define METHOD_LOADNAME_HASH                     0x0000007D
 #define METHOD_LOADGLOBAL_HASH                   0x0000007E
+#define METHOD_PENDING_CALLS                     0x0000007F
 
 // call helpers
 #define METHOD_CALL_0_TOKEN        0x00010000
@@ -252,6 +253,7 @@ class PythonCompiler : public IPythonCompiler {
     ILGenerator m_il;
     UserModule* m_module;
     Local m_lasti;
+    Local m_instrCount;
     unordered_map<int, Local> m_frameLocals;
 
 public:
@@ -459,6 +461,8 @@ public:
     void emit_load_assertion_error() override;
 
     void emit_periodic_work() override;
+    void emit_pending_calls() override;
+    void emit_init_instr_counter() override;
 
     void emit_setup_annotations() override;
 
