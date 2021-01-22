@@ -1027,6 +1027,27 @@ const char* ListValue::describe() {
     return "list";
 }
 
+unordered_map<const char*, AbstractValueKind> listMethodReturnTypes = {
+        {"append", AVK_None},
+        {"extend", AVK_None},
+        {"insert", AVK_None},
+        {"remove", AVK_None},
+        {"pop", AVK_Any},
+        {"clear", AVK_None},
+        {"index", AVK_Integer},
+        {"count", AVK_Integer},
+        {"sort", AVK_None},
+        {"reverse", AVK_None},
+        {"copy", AVK_List},
+};
+
+AbstractValueKind ListValue::resolveMethod(const char *name) {
+    for (auto const &b: listMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+}
+
 // DictValue methods
 AbstractValueKind DictValue::kind() {
     return AVK_Dict;

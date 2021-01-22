@@ -423,6 +423,7 @@ class ListValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
 };
 
 class DictValue : public AbstractValue {
