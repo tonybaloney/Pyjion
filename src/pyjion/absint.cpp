@@ -2630,6 +2630,9 @@ void AbstractInterpreter::unpackEx(size_t size, int opcode) {
 
 
 void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) {
+    if (jumpTo <= opcodeIndex){
+        m_comp->emit_pending_calls();
+    }
     auto target = getOffsetLabel(jumpTo);
     m_offsetStack[jumpTo] = ValueStack(m_stack);
     decStack();
@@ -2664,6 +2667,9 @@ void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) 
 }
 
 void AbstractInterpreter::popJumpIf(bool isTrue, int opcodeIndex, int jumpTo) {
+    if (jumpTo <= opcodeIndex){
+        m_comp->emit_pending_calls();
+    }
     auto target = getOffsetLabel(jumpTo);
 
     auto noJump = m_comp->emit_define_label();
@@ -2700,11 +2706,17 @@ void AbstractInterpreter::popJumpIf(bool isTrue, int opcodeIndex, int jumpTo) {
 }
 
 void AbstractInterpreter::jumpAbsolute(size_t index, size_t from) {
+    if (index <= from){
+        m_comp->emit_pending_calls();
+    }
     m_offsetStack[index] = ValueStack(m_stack);
     m_comp->emit_branch(BranchAlways, getOffsetLabel(index));
 }
 
 void AbstractInterpreter::jumpIfNotExact(int opcodeIndex, int jumpTo) {
+    if (jumpTo <= opcodeIndex){
+        m_comp->emit_pending_calls();
+    }
     auto target = getOffsetLabel(jumpTo);
     m_comp->emit_compare_exceptions();
     decStack(2);
