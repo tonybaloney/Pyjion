@@ -38,12 +38,12 @@ jobs:
       - name: Configure CMake
         shell: bash
         working-directory: ${{runner.workspace}}/build
-        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=RELEASE GENERATE_PROFILE=ON
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=1 -DGENERATE_PROFILE=ON
 
       - name: Build Profile binaries
         working-directory: ${{runner.workspace}}/build
         shell: bash
-        run: cmake --build . --config RELEASE
+        run: cmake --build . --config Release
 
       - name: Run profile
         working-directory: ${{runner.workspace}}/build
