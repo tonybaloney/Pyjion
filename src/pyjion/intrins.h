@@ -59,7 +59,8 @@ PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key);
 PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash);
 PyObject* PyJit_SubscrList(PyObject *o, PyObject *key);
 PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, Py_ssize_t index);
-PyObject* PyJit_SubscrListSlice(PyObject *o, Py_ssize_t start,  Py_ssize_t stop);
+PyObject* PyJit_SubscrListSliceIndexes(PyObject *o, Py_ssize_t start,  Py_ssize_t stop);
+PyObject* PyJit_SubscrListSliceObject(PyObject *o,  PyObject* slice);
 PyObject* PyJit_SubscrListSliceStepped(PyObject *o,  Py_ssize_t start,  Py_ssize_t stop,  Py_ssize_t step);
 PyObject* PyJit_SubscrListReversed(PyObject *o);
 

@@ -864,8 +864,7 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
                     m_il.emit_call(METHOD_SUBSCR_LIST);
                 }
             } else if (key.hasValue() && key.Value->kind() == AVK_Slice){
-                // TODO : Further optimize getting a slice subscript when the values are dynamic
-                m_il.emit_call(METHOD_SUBSCR_OBJ);
+                m_il.emit_call(METHOD_SUBSCR_LIST_SLICE_OBJ);
             } else {
                 m_il.emit_call(METHOD_SUBSCR_LIST);
             }
@@ -933,7 +932,7 @@ bool PythonCompiler::emit_binary_subscr_slice(AbstractValueWithSources container
                 decref(); decref(); // will also pop the values
                 m_il.ld_i8(start_i);
                 m_il.ld_i8(stop_i);
-                m_il.emit_call(METHOD_SUBSCR_LIST_SLICE);
+                m_il.emit_call(METHOD_SUBSCR_LIST_SLICE_INDEXES);
                 return true;
             }
             break;
@@ -1797,7 +1796,8 @@ GLOBAL_METHOD(METHOD_SUBSCR_DICT, &PyJit_SubscrDict, CORINFO_TYPE_NATIVEINT, Par
 GLOBAL_METHOD(METHOD_SUBSCR_DICT_HASH, &PyJit_SubscrDictHash, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST, &PyJit_SubscrList, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST_I, &PyJit_SubscrListIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
-GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE, &PyJit_SubscrListSlice, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE_OBJ, &PyJit_SubscrListSliceObject, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE_INDEXES, &PyJit_SubscrListSliceIndexes, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE_STEPPED, &PyJit_SubscrListSliceStepped, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE_REVERSED, &PyJit_SubscrListReversed, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 
