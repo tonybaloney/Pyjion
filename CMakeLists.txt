@@ -6,7 +6,9 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(CODE_COVERAGE "Enable coverage reporting" OFF)
 option(BUILD_TESTS "Build the unit tests" OFF)
+option(GENERATE_PROFILE "Enable Profile Generation" OFF)
 
 include(CMakeOptimizations.txt)
 
@@ -223,7 +225,6 @@ endif(BUILD_TESTS)
 # Code Coverage Configuration
 add_library(coverage_config INTERFACE)
 
-option(CODE_COVERAGE "Enable coverage reporting" OFF)
 if(CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     # Add required flags (GCC & LLVM/Clang)
     target_compile_options(coverage_config INTERFACE
@@ -233,6 +234,14 @@ if(CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
             )
     target_link_options(coverage_config INTERFACE --coverage)
 endif(CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+
+add_library(profile_config INTERFACE)
+if(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(profile_config INTERFACE
+            -O2
+            -gline-tables-only
+            )
+endif(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 
 if (NOT WIN32)
     target_link_libraries(_pyjion ${DOTNETPATH}/${CLR_JIT_LIB})

@@ -1,0 +1,58 @@
+name: Create PGO Profiles
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+      - name: Install CLR requirements
+        run: |
+          sudo apt-get -y update
+          sudo apt-get install -y cmake llvm-9 clang-9 autoconf automake \
+          libtool build-essential python curl git lldb-6.0 liblldb-6.0-dev \
+          libunwind8 libunwind8-dev gettext libicu-dev liblttng-ust-dev \
+          libssl-dev libnuma-dev libkrb5-dev zlib1g-dev autofdo perf
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '5.0.101'
+
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
+      - name: Configure CMake
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=RELEASE GENERATE_PROFILE=ON
+
+      - name: Build Profile binaries
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: cmake --build . --config RELEASE
+
+      - name: Run profile
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: |
+          perf record -b ./unit_tests
+          create_llvm_prof --binary=./unit_tests --out=linux_profile.prof
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: linux_profile.prof
+          path: ${{runner.workspace}}/build
