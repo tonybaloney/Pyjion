@@ -24,6 +24,7 @@
 */
 
 #include "absvalue.h"
+#include "knownmethods.h"
 
 AnyValue Any;
 UndefinedValue Undefined;
@@ -737,52 +738,6 @@ const char* StringValue::describe() {
     return "str";
 }
 
-unordered_map<const char*, AbstractValueKind> stringMethodReturnTypes = {
-        {"capitalize", AVK_String},
-        {"casefold", AVK_String},
-        {"center", AVK_String},
-        {"count", AVK_Integer},
-        {"encode", AVK_Bytes},
-        {"endswith", AVK_Bool},
-        {"expandtabs", AVK_String},
-        {"format", AVK_String},
-        {"format_map", AVK_String},
-        {"isalnum", AVK_Bool},
-        {"isalpha", AVK_Bool},
-        {"isascii", AVK_Bool},
-        {"isdecimal", AVK_Bool},
-        {"isdigit", AVK_Bool},
-        {"isidentifier", AVK_Bool},
-        {"islower", AVK_Bool},
-        {"isnumeric", AVK_Bool},
-        {"isprintable", AVK_Bool},
-        {"isspace", AVK_Bool},
-        {"istitle", AVK_Bool},
-        {"isupper", AVK_Bool},
-        {"join", AVK_String},
-        {"ljust", AVK_String},
-        {"lower", AVK_String},
-        {"partition", AVK_String},
-        {"removeprefix", AVK_String},
-        {"removesuffix", AVK_String},
-        {"replace", AVK_String},
-        {"rfind", AVK_Integer},
-        {"rindex", AVK_Integer},
-        {"rjust", AVK_String},
-        {"rpartition", AVK_Tuple},
-        {"rsplit", AVK_List},
-        {"rstrip", AVK_String},
-        {"split", AVK_List},
-        {"splitlines", AVK_List},
-        {"startswith", AVK_Bool},
-        {"strip", AVK_String},
-        {"swapcase", AVK_String},
-        {"title", AVK_String},
-        {"translate", AVK_String},
-        {"upper", AVK_String},
-        {"zfill", AVK_String},
-};
-
 AbstractValueKind StringValue::resolveMethod(const char *name) {
     for (auto const &b: stringMethodReturnTypes){
         if (strcmp(name, b.first) == 0)
@@ -1027,19 +982,6 @@ const char* ListValue::describe() {
     return "list";
 }
 
-unordered_map<const char*, AbstractValueKind> listMethodReturnTypes = {
-        {"append", AVK_None},
-        {"extend", AVK_None},
-        {"insert", AVK_None},
-        {"remove", AVK_None},
-        {"pop", AVK_Any},
-        {"clear", AVK_None},
-        {"index", AVK_Integer},
-        {"count", AVK_Integer},
-        {"sort", AVK_None},
-        {"reverse", AVK_None},
-        {"copy", AVK_List},
-};
 
 AbstractValueKind ListValue::resolveMethod(const char *name) {
     for (auto const &b: listMethodReturnTypes){
@@ -1064,6 +1006,14 @@ AbstractValue* DictValue::unary(AbstractSource* selfSources, int op) {
 const char* DictValue::describe() {
     return "dict";
 }
+
+AbstractValueKind DictValue::resolveMethod(const char *name) {
+    for (auto const &b: dictMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+}
+
 
 // SetValue methods
 AbstractValueKind SetValue::kind() {
@@ -1212,74 +1162,6 @@ AbstractValue *MethodValue::unary(AbstractSource *selfSources, int op) {
 const char *MethodValue::describe() {
     return "method";
 }
-
-
-// Written for 3.9.1
-unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
-        {"abs",         AVK_Any},
-        {"all",         AVK_Bool},
-        {"any",         AVK_Bool},
-        {"ascii",       AVK_String},
-        {"bin",         AVK_String},
-        {"breakpoint",  AVK_None},
-        {"bytearray",   AVK_Bytearray},
-        {"bytes",       AVK_Bytes},
-        {"callable",    AVK_Function},
-        {"classmethod", AVK_Any},
-        {"compile",     AVK_Code},
-        {"complex",     AVK_Complex},
-        {"delattr",     AVK_None},
-        {"dict",        AVK_Dict},
-        {"dir",         AVK_List},
-        {"enumerate",   AVK_Enumerate},
-        {"eval",        AVK_Any},
-        {"exec",        AVK_Any},
-        {"filter",      AVK_Iterable},
-        {"float",       AVK_Float},
-        {"format",      AVK_String},
-        {"frozenset",   AVK_Frozenset},
-        {"getattr",     AVK_Any},
-        {"globals",     AVK_Dict},
-        {"hasattr",     AVK_Bool},
-        {"hash",        AVK_Integer},
-        {"help",        AVK_Any},
-        {"hex",         AVK_String},
-        {"id",          AVK_Integer},
-        {"input",       AVK_String},
-        {"int",         AVK_Integer},
-        {"isinstance",  AVK_Bool},
-        {"issubclass",  AVK_Bool},
-        {"iter",        AVK_Iterable},
-        {"len",         AVK_Integer},
-        {"list",        AVK_List},
-        {"locals",      AVK_Dict},
-        {"map",         AVK_Iterable},
-        {"max",         AVK_Any},
-        {"memoryview",  AVK_Any},
-        {"min",         AVK_Any},
-        {"next",        AVK_Any},
-        {"oct",         AVK_String},
-        {"open",        AVK_File},
-        {"ord",         AVK_String},
-        {"pow",         AVK_Any},
-        {"print",       AVK_None},
-        {"range",       AVK_Iterable},
-        {"repr",        AVK_String},
-        {"reversed",    AVK_Any},
-        {"round",       AVK_Any},
-        {"set",         AVK_Set},
-        {"setattr",     AVK_None},
-        {"slice",       AVK_Slice},
-        {"sorted",      AVK_Any},
-        {"str",         AVK_String},
-        {"sum",         AVK_Any},
-        {"super",       AVK_Any},
-        {"tuple",       AVK_Tuple},
-        {"type",        AVK_Type},
-        {"vars",        AVK_Dict},
-        {"zip",         AVK_Iterable},
-        {"__import__",  AVK_Module},
-};
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source){
     // IS this a builtin?

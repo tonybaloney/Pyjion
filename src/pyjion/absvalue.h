@@ -430,6 +430,7 @@ class DictValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
 };
 
 class SetValue : public AbstractValue {
