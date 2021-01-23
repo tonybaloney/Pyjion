@@ -483,6 +483,7 @@ extern TypeValue Type;
 extern ByteArrayValue ByteArray;
 
 AbstractValue* avkToAbstractValue(AbstractValueKind);
+AbstractValueKind GetAbstractType(PyTypeObject* type);
 
 #endif
 

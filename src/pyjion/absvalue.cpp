@@ -1258,3 +1258,48 @@ AbstractValue* avkToAbstractValue(AbstractValueKind kind){
             return &Any;
     }
 }
+
+AbstractValueKind GetAbstractType(PyTypeObject* type) {
+    if (type == nullptr) {
+        return AVK_Any;
+    } else if (type == &PyLong_Type) {
+        return AVK_Integer;
+    }
+    else if (type == &PyFloat_Type) {
+        return AVK_Float;
+    }
+    else if (type == &PyDict_Type) {
+        return AVK_Dict;
+    }
+    else if (type == &PyTuple_Type) {
+        return AVK_Tuple;
+    }
+    else if (type == &PyList_Type) {
+        return AVK_List;
+    }
+    else if (type == &PyBool_Type) {
+        return AVK_Bool;
+    }
+    else if (type == &PyUnicode_Type) {
+        return AVK_String;
+    }
+    else if (type == &PyBytes_Type) {
+        return AVK_Bytes;
+    }
+    else if (type == &PySet_Type) {
+        return AVK_Set;
+    }
+    else if (type == &_PyNone_Type) {
+        return AVK_None;
+    }
+    else if (type == &PyFunction_Type) {
+        return AVK_Function;
+    }
+    else if (type == &PySlice_Type) {
+        return AVK_Slice;
+    }
+    else if (type == &PyComplex_Type) {
+        return AVK_Complex;
+    }
+    return AVK_Any;
+}
