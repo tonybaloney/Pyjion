@@ -69,8 +69,11 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(inlineFramePushPop, level, 1);
     SET_OPT(knownStoreSubscr, level, 1);
     SET_OPT(knownBinarySubscr, level, 1);
+    SET_OPT(tripleBinaryFunctions, level, 1);
     SET_OPT(inlineIterators, level, 1);
     SET_OPT(hashedNames, level, 1);
+    SET_OPT(subscrSlice, level, 1);
+    SET_OPT(builtinMethods, level, 1);
 }
 
 PyjionJittedCode::~PyjionJittedCode() {

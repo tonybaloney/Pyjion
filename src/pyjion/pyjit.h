@@ -77,6 +77,8 @@ typedef struct PyjionSettings {
     bool opt_inlineIterators = OPTIMIZE_ITERATORS; // OPT-9
     bool opt_hashedNames = OPTIMIZE_HASHED_NAMES; // OPT-10
     bool opt_subscrSlice = OPTIMIZE_BINARY_SLICE; // OPT-11
+    bool opt_builtinMethods = OPTIMIZE_BUILTIN_METHODS; // OPT-12
+
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
