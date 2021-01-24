@@ -419,6 +419,14 @@ const char* BytesValue::describe() {
     return "bytes";
 }
 
+AbstractValueKind BytesValue::resolveMethod(const char *name) {
+    for (auto const &b: bytesMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+    return AVK_Any;
+}
+
 // ComplexValue methods
 AbstractValueKind ComplexValue::kind() {
     return AVK_Complex;
@@ -678,6 +686,14 @@ const char* IntegerValue::describe() {
     return "int";
 }
 
+AbstractValueKind IntegerValue::resolveMethod(const char *name) {
+    for (auto const &b: intMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+    return AVK_Any;
+}
+
 // StringValue methods
 AbstractValueKind StringValue::kind() {
     return AVK_String;
@@ -743,6 +759,7 @@ AbstractValueKind StringValue::resolveMethod(const char *name) {
         if (strcmp(name, b.first) == 0)
             return b.second;
     }
+    return AVK_Any;
 }
 
 // FloatValue methods
@@ -988,6 +1005,7 @@ AbstractValueKind ListValue::resolveMethod(const char *name) {
         if (strcmp(name, b.first) == 0)
             return b.second;
     }
+    return AVK_Any;
 }
 
 // DictValue methods
@@ -1012,6 +1030,7 @@ AbstractValueKind DictValue::resolveMethod(const char *name) {
         if (strcmp(name, b.first) == 0)
             return b.second;
     }
+    return AVK_Any;
 }
 
 
@@ -1148,6 +1167,14 @@ AbstractValue *ByteArrayValue::unary(AbstractSource *selfSources, int op) {
 
 const char *ByteArrayValue::describe() {
     return "bytearray";
+}
+
+AbstractValueKind ByteArrayValue::resolveMethod(const char *name) {
+    for (auto const &b: bytearrayMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+    return AVK_Any;
 }
 
 // Method methods

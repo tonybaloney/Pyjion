@@ -369,6 +369,8 @@ class BytesValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
+
 };
 
 class ComplexValue : public AbstractValue {
@@ -384,6 +386,8 @@ class IntegerValue : public AbstractValue {
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
     void truth(AbstractSource* sources) override;
+    AbstractValueKind resolveMethod(const char* name) override;
+
 };
 
 class InternIntegerValue : public IntegerValue {
@@ -480,6 +484,8 @@ class ByteArrayValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
+
 };
 
 class MethodValue : public AbstractValue {
