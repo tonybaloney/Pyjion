@@ -1777,16 +1777,16 @@ void PythonCompiler::emit_tagged_int_to_float() {
 */
 
 class GlobalMethod {
-    Method m_method;
+    JITMethod m_method;
 public:
-    GlobalMethod(int token, Method method) : m_method(method) {
+    GlobalMethod(int token, JITMethod method) : m_method(method) {
         m_method = method;
         g_module.m_methods[token] = &m_method;
     }
 };
 
 #define GLOBAL_METHOD(token, addr, returnType, ...) \
-    GlobalMethod g ## token(token, Method(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr));
+    GlobalMethod g ## token(token, JITMethod(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr));
 
 GLOBAL_METHOD(METHOD_ADD_TOKEN, &PyJit_Add, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 

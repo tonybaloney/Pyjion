@@ -220,6 +220,10 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
     // new blocks that we encounter from branches.
     deque<size_t> queue;
     queue.push_back(0);
+    vector<const char*> utf8_names ;
+    for (int i = 0; i < PyTuple_Size(mCode->co_names); i++)
+        utf8_names.push_back(PyUnicode_AsUTF8(PyTuple_GetItem(mCode->co_names, i)));
+
     do {
         int oparg;
         auto cur = queue.front();
@@ -512,7 +516,7 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                         }
                         else {
                             // Builtin source
-                            auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), v);
+                            auto globalSource = addGlobalSource(opcodeIndex, oparg, utf8_names[oparg], v);
                             auto value = AbstractValueWithSources(
                                     &Builtin,
                                     globalSource
@@ -825,9 +829,13 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     }
                     lastState.push(&Dict);
                     break;
-                case LOAD_METHOD:
-                    lastState.push(&Any);
+                case LOAD_METHOD: {
+                    auto method = AbstractValueWithSources(
+                            &Method,
+                            newSource(new MethodSource(utf8_names[oparg])));
+                    lastState.push(method);
                     break;
+                }
                 case CALL_METHOD:
                 {
                     /* LOAD_METHOD could push a NULL value, but (as above)
@@ -845,11 +853,16 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                       We'll be passing `oparg + 1` to call_function, to
                       make it accept the `self` as a first argument.
                     */
-                    lastState.pop();
-                    lastState.pop();
+                    auto method = lastState.popNoEscape();
+                    auto self = lastState.pop();
                     for (int i = 0 ; i < oparg; i++)
                         lastState.pop();
-                    lastState.push(&Any); // push result.
+                    if (method.hasValue() && method.Value->kind() == AVK_Method && isKnownType(self->kind())){
+                        auto meth_source = dynamic_cast<MethodSource*>(method.Sources);
+                        lastState.push(avkToAbstractValue(avkToAbstractValue(self->kind())->resolveMethod(meth_source->name())));
+                    } else {
+                        lastState.push(&Any); // push result.
+                    }
                     break;
                 }
                 case IS_OP:

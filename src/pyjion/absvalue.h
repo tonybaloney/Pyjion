@@ -60,7 +60,8 @@ enum AbstractValueKind {
     AVK_Enumerate,
     AVK_File,
     AVK_Type,
-    AVK_Module
+    AVK_Module,
+    AVK_Method
 };
 
 static bool isKnownType(AbstractValueKind kind) {
@@ -216,6 +217,22 @@ public:
     AbstractValueKind kind() { return _kind; }
 };
 
+class MethodSource : public AbstractSource {
+    const char* _name = "";
+public:
+    explicit MethodSource(const char* name){
+        _name = name;
+    }
+
+    const char* describe() override {
+        return "Source: Method";
+    }
+
+    const char* name() {
+        return _name;
+    }
+};
+
 class AbstractValue {
 public:
     virtual AbstractValue* unary(AbstractSource* selfSources, int op);
@@ -239,6 +256,9 @@ public:
         return "";
     }
 
+    virtual AbstractValueKind resolveMethod(const char* name) {
+        return AVK_Any;
+    }
 };
 
 struct AbstractValueWithSources {
@@ -349,6 +369,8 @@ class BytesValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
+
 };
 
 class ComplexValue : public AbstractValue {
@@ -364,6 +386,8 @@ class IntegerValue : public AbstractValue {
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
     void truth(AbstractSource* sources) override;
+    AbstractValueKind resolveMethod(const char* name) override;
+
 };
 
 class InternIntegerValue : public IntegerValue {
@@ -380,6 +404,7 @@ class StringValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
 };
 
 class FloatValue : public AbstractValue {
@@ -402,12 +427,14 @@ class ListValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
 };
 
 class DictValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
 };
 
 class SetValue : public AbstractValue {
@@ -457,6 +484,14 @@ class ByteArrayValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
+
+};
+
+class MethodValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
 };
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);
@@ -481,6 +516,7 @@ extern BuiltinValue Builtin;
 extern IterableValue Iterable;
 extern TypeValue Type;
 extern ByteArrayValue ByteArray;
+extern MethodValue Method;
 
 AbstractValue* avkToAbstractValue(AbstractValueKind);
 AbstractValueKind GetAbstractType(PyTypeObject* type);
