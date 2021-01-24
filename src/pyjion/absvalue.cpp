@@ -1300,3 +1300,25 @@ AbstractValueKind GetAbstractType(PyTypeObject* type) {
     }
     return AVK_Any;
 }
+
+PyTypeObject* GetPyType(AbstractValueKind type) {
+    switch (type) {
+        case AVK_Any: return &PyType_Type;
+        case AVK_Integer: return &PyLong_Type;
+        case AVK_Float: return &PyFloat_Type;
+        case AVK_Dict: return &PyDict_Type;
+        case AVK_Tuple: return &PyTuple_Type;
+        case AVK_List: return &PyList_Type;
+        case AVK_Bool: return &PyBool_Type;
+        case AVK_String: return &PyUnicode_Type;
+        case AVK_Bytes: return &PyBytes_Type;
+        case AVK_Set: return &PySet_Type;
+        case AVK_None: return &_PyNone_Type;
+        case AVK_Function: return &PyFunction_Type;
+        case AVK_Slice: return &PySlice_Type;
+        case AVK_Complex: return &PyComplex_Type;
+
+        default:
+            return nullptr;
+    }
+}

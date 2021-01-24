@@ -521,5 +521,6 @@ extern MethodValue Method;
 AbstractValue* avkToAbstractValue(AbstractValueKind);
 AbstractValueKind GetAbstractType(PyTypeObject* type);
 
+PyTypeObject* GetPyType(AbstractValueKind type);
 #endif
 

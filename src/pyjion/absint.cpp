@@ -2299,8 +2299,12 @@ JittedCode* AbstractInterpreter::compileWorker() {
             }
             case LOAD_METHOD:
             {
-                m_comp->emit_dup(); // dup self as needs to remain on stack
-                m_comp->emit_load_method(PyTuple_GetItem(mCode->co_names, oparg));
+                if (OPT_ENABLED(builtinMethods) && stackInfo.size() == 1 && stackInfo[0].hasValue() && isKnownType(stackInfo[0].Value->kind())){
+                    m_comp->emit_builtin_method(PyTuple_GetItem(mCode->co_names, oparg), stackInfo[0].Value);
+                } else {
+                    m_comp->emit_dup(); // dup self as needs to remain on stack
+                    m_comp->emit_load_method(PyTuple_GetItem(mCode->co_names, oparg));
+                }
                 incStack(1);
                 break;
             }

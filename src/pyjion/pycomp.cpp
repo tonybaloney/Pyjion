@@ -1748,6 +1748,20 @@ void PythonCompiler::emit_pending_calls(){
     emit_mark_label(skipPending);
 }
 
+void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValue) {
+    auto pyType = GetPyType(typeValue->kind());
+    if (pyType == nullptr)
+        return emit_load_method(name);
+
+    auto meth = _PyType_Lookup(pyType, name);
+
+    if (!PyType_HasFeature(Py_TYPE(meth), Py_TPFLAGS_METHOD_DESCRIPTOR))
+        return emit_load_method(name); // Can't inline this type of method
+
+    // TODO : Emit the method descriptor so that it can be used by CALL_METHOD...
+}
+
+
 JittedCode* PythonCompiler::emit_compile() {
     auto* jitInfo = new CorJitInfo(m_code, m_module);
     auto addr = m_il.compile(jitInfo, g_jit, m_code->co_stacksize + 100).m_addr;
