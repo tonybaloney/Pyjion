@@ -305,7 +305,7 @@ PyObject* PyJit_UnicodeJoinArray(PyObject** items, Py_ssize_t count);
 PyObject* PyJit_FormatObject(PyObject* item, PyObject*fmtSpec);
 PyObject* PyJit_FormatValue(PyObject* item);
 
-PyJitMethodLocation * PyJit_LoadMethod(PyObject* object, PyObject* name);
+PyJitMethodLocation * PyJit_LoadMethod(PyObject* object, PyObject* name, PyJitMethodLocation* method_info);
 
 PyObject* MethCall0(PyObject* self, PyJitMethodLocation* method_info);
 PyObject* MethCall1(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1);

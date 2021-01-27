@@ -2569,18 +2569,23 @@ PyObject* PyJit_FormatObject(PyObject* item, PyObject*fmtSpec) {
 	return res;
 }
 
-PyJitMethodLocation* PyJit_LoadMethod(PyObject* object, PyObject* name) {
-    PyJitMethodLocation *result = PyObject_New(PyJitMethodLocation, &PyJitMethodLocation_Type);
+PyJitMethodLocation* PyJit_LoadMethod(PyObject* object, PyObject* name, PyJitMethodLocation* method_info) {
     PyObject* method = nullptr;
-    int meth_found = _PyObject_GetMethod(object, name, &method);
-    result->method = method;
+    int meth_found = -1;
+//    if (method_info->object == object && method_info->method != nullptr)
+//        goto end; // TODO : Verify the method hasn't somehow changed since the last loop
+
+    meth_found = _PyObject_GetMethod(object, name, &method);
+    method_info->method = method;
     if (!meth_found) {
         Py_DECREF(object);
-        result->object = nullptr;
+        method_info->object = nullptr;
     } else {
-        result->object = object;
+        method_info->object = object;
     }
-    return result;
+    end:
+    Py_INCREF(method_info);
+    return method_info;
 }
 
 PyObject* PyJit_FormatValue(PyObject* item) {

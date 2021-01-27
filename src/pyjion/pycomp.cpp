@@ -1719,7 +1719,12 @@ void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWit
 }
 
 void PythonCompiler::emit_load_method(void* name) {
+    PyJitMethodLocation * methodLocation = reinterpret_cast<PyJitMethodLocation *>(_PyObject_New(&PyJitMethodLocation_Type));
+    methodLocation->method = nullptr;
+    methodLocation->object = nullptr;
+
     m_il.ld_i(name);
+    emit_ptr(methodLocation);
     m_il.emit_call(METHOD_LOAD_METHOD);
 }
 
@@ -1767,6 +1772,7 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
     }
     auto* methLocationObject = reinterpret_cast<PyJitMethodLocation *>(_PyObject_New(&PyJitMethodLocation_Type));
     methLocationObject->method = meth;
+    methLocationObject->object = nullptr;
 
     auto obj = emit_define_local(LK_Pointer);
     emit_store_local(obj);
@@ -2024,7 +2030,7 @@ GLOBAL_METHOD(METHOD_PYUNICODE_JOINARRAY, &PyJit_UnicodeJoinArray, CORINFO_TYPE_
 GLOBAL_METHOD(METHOD_FORMAT_VALUE, &PyJit_FormatValue, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_FORMAT_OBJECT, &PyJit_FormatObject, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
-GLOBAL_METHOD(METHOD_LOAD_METHOD, &PyJit_LoadMethod, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_LOAD_METHOD, &PyJit_LoadMethod, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_METHCALL_0_TOKEN, &MethCall0, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_METHCALL_1_TOKEN, &MethCall1, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
