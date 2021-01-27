@@ -2241,7 +2241,7 @@ PyObject* MethCall0(PyObject* self, PyMethodLocation* method_info) {
         res = Call<PyObject*>(method_info->method, method_info->object);
     else
         res = Call0(method_info->method);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2251,7 +2251,7 @@ PyObject* MethCall1(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         res = Call<PyObject*>(method_info->method, method_info->object, arg1);
     else
         res = Call<PyObject*>(method_info->method, arg1);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2261,7 +2261,7 @@ PyObject* MethCall2(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2271,7 +2271,7 @@ PyObject* MethCall3(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2281,7 +2281,7 @@ PyObject* MethCall4(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2291,7 +2291,7 @@ PyObject* MethCall5(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2301,7 +2301,7 @@ PyObject* MethCall6(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2311,7 +2311,7 @@ PyObject* MethCall7(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2321,7 +2321,7 @@ PyObject* MethCall8(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2331,7 +2331,7 @@ PyObject* MethCall9(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2341,7 +2341,7 @@ PyObject* MethCall10(PyObject* self, PyMethodLocation* method_info, PyObject* ar
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
-    delete method_info;
+    //delete method_info;
     return res;
 }
 
@@ -2351,7 +2351,7 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         PyErr_Format(PyExc_TypeError,
                      "invalid arguments for method call");
         Py_DECREF(args);
-        delete method_info;
+        //delete method_info;
         return nullptr;
     }
     if (method_info->object != nullptr)
@@ -2362,7 +2362,7 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
             PyErr_Format(PyExc_ValueError,
                          "cannot resolve method call");
             Py_DECREF(args);
-            delete method_info;
+            //delete method_info;
             return nullptr;
         }
         auto obj =  method_info->object;
@@ -2426,7 +2426,7 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         Py_DECREF(args);
         Py_DECREF(target);
         Py_DECREF(obj);
-        delete method_info;
+        //delete method_info;
         return res;
     }
     else {
@@ -2441,7 +2441,7 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
 #endif
         Py_DECREF(args);
         Py_DECREF(target);
-        delete method_info;
+        //delete method_info;
         return res;
     }
 }
