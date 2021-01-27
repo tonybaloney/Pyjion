@@ -477,6 +477,15 @@ TEST_CASE("Simple methods") {
         auto t = EmissionTest("def f(): x = 'hello'; return x.upper()");
         CHECK(t.returns() == "'HELLO'");
     }
+
+    SECTION("assert simple dict case") {
+        auto t = EmissionTest("def f():\n"
+                              "    l = {'a': 1, 'b': 2}\n"
+                              "    k = l.keys()\n"
+                              "    return tuple(k)");
+        CHECK(t.returns() == "('a', 'b')");
+    }
+
     SECTION("assert simple string case twice ") {
         auto t = EmissionTest("def f(): \n"
                               "   x = 'hello'.upper()\n"

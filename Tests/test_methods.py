@@ -29,8 +29,8 @@ class KnownMethodsBuiltins(unittest.TestCase):
     def test_dict_keys(self):
         def test_f():
             l = {'a': 1, 'b': 2}
-            k = tuple(l.keys())
-            return k
+            k = l.keys()
+            return tuple(k)
         self.assertEqual(test_f(), ('a', 'b'))
         self.assertOptimized(test_f)
 
