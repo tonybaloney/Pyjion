@@ -46,14 +46,45 @@ typedef struct  {
 } PyJitMethodLocation;
 
 static PyTypeObject PyJitMethodLocation_Type = {
-        PyVarObject_HEAD_INIT(nullptr, 0)
-        .tp_name = "pyjion.method_location",
-        .tp_doc = "method location",
-        .tp_basicsize = sizeof(PyJitMethodLocation),
-        .tp_itemsize = 0,
-        .tp_flags = Py_TPFLAGS_DEFAULT,
-        .tp_dealloc = (destructor)PyObject_Del,
-        .tp_new = PyType_GenericNew
+        PyObject_HEAD_INIT(nullptr)
+        "pyjion.method_location",
+        sizeof(PyJitMethodLocation),
+        0,                                  /*tp_itemsize*/
+        /* methods */
+        (destructor)PyObject_Del,           /*tp_dealloc*/
+        0,                                  /*tp_vectorcall_offset*/
+        0,                                  /*tp_getattr*/
+        0,                                  /*tp_setattr*/
+        0,                                  /*tp_as_async*/
+        0,                /*tp_repr*/
+        0,                                  /*tp_as_number*/
+        0,                                  /*tp_as_sequence*/
+        0,                                  /*tp_as_mapping*/
+        0,                                  /*tp_hash*/
+        0,                                  /*tp_call*/
+        0,                                  /*tp_str*/
+        0,                                  /*tp_getattro*/
+        0,                                  /*tp_setattro*/
+        0,                                  /*tp_as_buffer*/
+        Py_TPFLAGS_DEFAULT,                 /*tp_flags*/
+        0,                                  /*tp_doc*/
+        0,                                  /*tp_traverse*/
+        0,                                  /*tp_clear*/
+        0,                                  /*tp_richcompare*/
+        0,                                   /*tp_weaklistoffset*/
+        0,                                  /*tp_iter*/
+        0,                                  /*tp_iternext*/
+        0,                       /*tp_methods*/
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        PyType_GenericNew /* tp_new */
 };
 
 static void
