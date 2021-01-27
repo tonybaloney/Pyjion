@@ -68,6 +68,7 @@ static bool isKnownType(AbstractValueKind kind) {
     switch (kind) {
         case AVK_Any:
         case AVK_Undefined:
+        case AVK_Type:
             return false;
     }
     return true;

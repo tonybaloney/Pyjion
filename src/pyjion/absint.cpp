@@ -517,12 +517,8 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                         else {
                             // Builtin source
                             auto globalSource = addBuiltinSource(opcodeIndex, oparg, utf8_names[oparg], v);
-                            AbstractValue* avk = nullptr;
                             auto builtinType = Py_TYPE(v);
-                            if (builtinType == &PyType_Type)
-                                avk = avkToAbstractValue(GetAbstractType(reinterpret_cast<PyTypeObject *>(v)));
-                            else
-                                avk = avkToAbstractValue(GetAbstractType(builtinType));
+                            AbstractValue* avk = avkToAbstractValue(GetAbstractType(builtinType));
                             auto value = AbstractValueWithSources(
                                     avk,
                                     globalSource

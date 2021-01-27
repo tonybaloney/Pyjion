@@ -1750,13 +1750,21 @@ void PythonCompiler::emit_pending_calls(){
 
 void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValue) {
     auto pyType = GetPyType(typeValue->kind());
+
     if (pyType == nullptr)
-        return emit_load_method(name); // Can't resolve type
+    {
+        emit_dup();
+        emit_load_method(name); // Can't inline this type of method
+        return;
+    }
 
     auto meth = _PyType_Lookup(pyType, name);
 
-    if (meth == nullptr || !PyType_HasFeature(Py_TYPE(meth), Py_TPFLAGS_METHOD_DESCRIPTOR))
-        return emit_load_method(name); // Can't inline this type of method
+    if (meth == nullptr || !PyType_HasFeature(Py_TYPE(meth), Py_TPFLAGS_METHOD_DESCRIPTOR)) {
+        emit_dup();
+        emit_load_method(name); // Can't inline this type of method
+        return;
+    }
 
     auto obj = emit_define_local(LK_Pointer);
     emit_store_local(obj);

@@ -489,7 +489,7 @@ TEST_CASE("Simple methods") {
 
 TEST_CASE("Type object methods") {
     SECTION("assert type case") {
-        auto t = EmissionTest("def f(): int.__format__(2, '%')");
+        auto t = EmissionTest("def f(): return int.__format__(2, '%')");
         CHECK(t.returns() == "'200.000000%'");
     }
 }
