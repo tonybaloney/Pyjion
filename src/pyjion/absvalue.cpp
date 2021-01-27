@@ -1194,7 +1194,7 @@ AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source){
     // IS this a builtin?
     if (source.hasSource() && source.Sources->isBuiltin())
     {
-        auto globalSource = dynamic_cast<GlobalSource*>(source.Sources);
+        auto globalSource = dynamic_cast<BuiltinSource*>(source.Sources);
         for (auto const &b: builtinReturnTypes){
             if (strcmp(globalSource->getName(), b.first) == 0)
                 return b.second;

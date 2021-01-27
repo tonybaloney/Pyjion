@@ -161,6 +161,8 @@ bool JitInit() {
 #endif
 	g_jit = getJit();
 
+    if (PyType_Ready(&PyJitMethodLocation_Type) < 0)
+        return false;
     g_emptyTuple = PyTuple_New(0);
     return true;
 }

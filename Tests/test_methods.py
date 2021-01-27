@@ -25,7 +25,6 @@ class KnownMethodsBuiltins(unittest.TestCase):
             pyjion.dis.dis(func)
         self.assertNotIn("MethodTokens.METHOD_LOAD_METHOD", f.getvalue())
 
-
     def test_dict_keys(self):
         def test_f():
             l = {'a': 1, 'b': 2}

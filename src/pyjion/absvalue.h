@@ -184,9 +184,14 @@ public:
     }
 };
 
-class BuiltinSource : public GlobalSource {
+class BuiltinSource : public AbstractSource {
+    const char* _name;
+    PyObject* _value;
 public:
-    explicit BuiltinSource(const char* name, PyObject* value) : GlobalSource(name, value) {};
+    explicit BuiltinSource(const char* name, PyObject* value)  {
+        _name = name;
+        _value = value;
+    };
 
     const char* describe() override {
         if (needsBoxing()) {
@@ -199,6 +204,10 @@ public:
 
     bool isBuiltin() override {
         return true;
+    }
+
+    const char* getName() {
+        return _name;
     }
 };
 

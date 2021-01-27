@@ -1768,17 +1768,20 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
 
     auto obj = emit_define_local(LK_Pointer);
     emit_store_local(obj);
-    emit_ptr(new PyMethodLocation);
+    emit_ptr(_PyObject_New(&PyJitMethodLocation_Type));
     auto meth_location = emit_define_local(LK_Pointer);
     emit_store_local(meth_location);
 
     emit_load_local(meth_location);
-    LD_FIELDA(PyMethodLocation, object);
+    emit_incref();
+
+    emit_load_local(meth_location);
+    LD_FIELDA(PyJitMethodLocation, object);
     emit_load_local(obj);
     m_il.st_ind_i();
 
     emit_load_local(meth_location);
-    LD_FIELDA(PyMethodLocation, method);   // object, loc, loc
+    LD_FIELDA(PyJitMethodLocation, method);   // object, loc, loc
     emit_ptr(meth);                      // object, loc, loc
     m_il.st_ind_i();                      // object, loc, loc
 
@@ -1805,7 +1808,6 @@ JittedCode* PythonCompiler::emit_compile() {
         return nullptr;
     }
     return jitInfo;
-
 }
 
 void PythonCompiler::emit_tagged_int_to_float() {
