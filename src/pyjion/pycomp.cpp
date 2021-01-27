@@ -1758,7 +1758,27 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
     if (!PyType_HasFeature(Py_TYPE(meth), Py_TPFLAGS_METHOD_DESCRIPTOR))
         return emit_load_method(name); // Can't inline this type of method
 
-    // TODO : Emit the method descriptor so that it can be used by CALL_METHOD...
+    auto obj = emit_define_local(LK_Pointer);
+    emit_store_local(obj);
+    emit_ptr(new PyMethodLocation);
+    auto meth_location = emit_define_local(LK_Pointer);
+    emit_store_local(meth_location);
+
+    emit_load_local(meth_location);
+    LD_FIELDA(PyMethodLocation, object);
+    emit_load_local(obj);
+    m_il.st_ind_i();
+
+    emit_load_local(meth_location);
+    LD_FIELDA(PyMethodLocation, method);   // object, loc, loc
+    emit_ptr(meth);                      // object, loc, loc
+    m_il.st_ind_i();                      // object, loc, loc
+
+    emit_ptr(meth);
+    emit_incref();
+
+    emit_load_and_free_local(obj);
+    emit_load_and_free_local(meth_location);
 }
 
 
