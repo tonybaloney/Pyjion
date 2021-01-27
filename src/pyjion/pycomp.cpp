@@ -1765,10 +1765,12 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
         emit_load_method(name); // Can't inline this type of method
         return;
     }
+    auto* methLocationObject = reinterpret_cast<PyJitMethodLocation *>(_PyObject_New(&PyJitMethodLocation_Type));
+    methLocationObject->method = meth;
 
     auto obj = emit_define_local(LK_Pointer);
     emit_store_local(obj);
-    emit_ptr(_PyObject_New(&PyJitMethodLocation_Type));
+    emit_ptr(methLocationObject);
     auto meth_location = emit_define_local(LK_Pointer);
     emit_store_local(meth_location);
 
@@ -1779,11 +1781,6 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
     LD_FIELDA(PyJitMethodLocation, object);
     emit_load_local(obj);
     m_il.st_ind_i();
-
-    emit_load_local(meth_location);
-    LD_FIELDA(PyJitMethodLocation, method);   // object, loc, loc
-    emit_ptr(meth);                      // object, loc, loc
-    m_il.st_ind_i();                      // object, loc, loc
 
     emit_ptr(meth);
     emit_incref();
