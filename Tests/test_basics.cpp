@@ -477,5 +477,12 @@ TEST_CASE("Simple methods") {
         auto t = EmissionTest("def f(): x = 'hello'; return x.upper()");
         CHECK(t.returns() == "'HELLO'");
     }
-
+    SECTION("assert simple string case twice ") {
+        auto t = EmissionTest("def f(): \n"
+                              "   x = 'hello'.upper()\n"
+                              "   for i in range(0,2):\n"
+                              "      x += x.upper()\n"
+                              "   return x");
+        CHECK(t.returns() == "'HELLOHELLOHELLOHELLO'");
+    }
 }

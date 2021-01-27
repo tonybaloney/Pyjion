@@ -1751,11 +1751,11 @@ void PythonCompiler::emit_pending_calls(){
 void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValue) {
     auto pyType = GetPyType(typeValue->kind());
     if (pyType == nullptr)
-        return emit_load_method(name);
+        return emit_load_method(name); // Can't resolve type
 
     auto meth = _PyType_Lookup(pyType, name);
 
-    if (!PyType_HasFeature(Py_TYPE(meth), Py_TPFLAGS_METHOD_DESCRIPTOR))
+    if (meth == nullptr || !PyType_HasFeature(Py_TYPE(meth), Py_TPFLAGS_METHOD_DESCRIPTOR))
         return emit_load_method(name); // Can't inline this type of method
 
     auto obj = emit_define_local(LK_Pointer);
