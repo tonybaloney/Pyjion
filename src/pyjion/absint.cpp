@@ -516,9 +516,15 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                         }
                         else {
                             // Builtin source
-                            auto globalSource = addGlobalSource(opcodeIndex, oparg, utf8_names[oparg], v);
+                            auto globalSource = addBuiltinSource(opcodeIndex, oparg, utf8_names[oparg], v);
+                            AbstractValue* avk = nullptr;
+                            auto builtinType = Py_TYPE(v);
+                            if (builtinType == &PyType_Type)
+                                avk = avkToAbstractValue(GetAbstractType(reinterpret_cast<PyTypeObject *>(v)));
+                            else
+                                avk = avkToAbstractValue(GetAbstractType(builtinType));
                             auto value = AbstractValueWithSources(
-                                    &Builtin,
+                                    avk,
                                     globalSource
                             );
                             lastState.push(value);
@@ -601,15 +607,10 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
 
                     // pop the function...
                     auto func = lastState.popNoEscape();
-                    if (func.Value->kind() == AVK_Function){
-                        auto source = AbstractValueWithSources(
-                            avkToAbstractValue(knownFunctionReturnType(func)),
-                            newSource(new LocalSource()));
-                        lastState.push(source);
-
-                    } else {
-                        lastState.push(&Any);
-                    }
+                    auto source = AbstractValueWithSources(
+                        avkToAbstractValue(knownFunctionReturnType(func)),
+                        newSource(new LocalSource()));
+                    lastState.push(source);
                     break;
                 }
                 case CALL_FUNCTION_KW: {
@@ -1192,6 +1193,15 @@ AbstractSource* AbstractInterpreter::addGlobalSource(size_t opcodeIndex, size_t 
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
         return m_opcodeSources[opcodeIndex] = newSource(new GlobalSource(name, value));
+    }
+
+    return store->second;
+}
+
+AbstractSource* AbstractInterpreter::addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value) {
+    auto store = m_opcodeSources.find(opcodeIndex);
+    if (store == m_opcodeSources.end()) {
+        return m_opcodeSources[opcodeIndex] = newSource(new BuiltinSource(name, value));
     }
 
     return store->second;

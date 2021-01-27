@@ -85,6 +85,10 @@ public:
 
     virtual bool hasConstValue() { return false; }
 
+    virtual bool isBuiltin() {
+        return false;
+    }
+
     virtual const char* describe() {
         return "unknown source";
     }
@@ -176,6 +180,24 @@ public:
 
     const char* getName() {
         return _name;
+    }
+};
+
+class BuiltinSource : public GlobalSource {
+public:
+    explicit BuiltinSource(const char* name, PyObject* value) : GlobalSource(name, value) {};
+
+    const char* describe() override {
+        if (needsBoxing()) {
+            return "Source: Builtin (escapes)";
+        }
+        else {
+            return "Source: Builtin";
+        }
+    }
+
+    bool isBuiltin() override {
+        return true;
     }
 };
 

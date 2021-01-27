@@ -1192,7 +1192,8 @@ const char *MethodValue::describe() {
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source){
     // IS this a builtin?
-    if (source.Value == &Builtin){
+    if (source.hasSource() && source.Sources->isBuiltin())
+    {
         auto globalSource = dynamic_cast<GlobalSource*>(source.Sources);
         for (auto const &b: builtinReturnTypes){
             if (strcmp(globalSource->getName(), b.first) == 0)
@@ -1289,7 +1290,7 @@ AbstractValueKind GetAbstractType(PyTypeObject* type) {
     else if (type == &_PyNone_Type) {
         return AVK_None;
     }
-    else if (type == &PyFunction_Type) {
+    else if (type == &PyFunction_Type || type == &PyCFunction_Type) {
         return AVK_Function;
     }
     else if (type == &PySlice_Type) {
@@ -1297,6 +1298,9 @@ AbstractValueKind GetAbstractType(PyTypeObject* type) {
     }
     else if (type == &PyComplex_Type) {
         return AVK_Complex;
+    }
+    else if (type == &PyType_Type) {
+        return AVK_Type;
     }
     return AVK_Any;
 }
@@ -1317,6 +1321,7 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         case AVK_Function: return &PyFunction_Type;
         case AVK_Slice: return &PySlice_Type;
         case AVK_Complex: return &PyComplex_Type;
+        case AVK_Type: return &PyType_Type;
 
         default:
             return nullptr;
