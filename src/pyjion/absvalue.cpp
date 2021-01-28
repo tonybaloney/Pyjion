@@ -1192,8 +1192,9 @@ const char *MethodValue::describe() {
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source){
     // IS this a builtin?
-    if (source.Value == &Builtin){
-        auto globalSource = dynamic_cast<GlobalSource*>(source.Sources);
+    if (source.hasSource() && source.Sources->isBuiltin())
+    {
+        auto globalSource = dynamic_cast<BuiltinSource*>(source.Sources);
         for (auto const &b: builtinReturnTypes){
             if (strcmp(globalSource->getName(), b.first) == 0)
                 return b.second;
@@ -1289,7 +1290,7 @@ AbstractValueKind GetAbstractType(PyTypeObject* type) {
     else if (type == &_PyNone_Type) {
         return AVK_None;
     }
-    else if (type == &PyFunction_Type) {
+    else if (type == &PyFunction_Type || type == &PyCFunction_Type) {
         return AVK_Function;
     }
     else if (type == &PySlice_Type) {
@@ -1298,5 +1299,31 @@ AbstractValueKind GetAbstractType(PyTypeObject* type) {
     else if (type == &PyComplex_Type) {
         return AVK_Complex;
     }
+    else if (type == &PyType_Type) {
+        return AVK_Type;
+    }
     return AVK_Any;
+}
+
+PyTypeObject* GetPyType(AbstractValueKind type) {
+    switch (type) {
+        case AVK_Any: return &PyType_Type;
+        case AVK_Integer: return &PyLong_Type;
+        case AVK_Float: return &PyFloat_Type;
+        case AVK_Dict: return &PyDict_Type;
+        case AVK_Tuple: return &PyTuple_Type;
+        case AVK_List: return &PyList_Type;
+        case AVK_Bool: return &PyBool_Type;
+        case AVK_String: return &PyUnicode_Type;
+        case AVK_Bytes: return &PyBytes_Type;
+        case AVK_Set: return &PySet_Type;
+        case AVK_None: return &_PyNone_Type;
+        case AVK_Function: return &PyFunction_Type;
+        case AVK_Slice: return &PySlice_Type;
+        case AVK_Complex: return &PyComplex_Type;
+        case AVK_Type: return &PyType_Type;
+
+        default:
+            return nullptr;
+    }
 }

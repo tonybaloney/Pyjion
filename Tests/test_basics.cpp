@@ -478,4 +478,27 @@ TEST_CASE("Simple methods") {
         CHECK(t.returns() == "'HELLO'");
     }
 
+    SECTION("assert simple dict case") {
+        auto t = EmissionTest("def f():\n"
+                              "    l = {'a': 1, 'b': 2}\n"
+                              "    k = l.keys()\n"
+                              "    return tuple(k)");
+        CHECK(t.returns() == "('a', 'b')");
+    }
+
+    SECTION("assert simple string case twice ") {
+        auto t = EmissionTest("def f(): \n"
+                              "   x = 'hello'.upper()\n"
+                              "   for i in range(0,2):\n"
+                              "      x += x.upper()\n"
+                              "   return x");
+        CHECK(t.returns() == "'HELLOHELLOHELLOHELLO'");
+    }
+}
+
+TEST_CASE("Type object methods") {
+    SECTION("assert type case") {
+        auto t = EmissionTest("def f(): return int.__format__(2, '%')");
+        CHECK(t.returns() == "'200.000000%'");
+    }
 }

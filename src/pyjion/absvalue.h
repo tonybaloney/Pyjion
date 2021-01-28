@@ -68,6 +68,7 @@ static bool isKnownType(AbstractValueKind kind) {
     switch (kind) {
         case AVK_Any:
         case AVK_Undefined:
+        case AVK_Type:
             return false;
     }
     return true;
@@ -84,6 +85,10 @@ public:
     bool needsBoxing() const;
 
     virtual bool hasConstValue() { return false; }
+
+    virtual bool isBuiltin() {
+        return false;
+    }
 
     virtual const char* describe() {
         return "unknown source";
@@ -172,6 +177,33 @@ public:
         else {
             return "Source: Global";
         }
+    }
+
+    const char* getName() {
+        return _name;
+    }
+};
+
+class BuiltinSource : public AbstractSource {
+    const char* _name;
+    PyObject* _value;
+public:
+    explicit BuiltinSource(const char* name, PyObject* value)  {
+        _name = name;
+        _value = value;
+    };
+
+    const char* describe() override {
+        if (needsBoxing()) {
+            return "Source: Builtin (escapes)";
+        }
+        else {
+            return "Source: Builtin";
+        }
+    }
+
+    bool isBuiltin() override {
+        return true;
     }
 
     const char* getName() {
@@ -521,5 +553,6 @@ extern MethodValue Method;
 AbstractValue* avkToAbstractValue(AbstractValueKind);
 AbstractValueKind GetAbstractType(PyTypeObject* type);
 
+PyTypeObject* GetPyType(AbstractValueKind type);
 #endif
 

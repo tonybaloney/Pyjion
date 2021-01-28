@@ -1719,7 +1719,12 @@ void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWit
 }
 
 void PythonCompiler::emit_load_method(void* name) {
+    PyJitMethodLocation * methodLocation = reinterpret_cast<PyJitMethodLocation *>(_PyObject_New(&PyJitMethodLocation_Type));
+    methodLocation->method = nullptr;
+    methodLocation->object = nullptr;
+
     m_il.ld_i(name);
+    emit_ptr(methodLocation);
     m_il.emit_call(METHOD_LOAD_METHOD);
 }
 
@@ -1748,6 +1753,49 @@ void PythonCompiler::emit_pending_calls(){
     emit_mark_label(skipPending);
 }
 
+void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValue) {
+    auto pyType = GetPyType(typeValue->kind());
+
+    if (pyType == nullptr)
+    {
+        emit_dup();
+        emit_load_method(name); // Can't inline this type of method
+        return;
+    }
+
+    auto meth = _PyType_Lookup(pyType, name);
+
+    if (meth == nullptr || !PyType_HasFeature(Py_TYPE(meth), Py_TPFLAGS_METHOD_DESCRIPTOR)) {
+        emit_dup();
+        emit_load_method(name); // Can't inline this type of method
+        return;
+    }
+    auto* methLocationObject = reinterpret_cast<PyJitMethodLocation *>(_PyObject_New(&PyJitMethodLocation_Type));
+    methLocationObject->method = meth;
+    methLocationObject->object = nullptr;
+
+    auto obj = emit_define_local(LK_Pointer);
+    emit_store_local(obj);
+    emit_ptr(methLocationObject);
+    auto meth_location = emit_define_local(LK_Pointer);
+    emit_store_local(meth_location);
+
+    emit_load_local(meth_location);
+    emit_incref();
+
+    emit_load_local(meth_location);
+    LD_FIELDA(PyJitMethodLocation, object);
+    emit_load_local(obj);
+    m_il.st_ind_i();
+
+    emit_ptr(meth);
+    emit_incref();
+
+    emit_load_and_free_local(obj);
+    emit_load_and_free_local(meth_location);
+}
+
+
 JittedCode* PythonCompiler::emit_compile() {
     auto* jitInfo = new CorJitInfo(m_code, m_module);
     auto addr = m_il.compile(jitInfo, g_jit, m_code->co_stacksize + 100).m_addr;
@@ -1763,7 +1811,6 @@ JittedCode* PythonCompiler::emit_compile() {
         return nullptr;
     }
     return jitInfo;
-
 }
 
 void PythonCompiler::emit_tagged_int_to_float() {
@@ -1983,7 +2030,7 @@ GLOBAL_METHOD(METHOD_PYUNICODE_JOINARRAY, &PyJit_UnicodeJoinArray, CORINFO_TYPE_
 GLOBAL_METHOD(METHOD_FORMAT_VALUE, &PyJit_FormatValue, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_FORMAT_OBJECT, &PyJit_FormatObject, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
-GLOBAL_METHOD(METHOD_LOAD_METHOD, &PyJit_LoadMethod, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_LOAD_METHOD, &PyJit_LoadMethod, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_METHCALL_0_TOKEN, &MethCall0, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_METHCALL_1_TOKEN, &MethCall1, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
