@@ -1,5 +1,11 @@
 # Release notes
 
+
+## 0.10.0
+
+* Added OPT-12 (OPTIMIZE_BUILTIN_METHOD) to pre-lookup methods for builtin types and bypass LOAD_METHOD (PyObject_GetMethod)
+* Optimized LOAD_METHOD to recycle lookups for the same object
+
 ## 0.9.0
 
 * Added OPT-11 (OPTIMIZE_BINARY_SLICE) to optimize the BUILD_SLICE and BINARY_SUBSCR operations into a single function when the slice start, stop and step is None or a const number.
