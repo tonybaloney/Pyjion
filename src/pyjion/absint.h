@@ -179,7 +179,7 @@ public:
         return res;
     }
 
-    void push(AbstractValueWithSources value) {
+    void push(AbstractValueWithSources& value) {
         mStack.push_back(value);
     }
 
@@ -191,8 +191,8 @@ public:
         return mStack.size();
     }
 
-    AbstractValueWithSources operator[](const size_t index) {
-        return mStack.get(index);
+    AbstractValueWithSources& operator[](const size_t index) {
+        return mStack[index];
     }
 };
 
