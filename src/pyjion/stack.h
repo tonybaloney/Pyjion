@@ -132,4 +132,65 @@ public:
  };
 
 
+class InterpreterStack : std::vector<AbstractValueWithSources> {
+
+public:
+    InterpreterStack() = default;
+
+    bool empty() {
+        return vector<AbstractValueWithSources>::empty();
+    }
+
+    void pop_back() {
+        if (empty())
+            throw StackUnderflowException();
+        return vector<AbstractValueWithSources>::pop_back();
+    }
+
+    void push_back(AbstractValueWithSources value) {
+        return vector<AbstractValueWithSources>::push_back(value);
+    }
+
+    void emplace_back(AbstractValueWithSources value) {
+        vector<AbstractValueWithSources>::emplace_back(value);
+    }
+
+    size_t size() const {
+        return vector<AbstractValueWithSources>::size();
+    }
+
+    AbstractValueWithSources back() {
+        if (empty())
+            throw StackUnderflowException();
+        return vector<AbstractValueWithSources>::back();
+    }
+
+    reverse_iterator rbegin() {
+        return std::vector<AbstractValueWithSources>::rbegin();
+    }
+
+    reverse_iterator rend() {
+        return std::vector<AbstractValueWithSources>::rend();
+    }
+
+    AbstractValueWithSources get(size_t i) {
+        return std::vector<AbstractValueWithSources>::at(i);
+    }
+
+    AbstractValueWithSources top() {
+        return std::vector<AbstractValueWithSources>::at(size() - 1);
+    }
+    AbstractValueWithSources second() {
+        return std::vector<AbstractValueWithSources>::at(size() - 2);
+    }
+    AbstractValueWithSources third() {
+        return std::vector<AbstractValueWithSources>::at(size() - 3);
+    }
+    AbstractValueWithSources fourth() {
+        return std::vector<AbstractValueWithSources>::at(size() - 4);
+    }
+    AbstractValueWithSources fifth() {
+        return std::vector<AbstractValueWithSources>::at(size() - 5);
+    }
+};
 #endif //PYJION_STACK_H

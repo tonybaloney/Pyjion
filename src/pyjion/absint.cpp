@@ -1168,7 +1168,7 @@ AbstractLocalInfo AbstractInterpreter::getLocalInfo(size_t byteCodeIndex, size_t
 }
 
 // Returns information about the stack at the specific byte code index.
-vector<AbstractValueWithSources>& AbstractInterpreter::getStackInfo(size_t byteCodeIndex) {
+InterpreterStack& AbstractInterpreter::getStackInfo(size_t byteCodeIndex) {
     return mStartStates[byteCodeIndex].mStack;
 }
 
@@ -1655,12 +1655,12 @@ JittedCode* AbstractInterpreter::compileWorker() {
             curByte += SIZEOF_CODEUNIT;
             continue;
         }
-        if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() == (1 + oparg)){
+        if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() >= (1 + oparg)){
             bool optimized ;
             if (oparg == 3) {
-                optimized = m_comp->emit_binary_subscr_slice(stackInfo[0], stackInfo[1], stackInfo[2], stackInfo[3]);
+                optimized = m_comp->emit_binary_subscr_slice(stackInfo.fourth(), stackInfo.third(), stackInfo.second(), stackInfo.top());
             } else {
-                optimized = m_comp->emit_binary_subscr_slice(stackInfo[0], stackInfo[1], stackInfo[2]);
+                optimized = m_comp->emit_binary_subscr_slice(stackInfo.third(), stackInfo.second(), stackInfo.top());
             }
             if (optimized) {
                 decStack(oparg + 1);
@@ -1701,8 +1701,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->emit_dup_top_two();
                 break;
             case COMPARE_OP: {
-                if (OPT_ENABLED(internRichCompare) && stackInfo.size() == 2){
-                    m_comp->emit_compare_known_object(oparg, stackInfo[0], stackInfo[1]);
+                if (OPT_ENABLED(internRichCompare) && stackInfo.size() >= 2){
+                    m_comp->emit_compare_known_object(oparg, stackInfo.second(), stackInfo.top());
                 } else {
                     m_comp->emit_compare_object(oparg);
                 }
@@ -1861,8 +1861,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 incStack();
                 break;
             case STORE_SUBSCR:
-                if (OPT_ENABLED(knownStoreSubscr) && stackInfo.size() == 3){
-                    m_comp->emit_store_subscr(stackInfo[0], stackInfo[1], stackInfo[2]);
+                if (OPT_ENABLED(knownStoreSubscr) && stackInfo.size() >= 3){
+                    m_comp->emit_store_subscr(stackInfo.third(), stackInfo.second(), stackInfo.top());
                 } else {
                     m_comp->emit_store_subscr();
                 }
@@ -1900,8 +1900,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 incStack();
                 break;
             case BINARY_SUBSCR:
-                if (stackInfo.size() == 2) {
-                    m_comp->emit_binary_subscr(byte, stackInfo[0], stackInfo[1]);
+                if (stackInfo.size() >= 2) {
+                    m_comp->emit_binary_subscr(byte, stackInfo.second(), stackInfo.top());
                     decStack(2);
                     errorCheck("optimized binary subscr failed", curByte);
                 }
@@ -1983,10 +1983,11 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
                 auto jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
-                if (OPT_ENABLED(inlineIterators) && stackInfo.size() == 1){
+                auto iterator = stackInfo.top();
+                if (OPT_ENABLED(inlineIterators) && !stackInfo.empty()){
                     forIter(
                             jumpTo,
-                            &stackInfo[0]
+                            &iterator
                     );
                 } else {
                     forIter(
@@ -2305,8 +2306,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
             }
             case LOAD_METHOD:
             {
-                if (OPT_ENABLED(builtinMethods) && stackInfo.size() == 1 && stackInfo[0].hasValue() && isKnownType(stackInfo[0].Value->kind())){
-                    m_comp->emit_builtin_method(PyTuple_GetItem(mCode->co_names, oparg), stackInfo[0].Value);
+                if (OPT_ENABLED(builtinMethods) && !stackInfo.empty() && stackInfo.top().hasValue() && isKnownType(stackInfo.top().Value->kind())){
+                    m_comp->emit_builtin_method(PyTuple_GetItem(mCode->co_names, oparg), stackInfo.top().Value);
                 } else {
                     m_comp->emit_dup(); // dup self as needs to remain on stack
                     m_comp->emit_load_method(PyTuple_GetItem(mCode->co_names, oparg));

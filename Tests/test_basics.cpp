@@ -496,6 +496,15 @@ TEST_CASE("Simple methods") {
     }
 }
 
+TEST_CASE("Test nested stacks"){
+    SECTION("assert nested method optimized case") {
+        auto t = EmissionTest("def f():\n"
+                              "    l = {'a': 1, 'b': 2}\n"
+                              "    return tuple(l.keys())");
+        CHECK(t.returns() == "('a', 'b')");
+    }
+}
+
 TEST_CASE("Type object methods") {
     SECTION("assert type case") {
         auto t = EmissionTest("def f(): return int.__format__(2, '%')");

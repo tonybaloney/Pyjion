@@ -115,7 +115,7 @@ void VerifyOldTest(AITestCase testCase) {
 
 void StackVerifier::verify(AbstractInterpreter& interpreter) {
     auto info = interpreter.getStackInfo(m_byteCodeIndex);
-    CHECK(m_kind == info[info.size() - m_stackIndex - 1].Value->kind());
+    CHECK(m_kind == info.get(info.size() - m_stackIndex - 1).Value->kind());
 };
 
 

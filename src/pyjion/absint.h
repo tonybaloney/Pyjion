@@ -143,7 +143,7 @@ struct AbstractLocalInfo {
 // them in place.  If they are shared then we will issue a copy.
 class InterpreterState {
 public:
-    vector<AbstractValueWithSources> mStack;
+    InterpreterStack mStack;
     CowVector<AbstractLocalInfo> mLocals;
 
     InterpreterState() = default;
@@ -179,7 +179,7 @@ public:
         return res;
     }
 
-    void push(AbstractValueWithSources& value) {
+    void push(AbstractValueWithSources value) {
         mStack.push_back(value);
     }
 
@@ -191,8 +191,8 @@ public:
         return mStack.size();
     }
 
-    AbstractValueWithSources& operator[](const size_t index) {
-        return mStack[index];
+    AbstractValueWithSources operator[](const size_t index) {
+        return mStack.get(index);
     }
 };
 
@@ -296,7 +296,7 @@ public:
     AbstractLocalInfo getLocalInfo(size_t byteCodeIndex, size_t localIndex);
 
     // Returns information about the stack at the specific byte code index.
-    vector<AbstractValueWithSources>& getStackInfo(size_t byteCodeIndex);
+    InterpreterStack& getStackInfo(size_t byteCodeIndex);
 
     AbstractValue* getReturnInfo();
 
