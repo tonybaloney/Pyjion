@@ -5,6 +5,8 @@
 
 * Added OPT-12 (OPTIMIZE_BUILTIN_METHOD) to pre-lookup methods for builtin types and bypass LOAD_METHOD (PyObject_GetMethod)
 * Optimized LOAD_METHOD to recycle lookups for the same object
+* Expanded OPT-8, OPT-9, OPT-11, OPT-12 for nested stacks (e.g. inside expressions)
+* Added a frozen set abstract type
 
 ## 0.9.0
 
