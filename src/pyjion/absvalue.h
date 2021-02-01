@@ -47,7 +47,7 @@ enum AbstractValueKind {
     AVK_Dict,
     AVK_Tuple,
     AVK_Set,
-    AVK_Frozenset,
+    AVK_FrozenSet,
     AVK_String,
     AVK_Bytes,
     AVK_Bytearray,
@@ -476,6 +476,13 @@ class SetValue : public AbstractValue {
     const char* describe() override;
 };
 
+class FrozenSetValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
 class NoneValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
@@ -537,6 +544,7 @@ extern FloatValue Float;
 extern ListValue List;
 extern TupleValue Tuple;
 extern SetValue Set;
+extern FrozenSetValue FrozenSet;
 extern StringValue String;
 extern BytesValue Bytes;
 extern DictValue Dict;
