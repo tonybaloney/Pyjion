@@ -35,6 +35,7 @@ BoolValue Bool;
 ListValue List;
 TupleValue Tuple;
 SetValue Set;
+FrozenSetValue FrozenSet;
 StringValue String;
 BytesValue Bytes;
 DictValue Dict;
@@ -1069,6 +1070,41 @@ const char* SetValue::describe() {
     return "set";
 }
 
+// FrozenSetValue methods
+AbstractValueKind FrozenSetValue::kind() {
+    return AVK_FrozenSet;
+}
+
+AbstractValue* FrozenSetValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
+    auto other_kind = other.Value->kind();
+    if (other_kind == AVK_Set || other_kind == AVK_FrozenSet) {
+        switch (op) {
+            case BINARY_AND:
+            case BINARY_OR:
+            case BINARY_SUBTRACT:
+            case BINARY_XOR:
+            case INPLACE_AND:
+            case INPLACE_OR:
+            case INPLACE_SUBTRACT:
+            case INPLACE_XOR:
+                return this;
+        }
+    }
+    return AbstractValue::binary(selfSources, op, other);
+}
+
+AbstractValue* FrozenSetValue::unary(AbstractSource* selfSources, int op) {
+    switch (op) {
+        case UNARY_NOT:
+            return &Bool;
+    }
+    return AbstractValue::unary(selfSources, op);
+}
+
+const char* FrozenSetValue::describe() {
+    return "frozenset";
+}
+
 // NoneValue methods
 AbstractValueKind NoneValue::kind() {
     return AVK_None;
@@ -1223,8 +1259,8 @@ AbstractValue* avkToAbstractValue(AbstractValueKind kind){
             return &Tuple;
         case AVK_Set:
             return &Set;
-        case AVK_Frozenset:
-            return &Set; // TODO : Add frozenset type.
+        case AVK_FrozenSet:
+            return &FrozenSet;
         case AVK_String:
             return &String;
         case AVK_Bytes:
@@ -1287,6 +1323,9 @@ AbstractValueKind GetAbstractType(PyTypeObject* type) {
     else if (type == &PySet_Type) {
         return AVK_Set;
     }
+    else if (type == &PyFrozenSet_Type) {
+        return AVK_FrozenSet;
+    }
     else if (type == &_PyNone_Type) {
         return AVK_None;
     }
@@ -1317,6 +1356,7 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         case AVK_String: return &PyUnicode_Type;
         case AVK_Bytes: return &PyBytes_Type;
         case AVK_Set: return &PySet_Type;
+        case AVK_FrozenSet: return &PyFrozenSet_Type;
         case AVK_None: return &_PyNone_Type;
         case AVK_Function: return &PyFunction_Type;
         case AVK_Slice: return &PySlice_Type;

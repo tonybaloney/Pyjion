@@ -24,7 +24,7 @@ unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
         {"filter",      AVK_Iterable},
         {"float",       AVK_Float},
         {"format",      AVK_String},
-        {"frozenset",   AVK_Frozenset},
+        {"frozenset",   AVK_FrozenSet},
         {"getattr",     AVK_Any},
         {"globals",     AVK_Dict},
         {"hasattr",     AVK_Bool},
