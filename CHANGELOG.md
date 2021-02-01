@@ -1,5 +1,24 @@
 # Release notes
 
+
+## 0.10.0
+
+* Added OPT-12 (OPTIMIZE_BUILTIN_METHOD) to pre-lookup methods for builtin types and bypass LOAD_METHOD (PyObject_GetMethod)
+* Optimized LOAD_METHOD to recycle lookups for the same object
+
+## 0.9.0
+
+* Added OPT-11 (OPTIMIZE_BINARY_SLICE) to optimize the BUILD_SLICE and BINARY_SUBSCR operations into a single function when the slice start, stop and step is None or a const number.
+* Fixed a bug in the set_optimization_level() being reset (thanks @tetsuo-cpp)
+* Added a bytearray abstract value kind (thanks @tetsuo-cpp)
+* Added a type abstract value kind  (thanks @tetsuo-cpp)
+* Optimized the compiled instructions to only update the frame last instruction field on error/exit branch
+* Removed the "periodic work" method which was called for every for/while loop and put a function to call Py_MakePendingCalls for every 10th loop
+* Added an improvement to the process stage to infer the abstract types of return values to methods of builtin types, e.g. str.encode
+* Added a check in dis_native for when the compiled function wasn't compiled (thanks @tetsuo-cpp)
+* dis_native will now pretty print the assembly code when the `rich` package is installed (thanks @C4ptainCrunch)
+* `pyjion[dis]` is a new package bundled with pystorm3 and rich (thanks @C4ptainCrunch)
+
 ## 0.8.0
 
 * Enhanced the process stage of the compiler with new abstract types, iterable, bytearray, codeobject, frozenset, enumerator, file, type and module

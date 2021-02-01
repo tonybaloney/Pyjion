@@ -220,6 +220,10 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
     // new blocks that we encounter from branches.
     deque<size_t> queue;
     queue.push_back(0);
+    vector<const char*> utf8_names ;
+    for (int i = 0; i < PyTuple_Size(mCode->co_names); i++)
+        utf8_names.push_back(PyUnicode_AsUTF8(PyTuple_GetItem(mCode->co_names, i)));
+
     do {
         int oparg;
         auto cur = queue.front();
@@ -512,9 +516,11 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                         }
                         else {
                             // Builtin source
-                            auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), v);
+                            auto globalSource = addBuiltinSource(opcodeIndex, oparg, utf8_names[oparg], v);
+                            auto builtinType = Py_TYPE(v);
+                            AbstractValue* avk = avkToAbstractValue(GetAbstractType(builtinType));
                             auto value = AbstractValueWithSources(
-                                    &Builtin,
+                                    avk,
                                     globalSource
                             );
                             lastState.push(value);
@@ -597,15 +603,10 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
 
                     // pop the function...
                     auto func = lastState.popNoEscape();
-                    if (func.Value->kind() == AVK_Function){
-                        auto source = AbstractValueWithSources(
-                            avkToAbstractValue(knownFunctionReturnType(func)),
-                            newSource(new LocalSource()));
-                        lastState.push(source);
-
-                    } else {
-                        lastState.push(&Any);
-                    }
+                    auto source = AbstractValueWithSources(
+                        avkToAbstractValue(knownFunctionReturnType(func)),
+                        newSource(new LocalSource()));
+                    lastState.push(source);
                     break;
                 }
                 case CALL_FUNCTION_KW: {
@@ -825,9 +826,13 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     }
                     lastState.push(&Dict);
                     break;
-                case LOAD_METHOD:
-                    lastState.push(&Any);
+                case LOAD_METHOD: {
+                    auto method = AbstractValueWithSources(
+                            &Method,
+                            newSource(new MethodSource(utf8_names[oparg])));
+                    lastState.push(method);
                     break;
+                }
                 case CALL_METHOD:
                 {
                     /* LOAD_METHOD could push a NULL value, but (as above)
@@ -845,11 +850,16 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                       We'll be passing `oparg + 1` to call_function, to
                       make it accept the `self` as a first argument.
                     */
-                    lastState.pop();
-                    lastState.pop();
+                    auto method = lastState.popNoEscape();
+                    auto self = lastState.pop();
                     for (int i = 0 ; i < oparg; i++)
                         lastState.pop();
-                    lastState.push(&Any); // push result.
+                    if (method.hasValue() && method.Value->kind() == AVK_Method && isKnownType(self->kind())){
+                        auto meth_source = dynamic_cast<MethodSource*>(method.Sources);
+                        lastState.push(avkToAbstractValue(avkToAbstractValue(self->kind())->resolveMethod(meth_source->name())));
+                    } else {
+                        lastState.push(&Any); // push result.
+                    }
                     break;
                 }
                 case IS_OP:
@@ -1158,7 +1168,7 @@ AbstractLocalInfo AbstractInterpreter::getLocalInfo(size_t byteCodeIndex, size_t
 }
 
 // Returns information about the stack at the specific byte code index.
-vector<AbstractValueWithSources>& AbstractInterpreter::getStackInfo(size_t byteCodeIndex) {
+InterpreterStack& AbstractInterpreter::getStackInfo(size_t byteCodeIndex) {
     return mStartStates[byteCodeIndex].mStack;
 }
 
@@ -1179,6 +1189,15 @@ AbstractSource* AbstractInterpreter::addGlobalSource(size_t opcodeIndex, size_t 
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
         return m_opcodeSources[opcodeIndex] = newSource(new GlobalSource(name, value));
+    }
+
+    return store->second;
+}
+
+AbstractSource* AbstractInterpreter::addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value) {
+    auto store = m_opcodeSources.find(opcodeIndex);
+    if (store == m_opcodeSources.end()) {
+        return m_opcodeSources[opcodeIndex] = newSource(new BuiltinSource(name, value));
     }
 
     return store->second;
@@ -1636,12 +1655,12 @@ JittedCode* AbstractInterpreter::compileWorker() {
             curByte += SIZEOF_CODEUNIT;
             continue;
         }
-        if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() == (1 + oparg)){
+        if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() >= (1 + oparg)){
             bool optimized ;
             if (oparg == 3) {
-                optimized = m_comp->emit_binary_subscr_slice(stackInfo[0], stackInfo[1], stackInfo[2], stackInfo[3]);
+                optimized = m_comp->emit_binary_subscr_slice(stackInfo.fourth(), stackInfo.third(), stackInfo.second(), stackInfo.top());
             } else {
-                optimized = m_comp->emit_binary_subscr_slice(stackInfo[0], stackInfo[1], stackInfo[2]);
+                optimized = m_comp->emit_binary_subscr_slice(stackInfo.third(), stackInfo.second(), stackInfo.top());
             }
             if (optimized) {
                 decStack(oparg + 1);
@@ -1682,8 +1701,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->emit_dup_top_two();
                 break;
             case COMPARE_OP: {
-                if (OPT_ENABLED(internRichCompare) && stackInfo.size() == 2){
-                    m_comp->emit_compare_known_object(oparg, stackInfo[0], stackInfo[1]);
+                if (OPT_ENABLED(internRichCompare) && stackInfo.size() >= 2){
+                    m_comp->emit_compare_known_object(oparg, stackInfo.second(), stackInfo.top());
                 } else {
                     m_comp->emit_compare_object(oparg);
                 }
@@ -1842,8 +1861,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 incStack();
                 break;
             case STORE_SUBSCR:
-                if (OPT_ENABLED(knownStoreSubscr) && stackInfo.size() == 3){
-                    m_comp->emit_store_subscr(stackInfo[0], stackInfo[1], stackInfo[2]);
+                if (OPT_ENABLED(knownStoreSubscr) && stackInfo.size() >= 3){
+                    m_comp->emit_store_subscr(stackInfo.third(), stackInfo.second(), stackInfo.top());
                 } else {
                     m_comp->emit_store_subscr();
                 }
@@ -1881,8 +1900,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 incStack();
                 break;
             case BINARY_SUBSCR:
-                if (stackInfo.size() == 2) {
-                    m_comp->emit_binary_subscr(byte, stackInfo[0], stackInfo[1]);
+                if (stackInfo.size() >= 2) {
+                    m_comp->emit_binary_subscr(byte, stackInfo.second(), stackInfo.top());
                     decStack(2);
                     errorCheck("optimized binary subscr failed", curByte);
                 }
@@ -1964,10 +1983,11 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
                 auto jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
-                if (OPT_ENABLED(inlineIterators) && stackInfo.size() == 1){
+                auto iterator = stackInfo.top();
+                if (OPT_ENABLED(inlineIterators) && !stackInfo.empty()){
                     forIter(
                             jumpTo,
-                            &stackInfo[0]
+                            &iterator
                     );
                 } else {
                     forIter(
@@ -2286,8 +2306,12 @@ JittedCode* AbstractInterpreter::compileWorker() {
             }
             case LOAD_METHOD:
             {
-                m_comp->emit_dup(); // dup self as needs to remain on stack
-                m_comp->emit_load_method(PyTuple_GetItem(mCode->co_names, oparg));
+                if (OPT_ENABLED(builtinMethods) && !stackInfo.empty() && stackInfo.top().hasValue() && isKnownType(stackInfo.top().Value->kind())){
+                    m_comp->emit_builtin_method(PyTuple_GetItem(mCode->co_names, oparg), stackInfo.top().Value);
+                } else {
+                    m_comp->emit_dup(); // dup self as needs to remain on stack
+                    m_comp->emit_load_method(PyTuple_GetItem(mCode->co_names, oparg));
+                }
                 incStack(1);
                 break;
             }

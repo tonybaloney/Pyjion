@@ -143,7 +143,7 @@ struct AbstractLocalInfo {
 // them in place.  If they are shared then we will issue a copy.
 class InterpreterState {
 public:
-    vector<AbstractValueWithSources> mStack;
+    InterpreterStack mStack;
     CowVector<AbstractLocalInfo> mLocals;
 
     InterpreterState() = default;
@@ -296,7 +296,7 @@ public:
     AbstractLocalInfo getLocalInfo(size_t byteCodeIndex, size_t localIndex);
 
     // Returns information about the stack at the specific byte code index.
-    vector<AbstractValueWithSources>& getStackInfo(size_t byteCodeIndex);
+    InterpreterStack& getStackInfo(size_t byteCodeIndex);
 
     AbstractValue* getReturnInfo();
 
@@ -321,6 +321,7 @@ private:
     AbstractSource* addLocalSource(size_t opcodeIndex, size_t localIndex);
     AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
     AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
+    AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
 
     void makeFunction(int oparg);
     bool canSkipLastiUpdate(int opcodeIndex);

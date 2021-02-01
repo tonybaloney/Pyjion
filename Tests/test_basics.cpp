@@ -471,3 +471,49 @@ TEST_CASE("Binary slice subscripts") {
         CHECK(t.returns() == "[4, 3, 2, 1, 0, 2, 3, 4]");
     }
 }
+
+TEST_CASE("Simple methods") {
+    SECTION("assert simple string case") {
+        auto t = EmissionTest("def f(): x = 'hello'; return x.upper()");
+        CHECK(t.returns() == "'HELLO'");
+    }
+
+    SECTION("assert simple dict case") {
+        auto t = EmissionTest("def f():\n"
+                              "    l = {'a': 1, 'b': 2}\n"
+                              "    k = l.keys()\n"
+                              "    return tuple(k)");
+        CHECK(t.returns() == "('a', 'b')");
+    }
+
+    SECTION("assert simple string case twice ") {
+        auto t = EmissionTest("def f(): \n"
+                              "   x = 'hello'.upper()\n"
+                              "   for i in range(0,2):\n"
+                              "      x += x.upper()\n"
+                              "   return x");
+        CHECK(t.returns() == "'HELLOHELLOHELLOHELLO'");
+    }
+}
+
+TEST_CASE("Test nested stacks"){
+    SECTION("assert nested method optimized case") {
+        auto t = EmissionTest("def f():\n"
+                              "    l = {'a': 1, 'b': 2}\n"
+                              "    return tuple(l.keys())");
+        CHECK(t.returns() == "('a', 'b')");
+    }
+    SECTION("assert double nested method optimized case") {
+        auto t = EmissionTest("def f():\n"
+                              "    l = {'a': 1, 'b': 2}\n"
+                              "    return tuple(tuple(l.keys()))");
+        CHECK(t.returns() == "('a', 'b')");
+    }
+}
+
+TEST_CASE("Type object methods") {
+    SECTION("assert type case") {
+        auto t = EmissionTest("def f(): return int.__format__(2, '%')");
+        CHECK(t.returns() == "'200.000000%'");
+    }
+}

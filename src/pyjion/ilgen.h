@@ -673,7 +673,7 @@ public:
         }
     }
 
-    CORINFO_METHOD_INFO to_method(Method* addr, int stackSize) {
+    CORINFO_METHOD_INFO to_method(JITMethod* addr, int stackSize) {
         CORINFO_METHOD_INFO methodInfo{};
         methodInfo.ftn = (CORINFO_METHOD_HANDLE)addr;
         methodInfo.scope = (CORINFO_MODULE_HANDLE)m_module;
@@ -694,11 +694,11 @@ public:
         return methodInfo;
     }
 
-    Method compile(CorJitInfo* jitInfo, ICorJitCompiler* jit, int stackSize) {
+    JITMethod compile(CorJitInfo* jitInfo, ICorJitCompiler* jit, int stackSize) {
         BYTE* nativeEntry;
         ULONG nativeSizeOfCode;
         jitInfo->assignIL(m_il);
-        auto res = Method(m_module, m_retType, m_params, nullptr);
+        auto res = JITMethod(m_module, m_retType, m_params, nullptr);
         CORINFO_METHOD_INFO methodInfo = to_method(&res, stackSize);
         CorJitResult result = jit->compileMethod(
                 jitInfo,

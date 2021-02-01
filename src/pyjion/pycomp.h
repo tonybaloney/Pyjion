@@ -486,6 +486,9 @@ public:
     void lift_n_to_second(int pos) override;
     void lift_n_to_third(int pos) override;
     void sink_top_to_n(int pos) override;
+
+    void emit_builtin_method(PyObject* name, AbstractValue* typeValue) override;
+
 private:
     void load_frame();
     void load_tstate();
@@ -495,6 +498,7 @@ private:
     void pop_top() override;
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
     void emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset );
+
 };
 
 // Copies of internal CPython structures
