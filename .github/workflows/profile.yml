@@ -74,6 +74,9 @@ jobs:
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
 
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
       - name: Configure CMake
         shell: bash
         working-directory: ${{runner.workspace}}/build
