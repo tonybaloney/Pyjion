@@ -176,7 +176,6 @@ if(GENERATE_PROFILE)
                 -g
                 -fprofile-generate
                 -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles
-                -fprofile-abs-path
         )
         add_link_options(-fprofile-generate)
         message(STATUS "Using profile gen")
