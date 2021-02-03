@@ -51,12 +51,12 @@ jobs:
         run: ./unit_tests
 
       - name: Run unit tests artifacts
-        working-directory: ${{runner.workspace}}/build
         shell: bash
-        run: ls
+        run: ls eng/profiles
       - uses: actions/upload-artifact@v1
         with:
-          name: linux_profile.prof
+          name: profiles
+          path: eng/profiles
   build-windows:
     runs-on: windows-latest
     strategy:
@@ -101,4 +101,5 @@ jobs:
         run: ls
       - uses: actions/upload-artifact@v1
         with:
-          name: unit_tests.exe!1.pgc
+          name: profiles
+          path: eng/profiles
