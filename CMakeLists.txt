@@ -162,24 +162,25 @@ if (APPLE)
     add_definitions(-DFEATURE_HW_INTRINSICS)
 endif()
 
-if(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    add_compile_options(
-            -O2
-            -g
-            -fprofile-generate
-    )
-    add_link_options(-fprofile-generate)
-    message(STATUS "Using profile gen")
-endif(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-if(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+if(GENERATE_PROFILE)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     add_compile_options(
             /GL
     )
     add_link_options(
             /LTCG /GENPROFILE
     )
-endif(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-
+    else()
+        add_compile_options(
+                -O2
+                -g
+                -fprofile-generate
+                -fprofile-dir=eng/profiles
+        )
+        add_link_options(-fprofile-generate)
+        message(STATUS "Using profile gen")
+    endif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+endif(GENERATE_PROFILE)
 if(NET_SRC_LIB)  # use the libraries compiled from source
     set(DOTNETPATH ${CMAKE_SOURCE_DIR}/CoreCLR/artifacts/bin/coreclr/${CLR_OS_BUILD})
 endif()
