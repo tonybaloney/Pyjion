@@ -45,10 +45,13 @@ jobs:
         shell: bash
         run: cmake --build . --config Release
 
-      - name: Run smoke tests with PGO
+      - name: Run unit tests
+        working-directory: ${{runner.workspace}}/build/Release
+        run: .\unit_tests
+      - name: Run unit tests
+        working-directory: ${{runner.workspace}}/build/Release
         shell: bash
-        run: python Tests/run_libregr_tests.py --pgo
-
+        run: ls
       - uses: actions/upload-artifact@v1
         with:
           name: linux_profile.prof
@@ -86,18 +89,6 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         shell: bash
         run: cmake --build . --config Release
-
-      - name: Install build deps
-        shell: bash
-        run: python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
-
-      - name: Build Python Package
-        shell: bash
-        run: python setup.py build --generator "Visual Studio 16 2019"
-
-      - name: Install Python Package
-        shell: bash
-        run: python setup.py install --generator "Visual Studio 16 2019"
 
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build/Release
