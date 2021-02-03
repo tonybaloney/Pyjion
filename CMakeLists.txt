@@ -242,6 +242,15 @@ if(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
             -gline-tables-only
             )
 endif(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+if(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    target_compile_options(profile_config INTERFACE
+            /GL
+            )
+    target_link_options(profile_config INTERFACE
+            /LTCG
+            )
+endif(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+
 
 if (NOT WIN32)
     target_link_libraries(_pyjion ${DOTNETPATH}/${CLR_JIT_LIB})
