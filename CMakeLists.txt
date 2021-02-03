@@ -162,6 +162,24 @@ if (APPLE)
     add_definitions(-DFEATURE_HW_INTRINSICS)
 endif()
 
+if(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(
+            -O2
+            -g
+            -fprofile-generate
+    )
+    add_link_options(-fprofile-generate)
+    message(STATUS "Using profile gen")
+endif(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+if(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    add_compile_options(
+            /GL
+    )
+    add_link_options(
+            /LTCG /GENPROFILE
+    )
+endif(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+
 if(NET_SRC_LIB)  # use the libraries compiled from source
     set(DOTNETPATH ${CMAKE_SOURCE_DIR}/CoreCLR/artifacts/bin/coreclr/${CLR_OS_BUILD})
 endif()
@@ -234,23 +252,6 @@ if(CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
             )
     target_link_options(coverage_config INTERFACE --coverage)
 endif(CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-
-add_library(profile_config INTERFACE)
-if(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(profile_config INTERFACE
-            -O2
-            -gline-tables-only
-            )
-endif(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-if(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    target_compile_options(profile_config INTERFACE
-            /GL
-            )
-    target_link_options(profile_config INTERFACE
-            /LTCG /GENPROFILE
-            )
-endif(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-
 
 if (NOT WIN32)
     target_link_libraries(_pyjion ${DOTNETPATH}/${CLR_JIT_LIB})
