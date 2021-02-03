@@ -10,7 +10,8 @@ option(CODE_COVERAGE "Enable coverage reporting" OFF)
 option(BUILD_TESTS "Build the unit tests" OFF)
 option(GENERATE_PROFILE "Enable Profile Generation" OFF)
 
-include(CMakeOptimizations.txt)
+include(eng/CMakeOptimizations.txt)
+include(eng/CMakeProfiling.txt)
 
 if (UNIX AND NOT APPLE)
     message(STATUS "Enabling PIC")
@@ -62,9 +63,9 @@ if(NOT WIN32)
     add_definitions(-DTARGET_UNIX)
     message(STATUS "Enabling UNIX Patches")
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options(-Wno-null-arithmetic -fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11.profdata)
+        add_compile_options(-Wno-null-arithmetic)
     else(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options(-Wno-conversion-null -Wno-pointer-arith -fprofile-use -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles)
+        add_compile_options(-Wno-conversion-null -Wno-pointer-arith)
     endif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 else()
     add_definitions(-DWINDOWS=1)
@@ -162,25 +163,7 @@ if (APPLE)
     add_definitions(-DFEATURE_HW_INTRINSICS)
 endif()
 
-if(GENERATE_PROFILE)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    add_compile_options(
-            /GL
-    )
-    add_link_options(
-            /LTCG /GENPROFILE
-    )
-    else()
-        add_compile_options(
-                -O2
-                -g
-                -fprofile-generate
-                -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles
-        )
-        add_link_options(-fprofile-generate)
-        message(STATUS "Using profile gen")
-    endif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-endif(GENERATE_PROFILE)
+
 if(NET_SRC_LIB)  # use the libraries compiled from source
     set(DOTNETPATH ${CMAKE_SOURCE_DIR}/CoreCLR/artifacts/bin/coreclr/${CLR_OS_BUILD})
 endif()

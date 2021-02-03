@@ -1,0 +1,42 @@
+if(NOT GENERATE_PROFILE)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options(-fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11.profdata)
+        add_link_options(-fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11.profdata)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        add_compile_options(-fprofile-use -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles)
+        add_link_options(-fprofile-use -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles)
+    else()
+        add_compile_options(-fprofile-use -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles)
+        add_link_options(-fprofile-use -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles)
+    endif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+else()
+
+endif(NOT WIN32)
+
+if(GENERATE_PROFILE)
+ message(STATUS "Using profile gen")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            add_compile_options(
+                -O2
+                -g
+                -fprofile-instr-generate=${CMAKE_SOURCE_DIR}/eng/profiles/clang.profraw
+        )
+        add_link_options(-fprofile-instr-generate=${CMAKE_SOURCE_DIR}/eng/profiles/clang.profraw)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        add_compile_options(
+                /GL
+        )
+        add_link_options(
+                /LTCG /GENPROFILE
+        )
+    else()
+        add_compile_options(
+                -O2
+                -g
+                -fprofile-generate
+                -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles
+        )
+        add_link_options(-fprofile-generate)
+       
+    endif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+endif(GENERATE_PROFILE)
