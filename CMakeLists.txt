@@ -64,7 +64,7 @@ if(NOT WIN32)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         add_compile_options(-Wno-null-arithmetic -fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11.profdata)
     else(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options(-Wno-conversion-null -Wno-pointer-arith)
+        add_compile_options(-Wno-conversion-null -Wno-pointer-arith -fprofile-use -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles)
     endif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 else()
     add_definitions(-DWINDOWS=1)
@@ -176,6 +176,7 @@ if(GENERATE_PROFILE)
                 -g
                 -fprofile-generate
                 -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles
+                -fprofile-abs-path
         )
         add_link_options(-fprofile-generate)
         message(STATUS "Using profile gen")
