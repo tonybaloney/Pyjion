@@ -247,7 +247,7 @@ if(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
             /GL
             )
     target_link_options(profile_config INTERFACE
-            /LTCG
+            /LTCG /GENPROFILE
             )
 endif(GENERATE_PROFILE AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 
