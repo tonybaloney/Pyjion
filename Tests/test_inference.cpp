@@ -58,13 +58,6 @@ public:
         auto local = m_absint->getLocalInfo(byteCodeIndex, localIndex);
         return local.ValueInfo.Value->kind();
     }
-
-    bool hasConstValue(size_t byteCodeIndex, size_t stackIndex) {
-        auto stack = m_absint->getStackInfo(byteCodeIndex);
-        REQUIRE(stack.size() > stackIndex);
-        auto val = stack[stackIndex];
-        return val.Sources->hasConstValue();
-    }
 };
 
 TEST_CASE("float binary op type inference", "[float][binary op][inference]") {
@@ -4492,6 +4485,11 @@ TEST_CASE("Generalize unpacking within a dict", "[dict][BUILD_MAP_UNPACK][infere
 }
 
 TEST_CASE("builtin functions") {
+    SECTION("len builtin") {
+        auto t = InferenceTest("def f():\n    x = len()");
+        REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet
+        REQUIRE(t.kind(6, 0) == AVK_Integer);       // x assigned
+    }
     SECTION("dict builtin") {
         auto t = InferenceTest("def f():\n    x = dict()");
         REQUIRE(t.kind(2, 0) == AVK_Undefined);   // x not assigned yet

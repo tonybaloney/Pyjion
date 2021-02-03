@@ -678,7 +678,11 @@ def dis_native(f):
     except ImportError:
         raise ModuleNotFoundError("Install distorm3 and rich before disassembling native functions")
 
-    code, code_length, position = dump_native(f)
+    native = dump_native(f)
+    if not native:
+        print("No native code for this function, it may not have compiled correctly")
+        return
+    code, code_length, position = native
     iterable = distorm3.DecodeGenerator(position, bytes(code), distorm3.Decode64Bits)
 
     disassembled = [(offset, instruction) for (offset, size, instruction, hexdump) in iterable]

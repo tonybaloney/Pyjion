@@ -24,6 +24,7 @@
 */
 
 #include "absvalue.h"
+#include "knownmethods.h"
 
 AnyValue Any;
 UndefinedValue Undefined;
@@ -34,6 +35,7 @@ BoolValue Bool;
 ListValue List;
 TupleValue Tuple;
 SetValue Set;
+FrozenSetValue FrozenSet;
 StringValue String;
 BytesValue Bytes;
 DictValue Dict;
@@ -45,7 +47,7 @@ IterableValue Iterable;
 BuiltinValue Builtin;
 TypeValue Type;
 ByteArrayValue ByteArray;
-
+MethodValue Method;
 
 AbstractSource::AbstractSource() {
     Sources = shared_ptr<AbstractSources>(new AbstractSources());
@@ -418,6 +420,14 @@ const char* BytesValue::describe() {
     return "bytes";
 }
 
+AbstractValueKind BytesValue::resolveMethod(const char *name) {
+    for (auto const &b: bytesMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+    return AVK_Any;
+}
+
 // ComplexValue methods
 AbstractValueKind ComplexValue::kind() {
     return AVK_Complex;
@@ -677,6 +687,14 @@ const char* IntegerValue::describe() {
     return "int";
 }
 
+AbstractValueKind IntegerValue::resolveMethod(const char *name) {
+    for (auto const &b: intMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+    return AVK_Any;
+}
+
 // StringValue methods
 AbstractValueKind StringValue::kind() {
     return AVK_String;
@@ -735,6 +753,14 @@ AbstractValue* StringValue::unary(AbstractSource* selfSources, int op) {
 
 const char* StringValue::describe() {
     return "str";
+}
+
+AbstractValueKind StringValue::resolveMethod(const char *name) {
+    for (auto const &b: stringMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+    return AVK_Any;
 }
 
 // FloatValue methods
@@ -974,6 +1000,15 @@ const char* ListValue::describe() {
     return "list";
 }
 
+
+AbstractValueKind ListValue::resolveMethod(const char *name) {
+    for (auto const &b: listMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+    return AVK_Any;
+}
+
 // DictValue methods
 AbstractValueKind DictValue::kind() {
     return AVK_Dict;
@@ -990,6 +1025,15 @@ AbstractValue* DictValue::unary(AbstractSource* selfSources, int op) {
 const char* DictValue::describe() {
     return "dict";
 }
+
+AbstractValueKind DictValue::resolveMethod(const char *name) {
+    for (auto const &b: dictMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+    return AVK_Any;
+}
+
 
 // SetValue methods
 AbstractValueKind SetValue::kind() {
@@ -1024,6 +1068,41 @@ AbstractValue* SetValue::unary(AbstractSource* selfSources, int op) {
 
 const char* SetValue::describe() {
     return "set";
+}
+
+// FrozenSetValue methods
+AbstractValueKind FrozenSetValue::kind() {
+    return AVK_FrozenSet;
+}
+
+AbstractValue* FrozenSetValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
+    auto other_kind = other.Value->kind();
+    if (other_kind == AVK_Set || other_kind == AVK_FrozenSet) {
+        switch (op) {
+            case BINARY_AND:
+            case BINARY_OR:
+            case BINARY_SUBTRACT:
+            case BINARY_XOR:
+            case INPLACE_AND:
+            case INPLACE_OR:
+            case INPLACE_SUBTRACT:
+            case INPLACE_XOR:
+                return this;
+        }
+    }
+    return AbstractValue::binary(selfSources, op, other);
+}
+
+AbstractValue* FrozenSetValue::unary(AbstractSource* selfSources, int op) {
+    switch (op) {
+        case UNARY_NOT:
+            return &Bool;
+    }
+    return AbstractValue::unary(selfSources, op);
+}
+
+const char* FrozenSetValue::describe() {
+    return "frozenset";
 }
 
 // NoneValue methods
@@ -1126,77 +1205,32 @@ const char *ByteArrayValue::describe() {
     return "bytearray";
 }
 
-// Written for 3.9.1
-unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
-        {"abs",         AVK_Any},
-        {"all",         AVK_Bool},
-        {"any",         AVK_Bool},
-        {"ascii",       AVK_String},
-        {"bin",         AVK_String},
-        {"breakpoint",  AVK_None},
-        {"bytearray",   AVK_Bytearray},
-        {"bytes",       AVK_Bytes},
-        {"callable",    AVK_Function},
-        {"classmethod", AVK_Any},
-        {"compile",     AVK_Code},
-        {"complex",     AVK_Complex},
-        {"delattr",     AVK_None},
-        {"dict",        AVK_Dict},
-        {"dir",         AVK_List},
-        {"enumerate",   AVK_Enumerate},
-        {"eval",        AVK_Any},
-        {"exec",        AVK_Any},
-        {"filter",      AVK_Iterable},
-        {"float",       AVK_Float},
-        {"format",      AVK_String},
-        {"frozenset",   AVK_Frozenset},
-        {"getattr",     AVK_Any},
-        {"globals",     AVK_Dict},
-        {"hasattr",     AVK_Bool},
-        {"hash",        AVK_Integer},
-        {"help",        AVK_Any},
-        {"hex",         AVK_String},
-        {"id",          AVK_Integer},
-        {"input",       AVK_String},
-        {"int",         AVK_Integer},
-        {"isinstance",  AVK_Bool},
-        {"issubclass",  AVK_Bool},
-        {"iter",        AVK_Iterable},
-        {"len",         AVK_Integer},
-        {"list",        AVK_List},
-        {"locals",      AVK_Dict},
-        {"map",         AVK_Iterable},
-        {"max",         AVK_Any},
-        {"memoryview",  AVK_Any},
-        {"min",         AVK_Any},
-        {"next",        AVK_Any},
-        {"oct",         AVK_String},
-        {"open",        AVK_File},
-        {"ord",         AVK_String},
-        {"pow",         AVK_Any},
-        {"print",       AVK_None},
-        {"range",       AVK_Iterable},
-        {"repr",        AVK_String},
-        {"reversed",    AVK_Any},
-        {"round",       AVK_Any},
-        {"set",         AVK_Set},
-        {"setattr",     AVK_None},
-        {"slice",       AVK_Slice},
-        {"sorted",      AVK_Any},
-        {"str",         AVK_String},
-        {"sum",         AVK_Any},
-        {"super",       AVK_Any},
-        {"tuple",       AVK_Tuple},
-        {"type",        AVK_Type},
-        {"vars",        AVK_Dict},
-        {"zip",         AVK_Iterable},
-        {"__import__",  AVK_Module},
-};
+AbstractValueKind ByteArrayValue::resolveMethod(const char *name) {
+    for (auto const &b: bytearrayMethodReturnTypes){
+        if (strcmp(name, b.first) == 0)
+            return b.second;
+    }
+    return AVK_Any;
+}
+
+// Method methods
+AbstractValueKind MethodValue::kind() {
+    return AVK_Method;
+}
+
+AbstractValue *MethodValue::unary(AbstractSource *selfSources, int op) {
+    return AbstractValue::unary(selfSources, op);
+}
+
+const char *MethodValue::describe() {
+    return "method";
+}
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source){
     // IS this a builtin?
-    if (source.Value == &Builtin){
-        auto globalSource = dynamic_cast<GlobalSource*>(source.Sources);
+    if (source.hasSource() && source.Sources->isBuiltin())
+    {
+        auto globalSource = dynamic_cast<BuiltinSource*>(source.Sources);
         for (auto const &b: builtinReturnTypes){
             if (strcmp(globalSource->getName(), b.first) == 0)
                 return b.second;
@@ -1225,8 +1259,8 @@ AbstractValue* avkToAbstractValue(AbstractValueKind kind){
             return &Tuple;
         case AVK_Set:
             return &Set;
-        case AVK_Frozenset:
-            return &Set; // TODO : Add frozenset type.
+        case AVK_FrozenSet:
+            return &FrozenSet;
         case AVK_String:
             return &String;
         case AVK_Bytes:
@@ -1256,5 +1290,80 @@ AbstractValue* avkToAbstractValue(AbstractValueKind kind){
 
         default:
             return &Any;
+    }
+}
+
+AbstractValueKind GetAbstractType(PyTypeObject* type) {
+    if (type == nullptr) {
+        return AVK_Any;
+    } else if (type == &PyLong_Type) {
+        return AVK_Integer;
+    }
+    else if (type == &PyFloat_Type) {
+        return AVK_Float;
+    }
+    else if (type == &PyDict_Type) {
+        return AVK_Dict;
+    }
+    else if (type == &PyTuple_Type) {
+        return AVK_Tuple;
+    }
+    else if (type == &PyList_Type) {
+        return AVK_List;
+    }
+    else if (type == &PyBool_Type) {
+        return AVK_Bool;
+    }
+    else if (type == &PyUnicode_Type) {
+        return AVK_String;
+    }
+    else if (type == &PyBytes_Type) {
+        return AVK_Bytes;
+    }
+    else if (type == &PySet_Type) {
+        return AVK_Set;
+    }
+    else if (type == &PyFrozenSet_Type) {
+        return AVK_FrozenSet;
+    }
+    else if (type == &_PyNone_Type) {
+        return AVK_None;
+    }
+    else if (type == &PyFunction_Type || type == &PyCFunction_Type) {
+        return AVK_Function;
+    }
+    else if (type == &PySlice_Type) {
+        return AVK_Slice;
+    }
+    else if (type == &PyComplex_Type) {
+        return AVK_Complex;
+    }
+    else if (type == &PyType_Type) {
+        return AVK_Type;
+    }
+    return AVK_Any;
+}
+
+PyTypeObject* GetPyType(AbstractValueKind type) {
+    switch (type) {
+        case AVK_Any: return &PyType_Type;
+        case AVK_Integer: return &PyLong_Type;
+        case AVK_Float: return &PyFloat_Type;
+        case AVK_Dict: return &PyDict_Type;
+        case AVK_Tuple: return &PyTuple_Type;
+        case AVK_List: return &PyList_Type;
+        case AVK_Bool: return &PyBool_Type;
+        case AVK_String: return &PyUnicode_Type;
+        case AVK_Bytes: return &PyBytes_Type;
+        case AVK_Set: return &PySet_Type;
+        case AVK_FrozenSet: return &PyFrozenSet_Type;
+        case AVK_None: return &_PyNone_Type;
+        case AVK_Function: return &PyFunction_Type;
+        case AVK_Slice: return &PySlice_Type;
+        case AVK_Complex: return &PyComplex_Type;
+        case AVK_Type: return &PyType_Type;
+
+        default:
+            return nullptr;
     }
 }
