@@ -52,3 +52,54 @@ jobs:
       - uses: actions/upload-artifact@v1
         with:
           name: linux_profile.prof
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: [3.9]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '5.0.100'
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Configure CMake
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=1 -DGENERATE_PROFILE=ON
+
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: cmake --build . --config Release
+
+      - name: Install build deps
+        shell: bash
+        run: python -m pip install -U https://github.com/tonybaloney/scikit-build/archive/vs2019.zip
+
+      - name: Build Python Package
+        shell: bash
+        run: python setup.py build --generator "Visual Studio 16 2019"
+
+      - name: Install Python Package
+        shell: bash
+        run: python setup.py install --generator "Visual Studio 16 2019"
+
+      - name: Run unit tests
+        working-directory: ${{runner.workspace}}/build/Release
+        run: .\unit_tests.exe
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: *.pgd
