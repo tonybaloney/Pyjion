@@ -212,6 +212,8 @@ public:
 
     virtual void emit_delete_subscr() = 0;
     virtual void emit_periodic_work() = 0;
+    virtual void emit_pending_calls() = 0;
+    virtual void emit_init_instr_counter() = 0;
 
     /*****************************************************
      * Collection operations */
@@ -360,7 +362,8 @@ public:
     // Performs a binary operation for values on the stack which are boxed objects
     virtual void emit_binary_object(int opcode) = 0;
     virtual void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
-
+    virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) = 0;
+    virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) = 0;
 
     virtual void emit_tagged_int_to_float() = 0;
 
@@ -438,6 +441,7 @@ public:
 
     virtual void emit_load_frame_locals() = 0;
     virtual void emit_triple_binary_op(int firstOp, int secondOp) = 0;
+    virtual void emit_builtin_method(PyObject* name, AbstractValue* typeValue) = 0;
 };
 
 #endif

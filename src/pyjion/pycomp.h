@@ -147,6 +147,7 @@
 #define METHOD_DEBUG_PYOBJECT                    0x0000007C
 #define METHOD_LOADNAME_HASH                     0x0000007D
 #define METHOD_LOADGLOBAL_HASH                   0x0000007E
+#define METHOD_PENDING_CALLS                     0x0000007F
 
 // call helpers
 #define METHOD_CALL_0_TOKEN        0x00010000
@@ -236,6 +237,9 @@
 #define METHOD_SUBSCR_LIST_I        0x00070006
 #define METHOD_SUBSCR_TUPLE         0x00070007
 #define METHOD_SUBSCR_TUPLE_I       0x00070008
+#define METHOD_SUBSCR_LIST_SLICE    0x00070009
+#define METHOD_SUBSCR_LIST_SLICE_STEPPED 0x0007000A
+#define METHOD_SUBSCR_LIST_SLICE_REVERSED 0x0007000B
 
 
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
@@ -249,6 +253,7 @@ class PythonCompiler : public IPythonCompiler {
     ILGenerator m_il;
     UserModule* m_module;
     Local m_lasti;
+    Local m_instrCount;
     unordered_map<int, Local> m_frameLocals;
 
 public:
@@ -400,6 +405,8 @@ public:
     void emit_binary_float(int opcode) override;
     void emit_binary_object(int opcode) override;
     void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
+    bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) override;
+    bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) override;
     void emit_tagged_int_to_float() override;
 
     void emit_in() override;
@@ -454,6 +461,8 @@ public:
     void emit_load_assertion_error() override;
 
     void emit_periodic_work() override;
+    void emit_pending_calls() override;
+    void emit_init_instr_counter() override;
 
     void emit_setup_annotations() override;
 
@@ -476,6 +485,9 @@ public:
     void lift_n_to_second(int pos) override;
     void lift_n_to_third(int pos) override;
     void sink_top_to_n(int pos) override;
+
+    void emit_builtin_method(PyObject* name, AbstractValue* typeValue) override;
+
 private:
     void load_frame();
     void load_tstate();
@@ -485,6 +497,7 @@ private:
     void pop_top() override;
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
     void emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset );
+
 };
 
 // Copies of internal CPython structures

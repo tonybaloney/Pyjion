@@ -39,9 +39,52 @@
     "free variable '%.200s' referenced before assignment" \
     " in enclosing scope"
 
-struct PyMethodLocation {
+typedef struct  {
+    PyObject_HEAD
     PyObject* object;
     PyObject* method;
+} PyJitMethodLocation;
+
+static PyTypeObject PyJitMethodLocation_Type = {
+        PyObject_HEAD_INIT(nullptr)
+        "pyjion.method_location",
+        sizeof(PyJitMethodLocation),
+        0,                                  /*tp_itemsize*/
+        /* methods */
+        (destructor)PyObject_Del,           /*tp_dealloc*/
+        0,                                  /*tp_vectorcall_offset*/
+        0,                                  /*tp_getattr*/
+        0,                                  /*tp_setattr*/
+        0,                                  /*tp_as_async*/
+        0,                /*tp_repr*/
+        0,                                  /*tp_as_number*/
+        0,                                  /*tp_as_sequence*/
+        0,                                  /*tp_as_mapping*/
+        0,                                  /*tp_hash*/
+        0,                                  /*tp_call*/
+        0,                                  /*tp_str*/
+        0,                                  /*tp_getattro*/
+        0,                                  /*tp_setattro*/
+        0,                                  /*tp_as_buffer*/
+        Py_TPFLAGS_DEFAULT,                 /*tp_flags*/
+        0,                                  /*tp_doc*/
+        0,                                  /*tp_traverse*/
+        0,                                  /*tp_clear*/
+        0,                                  /*tp_richcompare*/
+        0,                                   /*tp_weaklistoffset*/
+        0,                                  /*tp_iter*/
+        0,                                  /*tp_iternext*/
+        0,                       /*tp_methods*/
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        PyType_GenericNew /* tp_new */
 };
 
 static void
@@ -59,6 +102,10 @@ PyObject* PyJit_SubscrDict(PyObject *o, PyObject *key);
 PyObject* PyJit_SubscrDictHash(PyObject *o, PyObject *key, Py_hash_t hash);
 PyObject* PyJit_SubscrList(PyObject *o, PyObject *key);
 PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, Py_ssize_t index);
+PyObject* PyJit_SubscrListSlice(PyObject *o, Py_ssize_t start,  Py_ssize_t stop);
+PyObject* PyJit_SubscrListSliceStepped(PyObject *o,  Py_ssize_t start,  Py_ssize_t stop,  Py_ssize_t step);
+PyObject* PyJit_SubscrListReversed(PyObject *o);
+
 PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key);
 PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, Py_ssize_t index);
 
@@ -78,69 +125,44 @@ PyObject* PyJit_SetClosure(PyObject* closure, PyObject* func);
 PyObject* PyJit_BuildSlice(PyObject* start, PyObject* stop, PyObject* step);
 
 PyObject* PyJit_UnaryPositive(PyObject* value);
-
 PyObject* PyJit_UnaryNegative(PyObject* value);
-
 PyObject* PyJit_UnaryNot(PyObject* value);
 int PyJit_UnaryNot_Int(PyObject* value);
-
 PyObject* PyJit_UnaryInvert(PyObject* value);
 
 PyObject* PyJit_NewList(size_t size);
 PyObject* PyJit_ListAppend(PyObject* list, PyObject* value);
-
 PyObject* PyJit_SetAdd(PyObject* set, PyObject* value);
 PyObject* PyJit_UpdateSet(PyObject* iterable, PyObject* set);
-
 PyObject* PyJit_MapAdd(PyObject*map, PyObject*key, PyObject* value);
 
 PyObject* PyJit_Multiply(PyObject *left, PyObject *right);
-
 PyObject* PyJit_TrueDivide(PyObject *left, PyObject *right);
-
 PyObject* PyJit_FloorDivide(PyObject *left, PyObject *right);
-
 PyObject* PyJit_Power(PyObject *left, PyObject *right);
-
 PyObject* PyJit_Modulo(PyObject *left, PyObject *right);
-
 PyObject* PyJit_Subtract(PyObject *left, PyObject *right);
-
 PyObject* PyJit_MatrixMultiply(PyObject *left, PyObject *right);
-
 PyObject* PyJit_BinaryLShift(PyObject *left, PyObject *right);
 PyObject* PyJit_BinaryRShift(PyObject *left, PyObject *right);
-
 PyObject* PyJit_BinaryAnd(PyObject *left, PyObject *right);
 PyObject* PyJit_BinaryXor(PyObject *left, PyObject *right);
-
 PyObject* PyJit_BinaryOr(PyObject *left, PyObject *right);
 
 PyObject* PyJit_InplacePower(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceMultiply(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceMatrixMultiply(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceTrueDivide(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceFloorDivide(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceModulo(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceAdd(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceSubtract(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceLShift(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceRShift(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceAnd(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceXor(PyObject *left, PyObject *right);
-
 PyObject* PyJit_InplaceOr(PyObject *left, PyObject *right);
+
 int PyJit_PrintExpr(PyObject *value);
 
 const char * ObjInfo(PyObject *obj);
@@ -197,10 +219,12 @@ PyObject* PyJit_DictMerge(PyObject* dict, PyObject* other);
 int PyJit_StoreSubscr(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrIndex(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index);
 int PyJit_StoreSubscrIndexHash(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index, Py_hash_t hash);
+int PyJit_StoreSubscrSlice(PyObject* value, PyObject *container, PyObject *slice);
 int PyJit_StoreSubscrDict(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrDictHash(PyObject* value, PyObject *container, PyObject *index, Py_hash_t hash);
 int PyJit_StoreSubscrList(PyObject* value, PyObject *container, PyObject *index);
 int PyJit_StoreSubscrListIndex(PyObject* value, PyObject *container, PyObject *objIndex, Py_ssize_t index);
+int PyJit_StoreSubscrListSlice(PyObject* value, PyObject *container, PyObject *slice);
 
 int PyJit_DeleteSubscr(PyObject *container, PyObject *index);
 
@@ -281,20 +305,20 @@ PyObject* PyJit_UnicodeJoinArray(PyObject** items, Py_ssize_t count);
 PyObject* PyJit_FormatObject(PyObject* item, PyObject*fmtSpec);
 PyObject* PyJit_FormatValue(PyObject* item);
 
-PyMethodLocation * PyJit_LoadMethod(PyObject* object, PyObject* name);
+PyJitMethodLocation * PyJit_LoadMethod(PyObject* object, PyObject* name, PyJitMethodLocation* method_info);
 
-PyObject* MethCall0(PyObject* self, PyMethodLocation* method_info);
-PyObject* MethCall1(PyObject* self, PyMethodLocation* method_info, PyObject* arg1);
-PyObject* MethCall2(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2);
-PyObject* MethCall3(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3);
-PyObject* MethCall4(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4);
-PyObject* MethCall5(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5);
-PyObject* MethCall6(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6);
-PyObject* MethCall7(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7);
-PyObject* MethCall8(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8);
-PyObject* MethCall9(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9);
-PyObject* MethCall10(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyObject* arg10);
-PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* args);
+PyObject* MethCall0(PyObject* self, PyJitMethodLocation* method_info);
+PyObject* MethCall1(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1);
+PyObject* MethCall2(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2);
+PyObject* MethCall3(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3);
+PyObject* MethCall4(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4);
+PyObject* MethCall5(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5);
+PyObject* MethCall6(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6);
+PyObject* MethCall7(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7);
+PyObject* MethCall8(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8);
+PyObject* MethCall9(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9);
+PyObject* MethCall10(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyObject* arg10);
+PyObject* MethCallN(PyObject* self, PyJitMethodLocation* method_info, PyObject* args);
 
 int PyJit_SetupAnnotations(PyFrameObject* frame);
 

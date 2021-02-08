@@ -204,10 +204,108 @@ PyObject* PyJit_SubscrListIndex(PyObject *o, PyObject *key, Py_ssize_t index){
     if (!PyList_CheckExact(o))
         return PyJit_Subscr(o, key);
     PyObject* res = PyList_GetItem(o, index);
+    if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_IndexError))
+        PyErr_Format(PyExc_IndexError, "list index %d out of range 0-%d", index, Py_SIZE(o));
     Py_XINCREF(res);
     Py_DECREF(o);
     Py_DECREF(key);
     return res;
+}
+
+PyObject* PyJit_SubscrListSliceStepped(PyObject *o,  Py_ssize_t start,  Py_ssize_t stop,  Py_ssize_t step){
+    Py_ssize_t slicelength, i;
+    size_t cur;
+    PyObject* result = nullptr;
+    PyListObject* self = (PyListObject*)o;
+    PyObject* it;
+    PyObject **src, **dest;
+    if (!PyList_CheckExact(o) ) {
+        PyErr_SetString(PyExc_TypeError, "Invalid type for const slice");
+        goto error;
+    }
+    if (start == PY_SSIZE_T_MIN)
+        start = step < 0 ? PY_SSIZE_T_MAX : 0;
+    if (stop == PY_SSIZE_T_MAX)
+        stop = step < 0 ? PY_SSIZE_T_MIN : PY_SSIZE_T_MAX;
+    slicelength = PySlice_AdjustIndices(Py_SIZE(o), &start, &stop,
+                                        step);
+
+    if (slicelength <= 0 && step > 0) {
+        result = PyList_New(0);
+    }
+    else if (step == 1) {
+        result = PyList_GetSlice(o, start, stop);
+    }
+    else {
+        result = PyList_New(0);
+        ((PyListObject*)result)->ob_item = PyMem_New(PyObject *, slicelength);
+        if (((PyListObject*)result)->ob_item == NULL) {
+            goto error;
+        }
+        ((PyListObject*)result)->allocated = slicelength;
+        src = self->ob_item;
+        dest = ((PyListObject *)result)->ob_item;
+        for (cur = start, i = 0; i < slicelength;
+             cur += (size_t)step, i++) {
+            it = src[cur];
+            Py_INCREF(it);
+            dest[i] = it;
+        }
+        Py_SET_SIZE(result, slicelength);
+    }
+    error:
+    Py_DECREF(o);
+    return result;
+}
+
+
+PyObject* PyJit_SubscrListSlice(PyObject *o,  Py_ssize_t start,  Py_ssize_t stop){
+    Py_ssize_t slicelength;
+    PyObject* result = nullptr;
+    if (!PyList_CheckExact(o) ) {
+        PyErr_SetString(PyExc_TypeError, "Invalid type for const slice");
+        goto error;
+    }
+    slicelength = PySlice_AdjustIndices(Py_SIZE(o), &start, &stop,1);
+
+    if (slicelength <= 0 && start > 0 && stop > 0) {
+        result = PyList_New(0);
+    } else {
+        result = PyList_GetSlice(o, start, stop);
+    }
+    error:
+    Py_DECREF(o);
+    return result;
+}
+
+// TODO: Rewrite this function more efficiently.
+PyObject* PyJit_SubscrListReversed(PyObject *o){
+    Py_ssize_t slicelength = Py_SIZE(o), i;
+    size_t cur;
+    PyObject* result = nullptr;
+    PyObject* it;
+    PyObject **src, **dest;
+    if (!PyList_CheckExact(o) ) {
+        PyErr_SetString(PyExc_TypeError, "Invalid type for const slice");
+        goto error;
+    }
+    result = PyList_New(0);
+    ((PyListObject*)result)->ob_item = PyMem_New(PyObject *, slicelength);
+    if (((PyListObject*)result)->ob_item == NULL) {
+        goto error;
+    }
+    ((PyListObject*)result)->allocated = slicelength;
+    src = ((PyListObject*)o)->ob_item;
+    dest = ((PyListObject *)result)->ob_item;
+    for (cur = slicelength - 1, i = 0; i < slicelength; cur--, i++) {
+        it = src[cur];
+        Py_INCREF(it);
+        dest[i] = it;
+    }
+    Py_SET_SIZE(result, slicelength);
+    error:
+    Py_DECREF(o);
+    return result;
 }
 
 PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
@@ -231,7 +329,6 @@ PyObject* PyJit_SubscrTuple(PyObject *o, PyObject *key){
     else {
         return PyJit_Subscr(o, key);
     }
-    error:
     Py_DECREF(key);
     Py_DECREF(o);
     return res;
@@ -2138,123 +2235,123 @@ PyObject* Call10(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg
     return Call<PyObject*>(target, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
 }
 
-PyObject* MethCall0(PyObject* self, PyMethodLocation* method_info) {
+PyObject* MethCall0(PyObject* self, PyJitMethodLocation* method_info) {
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object);
     else
         res = Call0(method_info->method);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCall1(PyObject* self, PyMethodLocation* method_info, PyObject* arg1) {
+PyObject* MethCall1(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1) {
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object, arg1);
     else
         res = Call<PyObject*>(method_info->method, arg1);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCall2(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2) {
+PyObject* MethCall2(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2) {
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCall3(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3) {
+PyObject* MethCall3(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3) {
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCall4(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4) {
+PyObject* MethCall4(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4) {
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCall5(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5){
+PyObject* MethCall5(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5){
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCall6(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6){
+PyObject* MethCall6(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6){
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCall7(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7){
+PyObject* MethCall7(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7){
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCall8(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8){
+PyObject* MethCall8(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8){
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCall9(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9){
+PyObject* MethCall9(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9){
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCall10(PyObject* self, PyMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyObject* arg10){
+PyObject* MethCall10(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyObject* arg10){
     PyObject* res;
     if (method_info->object != nullptr)
         res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
     else
         res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
-    delete method_info;
+    Py_DECREF(method_info);
     return res;
 }
 
-PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* args) {
+PyObject* MethCallN(PyObject* self, PyJitMethodLocation* method_info, PyObject* args) {
     PyObject* res;
     if(!PyTuple_Check(args)) {
         PyErr_Format(PyExc_TypeError,
                      "invalid arguments for method call");
         Py_DECREF(args);
-        delete method_info;
+        Py_DECREF(method_info);
         return nullptr;
     }
     if (method_info->object != nullptr)
@@ -2265,7 +2362,7 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
             PyErr_Format(PyExc_ValueError,
                          "cannot resolve method call");
             Py_DECREF(args);
-            delete method_info;
+            Py_DECREF(method_info);
             return nullptr;
         }
         auto obj =  method_info->object;
@@ -2329,7 +2426,7 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
         Py_DECREF(args);
         Py_DECREF(target);
         Py_DECREF(obj);
-        delete method_info;
+        Py_DECREF(method_info);
         return res;
     }
     else {
@@ -2344,7 +2441,7 @@ PyObject* MethCallN(PyObject* self, PyMethodLocation* method_info, PyObject* arg
 #endif
         Py_DECREF(args);
         Py_DECREF(target);
-        delete method_info;
+        Py_DECREF(method_info);
         return res;
     }
 }
@@ -2472,18 +2569,25 @@ PyObject* PyJit_FormatObject(PyObject* item, PyObject*fmtSpec) {
 	return res;
 }
 
-PyMethodLocation* PyJit_LoadMethod(PyObject* object, PyObject* name) {
-    auto * result = new PyMethodLocation;
+PyJitMethodLocation* PyJit_LoadMethod(PyObject* object, PyObject* name, PyJitMethodLocation* method_info) {
     PyObject* method = nullptr;
-    int meth_found = _PyObject_GetMethod(object, name, &method);
-    result->method = method;
+    int meth_found = -1;
+    if (method_info->method != nullptr && method_info->object != nullptr && method_info->object == object){
+        Py_INCREF(method_info->method);
+        goto end; // TODO: Verify the method somehow hasn't been swapped on the same object.
+    }
+
+    meth_found = _PyObject_GetMethod(object, name, &method);
+    method_info->method = method;
     if (!meth_found) {
         Py_DECREF(object);
-        result->object = nullptr;
+        method_info->object = nullptr;
     } else {
-        result->object = object;
+        method_info->object = object;
     }
-    return result;
+    end:
+    Py_INCREF(method_info);
+    return method_info;
 }
 
 PyObject* PyJit_FormatValue(PyObject* item) {

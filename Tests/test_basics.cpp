@@ -59,7 +59,12 @@ TEST_CASE("General list indexing") {
         CHECK(t.returns() == "0");
     }
 
-    SECTION("range case") {
+    SECTION("local case") {
+        auto t = EmissionTest("def f(): l = [0]; a = 1; a -= 1; return l[a]");
+        CHECK(t.returns() == "0");
+    }
+
+    SECTION("reverse slice case") {
         auto t = EmissionTest("def f(): l = [4,3,2,1,0]; return l[::-1]");
         CHECK(t.returns() == "[0, 1, 2, 3, 4]");
     }
@@ -389,5 +394,126 @@ TEST_CASE("Iterators") {
                               "   total += int(y)\n"
                               " return total");
         CHECK(t.returns() == "6");
+    }
+}
+
+TEST_CASE("Binary slice subscripts") {
+    SECTION("assert list case") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[0:1]");
+        CHECK(t.returns() == "[0]");
+    }
+    SECTION("assert list case empty start") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[:1]");
+        CHECK(t.returns() == "[0]");
+    }
+    SECTION("assert list case empty end") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[1:]");
+        CHECK(t.returns() == "[1, 2, 3]");
+    }
+    SECTION("assert list case empty both") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[:]");
+        CHECK(t.returns() == "[0, 1, 2, 3]");
+    }
+    SECTION("assert list case negatives") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[-2:-1]");
+        CHECK(t.returns() == "[2]");
+    }
+    SECTION("assert list cross negatives") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[-1:-2]");
+        CHECK(t.returns() == "[]");
+    }
+    SECTION("assert list negative start") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[-1:]");
+        CHECK(t.returns() == "[3]");
+    }
+    SECTION("assert list negative end") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[:-1]");
+        CHECK(t.returns() == "[0, 1, 2]");
+    }
+    SECTION("assert list case missing step") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[0:1:]");
+        CHECK(t.returns() == "[0]");
+    }
+    SECTION("assert list case const step") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[0:1:1]");
+        CHECK(t.returns() == "[0]");
+    }
+    SECTION("assert list case step 1") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[::1]");
+        CHECK(t.returns() == "[0, 1, 2, 3]");
+    }
+    SECTION("assert list case step back") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[::-1]");
+        CHECK(t.returns() == "[3, 2, 1, 0]");
+    }
+    SECTION("assert list case step back negative 2") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[::-2]");
+        CHECK(t.returns() == "[3, 1]");
+    }
+    SECTION("assert list case step two") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[::2]");
+        CHECK(t.returns() == "[0, 2]");
+    }
+    SECTION("assert list weird indexes") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3]; return l[False:True]");
+        CHECK(t.returns() == "[0]");
+    }
+    SECTION("assert complex scenario") {
+        auto t = EmissionTest("def f(): return 'The train to Oxford leaves at 3pm'[-1:3:-2]");
+        CHECK(t.returns() == "'m3t ealdox tnat'");
+    }
+    SECTION("assert assign slice from slice") {
+        auto t = EmissionTest("def f(): l = [0,1,2,3,4]; l[:2] = l[1::-1]; return l");
+        CHECK(t.returns() == "[1, 0, 2, 3, 4]");
+    }
+    SECTION("assert assign slice from var") {
+        auto t = EmissionTest("def f(x): l = [0,1,2,3,4]; x=len(l); l[:2] = l[x::-1]; return l");
+        CHECK(t.returns() == "[4, 3, 2, 1, 0, 2, 3, 4]");
+    }
+}
+
+TEST_CASE("Simple methods") {
+    SECTION("assert simple string case") {
+        auto t = EmissionTest("def f(): x = 'hello'; return x.upper()");
+        CHECK(t.returns() == "'HELLO'");
+    }
+
+    SECTION("assert simple dict case") {
+        auto t = EmissionTest("def f():\n"
+                              "    l = {'a': 1, 'b': 2}\n"
+                              "    k = l.keys()\n"
+                              "    return tuple(k)");
+        CHECK(t.returns() == "('a', 'b')");
+    }
+
+    SECTION("assert simple string case twice ") {
+        auto t = EmissionTest("def f(): \n"
+                              "   x = 'hello'.upper()\n"
+                              "   for i in range(0,2):\n"
+                              "      x += x.upper()\n"
+                              "   return x");
+        CHECK(t.returns() == "'HELLOHELLOHELLOHELLO'");
+    }
+}
+
+TEST_CASE("Test nested stacks"){
+    SECTION("assert nested method optimized case") {
+        auto t = EmissionTest("def f():\n"
+                              "    l = {'a': 1, 'b': 2}\n"
+                              "    return tuple(l.keys())");
+        CHECK(t.returns() == "('a', 'b')");
+    }
+    SECTION("assert double nested method optimized case") {
+        auto t = EmissionTest("def f():\n"
+                              "    l = {'a': 1, 'b': 2}\n"
+                              "    return tuple(tuple(l.keys()))");
+        CHECK(t.returns() == "('a', 'b')");
+    }
+}
+
+TEST_CASE("Type object methods") {
+    SECTION("assert type case") {
+        auto t = EmissionTest("def f(): return int.__format__(2, '%')");
+        CHECK(t.returns() == "'200.000000%'");
     }
 }

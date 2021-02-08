@@ -132,4 +132,23 @@ public:
  };
 
 
+class InterpreterStack : public std::vector<AbstractValueWithSources> {
+
+public:
+    AbstractValueWithSources top() {
+        return std::vector<AbstractValueWithSources>::at(size() - 1);
+    }
+    AbstractValueWithSources second() {
+        return std::vector<AbstractValueWithSources>::at(size() - 2);
+    }
+    AbstractValueWithSources third() {
+        return std::vector<AbstractValueWithSources>::at(size() - 3);
+    }
+    AbstractValueWithSources fourth() {
+        return std::vector<AbstractValueWithSources>::at(size() - 4);
+    }
+    AbstractValueWithSources fifth() {
+        return std::vector<AbstractValueWithSources>::at(size() - 5);
+    }
+};
 #endif //PYJION_STACK_H

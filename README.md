@@ -31,14 +31,14 @@ To get started, you need to have .NET 5 installed, with Python 3.9 and the Pyjio
 
 After importing pyjion, enable it by calling `pyjion.enable()` which sets a compilation threshold to 0 (the code only needs to be run once to be compiled by the JIT):
 
-```
+```pycon
 >>> import pyjion
 >>> pyjion.enable()
 ```
 
 Any Python code you define or import after enabling pyjion will be JIT compiled. You don't need to execute functions in any special API, its completely transparent:
 
-```
+```pycon
 >>> def half(x):
 ...    return x/2
 >>> half(2)
@@ -48,16 +48,16 @@ Any Python code you define or import after enabling pyjion will be JIT compiled.
 Pyjion will have compiled the `half` function into machine code on-the-fly and stored a cached version of that compiled function inside the function object.
 You can see some basic stats by running `pyjion.info(f)`, where `f` is the function object:
 
-```
+```pycon
 >>> pyjion.info(half)
 {'failed': False, 'compiled': True, 'run_count': 1}
 ```
 
 You can see the machine code for the compiled function by disassembling it in the Python REPL.
 Pyjion has essentially compiled your small Python function into a small, standalone application.
-Install `distorm3` first to disassemble x86-64 assembly and run `pyjion.dis.dis_native(f)`:
+Install `distorm3` and `rich` first to disassemble x86-64 assembly and run `pyjion.dis.dis_native(f)`:
 
-```
+```pycon
 >>> import pyjion.dis
 >>> pyjion.dis.dis_native(half)
 00000000: PUSH RBP

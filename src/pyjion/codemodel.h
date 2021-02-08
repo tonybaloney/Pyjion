@@ -99,14 +99,14 @@ public:
     virtual void getFunctionEntryPoint(CORINFO_CONST_LOOKUP *  pResult) = 0;
 };
 
-class Method : public BaseMethod {
+class JITMethod : public BaseMethod {
     Module* m_module;
 public:
     vector<Parameter> m_params;
     CorInfoType m_retType;
     void* m_addr;
 
-    Method(Module* module, CorInfoType returnType, std::vector<Parameter> params, void* addr) {
+    JITMethod(Module* module, CorInfoType returnType, std::vector<Parameter> params, void* addr) {
         m_retType = returnType;
         m_params = params;
         m_module = module;

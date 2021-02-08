@@ -47,7 +47,7 @@ enum AbstractValueKind {
     AVK_Dict,
     AVK_Tuple,
     AVK_Set,
-    AVK_Frozenset,
+    AVK_FrozenSet,
     AVK_String,
     AVK_Bytes,
     AVK_Bytearray,
@@ -60,13 +60,15 @@ enum AbstractValueKind {
     AVK_Enumerate,
     AVK_File,
     AVK_Type,
-    AVK_Module
+    AVK_Module,
+    AVK_Method
 };
 
 static bool isKnownType(AbstractValueKind kind) {
     switch (kind) {
         case AVK_Any:
         case AVK_Undefined:
+        case AVK_Type:
             return false;
     }
     return true;
@@ -83,6 +85,10 @@ public:
     bool needsBoxing() const;
 
     virtual bool hasConstValue() { return false; }
+
+    virtual bool isBuiltin() {
+        return false;
+    }
 
     virtual const char* describe() {
         return "unknown source";
@@ -178,6 +184,33 @@ public:
     }
 };
 
+class BuiltinSource : public AbstractSource {
+    const char* _name;
+    PyObject* _value;
+public:
+    explicit BuiltinSource(const char* name, PyObject* value)  {
+        _name = name;
+        _value = value;
+    };
+
+    const char* describe() override {
+        if (needsBoxing()) {
+            return "Source: Builtin (escapes)";
+        }
+        else {
+            return "Source: Builtin";
+        }
+    }
+
+    bool isBuiltin() override {
+        return true;
+    }
+
+    const char* getName() {
+        return _name;
+    }
+};
+
 class LocalSource : public AbstractSource {
 public:
     const char* describe() override {
@@ -216,6 +249,22 @@ public:
     AbstractValueKind kind() { return _kind; }
 };
 
+class MethodSource : public AbstractSource {
+    const char* _name = "";
+public:
+    explicit MethodSource(const char* name){
+        _name = name;
+    }
+
+    const char* describe() override {
+        return "Source: Method";
+    }
+
+    const char* name() {
+        return _name;
+    }
+};
+
 class AbstractValue {
 public:
     virtual AbstractValue* unary(AbstractSource* selfSources, int op);
@@ -239,6 +288,9 @@ public:
         return "";
     }
 
+    virtual AbstractValueKind resolveMethod(const char* name) {
+        return AVK_Any;
+    }
 };
 
 struct AbstractValueWithSources {
@@ -266,6 +318,14 @@ struct AbstractValueWithSources {
             return Sources->needsBoxing();
         }
         return true;
+    }
+
+    bool hasValue() const {
+        return Value != nullptr;
+    }
+
+    bool hasSource() const {
+        return Sources != nullptr;
     }
 
     AbstractValueWithSources mergeWith(AbstractValueWithSources other) const {
@@ -341,6 +401,8 @@ class BytesValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
+
 };
 
 class ComplexValue : public AbstractValue {
@@ -356,6 +418,8 @@ class IntegerValue : public AbstractValue {
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
     void truth(AbstractSource* sources) override;
+    AbstractValueKind resolveMethod(const char* name) override;
+
 };
 
 class InternIntegerValue : public IntegerValue {
@@ -372,6 +436,7 @@ class StringValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
 };
 
 class FloatValue : public AbstractValue {
@@ -394,15 +459,24 @@ class ListValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
 };
 
 class DictValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
 };
 
 class SetValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
+class FrozenSetValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
@@ -446,6 +520,43 @@ class ModuleValue : public AbstractValue
     const char *describe() override;
 };
 
+class TypeValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
+class ByteArrayValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+    AbstractValueKind resolveMethod(const char* name) override;
+};
+
+class MethodValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
+class CodeObjectValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
+class EnumeratorValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
+class FileValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);
 
 extern UndefinedValue Undefined;
@@ -457,6 +568,7 @@ extern FloatValue Float;
 extern ListValue List;
 extern TupleValue Tuple;
 extern SetValue Set;
+extern FrozenSetValue FrozenSet;
 extern StringValue String;
 extern BytesValue Bytes;
 extern DictValue Dict;
@@ -467,9 +579,15 @@ extern ComplexValue Complex;
 extern BuiltinValue Builtin;
 extern IterableValue Iterable;
 extern ModuleValue Module;
+extern TypeValue Type;
+extern ByteArrayValue ByteArray;
+extern MethodValue Method;
+extern CodeObjectValue CodeObject;
+extern EnumeratorValue Enumerator;
+extern FileValue File;
 
-AbstractValue *avkToAbstractValue(AbstractValueKind){
-    return &Module};
-
+AbstractValue* avkToAbstractValue(AbstractValueKind);
+AbstractValueKind GetAbstractType(PyTypeObject* type);
+PyTypeObject* GetPyType(AbstractValueKind type);
 #endif
 

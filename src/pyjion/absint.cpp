@@ -220,6 +220,10 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
     // new blocks that we encounter from branches.
     deque<size_t> queue;
     queue.push_back(0);
+    vector<const char*> utf8_names ;
+    for (int i = 0; i < PyTuple_Size(mCode->co_names); i++)
+        utf8_names.push_back(PyUnicode_AsUTF8(PyTuple_GetItem(mCode->co_names, i)));
+
     do {
         int oparg;
         auto cur = queue.front();
@@ -512,9 +516,11 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                         }
                         else {
                             // Builtin source
-                            auto globalSource = addGlobalSource(opcodeIndex, oparg, PyUnicode_AsUTF8(name), v);
+                            auto globalSource = addBuiltinSource(opcodeIndex, oparg, utf8_names[oparg], v);
+                            auto builtinType = Py_TYPE(v);
+                            AbstractValue* avk = avkToAbstractValue(GetAbstractType(builtinType));
                             auto value = AbstractValueWithSources(
-                                    &Builtin,
+                                    avk,
                                     globalSource
                             );
                             lastState.push(value);
@@ -597,15 +603,10 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
 
                     // pop the function...
                     auto func = lastState.popNoEscape();
-                    if (func.Value->kind() == AVK_Function){
-                        auto source = AbstractValueWithSources(
-                            avkToAbstractValue(knownFunctionReturnType(func)),
-                            newSource(new LocalSource()));
-                        lastState.push(source);
-
-                    } else {
-                        lastState.push(&Any);
-                    }
+                    auto source = AbstractValueWithSources(
+                        avkToAbstractValue(knownFunctionReturnType(func)),
+                        newSource(new LocalSource()));
+                    lastState.push(source);
                     break;
                 }
                 case CALL_FUNCTION_KW: {
@@ -825,9 +826,13 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     }
                     lastState.push(&Dict);
                     break;
-                case LOAD_METHOD:
-                    lastState.push(&Any);
+                case LOAD_METHOD: {
+                    auto method = AbstractValueWithSources(
+                            &Method,
+                            newSource(new MethodSource(utf8_names[oparg])));
+                    lastState.push(method);
                     break;
+                }
                 case CALL_METHOD:
                 {
                     /* LOAD_METHOD could push a NULL value, but (as above)
@@ -845,11 +850,16 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                       We'll be passing `oparg + 1` to call_function, to
                       make it accept the `self` as a first argument.
                     */
-                    lastState.pop();
-                    lastState.pop();
+                    auto method = lastState.popNoEscape();
+                    auto self = lastState.pop();
                     for (int i = 0 ; i < oparg; i++)
                         lastState.pop();
-                    lastState.push(&Any); // push result.
+                    if (method.hasValue() && method.Value->kind() == AVK_Method && isKnownType(self->kind())){
+                        auto meth_source = dynamic_cast<MethodSource*>(method.Sources);
+                        lastState.push(avkToAbstractValue(avkToAbstractValue(self->kind())->resolveMethod(meth_source->name())));
+                    } else {
+                        lastState.push(&Any); // push result.
+                    }
                     break;
                 }
                 case IS_OP:
@@ -1158,7 +1168,7 @@ AbstractLocalInfo AbstractInterpreter::getLocalInfo(size_t byteCodeIndex, size_t
 }
 
 // Returns information about the stack at the specific byte code index.
-vector<AbstractValueWithSources>& AbstractInterpreter::getStackInfo(size_t byteCodeIndex) {
+InterpreterStack& AbstractInterpreter::getStackInfo(size_t byteCodeIndex) {
     return mStartStates[byteCodeIndex].mStack;
 }
 
@@ -1184,6 +1194,15 @@ AbstractSource* AbstractInterpreter::addGlobalSource(size_t opcodeIndex, size_t 
     return store->second;
 }
 
+AbstractSource* AbstractInterpreter::addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value) {
+    auto store = m_opcodeSources.find(opcodeIndex);
+    if (store == m_opcodeSources.end()) {
+        return m_opcodeSources[opcodeIndex] = newSource(new BuiltinSource(name, value));
+    }
+
+    return store->second;
+}
+
 AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
@@ -1195,25 +1214,25 @@ AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t c
 
  // Checks to see if we have a non-zero error code on the stack, and if so,
  // branches to the current error handler.  Consumes the error code in the process
-void AbstractInterpreter::intErrorCheck(const char* reason) {
+void AbstractInterpreter::intErrorCheck(const char* reason, int curByte) {
     auto noErr = m_comp->emit_define_label();
     m_comp->emit_int(0);
     m_comp->emit_branch(BranchEqual, noErr);
 
-    branchRaise(reason);
+    branchRaise(reason, curByte);
     m_comp->emit_mark_label(noErr);
 }
 
 // Checks to see if we have a null value as the last value on our stack
 // indicating an error, and if so, branches to our current error handler.
-void AbstractInterpreter::errorCheck(const char *reason) {
+void AbstractInterpreter::errorCheck(const char *reason, int curByte) {
     auto noErr = m_comp->emit_define_label();
     m_comp->emit_dup();
     m_comp->emit_store_local(mErrorCheckLocal);
     m_comp->emit_null();
     m_comp->emit_branch(BranchNotEqual, noErr);
 
-    branchRaise(reason);
+    branchRaise(reason, curByte);
     m_comp->emit_mark_label(noErr);
     m_comp->emit_load_local(mErrorCheckLocal);
 }
@@ -1250,7 +1269,7 @@ void AbstractInterpreter::ensureLabels(vector<Label>& labels, size_t count) {
     }
 }
 
-void AbstractInterpreter::branchRaise(const char *reason) {
+void AbstractInterpreter::branchRaise(const char *reason, int curByte) {
     auto ehBlock = currentHandler();
     auto& entryStack = ehBlock->EntryStack;
 
@@ -1259,6 +1278,10 @@ void AbstractInterpreter::branchRaise(const char *reason) {
         m_comp->emit_debug_msg(reason);
     }
 #endif
+    if (!canSkipLastiUpdate(curByte)) {
+        m_comp->emit_lasti_update(curByte);
+    }
+
     m_comp->emit_eh_trace();
 
     if (mTracingEnabled)
@@ -1494,7 +1517,7 @@ void AbstractInterpreter::periodicWork() {
 // Checks to see if -1 is the current value on the stack, and if so, falls into
 // the logic for raising an exception.  If not execution continues forward progress.
 // Used for checking if an API reports an error (typically true/false/-1)
-void AbstractInterpreter::raiseOnNegativeOne() {
+void AbstractInterpreter::raiseOnNegativeOne(int curByte) {
     m_comp->emit_dup();
     m_comp->emit_int(-1);
 
@@ -1504,7 +1527,7 @@ void AbstractInterpreter::raiseOnNegativeOne() {
     // values on the stack...
 
     m_comp->emit_pop();
-    branchRaise("last operation failed");
+    branchRaise("last operation failed", curByte);
     m_comp->emit_mark_label(noErr);
 }
 
@@ -1553,6 +1576,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
     mExcVarsOnStack = m_comp->emit_define_local(LK_Int);
     m_comp->emit_int(0);
     m_comp->emit_store_local(mExcVarsOnStack);
+
+    m_comp->emit_init_instr_counter();
 
     if (mTracingEnabled){
         // push initial trace on entry to frame
@@ -1610,7 +1635,6 @@ JittedCode* AbstractInterpreter::compileWorker() {
         int ilLen = m_comp->il_length();
 #endif
         if (!canSkipLastiUpdate(curByte)) {
-            m_comp->emit_lasti_update(curByte);
             if (mTracingEnabled){
                 m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
             }
@@ -1626,10 +1650,25 @@ JittedCode* AbstractInterpreter::compileWorker() {
         if (OPT_ENABLED(tripleBinaryFunctions) && isBinaryMathOp(byte) && isMathOp(next_byte)){
             m_comp->emit_triple_binary_op(byte, next_byte);
             decStack(3);
-            errorCheck("binary math op failed");
+            errorCheck("binary math op failed", curByte);
             incStack();
             curByte += SIZEOF_CODEUNIT;
             continue;
+        }
+        if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() >= (1 + oparg)){
+            bool optimized ;
+            if (oparg == 3) {
+                optimized = m_comp->emit_binary_subscr_slice(stackInfo.fourth(), stackInfo.third(), stackInfo.second(), stackInfo.top());
+            } else {
+                optimized = m_comp->emit_binary_subscr_slice(stackInfo.third(), stackInfo.second(), stackInfo.top());
+            }
+            if (optimized) {
+                decStack(oparg + 1);
+                errorCheck("subscr slice failed", curByte);
+                incStack();
+                curByte += SIZEOF_CODEUNIT;
+                continue;
+            } // Else, use normal compilation path.
         }
 
         switch (byte) {
@@ -1662,23 +1701,23 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->emit_dup_top_two();
                 break;
             case COMPARE_OP: {
-                if (OPT_ENABLED(internRichCompare) && stackInfo.size() > 1){
-                    m_comp->emit_compare_known_object(oparg, stackInfo[0], stackInfo[1]);
+                if (OPT_ENABLED(internRichCompare) && stackInfo.size() >= 2){
+                    m_comp->emit_compare_known_object(oparg, stackInfo.second(), stackInfo.top());
                 } else {
                     m_comp->emit_compare_object(oparg);
                 }
                 decStack(2);
-                errorCheck("failed to compare");
+                errorCheck("failed to compare", curByte);
                 incStack(1);
                 break; }
             case LOAD_BUILD_CLASS:
                 m_comp->emit_load_build_class();
-                errorCheck("load build class failed");
+                errorCheck("load build class failed", curByte);
                 incStack();
                 break;
             case SETUP_ANNOTATIONS:
                 m_comp->emit_set_annotations();
-                intErrorCheck("failed to setup annotations");
+                intErrorCheck("failed to setup annotations", curByte);
                 break;
             case JUMP_ABSOLUTE:
                 jumpAbsolute(oparg, opcodeIndex); break;
@@ -1702,33 +1741,33 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 } else {
                     m_comp->emit_load_name(PyTuple_GetItem(mCode->co_names, oparg));
                 }
-                errorCheck("load name failed");
+                errorCheck("load name failed", curByte);
                 incStack();
                 break;
             case STORE_ATTR:
                 m_comp->emit_store_attr(PyTuple_GetItem(mCode->co_names, oparg));
                 decStack(2);
-                intErrorCheck("store attr failed");
+                intErrorCheck("store attr failed", curByte);
                 break;
             case DELETE_ATTR:
                 m_comp->emit_delete_attr(PyTuple_GetItem(mCode->co_names, oparg));
                 decStack();
-                intErrorCheck("delete attr failed");
+                intErrorCheck("delete attr failed", curByte);
                 break;
             case LOAD_ATTR:
                 m_comp->emit_load_attr(PyTuple_GetItem(mCode->co_names, oparg));
                 decStack();
-                errorCheck("load attr failed");
+                errorCheck("load attr failed", curByte);
                 incStack();
                 break;
             case STORE_GLOBAL:
                 m_comp->emit_store_global(PyTuple_GetItem(mCode->co_names, oparg));
                 decStack();
-                intErrorCheck("store global failed");
+                intErrorCheck("store global failed", curByte);
                 break;
             case DELETE_GLOBAL:
                 m_comp->emit_delete_global(PyTuple_GetItem(mCode->co_names, oparg));
-                intErrorCheck("delete global failed");
+                intErrorCheck("delete global failed", curByte);
                 break;
             case LOAD_GLOBAL:
                 if (OPT_ENABLED(hashedNames)){
@@ -1736,7 +1775,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 } else {
                     m_comp->emit_load_global(PyTuple_GetItem(mCode->co_names, oparg));
                 }
-                errorCheck("load global failed");
+                errorCheck("load global failed", curByte);
                 incStack();
                 break;
             case LOAD_CONST:
@@ -1744,14 +1783,14 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case STORE_NAME:
                 m_comp->emit_store_name(PyTuple_GetItem(mCode->co_names, oparg));
                 decStack();
-                intErrorCheck("store name failed");
+                intErrorCheck("store name failed", curByte);
                 break;
             case DELETE_NAME:
                 m_comp->emit_delete_name(PyTuple_GetItem(mCode->co_names, oparg));
-                intErrorCheck("delete name failed");
+                intErrorCheck("delete name failed", curByte);
                 break;
             case DELETE_FAST:
-                loadFastWorker(oparg, true);
+                loadFastWorker(oparg, true, curByte);
                 m_comp->emit_pop_top();
                 m_comp->emit_delete_fast(oparg);
                 m_assignmentState[oparg] = false;
@@ -1775,7 +1814,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->emit_kwcall_with_tuple();
                 decStack();// function & names
 
-                errorCheck("kwcall failed");
+                errorCheck("kwcall failed", curByte);
                 incStack();
                 break;
             }
@@ -1789,7 +1828,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                     decStack(2);
                 }
 
-                errorCheck("call failed");
+                errorCheck("call failed", curByte);
                 incStack();
                 break;
             case CALL_FUNCTION:
@@ -1799,11 +1838,11 @@ JittedCode* AbstractInterpreter::compileWorker() {
                     incStack();
                     m_comp->emit_call_with_tuple();
                     decStack(2);// target + args
-                    errorCheck("call n-function failed");
+                    errorCheck("call n-function failed", curByte);
                 }
                 else {
                     decStack(oparg + 1); // target + args(oparg)
-                    errorCheck("call function failed");
+                    errorCheck("call function failed", curByte);
                 }
 
                 incStack();
@@ -1823,17 +1862,17 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 break;
             case STORE_SUBSCR:
                 if (OPT_ENABLED(knownStoreSubscr) && stackInfo.size() >= 3){
-                    m_comp->emit_store_subscr(stackInfo[0], stackInfo[1], stackInfo[2]);
+                    m_comp->emit_store_subscr(stackInfo.third(), stackInfo.second(), stackInfo.top());
                 } else {
                     m_comp->emit_store_subscr();
                 }
                 decStack(3);
-                intErrorCheck("store subscr failed");
+                intErrorCheck("store subscr failed", curByte);
                 break;
             case DELETE_SUBSCR:
                 decStack(2);
                 m_comp->emit_delete_subscr();
-                intErrorCheck("delete subscr failed");
+                intErrorCheck("delete subscr failed", curByte);
                 break;
             case BUILD_SLICE:
                 assert(oparg == 2 || 3);
@@ -1842,7 +1881,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 }
                 m_comp->emit_build_slice();
                 decStack(oparg);
-                errorCheck("slice failed");
+                errorCheck("slice failed", curByte);
                 incStack();
                 break;
             case BUILD_SET:
@@ -1857,19 +1896,19 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case UNARY_INVERT:
                 m_comp->emit_unary_invert();
                 decStack(1);
-                errorCheck("unary invert failed");
+                errorCheck("unary invert failed", curByte);
                 incStack();
                 break;
             case BINARY_SUBSCR:
                 if (stackInfo.size() >= 2) {
-                    m_comp->emit_binary_subscr(byte, stackInfo[0], stackInfo[1]);
+                    m_comp->emit_binary_subscr(byte, stackInfo.second(), stackInfo.top());
                     decStack(2);
-                    errorCheck("optimized binary subscr failed");
+                    errorCheck("optimized binary subscr failed", curByte);
                 }
                 else {
                     m_comp->emit_binary_object(byte);
                     decStack(2);
-                    errorCheck("binary subscr failed");
+                    errorCheck("binary subscr failed", curByte);
                 }
                 incStack();
                 break;
@@ -1901,7 +1940,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case INPLACE_OR:
                 m_comp->emit_binary_object(byte);
                 decStack(2);
-                errorCheck("binary op failed");
+                errorCheck("binary op failed", curByte);
                 incStack();
                 break;
             case RETURN_VALUE:
@@ -1919,7 +1958,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 break;
             case LOAD_DEREF:
                 m_comp->emit_load_deref(oparg);
-                errorCheck("load deref failed");
+                errorCheck("load deref failed", curByte);
                 incStack();
                 break;
             case STORE_DEREF:
@@ -1929,13 +1968,13 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case DELETE_DEREF: m_comp->emit_delete_deref(oparg); break;
             case LOAD_CLOSURE:
                 m_comp->emit_load_closure(oparg);
-                errorCheck("load closure failed");
+                errorCheck("load closure failed", curByte);
                 incStack();
                 break;
             case GET_ITER: {
                 m_comp->emit_getiter();
                 decStack();
-                errorCheck("get iter failed");
+                errorCheck("get iter failed", curByte);
                 incStack();
                 break;
             }
@@ -1944,10 +1983,11 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
                 auto jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
-                if (OPT_ENABLED(inlineIterators) && stackInfo.size() == 1){
+                auto iterator = stackInfo.top();
+                if (OPT_ENABLED(inlineIterators) && !stackInfo.empty()){
                     forIter(
                             jumpTo,
-                            &stackInfo[0]
+                            &iterator
                     );
                 } else {
                     forIter(
@@ -1963,7 +2003,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->lift_n_to_second(oparg);
                 m_comp->emit_set_add();
                 decStack(2); // set, value
-                errorCheck("set update failed");
+                errorCheck("set update failed", curByte);
                 incStack(1); // set
                 m_comp->sink_top_to_n(oparg - 1);
                 break;
@@ -1972,7 +2012,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->lift_n_to_third(oparg + 1);
                 m_comp->emit_map_add();
                 decStack(3);
-                errorCheck("map add failed");
+                errorCheck("map add failed", curByte);
                 incStack();
                 m_comp->sink_top_to_n(oparg - 1);
                 break;
@@ -1981,7 +2021,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->lift_n_to_second(oparg);
                 m_comp->emit_list_append();
                 decStack(2); // list, value
-                errorCheck("list append failed");
+                errorCheck("list append failed", curByte);
                 incStack(1);
                 m_comp->sink_top_to_n(oparg - 1);
                 break;
@@ -1991,7 +2031,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->lift_n_to_second(oparg);
                 m_comp->emit_dict_merge();
                 decStack(2); // list, value
-                errorCheck("dict merge failed");
+                errorCheck("dict merge failed", curByte);
                 incStack(1);
                 m_comp->sink_top_to_n(oparg - 1);
                 break;
@@ -1999,11 +2039,11 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case PRINT_EXPR:
                 m_comp->emit_print_expr();
                 decStack();
-                intErrorCheck("print expr failed");
+                intErrorCheck("print expr failed", curByte);
                 break;
             case LOAD_CLASSDEREF:
                 m_comp->emit_load_classderef(oparg);
-                errorCheck("load classderef failed");
+                errorCheck("load classderef failed", curByte);
                 incStack();
                 break;
             case RAISE_VARARGS:
@@ -2029,7 +2069,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                         else {
                             // if we have args we'll always return 0...
                             m_comp->emit_pop();
-                            branchRaise("hit native error");
+                            branchRaise("hit native error", curByte);
                         }
                         break;
                 }
@@ -2091,18 +2131,18 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case IMPORT_NAME:
                 m_comp->emit_import_name(PyTuple_GetItem(mCode->co_names, oparg));
                 decStack(2);
-                errorCheck("import name failed");
+                errorCheck("import name failed", curByte);
                 incStack();
                 break;
             case IMPORT_FROM:
                 m_comp->emit_import_from(PyTuple_GetItem(mCode->co_names, oparg));
-                errorCheck("import from failed");
+                errorCheck("import from failed", curByte);
                 incStack();
                 break;
             case IMPORT_STAR:
                 m_comp->emit_import_star();
                 decStack(1);
-                intErrorCheck("import star failed");
+                intErrorCheck("import star failed", curByte);
                 break;
             case FORMAT_VALUE:
             {
@@ -2145,7 +2185,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                         m_comp->emit_pop_top();
                     }
 
-                    branchRaise("conversion failed");
+                    branchRaise("conversion failed", curByte);
                     m_comp->emit_mark_label(noErr);
                     m_comp->emit_load_local(mErrorCheckLocal);
                 }
@@ -2155,7 +2195,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                     m_comp->emit_load_and_free_local(fmtSpec);
                     m_comp->emit_pyobject_format();
 
-                    errorCheck("format object");
+                    errorCheck("format object", curByte);
                 }
                 else if (!whichConversion) {
                     // TODO: This could also be avoided if we knew we had a string on the stack
@@ -2200,7 +2240,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 incStack();
                 m_comp->emit_dict_build_from_map();
                 decStack(1);
-                errorCheck("dict map failed");
+                errorCheck("dict map failed", curByte);
                 incStack(1);
                 break;
             }
@@ -2210,7 +2250,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->lift_n_to_top(oparg);
                 m_comp->emit_list_extend();
                 decStack(2);
-                errorCheck("list extend failed");
+                errorCheck("list extend failed", curByte);
                 incStack(1);
                 // Takes list, value from stack and pushes list back onto stack
                 break;
@@ -2222,7 +2262,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->lift_n_to_top(oparg);
                 m_comp->emit_dict_update();
                 decStack(2); // dict, item
-                errorCheck("dict update failed");
+                errorCheck("dict update failed", curByte);
                 incStack(1);
                 break;
             }
@@ -2233,7 +2273,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_comp->lift_n_to_top(oparg);
                 m_comp->emit_set_extend();
                 decStack(2); // set, iterable
-                errorCheck("set update failed");
+                errorCheck("set update failed", curByte);
                 incStack(1); // set
                 break;
             }
@@ -2241,7 +2281,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             {
                 m_comp->emit_list_to_tuple();
                 decStack(1); // list
-                errorCheck("list to tuple failed");
+                errorCheck("list to tuple failed", curByte);
                 incStack(1); // tuple
                 break;
             }
@@ -2249,7 +2289,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             {
                 m_comp->emit_is(oparg);
                 decStack(2);
-                errorCheck("is check failed");
+                errorCheck("is check failed", curByte);
                 incStack(1);
                 break;
             }
@@ -2266,8 +2306,12 @@ JittedCode* AbstractInterpreter::compileWorker() {
             }
             case LOAD_METHOD:
             {
-                m_comp->emit_dup(); // dup self as needs to remain on stack
-                m_comp->emit_load_method(PyTuple_GetItem(mCode->co_names, oparg));
+                if (OPT_ENABLED(builtinMethods) && !stackInfo.empty() && stackInfo.top().hasValue() && isKnownType(stackInfo.top().Value->kind())){
+                    m_comp->emit_builtin_method(PyTuple_GetItem(mCode->co_names, oparg), stackInfo.top().Value);
+                } else {
+                    m_comp->emit_dup(); // dup self as needs to remain on stack
+                    m_comp->emit_load_method(PyTuple_GetItem(mCode->co_names, oparg));
+                }
                 incStack(1);
                 break;
             }
@@ -2280,7 +2324,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 } else {
                     decStack(2 + oparg); // + method + name + nargs
                 }
-                errorCheck("failed to call method");
+                errorCheck("failed to call method", curByte);
                 incStack(); //result
                 break;
             }
@@ -2342,21 +2386,21 @@ void AbstractInterpreter::testBoolAndBranch(Local value, bool isTrue, Label targ
 void AbstractInterpreter::unaryPositive(int opcodeIndex) {
     m_comp->emit_unary_positive();
     decStack();
-    errorCheck("unary positive failed");
+    errorCheck("unary positive failed", opcodeIndex);
     incStack();
 }
 
 void AbstractInterpreter::unaryNegative(int opcodeIndex) {
     m_comp->emit_unary_negative();
     decStack();
-    errorCheck("unary negative failed");
+    errorCheck("unary negative failed", opcodeIndex);
     incStack();
 }
 
-void AbstractInterpreter::unaryNot(int& opcodeIndex) {
+void AbstractInterpreter::unaryNot(int opcodeIndex) {
     m_comp->emit_unary_not();
     decStack(1);
-    errorCheck("unary not failed");
+    errorCheck("unary not failed", opcodeIndex);
     incStack();
 }
 
@@ -2468,7 +2512,7 @@ void AbstractInterpreter::unpackSequence(size_t size, int opcode) {
     auto success = m_comp->emit_define_label();
     m_comp->emit_unpack_sequence(valueTmp, m_sequenceLocals[opcode], success, size);
 
-    branchRaise("failed to unpack sequence");
+    branchRaise("failed to unpack sequence", opcode);
 
     m_comp->emit_mark_label(success);
     auto fastTmp = m_comp->emit_spill();
@@ -2532,11 +2576,11 @@ void AbstractInterpreter::forIter(int loopIndex) {
 
 void AbstractInterpreter::loadFast(int local, int opcodeIndex) {
     bool checkUnbound = m_assignmentState.find(local) == m_assignmentState.end() || !m_assignmentState.find(local)->second;
-    loadFastWorker(local, checkUnbound);
+    loadFastWorker(local, checkUnbound, opcodeIndex);
     incStack();
 }
 
-void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound) {
+void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound, int curByte) {
     m_comp->emit_load_fast(local);
 
     // Check if arg is unbound, raises UnboundLocalError
@@ -2551,7 +2595,7 @@ void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound) {
 
         m_comp->emit_unbound_local_check();
 
-        branchRaise("unbound local");
+        branchRaise("unbound local", curByte);
 
         m_comp->emit_mark_label(success);
         m_comp->emit_load_local(mErrorCheckLocal);
@@ -2574,7 +2618,7 @@ void AbstractInterpreter::unpackEx(size_t size, int opcode) {
     // the list local address, and the remainder address
     // PyObject* seq, size_t leftSize, size_t rightSize, PyObject** tempStorage, PyObject** list, PyObject*** remainder
 
-    errorCheck("unpack ex failed"); // TODO: We leak the sequence on failure
+    errorCheck("unpack ex failed", opcode); // TODO: We leak the sequence on failure
 
     auto fastTmp = m_comp->emit_spill();
 
@@ -2612,10 +2656,9 @@ void AbstractInterpreter::unpackEx(size_t size, int opcode) {
 
 
 void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) {
-    if (jumpTo <= opcodeIndex) {
-        periodicWork();
+    if (jumpTo <= opcodeIndex){
+        m_comp->emit_pending_calls();
     }
-
     auto target = getOffsetLabel(jumpTo);
     m_offsetStack[jumpTo] = ValueStack(m_stack);
     decStack();
@@ -2632,7 +2675,7 @@ void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) 
     m_comp->emit_load_local(tmp);
     m_comp->emit_is_true();
 
-    raiseOnNegativeOne();
+    raiseOnNegativeOne(opcodeIndex);
 
     m_comp->emit_branch(isTrue ? BranchFalse : BranchTrue, noJump);
 
@@ -2650,8 +2693,8 @@ void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) 
 }
 
 void AbstractInterpreter::popJumpIf(bool isTrue, int opcodeIndex, int jumpTo) {
-    if (jumpTo <= opcodeIndex) {
-        periodicWork();
+    if (jumpTo <= opcodeIndex){
+        m_comp->emit_pending_calls();
     }
     auto target = getOffsetLabel(jumpTo);
 
@@ -2671,7 +2714,7 @@ void AbstractInterpreter::popJumpIf(bool isTrue, int opcodeIndex, int jumpTo) {
     m_comp->emit_dup();
     m_comp->emit_is_true();
 
-    raiseOnNegativeOne();
+    raiseOnNegativeOne(opcodeIndex);
 
     m_comp->emit_branch(isTrue ? BranchFalse : BranchTrue, noJump);
 
@@ -2689,22 +2732,21 @@ void AbstractInterpreter::popJumpIf(bool isTrue, int opcodeIndex, int jumpTo) {
 }
 
 void AbstractInterpreter::jumpAbsolute(size_t index, size_t from) {
-    if (index <= from) {
-        periodicWork();
+    if (index <= from){
+        m_comp->emit_pending_calls();
     }
-
     m_offsetStack[index] = ValueStack(m_stack);
     m_comp->emit_branch(BranchAlways, getOffsetLabel(index));
 }
 
 void AbstractInterpreter::jumpIfNotExact(int opcodeIndex, int jumpTo) {
-    if (jumpTo <= opcodeIndex) { // if going backward, spin the CPU a bit
-        periodicWork();
+    if (jumpTo <= opcodeIndex){
+        m_comp->emit_pending_calls();
     }
     auto target = getOffsetLabel(jumpTo);
     m_comp->emit_compare_exceptions();
     decStack(2);
-    errorCheck("failed to compare exceptions");
+    errorCheck("failed to compare exceptions", opcodeIndex);
     m_comp->emit_ptr(Py_False);
     m_comp->emit_branch(BranchEqual, target);
 

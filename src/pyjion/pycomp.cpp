@@ -797,6 +797,9 @@ void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractV
                 } else {
                     m_il.emit_call(METHOD_STORE_SUBSCR_LIST);
                 }
+            } else if (key.hasValue() && key.Value->kind() == AVK_Slice){
+                // TODO : Optimize storing a list subscript
+                m_il.emit_call(METHOD_STORE_SUBSCR_OBJ);
             } else {
                 m_il.emit_call(METHOD_STORE_SUBSCR_LIST);
             }
@@ -833,7 +836,7 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
     ConstSource* constSource = nullptr;
     bool hasValidIndex = false;
 
-    if (key.Sources != nullptr && key.Sources->hasConstValue()){
+    if (key.hasSource() && key.Sources->hasConstValue()){
         constIndex = true;
         constSource = dynamic_cast<ConstSource*>(key.Sources);
         hasValidIndex = (constSource->hasNumericValue() && constSource->getNumericValue() >= 0);
@@ -853,13 +856,16 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             }
             break;
         case AVK_List:
-            if (constIndex){
-                if (hasValidIndex){
+            if (constIndex) {
+                if (hasValidIndex) {
                     m_il.ld_i8(constSource->getNumericValue());
                     m_il.emit_call(METHOD_SUBSCR_LIST_I);
                 } else {
                     m_il.emit_call(METHOD_SUBSCR_LIST);
                 }
+            } else if (key.hasValue() && key.Value->kind() == AVK_Slice){
+                // TODO : Further optimize getting a slice subscript when the values are dynamic
+                m_il.emit_call(METHOD_SUBSCR_OBJ);
             } else {
                 m_il.emit_call(METHOD_SUBSCR_LIST);
             }
@@ -872,6 +878,8 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
                 } else {
                     m_il.emit_call(METHOD_SUBSCR_TUPLE);
                 }
+            } else if (key.hasValue() && key.Value->kind() == AVK_Slice){
+                m_il.emit_call(METHOD_SUBSCR_OBJ);
             } else {
                 m_il.emit_call(METHOD_SUBSCR_TUPLE);
             }
@@ -896,6 +904,94 @@ void PythonCompiler::emit_binary_subscr(AbstractValueWithSources container, Abst
             }
     }
 }
+
+bool PythonCompiler::emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) {
+    bool startIndex = false, stopIndex = false;
+    Py_ssize_t start_i, stop_i;
+
+    if (start.hasSource() && start.Sources->hasConstValue()) {
+        if (start.Value->kind() == AVK_None) {
+            start_i = PY_SSIZE_T_MIN;
+            startIndex = true;
+        } else if (start.Value->kind() == AVK_Integer) {
+            start_i = dynamic_cast<ConstSource *>(start.Sources)->getNumericValue();
+            startIndex = true;
+        }
+    }
+    if (stop.hasSource() && stop.Sources->hasConstValue()) {
+        if (stop.Value->kind() == AVK_None) {
+            stop_i = PY_SSIZE_T_MAX;
+            stopIndex = true;
+        } else if (stop.Value->kind() == AVK_Integer) {
+            stop_i = dynamic_cast<ConstSource *>(stop.Sources)->getNumericValue();
+            stopIndex = true;
+        }
+    }
+    switch (container.Value->kind()) {
+        case AVK_List:
+            if (startIndex && stopIndex) {
+                decref(); decref(); // will also pop the values
+                m_il.ld_i8(start_i);
+                m_il.ld_i8(stop_i);
+                m_il.emit_call(METHOD_SUBSCR_LIST_SLICE);
+                return true;
+            }
+            break;
+    }
+    return false;
+}
+
+bool PythonCompiler::emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) {
+    bool startIndex = false, stopIndex = false, stepIndex = false;
+    Py_ssize_t start_i, stop_i, step_i;
+
+    if (start.hasSource() && start.Sources->hasConstValue()) {
+        if (start.Value->kind() == AVK_None) {
+            start_i = PY_SSIZE_T_MIN;
+            startIndex = true;
+        } else if (start.Value->kind() == AVK_Integer) {
+            start_i = dynamic_cast<ConstSource *>(start.Sources)->getNumericValue();
+            startIndex = true;
+        }
+    }
+    if (stop.hasSource() && stop.Sources->hasConstValue()) {
+        if (stop.Value->kind() == AVK_None) {
+            stop_i = PY_SSIZE_T_MAX;
+            stopIndex = true;
+        } else if (stop.Value->kind() == AVK_Integer) {
+            stop_i = dynamic_cast<ConstSource *>(stop.Sources)->getNumericValue();
+            stopIndex = true;
+        }
+    }
+    if (step.hasSource() && step.Sources->hasConstValue()) {
+        if (step.Value->kind() == AVK_None) {
+            step_i = 1;
+            stepIndex = true;
+        } else if (step.Value->kind() == AVK_Integer) {
+            step_i = dynamic_cast<ConstSource *>(step.Sources)->getNumericValue();
+            stepIndex = true;
+        }
+    }
+    switch (container.Value->kind()) {
+        case AVK_List:
+            if (start_i == PY_SSIZE_T_MIN && stop_i == PY_SSIZE_T_MAX && step_i == -1){
+                m_il.pop(); m_il.pop(); m_il.pop(); // NB: Don't bother decref'ing None or -1 since they're permanent values anyway
+                m_il.emit_call(METHOD_SUBSCR_LIST_SLICE_REVERSED);
+                return true;
+            }
+            else if (startIndex && stopIndex && stepIndex) {
+                decref(); decref(); decref(); // will also pop the values
+                m_il.ld_i8(start_i);
+                m_il.ld_i8(stop_i);
+                m_il.ld_i8(step_i);
+                m_il.emit_call(METHOD_SUBSCR_LIST_SLICE_STEPPED);
+                return true;
+            }
+            break;
+    }
+    return false;
+}
+
 
 void PythonCompiler::emit_build_slice() {
     m_il.emit_call(METHOD_BUILD_SLICE);
@@ -1623,13 +1719,82 @@ void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWit
 }
 
 void PythonCompiler::emit_load_method(void* name) {
+    PyJitMethodLocation * methodLocation = reinterpret_cast<PyJitMethodLocation *>(_PyObject_New(&PyJitMethodLocation_Type));
+    methodLocation->method = nullptr;
+    methodLocation->object = nullptr;
+
     m_il.ld_i(name);
+    emit_ptr(methodLocation);
     m_il.emit_call(METHOD_LOAD_METHOD);
 }
 
 void PythonCompiler::emit_periodic_work() {
     m_il.emit_call(METHOD_PERIODIC_WORK);
 }
+
+void PythonCompiler::emit_init_instr_counter() {
+    m_instrCount = emit_define_local(LK_Int);
+    m_il.load_null();
+    emit_store_local(m_instrCount);
+}
+
+void PythonCompiler::emit_pending_calls(){
+    Label skipPending = emit_define_label();
+    m_il.ld_loc(m_instrCount);
+    m_il.load_one();
+    m_il.add();
+    m_il.dup();
+    m_il.st_loc(m_instrCount);
+    m_il.ld_i4(10);
+    m_il.mod();
+    emit_branch(BranchTrue, skipPending);
+    m_il.emit_call(METHOD_PENDING_CALLS);
+    m_il.pop(); // TODO : Handle error from Py_MakePendingCalls?
+    emit_mark_label(skipPending);
+}
+
+void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValue) {
+    auto pyType = GetPyType(typeValue->kind());
+
+    if (pyType == nullptr)
+    {
+        emit_dup();
+        emit_load_method(name); // Can't inline this type of method
+        return;
+    }
+
+    auto meth = _PyType_Lookup(pyType, name);
+
+    if (meth == nullptr || !PyType_HasFeature(Py_TYPE(meth), Py_TPFLAGS_METHOD_DESCRIPTOR)) {
+        emit_dup();
+        emit_load_method(name); // Can't inline this type of method
+        return;
+    }
+    auto* methLocationObject = reinterpret_cast<PyJitMethodLocation *>(_PyObject_New(&PyJitMethodLocation_Type));
+    methLocationObject->method = meth;
+    methLocationObject->object = nullptr;
+
+    auto obj = emit_define_local(LK_Pointer);
+    emit_store_local(obj);
+    emit_ptr(methLocationObject);
+    auto meth_location = emit_define_local(LK_Pointer);
+    emit_store_local(meth_location);
+
+    emit_load_local(meth_location);
+    emit_incref();
+
+    emit_load_local(meth_location);
+    LD_FIELDA(PyJitMethodLocation, object);
+    emit_load_local(obj);
+    m_il.st_ind_i();
+
+    emit_ptr(meth);
+    emit_incref();
+
+    emit_load_and_free_local(obj);
+    emit_load_and_free_local(meth_location);
+}
+
 
 JittedCode* PythonCompiler::emit_compile() {
     auto* jitInfo = new CorJitInfo(m_code, m_module);
@@ -1646,7 +1811,6 @@ JittedCode* PythonCompiler::emit_compile() {
         return nullptr;
     }
     return jitInfo;
-
 }
 
 void PythonCompiler::emit_tagged_int_to_float() {
@@ -1660,16 +1824,16 @@ void PythonCompiler::emit_tagged_int_to_float() {
 */
 
 class GlobalMethod {
-    Method m_method;
+    JITMethod m_method;
 public:
-    GlobalMethod(int token, Method method) : m_method(method) {
+    GlobalMethod(int token, JITMethod method) : m_method(method) {
         m_method = method;
         g_module.m_methods[token] = &m_method;
     }
 };
 
 #define GLOBAL_METHOD(token, addr, returnType, ...) \
-    GlobalMethod g ## token(token, Method(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr));
+    GlobalMethod g ## token(token, JITMethod(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr));
 
 GLOBAL_METHOD(METHOD_ADD_TOKEN, &PyJit_Add, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
@@ -1680,6 +1844,10 @@ GLOBAL_METHOD(METHOD_SUBSCR_DICT, &PyJit_SubscrDict, CORINFO_TYPE_NATIVEINT, Par
 GLOBAL_METHOD(METHOD_SUBSCR_DICT_HASH, &PyJit_SubscrDictHash, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST, &PyJit_SubscrList, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_LIST_I, &PyJit_SubscrListIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE, &PyJit_SubscrListSlice, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE_STEPPED, &PyJit_SubscrListSliceStepped, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_SUBSCR_LIST_SLICE_REVERSED, &PyJit_SubscrListReversed, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
+
 GLOBAL_METHOD(METHOD_SUBSCR_TUPLE, &PyJit_SubscrTuple, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SUBSCR_TUPLE_I, &PyJit_SubscrTupleIndex, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
@@ -1862,7 +2030,7 @@ GLOBAL_METHOD(METHOD_PYUNICODE_JOINARRAY, &PyJit_UnicodeJoinArray, CORINFO_TYPE_
 GLOBAL_METHOD(METHOD_FORMAT_VALUE, &PyJit_FormatValue, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_FORMAT_OBJECT, &PyJit_FormatObject, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
-GLOBAL_METHOD(METHOD_LOAD_METHOD, &PyJit_LoadMethod, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_LOAD_METHOD, &PyJit_LoadMethod, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_METHCALL_0_TOKEN, &MethCall0, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_METHCALL_1_TOKEN, &MethCall1, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
@@ -1895,3 +2063,4 @@ GLOBAL_METHOD(METHOD_PROFILE_FRAME_EXIT, &PyJit_ProfileFrameExit, CORINFO_TYPE_V
 GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
 
 GLOBAL_METHOD(METHOD_TRIPLE_BINARY_OP, &PyJitMath_TripleBinaryOp, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));
+GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );

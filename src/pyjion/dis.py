@@ -177,6 +177,7 @@ class MethodTokens (Enum):
     METHOD_DEBUG_PYOBJECT                    = 0x0000007C
     METHOD_LOADNAME_HASH                     = 0x0000007D
     METHOD_LOADGLOBAL_HASH                   = 0x0000007E
+    METHOD_PENDING_CALLS                     = 0x0000007F
     METHOD_CALL_0_TOKEN        = 0x00010000
     METHOD_CALL_1_TOKEN        = 0x00010001
     METHOD_CALL_2_TOKEN        = 0x00010002
@@ -261,7 +262,9 @@ class MethodTokens (Enum):
     METHOD_SUBSCR_LIST_I       = 0x00070006
     METHOD_SUBSCR_TUPLE        = 0x00070007
     METHOD_SUBSCR_TUPLE_I      = 0x00070008
-
+    METHOD_SUBSCR_LIST_SLICE   = 0x00070009
+    METHOD_SUBSCR_LIST_SLICE_STEPPED    = 0x0007000A
+    METHOD_SUBSCR_LIST_SLICE_REVERSED   = 0x0007000B
 
 # Copy + Paste these from opcode.def and wrap the CEE codes in quotes.
 
@@ -667,11 +670,31 @@ def dis(f):
 
 
 def dis_native(f):
+
     try:
         import distorm3
+        from rich.console import Console
+        from rich.syntax import Syntax
     except ImportError:
-        raise ModuleNotFoundError("Install distorm3 before disassembling native functions")
-    code, code_length, position = dump_native(f)
+        raise ModuleNotFoundError("Install distorm3 and rich before disassembling native functions")
+
+    native = dump_native(f)
+    if not native:
+        print("No native code for this function, it may not have compiled correctly")
+        return
+    code, code_length, position = native
     iterable = distorm3.DecodeGenerator(position, bytes(code), distorm3.Decode64Bits)
-    for (offset, size, instruction, hexdump) in iterable:
-        print("%.8x: %s" % (offset, instruction))
+
+    disassembled = [(offset, instruction) for (offset, size, instruction, hexdump) in iterable]
+
+    console = Console()
+
+    offsets = ["%.8x" % offset for (offset, instruction) in disassembled]
+    instructions = [instruction for (offset, instruction) in disassembled]
+
+    syntax = Syntax("", lexer_name="nasm", theme="ansi_dark")
+    highlighted_lines = syntax.highlight("\n".join(instructions)).split("\n")
+
+    for (offset, line) in zip(offsets, highlighted_lines):
+        console.print("[grey]%s" % offset, style="dim", end=" ")
+        console.print(line)
