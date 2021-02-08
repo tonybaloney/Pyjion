@@ -524,10 +524,27 @@ class ByteArrayValue : public AbstractValue {
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
     AbstractValueKind resolveMethod(const char* name) override;
-
 };
 
 class MethodValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
+class CodeObjectValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
+class EnumeratorValue : public AbstractValue {
+    AbstractValueKind kind() override;
+    AbstractValue* unary(AbstractSource* selfSources, int op) override;
+    const char* describe() override;
+};
+
+class FileValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
@@ -557,6 +574,9 @@ extern IterableValue Iterable;
 extern TypeValue Type;
 extern ByteArrayValue ByteArray;
 extern MethodValue Method;
+extern CodeObjectValue CodeObject;
+extern EnumeratorValue Enumerator;
+extern FileValue File;
 
 AbstractValue* avkToAbstractValue(AbstractValueKind);
 AbstractValueKind GetAbstractType(PyTypeObject* type);
