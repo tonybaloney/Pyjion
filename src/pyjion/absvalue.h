@@ -513,6 +513,13 @@ class BuiltinValue : public AbstractValue {
     const char* describe() override;
 };
 
+class ModuleValue : public AbstractValue
+{
+    AbstractValueKind kind() override;
+    AbstractValue *unary(AbstractSource *selfSources, int op) override;
+    const char *describe() override;
+};
+
 class TypeValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
@@ -571,6 +578,7 @@ extern SliceValue Slice;
 extern ComplexValue Complex;
 extern BuiltinValue Builtin;
 extern IterableValue Iterable;
+extern ModuleValue Module;
 extern TypeValue Type;
 extern ByteArrayValue ByteArray;
 extern MethodValue Method;
@@ -580,7 +588,6 @@ extern FileValue File;
 
 AbstractValue* avkToAbstractValue(AbstractValueKind);
 AbstractValueKind GetAbstractType(PyTypeObject* type);
-
 PyTypeObject* GetPyType(AbstractValueKind type);
 #endif
 

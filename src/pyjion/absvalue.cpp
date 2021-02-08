@@ -45,12 +45,14 @@ SliceValue Slice;
 ComplexValue Complex;
 IterableValue Iterable;
 BuiltinValue Builtin;
+ModuleValue Module;
 TypeValue Type;
 ByteArrayValue ByteArray;
 MethodValue Method;
 CodeObjectValue CodeObject;
 EnumeratorValue Enumerator;
 FileValue File;
+
 
 AbstractSource::AbstractSource() {
     Sources = shared_ptr<AbstractSources>(new AbstractSources());
@@ -1179,6 +1181,17 @@ const char* BuiltinValue::describe() {
     return "builtin";
 }
 
+// Builtin methods
+AbstractValueKind ModuleValue::kind(){
+    return AVK_Module;
+}
+AbstractValue *ModuleValue::unary(AbstractSource *selfSources, int op){
+    return AbstractValue::unary(selfSources, op);
+}
+const char *ModuleValue::describe(){
+    return "module";
+}
+
 
 // Type methods
 AbstractValueKind TypeValue::kind() {
@@ -1328,7 +1341,7 @@ AbstractValue* avkToAbstractValue(AbstractValueKind kind){
         case AVK_Type:
             return &Type;
         case AVK_Module:
-            return &Any; // TODO : Add module type.
+            return &Module;
 
         default:
             return &Any;
@@ -1412,7 +1425,7 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         case AVK_Type: return &PyType_Type;
         case AVK_Enumerate: return &PyEnum_Type;
         case AVK_Code: return &PyCode_Type;
-
+    
         default:
             return nullptr;
     }
