@@ -52,20 +52,20 @@ class Method;
 class BaseMethod;
 class CorClass;
 
-class Module {
+class BaseModule {
 public:
     unordered_map<int, BaseMethod*> m_methods;
-    Module() = default;
+    BaseModule() = default;
 
     virtual BaseMethod* ResolveMethod(unsigned int tokenId) {
         return m_methods[tokenId];
     }
 };
 
-class UserModule : public Module {
-    Module& m_parent;
+class UserModule : public BaseModule {
+    BaseModule& m_parent;
 public:
-    explicit UserModule(Module& parent) : m_parent(parent) {
+    explicit UserModule(BaseModule& parent) : m_parent(parent) {
 
     }
 
@@ -100,13 +100,13 @@ public:
 };
 
 class JITMethod : public BaseMethod {
-    Module* m_module;
+    BaseModule* m_module;
 public:
     vector<Parameter> m_params;
     CorInfoType m_retType;
     void* m_addr;
 
-    JITMethod(Module* module, CorInfoType returnType, std::vector<Parameter> params, void* addr) {
+    JITMethod(BaseModule* module, CorInfoType returnType, std::vector<Parameter> params, void* addr) {
         m_retType = returnType;
         m_params = params;
         m_module = module;

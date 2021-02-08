@@ -70,7 +70,7 @@ public:
 
 InitHolder g_initHolder;
 
-Module g_module;
+BaseModule g_module;
 ICorJitCompiler* g_jit;
 
 PythonCompiler::PythonCompiler(PyCodeObject *code) :
