@@ -290,7 +290,7 @@ public:
     JittedCode* compile(PyObject* builtins, PyObject* globals);
     bool interpret(PyObject* builtins, PyObject* globals);
 
-    void setLocalType(int index, AbstractValueKind kind);
+    void setLocalType(int index, PyObject* val);
     // Returns information about the specified local variable at a specific
     // byte code index.
     AbstractLocalInfo getLocalInfo(size_t byteCodeIndex, size_t localIndex);

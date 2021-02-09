@@ -177,8 +177,13 @@ bool AbstractInterpreter::preprocess() {
     return true;
 }
 
-void AbstractInterpreter::setLocalType(int index, AbstractValueKind kind) {
-    // unused for now.
+void AbstractInterpreter::setLocalType(int index, PyObject* val) {
+    auto& lastState = mStartStates[0];
+    if (val != nullptr) {
+        auto localInfo = AbstractLocalInfo(toAbstract(val));
+        localInfo.ValueInfo.Sources = newSource(new LocalSource());
+        lastState.replaceLocal(index, localInfo);
+    }
 }
 
 void AbstractInterpreter::initStartingState() {
@@ -187,7 +192,6 @@ void AbstractInterpreter::initStartingState() {
     int localIndex = 0;
     for (int i = 0; i < mCode->co_argcount + mCode->co_kwonlyargcount; i++) {
         // all parameters are initially definitely assigned
-        // TODO: Populate this with type information from profiling...
         lastState.replaceLocal(localIndex++, AbstractLocalInfo(&Any));
     }
 
