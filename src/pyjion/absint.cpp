@@ -2224,7 +2224,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 // Array
                 m_comp->emit_load_local(stackArray);
                 // Count
-                m_comp->emit_long_long(oparg);
+                m_comp->emit_int(oparg);
 
                 m_comp->emit_unicode_joinarray();
 

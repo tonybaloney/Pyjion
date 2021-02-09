@@ -2552,7 +2552,7 @@ int PyJit_PeriodicWork() {
 	return 0;
 }
 
-PyObject* PyJit_UnicodeJoinArray(PyObject** items, Py_ssize_t count) {
+PyObject* PyJit_UnicodeJoinArray(PyObject** items, int count) {
 	auto empty = PyUnicode_New(0, 0);
 	auto res = _PyUnicode_JoinArray(empty, items, count);
 	for (auto i = 0; i < count; i++) {
