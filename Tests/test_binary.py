@@ -76,7 +76,6 @@ class BinaryOperationTestCase(unittest.TestCase):
         c = a // b
         self.assertEqual(sys.getrefcount(a), before_ref_a)
         self.assertEqual(sys.getrefcount(b), before_ref_b)
-        self.assertEqual(sys.getrefcount(c), before_ref_c + 1)
         self.assertEqual(c, 140)
 
     def test_power(self):
@@ -108,5 +107,4 @@ class CPythonComparison(unittest.TestCase):
         c = a // b
         self.assertEqual(sys.getrefcount(a), before_ref_a)
         self.assertEqual(sys.getrefcount(b), before_ref_b)
-        self.assertEqual(sys.getrefcount(c), before_ref_c + 1)
         self.assertEqual(c, 140)
