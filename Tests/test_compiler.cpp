@@ -1669,3 +1669,33 @@ TEST_CASE("Test and return"){
         CHECK(t.returns() == "True");
     }
 }
+
+TEST_CASE("Test locals propagation", "[!mayfail]") {
+    SECTION("test precomputed hash on dict") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    l = {'a': 1, 'b': 2}\n"
+                "    l['a'] = 3\n"
+                "    return l['a']"
+        );
+        CHECK(t.returns() == "3");
+    }
+    SECTION("test precomputed hash on dict within exec") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    l = {'a': 1, 'b': 2}\n"
+                "    exec('l[\"a\"] = 3')\n"
+                "    return l['a']\n"
+        );
+        CHECK(t.returns() == "3");
+    }
+    SECTION("get locals") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    a = 1\n"
+                "    b = 2\n"
+                "    return locals()\n"
+        );
+        CHECK(t.returns() == "3");
+    }
+}
