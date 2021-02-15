@@ -1628,7 +1628,7 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             fallback_token = METHOD_ADD_TOKEN;
             break;
         case BINARY_TRUE_DIVIDE:
-            slot = Py_nb_true_divide; fallback_token = METHOD_ADD_TOKEN;break;
+            slot = Py_nb_true_divide; fallback_token = METHOD_DIVIDE_TOKEN;break;
         case BINARY_FLOOR_DIVIDE:
             slot = Py_nb_floor_divide; fallback_token = METHOD_FLOORDIVIDE_TOKEN;break;
         case BINARY_POWER:
@@ -1678,7 +1678,10 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
         case INPLACE_OR:
             slot = Py_nb_inplace_or; fallback_token = METHOD_INPLACE_OR_TOKEN;break;
     }
-    void* bfunc = PyType_GetSlot(GetPyType(left.Value->kind()), slot);
+
+    void* bfunc = nullptr;
+    if (left.hasValue() && isKnownType(left.Value->kind()))
+        bfunc = PyType_GetSlot(GetPyType(left.Value->kind()), slot);
 
     if (bfunc != nullptr){
         static auto method = JITMethod(&g_module, CORINFO_TYPE_NATIVEINT, std::vector<Parameter>{Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT)}, bfunc);
