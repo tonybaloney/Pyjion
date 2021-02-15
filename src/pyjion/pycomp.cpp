@@ -1242,6 +1242,10 @@ void PythonCompiler::emit_int(int value) {
     m_il.ld_i4(value);
 }
 
+void PythonCompiler::emit_long_long(long long value) {
+    m_il.ld_i8(value);
+}
+
 void PythonCompiler::emit_reraise() {
     m_il.emit_call(METHOD_UNWIND_EH);
 }

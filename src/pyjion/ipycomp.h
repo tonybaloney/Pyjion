@@ -122,6 +122,7 @@ public:
 
     // Emits an unboxed integer value onto the stack
     virtual void emit_int(int value) = 0;
+    virtual void emit_long_long(long long value) = 0;
     // Emits an unboxed floating point value onto the stack
     virtual void emit_float(double value) = 0;
 
