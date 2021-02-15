@@ -79,7 +79,6 @@ public:
     vector<BYTE> m_il;
     int m_localCount;
     vector<LabelInfo> m_labels;
-    int m_stackSize;
 
 public:
 
