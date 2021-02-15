@@ -242,6 +242,7 @@
 #define METHOD_SUBSCR_LIST_SLICE_REVERSED 0x0007000B
 
 
+
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
 #define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
 #define LD_FIELDI(type, field) m_il.ld_i(offsetof(type, field)); m_il.mul(); m_il.ld_ind_i();
@@ -404,6 +405,7 @@ public:
 
     void emit_binary_float(int opcode) override;
     void emit_binary_object(int opcode) override;
+    void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) override;

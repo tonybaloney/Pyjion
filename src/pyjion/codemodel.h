@@ -28,6 +28,8 @@
 
 #define FEATURE_NO_HOST
 
+
+
 #include <stdint.h>
 #include <windows.h>
 #include <wchar.h>
@@ -45,6 +47,9 @@
 #include <unordered_map>
 
 #include <corjit.h>
+#include "pycomp.h"
+
+#define METHOD_SLOT_SPACE 0x00100000
 
 using namespace std;
 
@@ -55,10 +60,17 @@ class CorClass;
 class BaseModule {
 public:
     unordered_map<int, BaseMethod*> m_methods;
+    int slotCursor = 0;
     BaseModule() = default;
 
     virtual BaseMethod* ResolveMethod(unsigned int tokenId) {
         return m_methods[tokenId];
+    }
+
+    int AddMethod(BaseMethod* method){
+        int token = METHOD_SLOT_SPACE + ++slotCursor;
+        m_methods[token] = method;
+        return token;
     }
 };
 

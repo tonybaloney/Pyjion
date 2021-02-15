@@ -1562,8 +1562,6 @@ void PythonCompiler::emit_binary_subscr(int opcode, AbstractValueWithSources lef
 
 void PythonCompiler::emit_binary_object(int opcode) {
     switch (opcode) {
-        case BINARY_SUBSCR:
-            m_il.emit_call(METHOD_SUBSCR_OBJ); break;
         case BINARY_ADD:
             m_il.emit_call(METHOD_ADD_TOKEN); break;
         case BINARY_TRUE_DIVIDE:
@@ -1620,6 +1618,79 @@ void PythonCompiler::emit_binary_object(int opcode) {
             m_il.emit_call(METHOD_INPLACE_OR_TOKEN); break;
     }
 }
+
+void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
+    int slot ;
+    int fallback_token;
+    switch (opcode) {
+        case BINARY_ADD:
+            slot = Py_nb_add;
+            fallback_token = METHOD_ADD_TOKEN;
+            break;
+        case BINARY_TRUE_DIVIDE:
+            slot = Py_nb_true_divide; fallback_token = METHOD_ADD_TOKEN;break;
+        case BINARY_FLOOR_DIVIDE:
+            slot = Py_nb_floor_divide; fallback_token = METHOD_FLOORDIVIDE_TOKEN;break;
+        case BINARY_POWER:
+            slot = Py_nb_power; fallback_token = METHOD_POWER_TOKEN;break;
+        case BINARY_MODULO:
+            slot = Py_nb_remainder; fallback_token = METHOD_MODULO_TOKEN;break;
+        case BINARY_MATRIX_MULTIPLY:
+            slot = Py_nb_matrix_multiply; fallback_token = METHOD_MATRIX_MULTIPLY_TOKEN;break;
+        case BINARY_LSHIFT:
+            slot = Py_nb_lshift; fallback_token = METHOD_BINARY_LSHIFT_TOKEN;break;
+        case BINARY_RSHIFT:
+            slot = Py_nb_rshift; fallback_token = METHOD_BINARY_RSHIFT_TOKEN;break;
+        case BINARY_AND:
+            slot = Py_nb_and; fallback_token = METHOD_BINARY_AND_TOKEN;break;
+        case BINARY_XOR:
+            slot = Py_nb_xor; fallback_token = METHOD_BINARY_XOR_TOKEN; break;
+        case BINARY_OR:
+            slot = Py_nb_or; fallback_token = METHOD_BINARY_OR_TOKEN;break;
+        case BINARY_MULTIPLY:
+            slot = Py_nb_multiply; fallback_token = METHOD_MULTIPLY_TOKEN;break;
+        case BINARY_SUBTRACT:
+            slot = Py_nb_subtract; fallback_token = METHOD_SUBTRACT_TOKEN;break;
+        case INPLACE_POWER:
+            slot = Py_nb_inplace_power; fallback_token = METHOD_INPLACE_POWER_TOKEN;break;
+        case INPLACE_MULTIPLY:
+            slot = Py_nb_inplace_multiply; fallback_token = METHOD_INPLACE_MULTIPLY_TOKEN;break;
+        case INPLACE_MATRIX_MULTIPLY:
+            slot = Py_nb_inplace_matrix_multiply; fallback_token = METHOD_INPLACE_MATRIX_MULTIPLY_TOKEN;break;
+        case INPLACE_TRUE_DIVIDE:
+            slot = Py_nb_inplace_true_divide; fallback_token = METHOD_INPLACE_TRUE_DIVIDE_TOKEN; break;
+        case INPLACE_FLOOR_DIVIDE:
+            slot = Py_nb_inplace_floor_divide; fallback_token = METHOD_INPLACE_FLOOR_DIVIDE_TOKEN; break;
+        case INPLACE_MODULO:
+            slot = Py_nb_inplace_remainder; fallback_token = METHOD_INPLACE_MODULO_TOKEN; ;break;
+        case INPLACE_ADD:
+            slot = Py_nb_inplace_add; fallback_token = METHOD_INPLACE_ADD_TOKEN;break;
+        case INPLACE_SUBTRACT:
+            slot = Py_nb_inplace_subtract; fallback_token = METHOD_INPLACE_SUBTRACT_TOKEN; break;
+        case INPLACE_LSHIFT:
+            slot = Py_nb_inplace_lshift; fallback_token = METHOD_INPLACE_LSHIFT_TOKEN;break;
+        case INPLACE_RSHIFT:
+            slot = Py_nb_inplace_rshift; fallback_token = METHOD_INPLACE_RSHIFT_TOKEN;break;
+        case INPLACE_AND:
+            slot = Py_nb_inplace_and; fallback_token = METHOD_INPLACE_AND_TOKEN;break;
+        case INPLACE_XOR:
+            slot = Py_nb_inplace_xor; fallback_token = METHOD_INPLACE_XOR_TOKEN;break;
+        case INPLACE_OR:
+            slot = Py_nb_inplace_or; fallback_token = METHOD_INPLACE_OR_TOKEN;break;
+    }
+    void* bfunc = PyType_GetSlot(GetPyType(left.Value->kind()), slot);
+
+    if (bfunc != nullptr){
+        static auto method = JITMethod(&g_module, CORINFO_TYPE_NATIVEINT, std::vector<Parameter>{Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT)}, bfunc);
+        auto tok = g_module.AddMethod(&method);
+        m_il.emit_call(tok);
+    } else {
+        PyErr_Clear();
+        m_il.emit_call(fallback_token);
+    }
+}
+
+
 void PythonCompiler::emit_triple_binary_op(int firstOp, int secondOp) {
     m_il.ld_i4(firstOp);
     m_il.ld_i4(secondOp);
