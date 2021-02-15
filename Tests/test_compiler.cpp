@@ -453,12 +453,20 @@ TEST_CASE("Unary tests") {
                 "def f():\n  x=True\n  return not x\n"
         );
         CHECK(t.returns() == "False");
-    }SECTION("in place add") {
+    }
+    SECTION("in place add") {
         auto t = CompilerTest(
                 "def f():\n  x=1\n  x+=1\n  return x"
         );
         CHECK(t.returns() == "2");
-    }SECTION("test1") {
+    }
+    SECTION("simple add") {
+        auto t = CompilerTest(
+                "def f():\n  x=1\n  y=2\n  z = x+y\n  return z"
+        );
+        CHECK(t.returns() == "3");
+    }
+    SECTION("test1") {
         auto t = CompilerTest(
                 "def f():\n    x = 4611686018427387903\n    x += 1\n    x -= 1\n    y = not x\n    return y"
         );
