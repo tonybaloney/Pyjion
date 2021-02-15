@@ -6,6 +6,9 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_definitions(-DDEFAULT_RECURSION_LIMIT=1000)
+add_definitions(-DDEFAULT_CODEOBJECT_SIZE_LIMIT=10000)
+
 option(BUILD_TESTS "Build the unit tests" OFF)
 
 include(CMakeOptimizations.txt)
@@ -242,9 +245,9 @@ if (SKBUILD)
     python_extension_module(_pyjion)
 endif (SKBUILD)
 
-install(TARGETS _pyjion LIBRARY DESTINATION src/pyjion)
-#set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR})
-#install(TARGETS _pyjion
-#        CONFIGURATIONS Debug
-#        LIBRARY DESTINATION src/pyjion
-#        RUNTIME DESTINATION Debug/bin)
+#install(TARGETS _pyjion LIBRARY DESTINATION src/pyjion)
+set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR})
+install(TARGETS _pyjion
+        CONFIGURATIONS Debug
+        LIBRARY DESTINATION src/pyjion
+        RUNTIME DESTINATION Debug/bin)

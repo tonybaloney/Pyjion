@@ -70,6 +70,12 @@ bool AbstractInterpreter::preprocess() {
         // all parameters are initially definitely assigned
         m_assignmentState[i] = true;
     }
+    if (mSize >= g_pyjionSettings.codeObjectSizeLimit){
+#ifdef DEBUG
+        printf("Skipping function because it is too big.");
+#endif
+        return false;
+    }
 
     int oparg;
     vector<bool> ehKind;
@@ -1618,7 +1624,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
         auto byte = GET_OPCODE(curByte);
 
         // Get an additional oparg, see dis help for information on what each means
-        auto oparg = GET_OPARG(curByte);
+        size_t oparg = GET_OPARG(curByte);
 
     processOpCode:
         markOffsetLabel(curByte);
@@ -2224,7 +2230,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 // Array
                 m_comp->emit_load_local(stackArray);
                 // Count
-                m_comp->emit_int(oparg);
+                m_comp->emit_long_long(oparg);
 
                 m_comp->emit_unicode_joinarray();
 
