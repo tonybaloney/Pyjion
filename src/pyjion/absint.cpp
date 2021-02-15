@@ -66,6 +66,7 @@ bool AbstractInterpreter::preprocess() {
         // detecting yields because they could be optimized out.
         return false;
     }
+
     for (int i = 0; i < mCode->co_argcount; i++) {
         // all parameters are initially definitely assigned
         m_assignmentState[i] = true;
@@ -143,7 +144,8 @@ bool AbstractInterpreter::preprocess() {
                 if (!strcmp(name, "vars") || 
                     !strcmp(name, "dir") || 
                     !strcmp(name, "locals") || 
-                    !strcmp(name, "eval")) {
+                    !strcmp(name, "eval") ||
+                    !strcmp(name, "exec")) {
                     // In the future we might be able to do better, e.g. keep locals in fast locals,
                     // but for now this is a known limitation that if you load vars/dir we won't
                     // optimize your code, and if you alias them you won't get the correct behavior.
