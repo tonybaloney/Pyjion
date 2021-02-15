@@ -7,6 +7,10 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(CODE_COVERAGE "Enable coverage reporting" OFF)
+
+add_definitions(-DDEFAULT_RECURSION_LIMIT=1000)
+add_definitions(-DDEFAULT_CODEOBJECT_SIZE_LIMIT=10000)
+
 option(BUILD_TESTS "Build the unit tests" OFF)
 option(GENERATE_PROFILE "Enable Profile Generation" OFF)
 

@@ -808,7 +808,7 @@ public:
 
     // Resolve metadata token into runtime method handles.
     void resolveToken(/* IN, OUT */ CORINFO_RESOLVED_TOKEN * pResolvedToken) override {
-        auto* mod = reinterpret_cast<Module*>(pResolvedToken->tokenScope);
+        auto* mod = reinterpret_cast<BaseModule*>(pResolvedToken->tokenScope);
         BaseMethod* method = mod->ResolveMethod(pResolvedToken->token);
         pResolvedToken->hMethod = (CORINFO_METHOD_HANDLE)method;
         pResolvedToken->hClass = PYOBJECT_PTR_TYPE; // Internal reference for Pyobject ptr
@@ -821,7 +821,7 @@ public:
         CORINFO_CONTEXT_HANDLE      context,    /* IN */
         CORINFO_SIG_INFO           *sig         /* OUT */
         ) override {
-        auto mod = reinterpret_cast<Module*>(module);
+        auto mod = reinterpret_cast<BaseModule*>(module);
         auto method = mod->ResolveMethod(sigTOK);
         method->findSig(sig);
     }

@@ -70,7 +70,7 @@ public:
 
 InitHolder g_initHolder;
 
-Module g_module;
+BaseModule g_module;
 ICorJitCompiler* g_jit;
 
 PythonCompiler::PythonCompiler(PyCodeObject *code) :
@@ -1240,6 +1240,10 @@ void PythonCompiler::emit_prepare_exception(Local prevExc, Local prevExcVal, Loc
 
 void PythonCompiler::emit_int(int value) {
     m_il.ld_i4(value);
+}
+
+void PythonCompiler::emit_long_long(long long value) {
+    m_il.ld_i8(value);
 }
 
 void PythonCompiler::emit_reraise() {

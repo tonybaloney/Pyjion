@@ -72,18 +72,17 @@ struct CorInfoTypeHash {
 class ILGenerator {
     vector<Parameter> m_params, m_locals;
     CorInfoType m_retType;
-    Module* m_module;
+    BaseModule* m_module;
     unordered_map<CorInfoType, vector<Local>, CorInfoTypeHash> m_freedLocals;
 
 public:
     vector<BYTE> m_il;
     int m_localCount;
     vector<LabelInfo> m_labels;
-    int m_stackSize;
 
 public:
 
-    ILGenerator(Module* module, CorInfoType returnType, std::vector<Parameter> params) {
+    ILGenerator(BaseModule* module, CorInfoType returnType, std::vector<Parameter> params) {
         m_module = module;
         m_retType = returnType;
         m_params = params;

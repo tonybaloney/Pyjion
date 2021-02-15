@@ -45,9 +45,14 @@ SliceValue Slice;
 ComplexValue Complex;
 IterableValue Iterable;
 BuiltinValue Builtin;
+ModuleValue Module;
 TypeValue Type;
 ByteArrayValue ByteArray;
 MethodValue Method;
+CodeObjectValue CodeObject;
+EnumeratorValue Enumerator;
+FileValue File;
+
 
 AbstractSource::AbstractSource() {
     Sources = shared_ptr<AbstractSources>(new AbstractSources());
@@ -1176,6 +1181,17 @@ const char* BuiltinValue::describe() {
     return "builtin";
 }
 
+// Builtin methods
+AbstractValueKind ModuleValue::kind(){
+    return AVK_Module;
+}
+AbstractValue *ModuleValue::unary(AbstractSource *selfSources, int op){
+    return AbstractValue::unary(selfSources, op);
+}
+const char *ModuleValue::describe(){
+    return "module";
+}
+
 
 // Type methods
 AbstractValueKind TypeValue::kind() {
@@ -1224,6 +1240,45 @@ AbstractValue *MethodValue::unary(AbstractSource *selfSources, int op) {
 
 const char *MethodValue::describe() {
     return "method";
+}
+
+/* Enumerator Value */
+AbstractValueKind EnumeratorValue::kind() {
+    return AVK_Enumerate;
+}
+
+AbstractValue *EnumeratorValue::unary(AbstractSource *selfSources, int op) {
+    return AbstractValue::unary(selfSources, op);
+}
+
+const char *EnumeratorValue::describe() {
+    return "enumerator";
+}
+
+/* File Value */
+AbstractValueKind FileValue::kind() {
+    return AVK_File;
+}
+
+AbstractValue *FileValue::unary(AbstractSource *selfSources, int op) {
+    return AbstractValue::unary(selfSources, op);
+}
+
+const char *FileValue::describe() {
+    return "file";
+}
+
+/* Code Object Value */
+AbstractValueKind CodeObjectValue::kind() {
+    return AVK_Code;
+}
+
+AbstractValue *CodeObjectValue::unary(AbstractSource *selfSources, int op) {
+    return AbstractValue::unary(selfSources, op);
+}
+
+const char *CodeObjectValue::describe() {
+    return "codeobject";
 }
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source){
@@ -1278,15 +1333,15 @@ AbstractValue* avkToAbstractValue(AbstractValueKind kind){
         case AVK_Iterable:
             return &Iterable;
         case AVK_Code:
-            return &Any; // TODO : Add codeobject type.
+            return &CodeObject;
         case AVK_Enumerate:
-            return &Any; // TODO : Add enumerator type.
+            return &Enumerator;
         case AVK_File:
-            return &Any; // TODO : Add fileobject type.
+            return &File;
         case AVK_Type:
             return &Type;
         case AVK_Module:
-            return &Any; // TODO : Add module type.
+            return &Module;
 
         default:
             return &Any;
@@ -1341,6 +1396,12 @@ AbstractValueKind GetAbstractType(PyTypeObject* type) {
     else if (type == &PyType_Type) {
         return AVK_Type;
     }
+    else if (type == &PyEnum_Type) {
+        return AVK_Enumerate;
+    }
+    else if (type == &PyCode_Type) {
+        return AVK_Code;
+    }
     return AVK_Any;
 }
 
@@ -1362,7 +1423,9 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         case AVK_Slice: return &PySlice_Type;
         case AVK_Complex: return &PyComplex_Type;
         case AVK_Type: return &PyType_Type;
-
+        case AVK_Enumerate: return &PyEnum_Type;
+        case AVK_Code: return &PyCode_Type;
+    
         default:
             return nullptr;
     }

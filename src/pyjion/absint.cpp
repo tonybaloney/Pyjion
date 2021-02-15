@@ -66,9 +66,16 @@ bool AbstractInterpreter::preprocess() {
         // detecting yields because they could be optimized out.
         return false;
     }
+
     for (int i = 0; i < mCode->co_argcount; i++) {
         // all parameters are initially definitely assigned
         m_assignmentState[i] = true;
+    }
+    if (mSize >= g_pyjionSettings.codeObjectSizeLimit){
+#ifdef DEBUG
+        printf("Skipping function because it is too big.");
+#endif
+        return false;
     }
 
     int oparg;
@@ -143,7 +150,9 @@ bool AbstractInterpreter::preprocess() {
                 if (!strcmp(name, "vars") || 
                     !strcmp(name, "dir") || 
                     !strcmp(name, "locals") || 
-                    !strcmp(name, "eval")) {
+                    !strcmp(name, "eval") ||
+                    !strcmp(name, "exec")) {
+                    // TODO: Support for frame globals
                     // In the future we might be able to do better, e.g. keep locals in fast locals,
                     // but for now this is a known limitation that if you load vars/dir we won't
                     // optimize your code, and if you alias them you won't get the correct behavior.
@@ -177,8 +186,13 @@ bool AbstractInterpreter::preprocess() {
     return true;
 }
 
-void AbstractInterpreter::setLocalType(int index, AbstractValueKind kind) {
-    // unused for now.
+void AbstractInterpreter::setLocalType(int index, PyObject* val) {
+    auto& lastState = mStartStates[0];
+    if (val != nullptr) {
+        auto localInfo = AbstractLocalInfo(toAbstract(val));
+        localInfo.ValueInfo.Sources = newSource(new LocalSource());
+        lastState.replaceLocal(index, localInfo);
+    }
 }
 
 void AbstractInterpreter::initStartingState() {
@@ -187,7 +201,6 @@ void AbstractInterpreter::initStartingState() {
     int localIndex = 0;
     for (int i = 0; i < mCode->co_argcount + mCode->co_kwonlyargcount; i++) {
         // all parameters are initially definitely assigned
-        // TODO: Populate this with type information from profiling...
         lastState.replaceLocal(localIndex++, AbstractLocalInfo(&Any));
     }
 
@@ -1614,7 +1627,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
         auto byte = GET_OPCODE(curByte);
 
         // Get an additional oparg, see dis help for information on what each means
-        auto oparg = GET_OPARG(curByte);
+        size_t oparg = GET_OPARG(curByte);
 
     processOpCode:
         markOffsetLabel(curByte);
@@ -2220,7 +2233,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 // Array
                 m_comp->emit_load_local(stackArray);
                 // Count
-                m_comp->emit_int(oparg);
+                m_comp->emit_long_long(oparg);
 
                 m_comp->emit_unicode_joinarray();
 

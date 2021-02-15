@@ -430,6 +430,7 @@ public:
     void emit_compare_equal() override;
 
     void emit_int(int value) override;
+    void emit_long_long(long long value) override;
     void emit_float(double value) override;
     void emit_ptr(void *value) override;
     void emit_bool(bool value) override;
