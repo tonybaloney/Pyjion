@@ -1669,3 +1669,24 @@ TEST_CASE("Test and return"){
         CHECK(t.returns() == "True");
     }
 }
+
+TEST_CASE("Test dict hashes") {
+    SECTION("test precomputed hash on dict") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    l = {'a': 1, 'b': 2}\n"
+                "    l['a'] = 3\n"
+                "    return l['a']"
+        );
+        CHECK(t.returns() == "3");
+    }
+    SECTION("test precomputed hash on dict within exec") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    l = {'a': 1, 'b': 2}\n"
+                "    exec('l[\"a\"] = 3')\n"
+                "    return l['a']\n"
+        );
+        CHECK(t.returns() == "3");
+    }
+}
