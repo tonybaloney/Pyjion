@@ -11,6 +11,7 @@ option(OPTIMIZE_ITERATORS "Optimize iterators of common types into inline instru
 option(OPTIMIZE_HASHED_NAMES "Optimize LOAD_NAME/STORE_NAME with precomputed hashes" ON)
 option(OPTIMIZE_BINARY_SLICE "Combine BUILD_SLICE/BINARY_SUBSCR" ON)
 option(OPTIMIZE_BUILTIN_METHODS "Optimize builtin method lookups" ON)
+option(OPTIMIZE_TYPESLOT_LOOKUPS "Precompile typeslot lookups for binary operations" ON)
 
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
 
@@ -84,6 +85,12 @@ if (OPTIMIZE_BUILTIN_METHODS)
     add_definitions(-DOPTIMIZE_BUILTIN_METHODS=1)
 else()
     add_definitions(-DOPTIMIZE_BUILTIN_METHODS=0)
+endif()
+
+if (OPTIMIZE_TYPESLOT_LOOKUPS)
+    add_definitions(-DOPTIMIZE_TYPESLOT_LOOKUPS=1)
+else()
+    add_definitions(-DOPTIMIZE_TYPESLOT_LOOKUPS=0)
 endif()
 
 if (EE_DEBUG_CODE)

@@ -1,6 +1,5 @@
 # Release notes
 
-
 ## 0.10.0
 
 * Added OPT-12 (OPTIMIZE_BUILTIN_METHOD) to pre-lookup methods for builtin types and bypass LOAD_METHOD (PyObject_GetMethod)
