@@ -28,8 +28,6 @@
 
 #define FEATURE_NO_HOST
 
-
-
 #include <stdint.h>
 #include <windows.h>
 #include <wchar.h>
@@ -47,7 +45,6 @@
 #include <unordered_map>
 
 #include <corjit.h>
-#include "pycomp.h"
 
 #define METHOD_SLOT_SPACE 0x00100000
 
@@ -56,6 +53,14 @@ using namespace std;
 class Method;
 class BaseMethod;
 class CorClass;
+
+class Parameter {
+public:
+    CorInfoType m_type;
+    explicit Parameter(CorInfoType type) {
+        m_type = type;
+    }
+};
 
 class BaseModule {
 public:
@@ -67,11 +72,7 @@ public:
         return m_methods[tokenId];
     }
 
-    int AddMethod(BaseMethod* method){
-        int token = METHOD_SLOT_SPACE + ++slotCursor;
-        m_methods[token] = method;
-        return token;
-    }
+    virtual int AddMethod(CorInfoType returnType, std::vector<Parameter> params, void* addr);
 };
 
 class UserModule : public BaseModule {
@@ -91,13 +92,7 @@ public:
     }
 };
 
-class Parameter {
-public:
-    CorInfoType m_type;
-    explicit Parameter(CorInfoType type) {
-        m_type = type;
-    }
-};
+
 
 class BaseMethod {
 public:
@@ -151,5 +146,6 @@ public:
         pResult->addr = &m_addr;
     }
 };
+
 
 #endif

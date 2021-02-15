@@ -1679,27 +1679,45 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             slot = offsetof(PyNumberMethods, nb_inplace_or); fallback_token = METHOD_INPLACE_OR_TOKEN;break;
     }
 
-    binaryfunc bfunc = nullptr;
+    binaryfunc binaryfunc_left = nullptr;
+    binaryfunc binaryfunc_right = nullptr;
+
+
     if (left.hasValue() && isKnownType(left.Value->kind())){
         auto leftType = GetPyType(left.Value->kind());
         if (leftType->tp_as_number != nullptr){
-            bfunc = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[slot]));
+            binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[slot]));
         }
     }
+    if (right.hasValue() && left.hasValue() && isKnownType(right.Value->kind()) && left.Value->kind() != right.Value->kind()){
+        auto rightType = GetPyType(right.Value->kind());
+        if (rightType->tp_as_number != nullptr){
+            binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[slot]));
+        }
+    }
+    binaryfunc target = nullptr;
 
-    if (bfunc != nullptr){
-        static auto method = JITMethod(&g_module, CORINFO_TYPE_NATIVEINT, std::vector<Parameter>{Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT)}, (void*)bfunc);
-        auto tok = g_module.AddMethod(&method);
-        Local left = emit_define_local(LK_Pointer);
-        Local right = emit_define_local(LK_Pointer);
-        emit_store_local(left);
-        emit_store_local(right);
-        emit_load_local(right);
-        emit_load_local(left);
+    /* Order operations are tried until either a valid result or error:
+    w.op(v,w)[*], v.op(v,w), w.op(v,w)
+
+    [*] only when Py_TYPE(v) != Py_TYPE(w) && Py_TYPE(w) is a subclass of
+            Py_TYPE(v)
+    */
+    if (binaryfunc_left) target = binaryfunc_left;
+    else if (binaryfunc_right) target = binaryfunc_right;
+
+    if (target != nullptr){
+        auto tok = g_module.AddMethod(CORINFO_TYPE_NATIVEINT, std::vector<Parameter>{Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT)}, (void*)target);
+        Local leftLocal = emit_define_local(LK_Pointer);
+        Local rightLocal = emit_define_local(LK_Pointer);
+        emit_store_local(leftLocal);
+        emit_store_local(rightLocal);
+        emit_load_local(rightLocal);
+        emit_load_local(leftLocal);
         m_il.emit_call(tok);
-        emit_load_and_free_local(left);
+        emit_load_and_free_local(leftLocal);
         decref();
-        emit_load_and_free_local(right);
+        emit_load_and_free_local(rightLocal);
         decref();
     } else {
         PyErr_Clear();
