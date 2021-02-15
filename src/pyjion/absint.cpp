@@ -146,6 +146,7 @@ bool AbstractInterpreter::preprocess() {
                     !strcmp(name, "locals") || 
                     !strcmp(name, "eval") ||
                     !strcmp(name, "exec")) {
+                    // TODO: Support for frame globals
                     // In the future we might be able to do better, e.g. keep locals in fast locals,
                     // but for now this is a known limitation that if you load vars/dir we won't
                     // optimize your code, and if you alias them you won't get the correct behavior.
