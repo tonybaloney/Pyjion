@@ -1689,7 +1689,7 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[slot]));
         }
     }
-    if (right.hasValue() && left.hasValue() && isKnownType(right.Value->kind()) && left.Value->kind() != right.Value->kind()){
+    if (right.hasValue() && left.hasValue() && isKnownType(left.Value->kind()) && isKnownType(right.Value->kind()) && left.Value->kind() != right.Value->kind()){
         auto rightType = GetPyType(right.Value->kind());
         if (rightType->tp_as_number != nullptr){
             binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[slot]));
