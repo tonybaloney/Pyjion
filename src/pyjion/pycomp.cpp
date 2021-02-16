@@ -1761,18 +1761,20 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
                 emit_pyerr_setstring(PyExc_TypeError, "Operation not supported on left-hand or right-hand operand.");
                 emit_null();
             emit_mark_label(rightNotImplemented);
+            emit_mark_label(skipRight);
+
+            emit_load_and_free_local(leftLocal);
+            decref();
+            emit_load_and_free_local(rightLocal);
+            decref();
         } else {
             m_il.pop();
             emit_load_local(leftLocal);
             emit_load_local(rightLocal);
             m_il.emit_call(fallback_token);
+            emit_mark_label(skipRight);
         }
-        emit_mark_label(skipRight);
 
-        emit_load_and_free_local(leftLocal);
-        decref();
-        emit_load_and_free_local(rightLocal);
-        decref();
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
         Local leftLocal = emit_define_local(LK_Pointer);
@@ -1911,18 +1913,20 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
             emit_pyerr_setstring(PyExc_TypeError, "Multiplication operator not supported on left-hand or right-hand operand.");
             emit_null();
             emit_mark_label(rightNotImplemented);
+            emit_mark_label(skipRight);
+
+            emit_load_and_free_local(leftLocal);
+            decref();
+            emit_load_and_free_local(rightLocal);
+            decref();
         } else {
             m_il.pop();
             emit_load_local(leftLocal);
             emit_load_local(rightLocal);
             m_il.emit_call(fallback_token);
+            emit_mark_label(skipRight);
         }
-        emit_mark_label(skipRight);
 
-        emit_load_and_free_local(leftLocal);
-        decref();
-        emit_load_and_free_local(rightLocal);
-        decref();
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
         Local leftLocal = emit_define_local(LK_Pointer);
@@ -2027,18 +2031,19 @@ void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSourc
             emit_pyerr_setstring(PyExc_TypeError, "Add not supported on left-hand or right-hand operand.");
             emit_null();
             emit_mark_label(rightNotImplemented);
+            emit_mark_label(skipRight);
+
+            emit_load_and_free_local(leftLocal);
+            decref();
+            emit_load_and_free_local(rightLocal);
+            decref();
         } else {
             m_il.pop();
             emit_load_local(leftLocal);
             emit_load_local(rightLocal);
             m_il.emit_call(fallback_token);
+            emit_mark_label(skipRight);
         }
-        emit_mark_label(skipRight);
-
-        emit_load_and_free_local(leftLocal);
-        decref();
-        emit_load_and_free_local(rightLocal);
-        decref();
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
         Local leftLocal = emit_define_local(LK_Pointer);
@@ -2141,18 +2146,20 @@ void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSou
             emit_pyerr_setstring(PyExc_TypeError, "Power not supported on left-hand or right-hand operand.");
             emit_null();
             emit_mark_label(rightNotImplemented);
+            emit_mark_label(skipRight);
+
+            emit_load_and_free_local(leftLocal);
+            decref();
+            emit_load_and_free_local(rightLocal);
+            decref();
         } else {
             m_il.pop();
             emit_load_local(leftLocal);
             emit_load_local(rightLocal);
             m_il.emit_call(fallback_token);
+            emit_mark_label(skipRight);
         }
         emit_mark_label(skipRight);
-
-        emit_load_and_free_local(leftLocal);
-        decref();
-        emit_load_and_free_local(rightLocal);
-        decref();
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
         Local leftLocal = emit_define_local(LK_Pointer);
