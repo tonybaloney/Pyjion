@@ -1764,12 +1764,12 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             emit_ptr(Py_NotImplemented);
             emit_branch(BranchNotEqual, rightNotImplemented);
                 m_il.pop();
-                emit_pyerr_setstring(PyExc_TypeError, "Operation not supported.");
+                emit_pyerr_setstring(PyExc_TypeError, "Operation not supported on left-hand or right-hand operand.");
                 emit_null();
             emit_mark_label(rightNotImplemented);
         } else {
             m_il.pop();
-            emit_pyerr_setstring(PyExc_TypeError, "Operation not supported.");
+            emit_pyerr_setstring(PyExc_TypeError, "Operation not supported on left-hand operand.");
             emit_null();
         }
         emit_mark_label(skipRight);
@@ -1794,7 +1794,7 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
         emit_ptr(Py_NotImplemented);
         emit_branch(BranchNotEqual, rightNotImplemented);
             m_il.pop();
-            emit_pyerr_setstring(PyExc_TypeError, "Operation not supported.");
+            emit_pyerr_setstring(PyExc_TypeError, "Operation not supported on right-hand operand.");
             emit_null();
         emit_mark_label(rightNotImplemented);
         emit_load_and_free_local(leftLocal);
