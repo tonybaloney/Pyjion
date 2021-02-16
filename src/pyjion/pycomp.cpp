@@ -1681,18 +1681,25 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             nb_slot = offsetof(PyNumberMethods, nb_inplace_or); fallback_token = METHOD_INPLACE_OR_TOKEN;break;
     }
 
+    if (opcode == BINARY_POWER || opcode == INPLACE_POWER)
+        emit_known_binary_op_power(opcode, left, right, nb_slot, sq_slot, fallback_token);
+    else if (opcode == BINARY_MULTIPLY || opcode == INPLACE_MULTIPLY)
+        emit_known_binary_op_multiply(opcode, left, right, nb_slot, sq_slot, fallback_token);
+    else if (opcode == BINARY_ADD || opcode == INPLACE_ADD)
+        emit_known_binary_op_add(opcode, left, right, nb_slot, sq_slot, fallback_token);
+    else
+        emit_known_binary_op(opcode, left, right, nb_slot, sq_slot, fallback_token);
+}
+
+void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+                                          int nb_slot, int sq_slot, int fallback_token) {
     binaryfunc binaryfunc_left = nullptr;
     binaryfunc binaryfunc_right = nullptr;
-    bool right_as_ssizet = false;
 
     if (left.hasValue() && isKnownType(left.Value->kind())){
         auto leftType = GetPyType(left.Value->kind());
         if (leftType->tp_as_number != nullptr){
             binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[nb_slot]));
-        }
-        else if (leftType->tp_as_sequence != nullptr && sq_slot != -1){
-            binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_sequence)[sq_slot]));
-            if (opcode == BINARY_MULTIPLY) right_as_ssizet = true;
         }
     }
     if (right.hasValue() && left.hasValue() && isKnownType(left.Value->kind()) && isKnownType(right.Value->kind()) && left.Value->kind() != right.Value->kind()){
@@ -1712,36 +1719,18 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
     int left_func_token = -1, right_func_token = -1;
 
     if (binaryfunc_left) {
-        if (opcode == BINARY_POWER || opcode == INPLACE_POWER) { // takes 3 arguments.
-            left_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
-                                                 std::vector<Parameter>{
-                                                         Parameter(CORINFO_TYPE_NATIVEINT),
+        left_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                 vector<Parameter>{
                                                          Parameter(CORINFO_TYPE_NATIVEINT),
                                                          Parameter(CORINFO_TYPE_NATIVEINT)},
                                                  (void *) binaryfunc_left);
-        } else {
-            left_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
-                                                 std::vector<Parameter>{
-                                                         Parameter(CORINFO_TYPE_NATIVEINT),
-                                                         Parameter(CORINFO_TYPE_NATIVEINT)},
-                                                 (void *) binaryfunc_left);
-        }
     }
     if (binaryfunc_right) {
-        if (opcode == BINARY_POWER || opcode == INPLACE_POWER) {
-            right_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
-                                                  std::vector<Parameter>{
-                                                          Parameter(CORINFO_TYPE_NATIVEINT),
+        right_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                  vector<Parameter>{
                                                           Parameter(CORINFO_TYPE_NATIVEINT),
                                                           Parameter(CORINFO_TYPE_NATIVEINT)},
                                                   (void *) binaryfunc_right);
-        } else {
-            right_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
-                                                  std::vector<Parameter>{
-                                                          Parameter(CORINFO_TYPE_NATIVEINT),
-                                                          Parameter(CORINFO_TYPE_NATIVEINT)},
-                                                  (void *) binaryfunc_right);
-        }
     }
 
     if (binaryfunc_left != nullptr){
@@ -1755,19 +1744,7 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
         emit_store_local(leftLocal);
 
         emit_load_local(leftLocal);
-
-        if (right_as_ssizet){
-            if (right.hasSource() && right.Sources->hasConstValue() && right.Value->kind() == AVK_Integer){
-                m_il.ld_i(dynamic_cast<ConstSource *>(right.Sources)->getNumericValue());
-            } else {
-                emit_load_local(rightLocal);
-                emit_null();
-                m_il.emit_call(METHOD_NUMBER_AS_SSIZET);
-            }
-        } else {
-            emit_load_local(rightLocal);
-        }
-        if (opcode == BINARY_POWER || opcode == INPLACE_POWER) emit_ptr(Py_None);
+        emit_load_local(rightLocal);
         m_il.emit_call(left_func_token);
         m_il.dup();
         emit_ptr(Py_NotImplemented);
@@ -1776,7 +1753,6 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             m_il.pop();
             emit_load_local(leftLocal);
             emit_load_local(rightLocal);
-            if (opcode == BINARY_POWER || opcode == INPLACE_POWER) emit_ptr(Py_None);
             m_il.emit_call(right_func_token);
             m_il.dup();
             emit_ptr(Py_NotImplemented);
@@ -1806,7 +1782,6 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
 
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
-        if (opcode == BINARY_POWER || opcode == INPLACE_POWER) emit_ptr(Py_None);
         m_il.emit_call(right_func_token);
         m_il.dup();
         emit_ptr(Py_NotImplemented);
@@ -1825,6 +1800,386 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
     }
 }
 
+void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+                                          int nb_slot, int sq_slot, int fallback_token) {
+    binaryfunc binaryfunc_left = nullptr;
+    binaryfunc binaryfunc_right = nullptr;
+    bool left_sequence = false, right_sequence = false;
+
+    if (left.hasValue() && isKnownType(left.Value->kind())){
+        auto leftType = GetPyType(left.Value->kind());
+        if (leftType->tp_as_number != nullptr){
+            binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[nb_slot]));
+        }
+        if (binaryfunc_left == nullptr && leftType->tp_as_sequence != nullptr && sq_slot != -1){
+            binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_sequence)[sq_slot]));
+            left_sequence = true;
+        }
+    }
+    if (right.hasValue() && left.hasValue() && isKnownType(left.Value->kind()) && isKnownType(right.Value->kind()) && left.Value->kind() != right.Value->kind()){
+        auto rightType = GetPyType(right.Value->kind());
+        if (rightType->tp_as_number != nullptr){
+            binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
+        }
+        if (binaryfunc_right == nullptr && rightType->tp_as_sequence != nullptr && sq_slot != -1){
+            binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_sequence)[sq_slot]));
+            right_sequence = true;
+        }
+    }
+    binaryfunc target = nullptr;
+
+    /* Order operations are tried until either a valid result or error:
+    w.op(v,w)[*], v.op(v,w), w.op(v,w)
+
+    [*] only when Py_TYPE(v) != Py_TYPE(w) && Py_TYPE(w) is a subclass of
+            Py_TYPE(v)
+    */
+    int left_func_token = -1, right_func_token = -1;
+
+    if (binaryfunc_left) {
+        left_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                             vector<Parameter>{
+                                                     Parameter(CORINFO_TYPE_NATIVEINT),
+                                                     Parameter(CORINFO_TYPE_NATIVEINT)},
+                                             (void *) binaryfunc_left);
+    }
+    if (binaryfunc_right) {
+        right_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                              vector<Parameter>{
+                                                      Parameter(CORINFO_TYPE_NATIVEINT),
+                                                      Parameter(CORINFO_TYPE_NATIVEINT)},
+                                              (void *) binaryfunc_right);
+    }
+
+    if (binaryfunc_left != nullptr){
+        // Add the function signature for this binaryfunc.
+        Local leftLocal = emit_define_local(LK_Pointer);
+        Local rightLocal = emit_define_local(LK_Pointer);
+        Label skipRight = emit_define_label();
+        Label rightNotImplemented = emit_define_label();
+
+        emit_store_local(rightLocal);
+        emit_store_local(leftLocal);
+
+        emit_load_local(leftLocal);
+
+        if (left_sequence){
+            /* Support for [sequence] * value */
+            if (right.hasSource() && right.Sources->hasConstValue() && right.Value->kind() == AVK_Integer){
+                // Shortcut for const numeric values.
+                m_il.ld_i(dynamic_cast<ConstSource *>(right.Sources)->getNumericValue());
+            } else {
+                emit_load_local(rightLocal);
+                emit_null();
+                m_il.emit_call(METHOD_NUMBER_AS_SSIZET);
+            }
+        } else {
+            emit_load_local(rightLocal);
+        }
+        m_il.emit_call(left_func_token);
+        m_il.dup();
+        emit_ptr(Py_NotImplemented);
+        emit_branch(BranchNotEqual, skipRight);
+        if (binaryfunc_right){
+            /* This is complicated.
+             * Python supports
+             * 5 * [sequence_type]
+             * As a call to type->tp_as_sequence->tp_repeat,
+             * tp_repeat takes two arguments, container and length. But we swap the values.
+             * See PyNumber_Multiply for the reference implementation
+             */
+            m_il.pop();
+            if (right_sequence){
+                emit_load_local(rightLocal);
+                if (left.hasSource() && left.Sources->hasConstValue() && left.Value->kind() == AVK_Integer){
+                    m_il.ld_i(dynamic_cast<ConstSource *>(left.Sources)->getNumericValue());
+                } else {
+                    emit_load_local(leftLocal);
+                    emit_null();
+                    m_il.emit_call(METHOD_NUMBER_AS_SSIZET);
+                }
+            } else {
+                emit_load_local(leftLocal);
+                emit_load_local(rightLocal);
+            }
+
+            m_il.emit_call(right_func_token);
+            m_il.dup();
+            emit_ptr(Py_NotImplemented);
+            emit_branch(BranchNotEqual, rightNotImplemented);
+            m_il.pop();
+            emit_pyerr_setstring(PyExc_TypeError, "Multiplication operator not supported on left-hand or right-hand operand.");
+            emit_null();
+            emit_mark_label(rightNotImplemented);
+        } else {
+            m_il.pop();
+            emit_pyerr_setstring(PyExc_TypeError, "Multiplication operator not supported on left-hand operand.");
+            emit_null();
+        }
+        emit_mark_label(skipRight);
+
+        emit_load_and_free_local(leftLocal);
+        decref();
+        emit_load_and_free_local(rightLocal);
+        decref();
+    } else if (binaryfunc_right != nullptr) {
+        // Add the function signature for this binaryfunc.
+        Local leftLocal = emit_define_local(LK_Pointer);
+        Local rightLocal = emit_define_local(LK_Pointer);
+        Label rightNotImplemented = emit_define_label();
+        emit_store_local(rightLocal);
+        emit_store_local(leftLocal);
+
+        emit_load_local(leftLocal);
+        emit_load_local(rightLocal);
+        m_il.emit_call(right_func_token);
+        m_il.dup();
+        emit_ptr(Py_NotImplemented);
+        emit_branch(BranchNotEqual, rightNotImplemented);
+        m_il.pop();
+        emit_pyerr_setstring(PyExc_TypeError, "Multiplication operator not supported on right-hand operand.");
+        emit_null();
+        emit_mark_label(rightNotImplemented);
+        emit_load_and_free_local(leftLocal);
+        decref();
+        emit_load_and_free_local(rightLocal);
+        decref();
+    } else {
+        PyErr_Clear();
+        m_il.emit_call(fallback_token);
+    }
+}
+
+void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+                                          int nb_slot, int sq_slot, int fallback_token) {
+    binaryfunc binaryfunc_left = nullptr;
+    binaryfunc binaryfunc_right = nullptr;
+
+    if (left.hasValue() && isKnownType(left.Value->kind())){
+        auto leftType = GetPyType(left.Value->kind());
+        if (leftType->tp_as_number != nullptr){
+            binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[nb_slot]));
+        }
+        if (binaryfunc_left == nullptr && leftType->tp_as_sequence != nullptr && sq_slot != -1){
+            binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_sequence)[sq_slot]));
+        }
+    }
+    if (right.hasValue() && left.hasValue() && isKnownType(left.Value->kind()) && isKnownType(right.Value->kind()) && left.Value->kind() != right.Value->kind()){
+        auto rightType = GetPyType(right.Value->kind());
+        if (rightType->tp_as_number != nullptr){
+            binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
+        }
+        if (binaryfunc_right == nullptr && rightType->tp_as_sequence != nullptr && sq_slot != -1){
+            binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_sequence)[sq_slot]));
+        }
+    }
+    binaryfunc target = nullptr;
+
+    /* Order operations are tried until either a valid result or error:
+    w.op(v,w)[*], v.op(v,w), w.op(v,w)
+
+    [*] only when Py_TYPE(v) != Py_TYPE(w) && Py_TYPE(w) is a subclass of
+            Py_TYPE(v)
+    */
+    int left_func_token = -1, right_func_token = -1;
+
+    if (binaryfunc_left) {
+        left_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                             vector<Parameter>{
+                                                     Parameter(CORINFO_TYPE_NATIVEINT),
+                                                     Parameter(CORINFO_TYPE_NATIVEINT)},
+                                             (void *) binaryfunc_left);
+    }
+    if (binaryfunc_right) {
+        right_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                              vector<Parameter>{
+                                                      Parameter(CORINFO_TYPE_NATIVEINT),
+                                                      Parameter(CORINFO_TYPE_NATIVEINT)},
+                                              (void *) binaryfunc_right);
+    }
+
+    if (binaryfunc_left != nullptr){
+        // Add the function signature for this binaryfunc.
+        Local leftLocal = emit_define_local(LK_Pointer);
+        Local rightLocal = emit_define_local(LK_Pointer);
+        Label skipRight = emit_define_label();
+        Label rightNotImplemented = emit_define_label();
+
+        emit_store_local(rightLocal);
+        emit_store_local(leftLocal);
+
+        emit_load_local(leftLocal);
+        emit_load_local(rightLocal);
+
+        m_il.emit_call(left_func_token);
+        m_il.dup();
+        emit_ptr(Py_NotImplemented);
+        emit_branch(BranchNotEqual, skipRight);
+        if (binaryfunc_right){
+            m_il.pop();
+            emit_load_local(leftLocal);
+            emit_load_local(rightLocal);
+            m_il.emit_call(right_func_token);
+            m_il.dup();
+            emit_ptr(Py_NotImplemented);
+            emit_branch(BranchNotEqual, rightNotImplemented);
+            m_il.pop();
+            emit_pyerr_setstring(PyExc_TypeError, "Add not supported on left-hand or right-hand operand.");
+            emit_null();
+            emit_mark_label(rightNotImplemented);
+        } else {
+            m_il.pop();
+            emit_pyerr_setstring(PyExc_TypeError, "Add not supported on left-hand operand.");
+            emit_null();
+        }
+        emit_mark_label(skipRight);
+
+        emit_load_and_free_local(leftLocal);
+        decref();
+        emit_load_and_free_local(rightLocal);
+        decref();
+    } else if (binaryfunc_right != nullptr) {
+        // Add the function signature for this binaryfunc.
+        Local leftLocal = emit_define_local(LK_Pointer);
+        Local rightLocal = emit_define_local(LK_Pointer);
+        Label rightNotImplemented = emit_define_label();
+        emit_store_local(rightLocal);
+        emit_store_local(leftLocal);
+
+        emit_load_local(leftLocal);
+        emit_load_local(rightLocal);
+        m_il.emit_call(right_func_token);
+        m_il.dup();
+        emit_ptr(Py_NotImplemented);
+        emit_branch(BranchNotEqual, rightNotImplemented);
+        m_il.pop();
+        emit_pyerr_setstring(PyExc_TypeError, "Add not supported on right-hand operand.");
+        emit_null();
+        emit_mark_label(rightNotImplemented);
+        emit_load_and_free_local(leftLocal);
+        decref();
+        emit_load_and_free_local(rightLocal);
+        decref();
+    } else {
+        PyErr_Clear();
+        m_il.emit_call(fallback_token);
+    }
+}
+
+void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+                                          int nb_slot, int sq_slot, int fallback_token) {
+    binaryfunc binaryfunc_left = nullptr;
+    binaryfunc binaryfunc_right = nullptr;
+
+    if (left.hasValue() && isKnownType(left.Value->kind())){
+        auto leftType = GetPyType(left.Value->kind());
+        if (leftType->tp_as_number != nullptr){
+            binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[nb_slot]));
+        }
+    }
+    if (right.hasValue() && left.hasValue() && isKnownType(left.Value->kind()) && isKnownType(right.Value->kind()) && left.Value->kind() != right.Value->kind()){
+        auto rightType = GetPyType(right.Value->kind());
+        if (rightType->tp_as_number != nullptr){
+            binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
+        }
+    }
+    binaryfunc target = nullptr;
+
+    /* Order operations are tried until either a valid result or error:
+    w.op(v,w)[*], v.op(v,w), w.op(v,w)
+
+    [*] only when Py_TYPE(v) != Py_TYPE(w) && Py_TYPE(w) is a subclass of
+            Py_TYPE(v)
+    */
+    int left_func_token = -1, right_func_token = -1;
+
+    if (binaryfunc_left) {
+        left_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                 vector<Parameter>{
+                                                         Parameter(CORINFO_TYPE_NATIVEINT),
+                                                         Parameter(CORINFO_TYPE_NATIVEINT),
+                                                         Parameter(CORINFO_TYPE_NATIVEINT)},
+                                                 (void *) binaryfunc_left);
+    }
+    if (binaryfunc_right) {
+        right_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                  vector<Parameter>{
+                                                          Parameter(CORINFO_TYPE_NATIVEINT),
+                                                          Parameter(CORINFO_TYPE_NATIVEINT),
+                                                          Parameter(CORINFO_TYPE_NATIVEINT)},
+                                                  (void *) binaryfunc_right);
+    }
+
+    if (binaryfunc_left != nullptr){
+        // Add the function signature for this binaryfunc.
+        Local leftLocal = emit_define_local(LK_Pointer);
+        Local rightLocal = emit_define_local(LK_Pointer);
+        Label skipRight = emit_define_label();
+        Label rightNotImplemented = emit_define_label();
+
+        emit_store_local(rightLocal);
+        emit_store_local(leftLocal);
+
+        emit_load_local(leftLocal);
+
+        emit_load_local(rightLocal);
+        emit_ptr(Py_None);
+        m_il.emit_call(left_func_token);
+        m_il.dup();
+        emit_ptr(Py_NotImplemented);
+        emit_branch(BranchNotEqual, skipRight);
+        if (binaryfunc_right){
+            m_il.pop();
+            emit_load_local(leftLocal);
+            emit_load_local(rightLocal);
+            emit_ptr(Py_None);
+            m_il.emit_call(right_func_token);
+            m_il.dup();
+            emit_ptr(Py_NotImplemented);
+            emit_branch(BranchNotEqual, rightNotImplemented);
+            m_il.pop();
+            emit_pyerr_setstring(PyExc_TypeError, "Power not supported on left-hand or right-hand operand.");
+            emit_null();
+            emit_mark_label(rightNotImplemented);
+        } else {
+            m_il.pop();
+            emit_pyerr_setstring(PyExc_TypeError, "Power not supported on left-hand operand.");
+            emit_null();
+        }
+        emit_mark_label(skipRight);
+
+        emit_load_and_free_local(leftLocal);
+        decref();
+        emit_load_and_free_local(rightLocal);
+        decref();
+    } else if (binaryfunc_right != nullptr) {
+        // Add the function signature for this binaryfunc.
+        Local leftLocal = emit_define_local(LK_Pointer);
+        Local rightLocal = emit_define_local(LK_Pointer);
+        Label rightNotImplemented = emit_define_label();
+        emit_store_local(rightLocal);
+        emit_store_local(leftLocal);
+
+        emit_load_local(leftLocal);
+        emit_load_local(rightLocal);
+        emit_ptr(Py_None);
+        m_il.emit_call(right_func_token);
+        m_il.dup();
+        emit_ptr(Py_NotImplemented);
+        emit_branch(BranchNotEqual, rightNotImplemented);
+        m_il.pop();
+        emit_pyerr_setstring(PyExc_TypeError, "Power not supported on right-hand operand.");
+        emit_null();
+        emit_mark_label(rightNotImplemented);
+        emit_load_and_free_local(leftLocal);
+        decref();
+        emit_load_and_free_local(rightLocal);
+        decref();
+    } else {
+        PyErr_Clear();
+        m_il.emit_call(fallback_token);
+    }
+}
 
 void PythonCompiler::emit_triple_binary_op(int firstOp, int secondOp) {
     m_il.ld_i4(firstOp);

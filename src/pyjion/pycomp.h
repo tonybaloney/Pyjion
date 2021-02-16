@@ -502,6 +502,14 @@ private:
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
     void emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset );
 
+    void emit_known_binary_op(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+                              int sq_slot, int fallback_token);
+    void emit_known_binary_op_power(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+                              int sq_slot, int fallback_token);
+    void emit_known_binary_op_add(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+                              int sq_slot, int fallback_token);
+    void emit_known_binary_op_multiply(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+                              int sq_slot, int fallback_token);
 };
 
 // Copies of internal CPython structures
