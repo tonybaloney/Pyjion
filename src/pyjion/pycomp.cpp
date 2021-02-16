@@ -1769,6 +1769,7 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             emit_mark_label(rightNotImplemented);
         } else {
             m_il.pop();
+            emit_pyerr_setstring(PyExc_TypeError, "Operation not supported.");
             emit_null();
         }
         emit_mark_label(skipRight);
