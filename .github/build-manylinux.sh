@@ -2,7 +2,7 @@
 set -e -x
 
 cd /github/workspace/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/src/dotnet/shared/Microsoft.NETCore.App/5.0.1
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/src/dotnet/shared/Microsoft.NETCore.App/5.0.3
 /opt/python/cp39-cp39/bin/pip install --upgrade --no-cache-dir pip
 /opt/python/cp39-cp39/bin/pip install auditwheel
 /opt/python/cp39-cp39/bin/pip install .
