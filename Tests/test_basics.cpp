@@ -527,4 +527,8 @@ TEST_CASE("Sequence binary operations") {
         auto t = EmissionTest("def f(): return ['hello'] * 5");
         CHECK(t.returns() == "['hello', 'hello', 'hello', 'hello', 'hello']");
     }
+    SECTION("assert multi list by complex number") {
+        auto t = EmissionTest("def f(): return ['hello'] * int(5)");
+        CHECK(t.returns() == "['hello', 'hello', 'hello', 'hello', 'hello']");
+    }
 }

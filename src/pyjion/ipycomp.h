@@ -300,7 +300,7 @@ public:
     // can't emit a call with this number of args then it returns false,
     // and emit_call_with_tuple is used to call with a variable sized
     // tuple instead.
-    virtual bool emit_call(size_t argCnt) = 0;
+    virtual bool emit_func_call(size_t argCnt) = 0;
 
     // Emits a call for the specified argument count.
     virtual bool emit_method_call(size_t argCnt) = 0;

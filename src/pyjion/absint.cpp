@@ -1846,7 +1846,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 break;
             case CALL_FUNCTION:
             {
-                if (!m_comp->emit_call(oparg)) {
+                if (!m_comp->emit_func_call(oparg)) {
                     buildTuple(oparg);
                     incStack();
                     m_comp->emit_call_with_tuple();

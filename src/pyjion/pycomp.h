@@ -360,7 +360,7 @@ public:
     // can't emit a call with this number of args then it returns false,
     // and emit_call_with_tuple is used to call with a variable sized
     // tuple instead.
-    bool emit_call(size_t argCnt) override;
+    bool emit_func_call(size_t argCnt) override;
     void emit_call_with_tuple() override;
 
     void emit_kwcall_with_tuple() override;
