@@ -2710,6 +2710,8 @@ void PyJit_TraceFrameException(PyFrameObject* f){
             value = Py_None;
             Py_INCREF(value);
         }
+        if (type == nullptr)
+            type = PyExc_Exception;
         PyErr_NormalizeException(&type, &value, &orig_traceback);
         traceback = (orig_traceback != NULL) ? orig_traceback : Py_None;
         arg = PyTuple_Pack(3, type, value, traceback);
