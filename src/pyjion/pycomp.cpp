@@ -1620,79 +1620,85 @@ void PythonCompiler::emit_binary_object(int opcode) {
 }
 
 void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
-    int slot ;
+    int nb_slot = -1;
+    int sq_slot = -1;
     int fallback_token;
     switch (opcode) {
         case BINARY_ADD:
-            slot = offsetof(PyNumberMethods, nb_add);
+            nb_slot = offsetof(PyNumberMethods, nb_add);
+            sq_slot = offsetof(PySequenceMethods, sq_concat);
             fallback_token = METHOD_ADD_TOKEN;
             break;
         case BINARY_TRUE_DIVIDE:
-            slot = offsetof(PyNumberMethods, nb_true_divide); fallback_token = METHOD_DIVIDE_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_true_divide); fallback_token = METHOD_DIVIDE_TOKEN;break;
         case BINARY_FLOOR_DIVIDE:
-            slot = offsetof(PyNumberMethods, nb_floor_divide); fallback_token = METHOD_FLOORDIVIDE_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_floor_divide); fallback_token = METHOD_FLOORDIVIDE_TOKEN;break;
         case BINARY_POWER:
-            slot = offsetof(PyNumberMethods, nb_power); fallback_token = METHOD_POWER_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_power); fallback_token = METHOD_POWER_TOKEN;break;
         case BINARY_MODULO:
-            slot = offsetof(PyNumberMethods, nb_remainder); fallback_token = METHOD_MODULO_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_remainder); fallback_token = METHOD_MODULO_TOKEN;break;
         case BINARY_MATRIX_MULTIPLY:
-            slot = offsetof(PyNumberMethods, nb_matrix_multiply); fallback_token = METHOD_MATRIX_MULTIPLY_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_matrix_multiply); fallback_token = METHOD_MATRIX_MULTIPLY_TOKEN;break;
         case BINARY_LSHIFT:
-            slot = offsetof(PyNumberMethods, nb_lshift); fallback_token = METHOD_BINARY_LSHIFT_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_lshift); fallback_token = METHOD_BINARY_LSHIFT_TOKEN;break;
         case BINARY_RSHIFT:
-            slot = offsetof(PyNumberMethods, nb_rshift); fallback_token = METHOD_BINARY_RSHIFT_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_rshift); fallback_token = METHOD_BINARY_RSHIFT_TOKEN;break;
         case BINARY_AND:
-            slot = offsetof(PyNumberMethods, nb_and); fallback_token = METHOD_BINARY_AND_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_and); fallback_token = METHOD_BINARY_AND_TOKEN;break;
         case BINARY_XOR:
-            slot = offsetof(PyNumberMethods, nb_xor); fallback_token = METHOD_BINARY_XOR_TOKEN; break;
+            nb_slot = offsetof(PyNumberMethods, nb_xor); fallback_token = METHOD_BINARY_XOR_TOKEN; break;
         case BINARY_OR:
-            slot = offsetof(PyNumberMethods, nb_or); fallback_token = METHOD_BINARY_OR_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_or); fallback_token = METHOD_BINARY_OR_TOKEN;break;
         case BINARY_MULTIPLY:
-            slot = offsetof(PyNumberMethods, nb_multiply); fallback_token = METHOD_MULTIPLY_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_multiply); sq_slot = offsetof(PySequenceMethods, sq_repeat); fallback_token = METHOD_MULTIPLY_TOKEN;break;
         case BINARY_SUBTRACT:
-            slot = offsetof(PyNumberMethods, nb_subtract); fallback_token = METHOD_SUBTRACT_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_subtract); fallback_token = METHOD_SUBTRACT_TOKEN;break;
         case INPLACE_POWER:
-            slot = offsetof(PyNumberMethods, nb_inplace_power); fallback_token = METHOD_INPLACE_POWER_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_power); fallback_token = METHOD_INPLACE_POWER_TOKEN;break;
         case INPLACE_MULTIPLY:
-            slot = offsetof(PyNumberMethods, nb_inplace_multiply); fallback_token = METHOD_INPLACE_MULTIPLY_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_multiply); fallback_token = METHOD_INPLACE_MULTIPLY_TOKEN;break;
         case INPLACE_MATRIX_MULTIPLY:
-            slot = offsetof(PyNumberMethods, nb_inplace_matrix_multiply); fallback_token = METHOD_INPLACE_MATRIX_MULTIPLY_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_matrix_multiply); fallback_token = METHOD_INPLACE_MATRIX_MULTIPLY_TOKEN;break;
         case INPLACE_TRUE_DIVIDE:
-            slot = offsetof(PyNumberMethods, nb_inplace_true_divide); fallback_token = METHOD_INPLACE_TRUE_DIVIDE_TOKEN; break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_true_divide); fallback_token = METHOD_INPLACE_TRUE_DIVIDE_TOKEN; break;
         case INPLACE_FLOOR_DIVIDE:
-            slot = offsetof(PyNumberMethods, nb_inplace_floor_divide); fallback_token = METHOD_INPLACE_FLOOR_DIVIDE_TOKEN; break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_floor_divide); fallback_token = METHOD_INPLACE_FLOOR_DIVIDE_TOKEN; break;
         case INPLACE_MODULO:
-            slot = offsetof(PyNumberMethods, nb_inplace_remainder); fallback_token = METHOD_INPLACE_MODULO_TOKEN; ;break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_remainder); fallback_token = METHOD_INPLACE_MODULO_TOKEN; ;break;
         case INPLACE_ADD:
-            slot = offsetof(PyNumberMethods, nb_inplace_add); fallback_token = METHOD_INPLACE_ADD_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_add); fallback_token = METHOD_INPLACE_ADD_TOKEN;break;
         case INPLACE_SUBTRACT:
-            slot = offsetof(PyNumberMethods, nb_inplace_subtract); fallback_token = METHOD_INPLACE_SUBTRACT_TOKEN; break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_subtract); fallback_token = METHOD_INPLACE_SUBTRACT_TOKEN; break;
         case INPLACE_LSHIFT:
-            slot = offsetof(PyNumberMethods, nb_inplace_lshift); fallback_token = METHOD_INPLACE_LSHIFT_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_lshift); fallback_token = METHOD_INPLACE_LSHIFT_TOKEN;break;
         case INPLACE_RSHIFT:
-            slot = offsetof(PyNumberMethods, nb_inplace_rshift); fallback_token = METHOD_INPLACE_RSHIFT_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_rshift); fallback_token = METHOD_INPLACE_RSHIFT_TOKEN;break;
         case INPLACE_AND:
-            slot = offsetof(PyNumberMethods, nb_inplace_and); fallback_token = METHOD_INPLACE_AND_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_and); fallback_token = METHOD_INPLACE_AND_TOKEN;break;
         case INPLACE_XOR:
-            slot = offsetof(PyNumberMethods, nb_inplace_xor); fallback_token = METHOD_INPLACE_XOR_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_xor); fallback_token = METHOD_INPLACE_XOR_TOKEN;break;
         case INPLACE_OR:
-            slot = offsetof(PyNumberMethods, nb_inplace_or); fallback_token = METHOD_INPLACE_OR_TOKEN;break;
+            nb_slot = offsetof(PyNumberMethods, nb_inplace_or); fallback_token = METHOD_INPLACE_OR_TOKEN;break;
     }
 
     binaryfunc binaryfunc_left = nullptr;
     binaryfunc binaryfunc_right = nullptr;
-
+    bool right_as_ssizet = false;
 
     if (left.hasValue() && isKnownType(left.Value->kind())){
         auto leftType = GetPyType(left.Value->kind());
         if (leftType->tp_as_number != nullptr){
-            binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[slot]));
+            binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[nb_slot]));
+        }
+        else if (leftType->tp_as_sequence != nullptr && sq_slot != -1){
+            binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_sequence)[sq_slot]));
+            if (opcode == BINARY_MULTIPLY) right_as_ssizet = true;
         }
     }
     if (right.hasValue() && left.hasValue() && isKnownType(left.Value->kind()) && isKnownType(right.Value->kind()) && left.Value->kind() != right.Value->kind()){
         auto rightType = GetPyType(right.Value->kind());
         if (rightType->tp_as_number != nullptr){
-            binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[slot]));
+            binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
         }
     }
     binaryfunc target = nullptr;
@@ -1704,6 +1710,7 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             Py_TYPE(v)
     */
     int left_func_token = -1, right_func_token = -1;
+
     if (binaryfunc_left) {
         if (opcode == BINARY_POWER || opcode == INPLACE_POWER) { // takes 3 arguments.
             left_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
@@ -1748,7 +1755,17 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
         emit_store_local(leftLocal);
 
         emit_load_local(leftLocal);
-        emit_load_local(rightLocal);
+
+        if (right_as_ssizet){
+            if (right.hasSource() && right.Sources->hasConstValue() && right.Value->kind() == AVK_Integer){
+                m_il.ld_i(dynamic_cast<ConstSource *>(right.Sources)->getNumericValue());
+            } else {
+                emit_null();
+                emit_call(METHOD_NUMBER_AS_SSIZET);
+            }
+        } else {
+            emit_load_local(rightLocal);
+        }
         if (opcode == BINARY_POWER || opcode == INPLACE_POWER) emit_ptr(Py_None);
         m_il.emit_call(left_func_token);
         m_il.dup();
@@ -2213,6 +2230,7 @@ GLOBAL_METHOD(METHOD_FLOAT_FLOOR_TOKEN, static_cast<double(*)(double)>(floor), C
 GLOBAL_METHOD(METHOD_FLOAT_MODULUS_TOKEN, static_cast<double(*)(double, double)>(fmod), CORINFO_TYPE_DOUBLE, Parameter(CORINFO_TYPE_DOUBLE), Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_FLOAT_FROM_DOUBLE, PyFloat_FromDouble, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_BOOL_FROM_LONG, PyBool_FromLong, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_INT));
+GLOBAL_METHOD(METHOD_NUMBER_AS_SSIZET, &PyNumber_AsSsize_t, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_PYERR_SETSTRING, PyErr_SetString, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 

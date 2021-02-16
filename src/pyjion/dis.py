@@ -147,7 +147,7 @@ class MethodTokens (Enum):
     METHOD_FLOAT_FROM_DOUBLE                 = 0x00000053
     METHOD_BOOL_FROM_LONG                    = 0x00000054
     METHOD_PYERR_SETSTRING                   = 0x00000055
-    METHOD_BOX_TAGGED_PTR                    = 0x00000056
+    METHOD_NUMBER_AS_SSIZET                  = 0x00000056
 
     METHOD_EQUALS_INT_TOKEN                  = 0x00000065
     METHOD_LESS_THAN_INT_TOKEN               = 0x00000066

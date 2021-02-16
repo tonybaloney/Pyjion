@@ -119,6 +119,7 @@
 #define METHOD_FLOAT_FROM_DOUBLE                 0x00000053
 #define METHOD_BOOL_FROM_LONG                    0x00000054
 #define METHOD_PYERR_SETSTRING                   0x00000055
+#define METHOD_NUMBER_AS_SSIZET                  0x00000056
 
 #define METHOD_EQUALS_INT_TOKEN                  0x00000065
 #define METHOD_LESS_THAN_INT_TOKEN               0x00000066
