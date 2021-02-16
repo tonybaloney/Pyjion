@@ -1774,7 +1774,6 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
             m_il.emit_call(fallback_token);
             emit_mark_label(skipRight);
         }
-
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
         Local leftLocal = emit_define_local(LK_Pointer);
@@ -1926,7 +1925,6 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
             m_il.emit_call(fallback_token);
             emit_mark_label(skipRight);
         }
-
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
         Local leftLocal = emit_define_local(LK_Pointer);
@@ -2159,7 +2157,6 @@ void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSou
             m_il.emit_call(fallback_token);
             emit_mark_label(skipRight);
         }
-        emit_mark_label(skipRight);
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
         Local leftLocal = emit_define_local(LK_Pointer);
