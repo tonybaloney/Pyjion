@@ -34,6 +34,7 @@ class ScopeLeaksTestCase(unittest.TestCase):
         x(a)
         self.assertEqual(before, sys.getrefcount(a), pyjion.dis.dis(x))
 
+
 class FunctionCallsTestCase(unittest.TestCase):
 
     def setUp(self) -> None:

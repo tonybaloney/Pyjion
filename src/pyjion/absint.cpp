@@ -1954,7 +1954,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 if (stackInfo.size() >= 2) {
                     m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
                     decStack(2);
-                    errorCheck("optimized binary subscr failed", curByte);
+                    errorCheck("optimized binary op failed", curByte);
                 }
                 else {
                     m_comp->emit_binary_object(byte);

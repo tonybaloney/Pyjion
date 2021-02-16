@@ -1769,8 +1769,8 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
             decref();
         } else {
             m_il.pop();
-            emit_load_local(leftLocal);
-            emit_load_local(rightLocal);
+            emit_load_and_free_local(leftLocal);
+            emit_load_and_free_local(rightLocal);
             m_il.emit_call(fallback_token);
             emit_mark_label(skipRight);
         }
@@ -1920,8 +1920,8 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
             decref();
         } else {
             m_il.pop();
-            emit_load_local(leftLocal);
-            emit_load_local(rightLocal);
+            emit_load_and_free_local(leftLocal);
+            emit_load_and_free_local(rightLocal);
             m_il.emit_call(fallback_token);
             emit_mark_label(skipRight);
         }
@@ -2037,8 +2037,8 @@ void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSourc
             decref();
         } else {
             m_il.pop();
-            emit_load_local(leftLocal);
-            emit_load_local(rightLocal);
+            emit_load_and_free_local(leftLocal);
+            emit_load_and_free_local(rightLocal);
             m_il.emit_call(fallback_token);
             emit_mark_label(skipRight);
         }
@@ -2152,8 +2152,8 @@ void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSou
             decref();
         } else {
             m_il.pop();
-            emit_load_local(leftLocal);
-            emit_load_local(rightLocal);
+            emit_load_and_free_local(leftLocal);
+            emit_load_and_free_local(rightLocal);
             m_il.emit_call(fallback_token);
             emit_mark_label(skipRight);
         }
