@@ -157,7 +157,6 @@ jobs:
       - name: Run Python tests
         shell: bash
         run: python -m unittest discover Tests/
-        continue-on-error: true
 
       - name: Run smoke tests
         shell: bash

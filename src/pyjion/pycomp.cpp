@@ -1763,8 +1763,9 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
             emit_mark_label(rightNotImplemented);
         } else {
             m_il.pop();
-            emit_pyerr_setstring(PyExc_TypeError, "Operation not supported on left-hand operand.");
-            emit_null();
+            emit_load_local(leftLocal);
+            emit_load_local(rightLocal);
+            m_il.emit_call(fallback_token);
         }
         emit_mark_label(skipRight);
 
@@ -1795,7 +1796,6 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
         emit_load_and_free_local(rightLocal);
         decref();
     } else {
-        PyErr_Clear();
         m_il.emit_call(fallback_token);
     }
 }
@@ -1913,8 +1913,9 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
             emit_mark_label(rightNotImplemented);
         } else {
             m_il.pop();
-            emit_pyerr_setstring(PyExc_TypeError, "Multiplication operator not supported on left-hand operand.");
-            emit_null();
+            emit_load_local(leftLocal);
+            emit_load_local(rightLocal);
+            m_il.emit_call(fallback_token);
         }
         emit_mark_label(skipRight);
 
@@ -1945,7 +1946,6 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
         emit_load_and_free_local(rightLocal);
         decref();
     } else {
-        PyErr_Clear();
         m_il.emit_call(fallback_token);
     }
 }
@@ -2029,8 +2029,9 @@ void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSourc
             emit_mark_label(rightNotImplemented);
         } else {
             m_il.pop();
-            emit_pyerr_setstring(PyExc_TypeError, "Add not supported on left-hand operand.");
-            emit_null();
+            emit_load_local(leftLocal);
+            emit_load_local(rightLocal);
+            m_il.emit_call(fallback_token);
         }
         emit_mark_label(skipRight);
 
@@ -2061,7 +2062,6 @@ void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSourc
         emit_load_and_free_local(rightLocal);
         decref();
     } else {
-        PyErr_Clear();
         m_il.emit_call(fallback_token);
     }
 }
@@ -2143,8 +2143,9 @@ void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSou
             emit_mark_label(rightNotImplemented);
         } else {
             m_il.pop();
-            emit_pyerr_setstring(PyExc_TypeError, "Power not supported on left-hand operand.");
-            emit_null();
+            emit_load_local(leftLocal);
+            emit_load_local(rightLocal);
+            m_il.emit_call(fallback_token);
         }
         emit_mark_label(skipRight);
 
@@ -2176,7 +2177,6 @@ void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSou
         emit_load_and_free_local(rightLocal);
         decref();
     } else {
-        PyErr_Clear();
         m_il.emit_call(fallback_token);
     }
 }
