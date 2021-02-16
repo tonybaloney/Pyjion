@@ -627,7 +627,10 @@ def print_il(il):
                 continue
             elif op.size == InlineMethod:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                meth = MethodTokens(target)
+                try:
+                    meth = MethodTokens(target)
+                except ValueError:
+                    meth = f"METHOD_SLOT_SPACE ({target})"
                 print(f"[IL_{pc:04x}] M {op.name:15} ({target} : {meth})")
                 pc += 5
                 continue
