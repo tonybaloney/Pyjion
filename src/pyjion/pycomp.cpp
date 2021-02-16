@@ -1741,7 +1741,8 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
         // Add the function signature for this binaryfunc.
         Local leftLocal = emit_define_local(LK_Pointer);
         Local rightLocal = emit_define_local(LK_Pointer);
-        auto skipRight = emit_define_label();
+        Label skipRight = emit_define_label();
+        Label rightNotImplemented = emit_define_label();
 
         emit_store_local(rightLocal);
         emit_store_local(leftLocal);
@@ -1759,6 +1760,12 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             emit_load_local(rightLocal);
             if (opcode == BINARY_POWER || opcode == INPLACE_POWER) emit_ptr(Py_None);
             m_il.emit_call(right_func_token);
+            m_il.dup();
+            emit_ptr(Py_NotImplemented);
+            emit_branch(BranchNotEqual, rightNotImplemented);
+                m_il.pop();
+                emit_null(); // TODO : Set exception
+            emit_mark_label(rightNotImplemented);
         } else {
             m_il.pop();
             emit_null();
@@ -1773,6 +1780,7 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
         // Add the function signature for this binaryfunc.
         Local leftLocal = emit_define_local(LK_Pointer);
         Local rightLocal = emit_define_local(LK_Pointer);
+        Label rightNotImplemented = emit_define_label();
         emit_store_local(rightLocal);
         emit_store_local(leftLocal);
 
@@ -1780,7 +1788,12 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
         emit_load_local(rightLocal);
         if (opcode == BINARY_POWER || opcode == INPLACE_POWER) emit_ptr(Py_None);
         m_il.emit_call(right_func_token);
-
+        m_il.dup();
+        emit_ptr(Py_NotImplemented);
+        emit_branch(BranchNotEqual, rightNotImplemented);
+            m_il.pop();
+            emit_null(); // TODO : Set exception
+        emit_mark_label(rightNotImplemented);
         emit_load_and_free_local(leftLocal);
         decref();
         emit_load_and_free_local(rightLocal);
