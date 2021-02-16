@@ -1703,18 +1703,84 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
     [*] only when Py_TYPE(v) != Py_TYPE(w) && Py_TYPE(w) is a subclass of
             Py_TYPE(v)
     */
-    if (binaryfunc_left) target = binaryfunc_left;
-    else if (binaryfunc_right) target = binaryfunc_right;
+    int left_func_token = -1, right_func_token = -1;
+    if (binaryfunc_left) {
+        if (opcode == BINARY_POWER || opcode == INPLACE_POWER) { // takes 3 arguments.
+            left_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                 std::vector<Parameter>{
+                                                         Parameter(CORINFO_TYPE_NATIVEINT),
+                                                         Parameter(CORINFO_TYPE_NATIVEINT),
+                                                         Parameter(CORINFO_TYPE_NATIVEINT)},
+                                                 (void *) binaryfunc_left);
+        } else {
+            left_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                 std::vector<Parameter>{
+                                                         Parameter(CORINFO_TYPE_NATIVEINT),
+                                                         Parameter(CORINFO_TYPE_NATIVEINT)},
+                                                 (void *) binaryfunc_left);
+        }
+    }
+    if (binaryfunc_right) {
+        if (opcode == BINARY_POWER || opcode == INPLACE_POWER) {
+            right_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                  std::vector<Parameter>{
+                                                          Parameter(CORINFO_TYPE_NATIVEINT),
+                                                          Parameter(CORINFO_TYPE_NATIVEINT),
+                                                          Parameter(CORINFO_TYPE_NATIVEINT)},
+                                                  (void *) binaryfunc_right);
+        } else {
+            right_func_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                  std::vector<Parameter>{
+                                                          Parameter(CORINFO_TYPE_NATIVEINT),
+                                                          Parameter(CORINFO_TYPE_NATIVEINT)},
+                                                  (void *) binaryfunc_right);
+        }
+    }
 
-    if (target != nullptr){
-        auto tok = g_module.AddMethod(CORINFO_TYPE_NATIVEINT, std::vector<Parameter>{Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT)}, (void*)target);
+    if (binaryfunc_left != nullptr){
+        // Add the function signature for this binaryfunc.
         Local leftLocal = emit_define_local(LK_Pointer);
         Local rightLocal = emit_define_local(LK_Pointer);
-        emit_store_local(leftLocal);
+        auto skipRight = emit_define_label();
+
         emit_store_local(rightLocal);
-        emit_load_local(rightLocal);
+        emit_store_local(leftLocal);
+
         emit_load_local(leftLocal);
-        m_il.emit_call(tok);
+        emit_load_local(rightLocal);
+        if (opcode == BINARY_POWER || opcode == INPLACE_POWER) emit_ptr(Py_None);
+        m_il.emit_call(left_func_token);
+        m_il.dup();
+        emit_ptr(Py_NotImplemented);
+        emit_branch(BranchNotEqual, skipRight);
+        if (binaryfunc_right){
+            m_il.pop();
+            emit_load_local(leftLocal);
+            emit_load_local(rightLocal);
+            if (opcode == BINARY_POWER || opcode == INPLACE_POWER) emit_ptr(Py_None);
+            m_il.emit_call(right_func_token);
+        } else {
+            m_il.pop();
+            emit_null();
+        }
+        emit_mark_label(skipRight);
+
+        emit_load_and_free_local(leftLocal);
+        decref();
+        emit_load_and_free_local(rightLocal);
+        decref();
+    } else if (binaryfunc_right != nullptr) {
+        // Add the function signature for this binaryfunc.
+        Local leftLocal = emit_define_local(LK_Pointer);
+        Local rightLocal = emit_define_local(LK_Pointer);
+        emit_store_local(rightLocal);
+        emit_store_local(leftLocal);
+
+        emit_load_local(leftLocal);
+        emit_load_local(rightLocal);
+        if (opcode == BINARY_POWER || opcode == INPLACE_POWER) emit_ptr(Py_None);
+        m_il.emit_call(right_func_token);
+
         emit_load_and_free_local(leftLocal);
         decref();
         emit_load_and_free_local(rightLocal);
