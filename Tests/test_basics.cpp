@@ -563,4 +563,12 @@ TEST_CASE("Test builtins") {
         auto t = EmissionTest("def f(): return min([100, 101, 97])");
         CHECK(t.returns() == "97");
     }
+    SECTION("call min() again") {
+        auto t = EmissionTest("def f(): return min(100, 101, 97)");
+        CHECK(t.returns() == "97");
+    }
+    SECTION("call type()") {
+        auto t = EmissionTest("def f(): return type(2)");
+        CHECK(t.returns() == "<class 'int'>");
+    }
 }
