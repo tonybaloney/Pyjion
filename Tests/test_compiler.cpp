@@ -1707,3 +1707,17 @@ TEST_CASE("Test locals propagation", "[!mayfail]") {
         CHECK(t.returns() == "3");
     }
 }
+
+TEST_CASE("byte arrays") {
+    SECTION("test bytearray buffer overrun") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    b = bytearray(10)\n"
+                "    b.pop() \n"  // Defeat expanding buffer off-by-one quirk
+                "    del b[:1]\n"  // Advance start pointer without reallocating
+                "    b += bytes(2)\n"  // Append exactly the number of deleted bytes
+                "    del b\n"
+        );
+        CHECK(t.returns() == "None");
+    }
+}
