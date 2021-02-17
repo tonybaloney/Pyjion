@@ -1846,8 +1846,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 break;
             case CALL_FUNCTION:
             {
-                if (OPT_ENABLED(functionCalls) && stackInfo.bottom().hasSource() && stackInfo.bottom().Sources->isBuiltin()){
-                    m_comp->emit_builtin_func(oparg, stackInfo.bottom());
+                if (OPT_ENABLED(functionCalls) && stackInfo.at(oparg).hasSource() && stackInfo.at(oparg).Sources->isBuiltin()){
+                    m_comp->emit_builtin_func(oparg, stackInfo.at(oparg));
                     decStack(oparg + 1); // target + args(oparg)
                     errorCheck("builtin function call failed", curByte);
                 } else {

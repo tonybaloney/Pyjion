@@ -571,4 +571,8 @@ TEST_CASE("Test builtins") {
         auto t = EmissionTest("def f(): return type(2)");
         CHECK(t.returns() == "<class 'int'>");
     }
+    SECTION("call type() more complicatedly?") {
+        auto t = EmissionTest("def f(): return isinstance(type(2), type)");
+        CHECK(t.returns() == "True");
+    }
 }
