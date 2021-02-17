@@ -555,4 +555,12 @@ TEST_CASE("Test builtins") {
         auto t = EmissionTest("def f(): return ord('a')");
         CHECK(t.returns() == "97");
     }
+    SECTION("call int()") {
+        auto t = EmissionTest("def f(): return int('97')");
+        CHECK(t.returns() == "97");
+    }
+    SECTION("call min()") {
+        auto t = EmissionTest("def f(): return min([100, 101, 97])");
+        CHECK(t.returns() == "97");
+    }
 }
