@@ -544,3 +544,15 @@ TEST_CASE("Sequence binary operations") {
         CHECK(t.returns() == "'aaaaa'");
     }
 }
+
+
+TEST_CASE("Test builtins") {
+    SECTION("call print()") {
+        auto t = EmissionTest("def f(): return print('hello world')");
+        CHECK(t.returns() == "None");
+    }
+    SECTION("call ord()") {
+        auto t = EmissionTest("def f(): return ord('a')");
+        CHECK(t.returns() == "97");
+    }
+}

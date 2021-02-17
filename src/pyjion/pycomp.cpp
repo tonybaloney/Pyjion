@@ -1733,6 +1733,57 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
     emit_load_and_free_local(meth_location);
 }
 
+void PythonCompiler::emit_builtin_func(size_t args, AbstractValueWithSources functionValue) {
+    auto builtin = reinterpret_cast<BuiltinSource*>(functionValue.Sources);
+    auto func = builtin->getValue();
+    if (!PyCFunction_Check(func)){
+        emit_new_tuple(args);
+        if (args != 0) {
+            emit_tuple_store(args);
+        }
+        emit_call_with_tuple();
+        return;
+    }
+    int flags = PyCFunction_GET_FLAGS(func);
+    if (!(flags & METH_VARARGS)) {
+        /* If this is not a METH_VARARGS function, delegate to vectorcall */
+        emit_new_tuple(args);
+        if (args != 0) {
+            emit_tuple_store(args);
+        }
+        emit_null(); // kwargs is always null
+        m_il.emit_call(METHOD_VECTORCALL);
+        return;
+    }
+    emit_new_tuple(args);
+    if (args != 0) {
+        emit_tuple_store(args);
+    }
+
+    emit_rot_two(LK_Pointer);
+    emit_pop(); // Drop the function object. I don't care about it now.
+
+    PyCFunction meth = PyCFunction_GET_FUNCTION(func);
+    PyObject *self = PyCFunction_GET_SELF(func);
+    emit_ptr(self);
+    int builtinToken = -1;
+    if (flags & METH_KEYWORDS) {
+        emit_null();
+        builtinToken = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                          vector<Parameter>{
+                                                  Parameter(CORINFO_TYPE_NATIVEINT), // Self
+                                                  Parameter(CORINFO_TYPE_NATIVEINT), // Args-tuple
+                                                  Parameter(CORINFO_TYPE_NATIVEINT)}, // kwargs
+                                          (void *) meth);
+    } else {
+        builtinToken = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                          vector<Parameter>{
+                                                  Parameter(CORINFO_TYPE_NATIVEINT), // Self
+                                                  Parameter(CORINFO_TYPE_NATIVEINT)}, // Args-tuple
+                                          (void *) meth);
+    }
+    m_il.emit_call(builtinToken);
+}
 
 JittedCode* PythonCompiler::emit_compile() {
     auto* jitInfo = new CorJitInfo(m_code, m_module);
@@ -2003,3 +2054,5 @@ GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, P
 
 GLOBAL_METHOD(METHOD_TRIPLE_BINARY_OP, &PyJitMath_TripleBinaryOp, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );
+
+GLOBAL_METHOD(METHOD_VECTORCALL, &PyVectorcall_Call, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT) );

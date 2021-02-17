@@ -150,5 +150,8 @@ public:
     AbstractValueWithSources fifth() {
         return std::vector<AbstractValueWithSources>::at(size() - 5);
     }
+    AbstractValueWithSources bottom() {
+        return std::vector<AbstractValueWithSources>::at(0);
+    }
 };
 #endif //PYJION_STACK_H

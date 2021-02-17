@@ -444,6 +444,8 @@ public:
     virtual void emit_load_frame_locals() = 0;
     virtual void emit_triple_binary_op(int firstOp, int secondOp) = 0;
     virtual void emit_builtin_method(PyObject* name, AbstractValue* typeValue) = 0;
+
+    virtual void emit_builtin_func(size_t i, AbstractValueWithSources func) = 0;
 };
 
 #endif
