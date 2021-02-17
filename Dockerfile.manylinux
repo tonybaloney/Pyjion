@@ -1,5 +1,5 @@
 FROM quay.io/pypa/manylinux2014_x86_64
-ENV DOTNET_VERSION=5.0.101
+ENV DOTNET_VERSION=5.0.103
 RUN echo "Building Pyjion with .NET  $DOTNET_VERSION"
 COPY . /src
 WORKDIR /src

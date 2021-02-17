@@ -33,7 +33,7 @@ jobs:
           libssl-dev libnuma-dev libkrb5-dev zlib1g-dev
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.101'
+          dotnet-version: '5.0.103'
 
       - name: Build Python Package
         shell: bash
@@ -67,7 +67,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.101'
+          dotnet-version: '5.0.103'
 
       - name: Build Python Package
         shell: bash
@@ -103,7 +103,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.101'
+          dotnet-version: '5.0.103'
 
       - name: Build Python Package
         shell: bash
@@ -137,7 +137,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.100'
+          dotnet-version: '5.0.103'
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
