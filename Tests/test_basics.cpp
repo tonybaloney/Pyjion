@@ -575,4 +575,9 @@ TEST_CASE("Test builtins") {
         auto t = EmissionTest("def f(): return isinstance(type(2), type)");
         CHECK(t.returns() == "True");
     }
+    SECTION("call max() and map()") {
+        auto t = EmissionTest("def f(): args=('a', 'aaa', 'aaaaa'); return max(map(len, args))");
+        CHECK(t.returns() == "5");
+    }
+
 }

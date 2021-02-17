@@ -147,11 +147,8 @@ public:
     AbstractValueWithSources fourth() {
         return std::vector<AbstractValueWithSources>::at(size() - 4);
     }
-    AbstractValueWithSources fifth() {
-        return std::vector<AbstractValueWithSources>::at(size() - 5);
-    }
-    AbstractValueWithSources bottom() {
-        return std::vector<AbstractValueWithSources>::at(0);
+    AbstractValueWithSources nth(unsigned long n) {
+        return std::vector<AbstractValueWithSources>::at(size() - n);
     }
 };
 #endif //PYJION_STACK_H
