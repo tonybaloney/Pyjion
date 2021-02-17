@@ -65,6 +65,7 @@ public:
 class BaseModule {
 public:
     unordered_map<int, BaseMethod*> m_methods;
+    unordered_map<void*, int> existingSlots;
     int slotCursor = 0;
     BaseModule() = default;
 

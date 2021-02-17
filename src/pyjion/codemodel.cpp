@@ -27,7 +27,11 @@
 #include "codemodel.h"
 
 int BaseModule::AddMethod(CorInfoType returnType, std::vector<Parameter> params, void *addr) {
-    int token = METHOD_SLOT_SPACE + ++slotCursor;
-    m_methods[token] = new JITMethod(this, returnType, params, addr);
-    return token;
+    if (existingSlots.find(addr) == existingSlots.end()) {
+        int token = METHOD_SLOT_SPACE + ++slotCursor;
+        m_methods[token] = new JITMethod(this, returnType, params, addr);
+        return token;
+    } else {
+        return existingSlots[addr];
+    }
 }
