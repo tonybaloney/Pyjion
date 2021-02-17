@@ -2614,7 +2614,7 @@ inline int trace(PyThreadState *tstate, PyFrameObject *f, int ty, PyObject *args
     return result;
 }
 
-void PyJit_TraceLine(PyFrameObject* f, int* instr_lb, int* instr_ub, int* instr_prev){
+int PyJit_TraceLine(PyFrameObject* f, int* instr_lb, int* instr_ub, int* instr_prev){
     auto tstate = PyThreadState_GET();
     if (tstate->c_tracefunc != nullptr && !tstate->tracing) {
         int result = 0;
@@ -2638,22 +2638,24 @@ void PyJit_TraceLine(PyFrameObject* f, int* instr_lb, int* instr_ub, int* instr_
             f->f_lineno = line;
             if (f->f_trace_lines) {
                 if (tstate->tracing)
-                    return;
+                    return 0;
                 result = trace(tstate, f, PyTrace_LINE, Py_None, tstate->c_tracefunc, tstate->c_traceobj);
             }
         }
         /* Always emit an opcode event if we're tracing all opcodes. */
         if (f->f_trace_opcodes) {
             if (tstate->tracing)
-                return;
+                return 0;
             result = trace(tstate, f, PyTrace_OPCODE, Py_None, tstate->c_tracefunc, tstate->c_traceobj);
         }
         *instr_prev = f->f_lasti;
 
         // TODO : Handle possible change of instruction address
         //  should lookup jump address and branch (f->f_lasti);
-        // TODO : Handle error in call trace function
+        return result;
     }
+
+    return 0;
 }
 
 inline int protected_trace(PyThreadState* tstate, PyFrameObject* f, int ty, PyObject* arg, Py_tracefunc func, PyObject* tracearg){
