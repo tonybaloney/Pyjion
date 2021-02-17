@@ -1425,7 +1425,7 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         case AVK_Type: return &PyType_Type;
         case AVK_Enumerate: return &PyEnum_Type;
         case AVK_Code: return &PyCode_Type;
-    
+        case AVK_Bytearray: return &PyByteArray_Type;
         default:
             return nullptr;
     }

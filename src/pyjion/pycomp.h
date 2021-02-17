@@ -119,6 +119,7 @@
 #define METHOD_FLOAT_FROM_DOUBLE                 0x00000053
 #define METHOD_BOOL_FROM_LONG                    0x00000054
 #define METHOD_PYERR_SETSTRING                   0x00000055
+#define METHOD_NUMBER_AS_SSIZET                  0x00000056
 
 #define METHOD_EQUALS_INT_TOKEN                  0x00000065
 #define METHOD_LESS_THAN_INT_TOKEN               0x00000066
@@ -242,6 +243,7 @@
 #define METHOD_SUBSCR_LIST_SLICE_REVERSED 0x0007000B
 
 
+
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
 #define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
 #define LD_FIELDI(type, field) m_il.ld_i(offsetof(type, field)); m_il.mul(); m_il.ld_ind_i();
@@ -358,7 +360,7 @@ public:
     // can't emit a call with this number of args then it returns false,
     // and emit_call_with_tuple is used to call with a variable sized
     // tuple instead.
-    bool emit_call(size_t argCnt) override;
+    bool emit_func_call(size_t argCnt) override;
     void emit_call_with_tuple() override;
 
     void emit_kwcall_with_tuple() override;
@@ -404,6 +406,7 @@ public:
 
     void emit_binary_float(int opcode) override;
     void emit_binary_object(int opcode) override;
+    void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) override;
@@ -499,6 +502,14 @@ private:
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
     void emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset );
 
+    void emit_known_binary_op(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+                              int sq_slot, int fallback_token);
+    void emit_known_binary_op_power(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+                              int sq_slot, int fallback_token);
+    void emit_known_binary_op_add(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+                              int sq_slot, int fallback_token);
+    void emit_known_binary_op_multiply(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+                              int sq_slot, int fallback_token);
 };
 
 // Copies of internal CPython structures

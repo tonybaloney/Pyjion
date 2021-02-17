@@ -453,12 +453,20 @@ TEST_CASE("Unary tests") {
                 "def f():\n  x=True\n  return not x\n"
         );
         CHECK(t.returns() == "False");
-    }SECTION("in place add") {
+    }
+    SECTION("in place add") {
         auto t = CompilerTest(
                 "def f():\n  x=1\n  x+=1\n  return x"
         );
         CHECK(t.returns() == "2");
-    }SECTION("test1") {
+    }
+    SECTION("simple add") {
+        auto t = CompilerTest(
+                "def f():\n  x=1\n  y=2\n  z = x+y\n  return z"
+        );
+        CHECK(t.returns() == "3");
+    }
+    SECTION("test1") {
         auto t = CompilerTest(
                 "def f():\n    x = 4611686018427387903\n    x += 1\n    x -= 1\n    y = not x\n    return y"
         );
@@ -1697,5 +1705,19 @@ TEST_CASE("Test locals propagation", "[!mayfail]") {
                 "    return locals()\n"
         );
         CHECK(t.returns() == "3");
+    }
+}
+
+TEST_CASE("byte arrays") {
+    SECTION("test bytearray buffer overrun") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    b = bytearray(10)\n"
+                "    b.pop() \n"  // Defeat expanding buffer off-by-one quirk
+                "    del b[:1]\n"  // Advance start pointer without reallocating
+                "    b += bytes(2)\n"  // Append exactly the number of deleted bytes
+                "    del b\n"
+        );
+        CHECK(t.returns() == "None");
     }
 }

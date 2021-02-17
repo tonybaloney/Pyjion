@@ -517,3 +517,30 @@ TEST_CASE("Type object methods") {
         CHECK(t.returns() == "'200.000000%'");
     }
 }
+
+TEST_CASE("Sequence binary operations") {
+    SECTION("add two lists") {
+        auto t = EmissionTest("def f(): return ['hello'] + ['world']");
+        CHECK(t.returns() == "['hello', 'world']");
+    }
+    SECTION("assert multi list by number") {
+        auto t = EmissionTest("def f(): return ['hello'] * 5");
+        CHECK(t.returns() == "['hello', 'hello', 'hello', 'hello', 'hello']");
+    }
+    SECTION("assert multi list by number reversed") {
+        auto t = EmissionTest("def f(): return 5* ['hello']");
+        CHECK(t.returns() == "['hello', 'hello', 'hello', 'hello', 'hello']");
+    }
+    SECTION("assert multi list by complex number") {
+        auto t = EmissionTest("def f(): return ['hello'] * int(5)");
+        CHECK(t.returns() == "['hello', 'hello', 'hello', 'hello', 'hello']");
+    }
+    SECTION("assert multi list by complex number reversed") {
+        auto t = EmissionTest("def f(): return int(5) * ['hello']");
+        CHECK(t.returns() == "['hello', 'hello', 'hello', 'hello', 'hello']");
+    }
+    SECTION("assert multi letter by complex number") {
+        auto t = EmissionTest("def f(): return 'a' * int(5)");
+        CHECK(t.returns() == "'aaaaa'");
+    }
+}

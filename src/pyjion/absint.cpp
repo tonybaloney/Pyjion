@@ -1846,7 +1846,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 break;
             case CALL_FUNCTION:
             {
-                if (!m_comp->emit_call(oparg)) {
+                if (!m_comp->emit_func_call(oparg)) {
                     buildTuple(oparg);
                     incStack();
                     m_comp->emit_call_with_tuple();
@@ -1951,9 +1951,16 @@ JittedCode* AbstractInterpreter::compileWorker() {
             case INPLACE_AND:
             case INPLACE_XOR:
             case INPLACE_OR:
-                m_comp->emit_binary_object(byte);
-                decStack(2);
-                errorCheck("binary op failed", curByte);
+                if (stackInfo.size() >= 2) {
+                    m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
+                    decStack(2);
+                    errorCheck("optimized binary op failed", curByte);
+                }
+                else {
+                    m_comp->emit_binary_object(byte);
+                    decStack(2);
+                    errorCheck("binary op failed", curByte);
+                }
                 incStack();
                 break;
             case RETURN_VALUE:

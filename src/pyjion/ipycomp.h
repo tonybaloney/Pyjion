@@ -300,7 +300,7 @@ public:
     // can't emit a call with this number of args then it returns false,
     // and emit_call_with_tuple is used to call with a variable sized
     // tuple instead.
-    virtual bool emit_call(size_t argCnt) = 0;
+    virtual bool emit_func_call(size_t argCnt) = 0;
 
     // Emits a call for the specified argument count.
     virtual bool emit_method_call(size_t argCnt) = 0;
@@ -362,6 +362,7 @@ public:
     virtual void emit_binary_float(int opcode) = 0;
     // Performs a binary operation for values on the stack which are boxed objects
     virtual void emit_binary_object(int opcode) = 0;
+    virtual void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) = 0;

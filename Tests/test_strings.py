@@ -1,5 +1,4 @@
 import sys
-sys.path.append('/Users/anthonyshaw/CLionProjects/pyjion/src')
 import pyjion
 import unittest
 import gc

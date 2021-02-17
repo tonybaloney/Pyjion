@@ -147,7 +147,7 @@ class MethodTokens (Enum):
     METHOD_FLOAT_FROM_DOUBLE                 = 0x00000053
     METHOD_BOOL_FROM_LONG                    = 0x00000054
     METHOD_PYERR_SETSTRING                   = 0x00000055
-    METHOD_BOX_TAGGED_PTR                    = 0x00000056
+    METHOD_NUMBER_AS_SSIZET                  = 0x00000056
 
     METHOD_EQUALS_INT_TOKEN                  = 0x00000065
     METHOD_LESS_THAN_INT_TOKEN               = 0x00000066
@@ -627,7 +627,10 @@ def print_il(il):
                 continue
             elif op.size == InlineMethod:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                meth = MethodTokens(target)
+                try:
+                    meth = MethodTokens(target)
+                except ValueError:
+                    meth = f"METHOD_SLOT_SPACE ({target})"
                 print(f"[IL_{pc:04x}] M {op.name:15} ({target} : {meth})")
                 pc += 5
                 continue

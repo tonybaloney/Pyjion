@@ -167,7 +167,7 @@ if(NET_SRC_LIB)  # use the libraries compiled from source
     set(DOTNETPATH ${CMAKE_SOURCE_DIR}/CoreCLR/artifacts/bin/coreclr/${CLR_OS_BUILD})
 endif()
 
-set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/block.cpp src/pyjion/pyjitmath.cpp src/pyjion/pyjitmath.h)
+set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/block.cpp src/pyjion/pyjitmath.cpp src/pyjion/pyjitmath.h src/pyjion/codemodel.cpp src/pyjion/binarycomp.cpp)
 
 if (WIN32)
     enable_language(ASM_MASM)

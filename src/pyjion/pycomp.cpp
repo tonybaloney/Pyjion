@@ -1106,7 +1106,7 @@ void PythonCompiler::emit_call_kwargs() {
     m_il.emit_call(METHOD_CALL_KWARGS);
 }
 
-bool PythonCompiler::emit_call(size_t argCnt) {
+bool PythonCompiler::emit_func_call(size_t argCnt) {
     switch (argCnt) {
         case 0: m_il.emit_call(METHOD_CALL_0_TOKEN); return true;
         case 1: m_il.emit_call(METHOD_CALL_1_TOKEN); return true;
@@ -1560,72 +1560,6 @@ void PythonCompiler::emit_binary_subscr(int opcode, AbstractValueWithSources lef
     }
 }
 
-void PythonCompiler::emit_binary_object(int opcode) {
-    switch (opcode) {
-        case BINARY_SUBSCR:
-            m_il.emit_call(METHOD_SUBSCR_OBJ); break;
-        case BINARY_ADD:
-            m_il.emit_call(METHOD_ADD_TOKEN); break;
-        case BINARY_TRUE_DIVIDE:
-            m_il.emit_call(METHOD_DIVIDE_TOKEN); break;
-        case BINARY_FLOOR_DIVIDE:
-            m_il.emit_call(METHOD_FLOORDIVIDE_TOKEN); break;
-        case BINARY_POWER:
-            m_il.emit_call(METHOD_POWER_TOKEN); break;
-        case BINARY_MODULO:
-            m_il.emit_call(METHOD_MODULO_TOKEN); break;
-        case BINARY_MATRIX_MULTIPLY:
-            m_il.emit_call(METHOD_MATRIX_MULTIPLY_TOKEN); break;
-        case BINARY_LSHIFT:
-            m_il.emit_call(METHOD_BINARY_LSHIFT_TOKEN); break;
-        case BINARY_RSHIFT:
-            m_il.emit_call(METHOD_BINARY_RSHIFT_TOKEN); break;
-        case BINARY_AND:
-            m_il.emit_call(METHOD_BINARY_AND_TOKEN); break;
-        case BINARY_XOR:
-            m_il.emit_call(METHOD_BINARY_XOR_TOKEN); break;
-        case BINARY_OR:
-            m_il.emit_call(METHOD_BINARY_OR_TOKEN); break;
-        case BINARY_MULTIPLY:
-            m_il.emit_call(METHOD_MULTIPLY_TOKEN); break;
-        case BINARY_SUBTRACT:
-            m_il.emit_call(METHOD_SUBTRACT_TOKEN); break;
-        case INPLACE_POWER:
-            m_il.emit_call(METHOD_INPLACE_POWER_TOKEN); break;
-        case INPLACE_MULTIPLY:
-            m_il.emit_call(METHOD_INPLACE_MULTIPLY_TOKEN); break;
-        case INPLACE_MATRIX_MULTIPLY:
-            m_il.emit_call(METHOD_INPLACE_MATRIX_MULTIPLY_TOKEN); break;
-        case INPLACE_TRUE_DIVIDE:
-            m_il.emit_call(METHOD_INPLACE_TRUE_DIVIDE_TOKEN); break;
-        case INPLACE_FLOOR_DIVIDE:
-            m_il.emit_call(METHOD_INPLACE_FLOOR_DIVIDE_TOKEN); break;
-        case INPLACE_MODULO:
-            m_il.emit_call(METHOD_INPLACE_MODULO_TOKEN); break;
-        case INPLACE_ADD:
-            // TODO: We should do the unicode_concatenate ref count optimization
-            m_il.emit_call(METHOD_INPLACE_ADD_TOKEN);
-            break;
-        case INPLACE_SUBTRACT:
-            m_il.emit_call(METHOD_INPLACE_SUBTRACT_TOKEN); break;
-        case INPLACE_LSHIFT:
-            m_il.emit_call(METHOD_INPLACE_LSHIFT_TOKEN); break;
-        case INPLACE_RSHIFT:
-            m_il.emit_call(METHOD_INPLACE_RSHIFT_TOKEN); break;
-        case INPLACE_AND:
-            m_il.emit_call(METHOD_INPLACE_AND_TOKEN); break;
-        case INPLACE_XOR:
-            m_il.emit_call(METHOD_INPLACE_XOR_TOKEN); break;
-        case INPLACE_OR:
-            m_il.emit_call(METHOD_INPLACE_OR_TOKEN); break;
-    }
-}
-void PythonCompiler::emit_triple_binary_op(int firstOp, int secondOp) {
-    m_il.ld_i4(firstOp);
-    m_il.ld_i4(secondOp);
-    m_il.emit_call(METHOD_TRIPLE_BINARY_OP);
-}
-
 void PythonCompiler::emit_is(bool isNot) {
     if (OPT_ENABLED(inlineIs)){
         auto left = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
@@ -2025,6 +1959,7 @@ GLOBAL_METHOD(METHOD_FLOAT_FLOOR_TOKEN, static_cast<double(*)(double)>(floor), C
 GLOBAL_METHOD(METHOD_FLOAT_MODULUS_TOKEN, static_cast<double(*)(double, double)>(fmod), CORINFO_TYPE_DOUBLE, Parameter(CORINFO_TYPE_DOUBLE), Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_FLOAT_FROM_DOUBLE, PyFloat_FromDouble, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_BOOL_FROM_LONG, PyBool_FromLong, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_INT));
+GLOBAL_METHOD(METHOD_NUMBER_AS_SSIZET, PyNumber_AsSsize_t, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_PYERR_SETSTRING, PyErr_SetString, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
