@@ -1759,13 +1759,15 @@ void PythonCompiler::emit_builtin_func(size_t args, AbstractValueWithSources fun
     if (args != 0) {
         emit_tuple_store(args);
     }
-
-    emit_rot_two(LK_Pointer);
+    Local args_tuple = emit_define_local(LK_Pointer);
+    emit_store_local(args_tuple);
     emit_pop(); // Drop the function object. I don't care about it now.
 
     PyCFunction meth = PyCFunction_GET_FUNCTION(func);
     PyObject *self = PyCFunction_GET_SELF(func);
     emit_ptr(self);
+    emit_load_and_free_local(args_tuple);
+
     int builtinToken = -1;
     if (flags & METH_KEYWORDS) {
         emit_null();
