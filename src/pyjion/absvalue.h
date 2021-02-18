@@ -209,6 +209,10 @@ public:
     const char* getName() {
         return _name;
     }
+
+    PyObject* getValue() {
+        return _value;
+    }
 };
 
 class LocalSource : public AbstractSource {

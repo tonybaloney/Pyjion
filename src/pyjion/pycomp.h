@@ -163,6 +163,8 @@
 #define METHOD_CALL_9_TOKEN        0x00010009
 #define METHOD_CALL_10_TOKEN       0x0001000A
 #define METHOD_CALLN_TOKEN         0x000100FF
+#define METHOD_VECTORCALL          0x00010100
+#define METHOD_OBJECTCALL          0x00010101
 
 #define METHOD_METHCALL_0_TOKEN    0x00011000
 #define METHOD_METHCALL_1_TOKEN    0x00011001
@@ -491,7 +493,7 @@ public:
     void sink_top_to_n(int pos) override;
 
     void emit_builtin_method(PyObject* name, AbstractValue* typeValue) override;
-
+    void emit_builtin_func(size_t i, AbstractValueWithSources func) override;
 private:
     void load_frame();
     void load_tstate();

@@ -1846,18 +1846,22 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 break;
             case CALL_FUNCTION:
             {
-                if (!m_comp->emit_func_call(oparg)) {
-                    buildTuple(oparg);
-                    incStack();
-                    m_comp->emit_call_with_tuple();
-                    decStack(2);// target + args
-                    errorCheck("call n-function failed", curByte);
-                }
-                else {
+                if (OPT_ENABLED(functionCalls) && stackInfo.nth(oparg + 1).hasSource() && stackInfo.nth(oparg + 1).Sources->isBuiltin()){
+                    m_comp->emit_builtin_func(oparg, stackInfo.nth(oparg + 1));
                     decStack(oparg + 1); // target + args(oparg)
-                    errorCheck("call function failed", curByte);
+                    errorCheck("builtin function call failed", curByte);
+                } else {
+                    if (!m_comp->emit_func_call(oparg)) {
+                        buildTuple(oparg);
+                        incStack();
+                        m_comp->emit_call_with_tuple();
+                        decStack(2);// target + args
+                        errorCheck("call n-function failed", curByte);
+                    } else {
+                        decStack(oparg + 1); // target + args(oparg)
+                        errorCheck("call function failed", curByte);
+                    }
                 }
-
                 incStack();
                 break;
             }

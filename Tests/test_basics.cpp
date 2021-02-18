@@ -544,3 +544,40 @@ TEST_CASE("Sequence binary operations") {
         CHECK(t.returns() == "'aaaaa'");
     }
 }
+
+
+TEST_CASE("Test builtins") {
+    SECTION("call print()") {
+        auto t = EmissionTest("def f(): return print('hello world')");
+        CHECK(t.returns() == "None");
+    }
+    SECTION("call ord()") {
+        auto t = EmissionTest("def f(): return ord('a')");
+        CHECK(t.returns() == "97");
+    }
+    SECTION("call int()") {
+        auto t = EmissionTest("def f(): return int('97')");
+        CHECK(t.returns() == "97");
+    }
+    SECTION("call min()") {
+        auto t = EmissionTest("def f(): return min([100, 101, 97])");
+        CHECK(t.returns() == "97");
+    }
+    SECTION("call min() again") {
+        auto t = EmissionTest("def f(): return min(100, 101, 97)");
+        CHECK(t.returns() == "97");
+    }
+    SECTION("call type()") {
+        auto t = EmissionTest("def f(): return type(2)");
+        CHECK(t.returns() == "<class 'int'>");
+    }
+    SECTION("call type() more complicatedly?") {
+        auto t = EmissionTest("def f(): return isinstance(type(2), type)");
+        CHECK(t.returns() == "True");
+    }
+    SECTION("call max() and map()") {
+        auto t = EmissionTest("def f(): args=('a', 'aaa', 'aaaaa'); return max(map(len, args))");
+        CHECK(t.returns() == "5");
+    }
+
+}

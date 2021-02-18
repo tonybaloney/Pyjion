@@ -1733,6 +1733,74 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
     emit_load_and_free_local(meth_location);
 }
 
+void PythonCompiler::emit_builtin_func(size_t args, AbstractValueWithSources functionValue) {
+    auto builtin = reinterpret_cast<BuiltinSource*>(functionValue.Sources);
+    auto func = builtin->getValue();
+    Local args_tuple = emit_define_local(LK_Pointer);
+    Local function_object = emit_define_local(LK_Pointer);
+    emit_ptr(func);
+    emit_store_local(function_object);
+    if (!PyCFunction_Check(func)){
+        emit_new_tuple(args);
+        if (args != 0) {
+            emit_tuple_store(args);
+        }
+        m_il.dup();
+        emit_store_local(args_tuple);
+        emit_null();
+        m_il.emit_call(METHOD_OBJECTCALL);
+        return;
+    }
+    int flags = PyCFunction_GET_FLAGS(func);
+    if (!(flags & METH_VARARGS)) {
+        /* If this is not a METH_VARARGS function, delegate to vectorcall */
+        emit_new_tuple(args);
+        if (args != 0) {
+            emit_tuple_store(args);
+        }
+        m_il.dup();
+        emit_store_local(args_tuple);
+        emit_null(); // kwargs is always null
+        m_il.emit_call(METHOD_VECTORCALL);
+    } else {
+        emit_new_tuple(args);
+        if (args != 0) {
+            emit_tuple_store(args);
+        }
+
+        emit_store_local(args_tuple);
+        m_il.pop(); // Drop the function object. I don't care about it now.
+
+        PyCFunction meth = PyCFunction_GET_FUNCTION(func);
+        PyObject *self = PyCFunction_GET_SELF(func);
+        emit_ptr(self);
+        emit_load_local(args_tuple);
+
+        int builtinToken;
+        if (flags & METH_KEYWORDS) {
+            emit_null();
+            builtinToken = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                              vector<Parameter>{
+                                                      Parameter(CORINFO_TYPE_NATIVEINT), // Self
+                                                      Parameter(CORINFO_TYPE_NATIVEINT), // Args-tuple
+                                                      Parameter(CORINFO_TYPE_NATIVEINT)}, // kwargs
+                                              (void *) meth);
+        } else {
+            builtinToken = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                              vector<Parameter>{
+                                                      Parameter(CORINFO_TYPE_NATIVEINT), // Self
+                                                      Parameter(CORINFO_TYPE_NATIVEINT)}, // Args-tuple
+                                              (void *) meth);
+        }
+        m_il.emit_call(builtinToken);
+    }
+    // Decref all the args.
+    // Because this tuple was built with borrowed references, it has the effect of decref'ing all args
+    emit_load_and_free_local(args_tuple);
+    decref();
+    emit_load_and_free_local(function_object);
+    decref();
+}
 
 JittedCode* PythonCompiler::emit_compile() {
     auto* jitInfo = new CorJitInfo(m_code, m_module);
@@ -1863,8 +1931,9 @@ GLOBAL_METHOD(METHOD_CALL_9_TOKEN, &Call9, CORINFO_TYPE_NATIVEINT, Parameter(COR
 GLOBAL_METHOD(METHOD_CALL_10_TOKEN, &Call10, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_CALLN_TOKEN, &PyJit_CallN, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
-
 GLOBAL_METHOD(METHOD_KWCALLN_TOKEN, &PyJit_KwCallN, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_VECTORCALL, &PyVectorcall_Call, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT) );
+GLOBAL_METHOD(METHOD_OBJECTCALL, &PyObject_Call, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT) );
 
 GLOBAL_METHOD(METHOD_STOREGLOBAL_TOKEN, &PyJit_StoreGlobal, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DELETEGLOBAL_TOKEN, &PyJit_DeleteGlobal, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
@@ -2003,3 +2072,4 @@ GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, P
 
 GLOBAL_METHOD(METHOD_TRIPLE_BINARY_OP, &PyJitMath_TripleBinaryOp, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );
+
