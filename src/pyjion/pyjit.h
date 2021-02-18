@@ -50,14 +50,14 @@
 
 using namespace std;
 
-struct CodeProfileStack {
-    unordered_map<int, PyTypeObject *> types;
-};
-
 class PyjionCodeProfile{
-    unordered_map<int, CodeProfileStack> stackProfiles;
+    unordered_map<int, unordered_map<int, PyTypeObject *>> stackTypes;
 public:
+    PyjionCodeProfile(){
+        int i = 0;
+    }
     void recordType(int opcodePosition, int stackPosition, PyTypeObject* pythonType);
+    PyTypeObject* getType(int opcodePosition, int stackPosition);
 };
 
 
@@ -137,6 +137,7 @@ public:
 		j_il = nullptr;
 		j_ilLen = 0;
 		j_nativeSize = 0;
+		j_profile = new PyjionCodeProfile();
 		Py_INCREF(code);
 	}
 

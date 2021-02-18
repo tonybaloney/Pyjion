@@ -82,14 +82,19 @@ PyjionJittedCode::~PyjionJittedCode() {
 	for (auto & cur : j_optimized) {
 		delete cur;
 	}
+	delete j_profile;
 }
 
 void PyjionCodeProfile::recordType(int opcodePosition, int stackPosition, PyTypeObject* pythonType){
-    this->stackProfiles[opcodePosition].types[stackPosition] = pythonType;
+    this->stackTypes[opcodePosition][stackPosition] = pythonType;
+}
+
+PyTypeObject* PyjionCodeProfile::getType(int opcodePosition, int stackPosition) {
+    return this->stackTypes[opcodePosition][stackPosition];
 }
 
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, int opcodePosition, int stackPosition){
-    if (value != nullptr)
+    if (value != nullptr && profile != nullptr)
         profile->recordType(opcodePosition, stackPosition, Py_TYPE(value));
 }
 
@@ -264,7 +269,7 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame, PyThreadS
 			trace->j_il = res->get_il();
 			trace->j_ilLen = res->get_il_len();
             trace->j_nativeSize = res->get_native_size();
-            trace->j_profile = new PyjionCodeProfile();
+            trace->j_profile = profile;
 
 			return Jit_EvalHelper((void*)target->addr, frame, tstate, trace->j_profile);
 		}
