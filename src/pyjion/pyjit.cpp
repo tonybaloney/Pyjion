@@ -58,9 +58,6 @@ void setOptimizationLevel(unsigned short level){
 }
 
 PyjionJittedCode::~PyjionJittedCode() {
-	for (auto & cur : j_optimized) {
-		delete cur;
-	}
 	delete j_profile;
 }
 

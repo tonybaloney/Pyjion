@@ -59,7 +59,6 @@ public:
 
 
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, int opcodePosition, int stackPosition);
-struct SpecializedTreeNode;
 class PyjionJittedCode;
 
 bool JitInit();
@@ -68,7 +67,6 @@ PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadSta
 PyObject* PyJit_EvalFrame(PyThreadState *, PyFrameObject *, int);
 PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject);
 
-class PyjionJittedCode;
 typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*, PyThreadState*, PyjionCodeProfile*);
 
 typedef struct PyjionSettings {
@@ -119,7 +117,6 @@ public:
 	Py_EvalFunc j_addr;
 	PY_UINT64_T j_specialization_threshold;
 	PyObject* j_code;
-	std::vector<SpecializedTreeNode*> j_optimized;
 	PyjionCodeProfile* j_profile;
     unsigned char* j_il;
     unsigned int j_ilLen;
