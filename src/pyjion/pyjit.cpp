@@ -34,27 +34,6 @@ typedef ICorJitCompiler* (__cdecl* GETJIT)();
 
 HINSTANCE            g_pMSCorEE;
 
-// Tracks types for a function call.  Each argument has a SpecializedTreeNode with
-// children for the subsequent arguments.  When we get to the leaves of the tree
-// we'll have a jitted code object & optimized evalutation function optimized
-// for those arguments.  
-struct SpecializedTreeNode {
-	vector<PyTypeObject*> types;
-	Py_EvalFunc addr;
-	JittedCode* jittedCode;
-	int hitCount;
-
-	explicit SpecializedTreeNode(vector<PyTypeObject*>& types) : types(types) {
-		addr = nullptr;
-		jittedCode = nullptr;
-		hitCount = 0;
-	}
-
-	~SpecializedTreeNode() {
-		delete jittedCode;
-	}
-};
-
 PyjionSettings g_pyjionSettings;
 
 #define SET_OPT(opt, actualLevel, minLevel) \
@@ -193,87 +172,52 @@ bool jit_compile(PyCodeObject* code) {
     return true;
 }
 
-PyTypeObject* GetArgType(int arg, PyObject** locals) {
-    auto objValue = locals[arg];
-    PyTypeObject* type = nullptr;
-    if (objValue != nullptr) {
-        type = objValue->ob_type;
-    }
-    return type;
-}
-
-#define MAX_TRACE 5
-
 PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate, PyjionCodeProfile* profile) {
-	// Walk our tree of argument types to find the SpecializedTreeNode which
-    // corresponds with our sets of arguments here.
-    auto trace = (PyjionJittedCode*)state;
-	SpecializedTreeNode* target = nullptr;
+	if (state != nullptr && !state->j_failed) {
+		if (state->j_addr != nullptr) {
+			return Jit_EvalHelper((void*)state->j_addr, frame, tstate, profile);
+		}
 
-    // record the new trace...
-    if (trace->j_optimized.size() < MAX_TRACE) {
+        // Compile and run the now compiled code...
+        PythonCompiler jitter((PyCodeObject*)state->j_code);
+        AbstractInterpreter interp((PyCodeObject*)state->j_code, &jitter);
         int argCount = frame->f_code->co_argcount + frame->f_code->co_kwonlyargcount;
-        vector<PyTypeObject*> types;
+
+        // provide the interpreter information about the specialized types
         for (int i = 0; i < argCount; i++) {
-            auto type = GetArgType(i, frame->f_localsplus);
-            types.push_back(type);
+            interp.setLocalType(i, frame->f_localsplus[i]);
         }
-		target = new SpecializedTreeNode(types);
-        trace->j_optimized.push_back(target);
-	}
 
-	if (target != nullptr && !trace->j_failed) {
-		if (target->addr != nullptr) {
-			// we have a specialized function for this, just invoke it
-			return Jit_EvalHelper((void*)target->addr, frame, tstate, profile);
-		}
+        if (g_pyjionSettings.tracing){
+            interp.enableTracing();
+        } else {
+            interp.disableTracing();
+        }
+        if (g_pyjionSettings.profiling){
+            interp.enableProfiling();
+        } else {
+            interp.disableProfiling();
+        }
 
-		target->hitCount++;
-		// we've recorded these types before...
-		// No specialized function yet, let's see if we should create one...
-		if (target->hitCount >= trace->j_specialization_threshold ||
-		    g_pyjionSettings.pgc && target->hitCount == trace->j_specialization_threshold) {
-			// Compile and run the now compiled code...
-			PythonCompiler jitter((PyCodeObject*)trace->j_code);
-			AbstractInterpreter interp((PyCodeObject*)trace->j_code, &jitter);
-			int argCount = frame->f_code->co_argcount + frame->f_code->co_kwonlyargcount;
+        auto res = interp.compile(frame->f_builtins, frame->f_globals, profile);
 
-			// provide the interpreter information about the specialized types
-			for (int i = 0; i < argCount; i++) {
-                interp.setLocalType(i, frame->f_localsplus[i]);
-			}
+        if (res == nullptr) {
+            static int failCount;
+            state->j_failed = true;
+            return _PyEval_EvalFrameDefault(tstate, frame, 0);
+        }
 
-			if (g_pyjionSettings.tracing){
-			    interp.enableTracing();
-			} else {
-			    interp.disableTracing();
-			}
-			if (g_pyjionSettings.profiling){
-			    interp.enableProfiling();
-			} else {
-			    interp.disableProfiling();
-			}
+        // Update the jitted information for this tree node
+        state->j_addr = (Py_EvalFunc)res->get_code_addr();
+        assert(state->j_addr != nullptr);
 
-			auto res = interp.compile(frame->f_builtins, frame->f_globals, profile);
+        state->j_il = res->get_il();
+        state->j_ilLen = res->get_il_len();
+        state->j_nativeSize = res->get_native_size();
+        state->j_profile = profile;
 
-			if (res == nullptr) {
-				static int failCount;
-				trace->j_failed = true;
-				return _PyEval_EvalFrameDefault(tstate, frame, 0);
-			}
-
-			// Update the jitted information for this tree node
-			target->addr = (Py_EvalFunc)res->get_code_addr();
-			assert(target->addr != nullptr);
-			target->jittedCode = res;
-
-			trace->j_il = res->get_il();
-			trace->j_ilLen = res->get_il_len();
-            trace->j_nativeSize = res->get_native_size();
-            trace->j_profile = profile;
-
-			return Jit_EvalHelper((void*)target->addr, frame, tstate, trace->j_profile);
-		}
+        // Execute it now.
+        return Jit_EvalHelper((void*)state->j_addr, frame, tstate, state->j_profile);
 	}
 
 	auto res = _PyEval_EvalFrameDefault(tstate, frame, 0);
@@ -448,14 +392,14 @@ static PyObject* pyjion_dump_native(PyObject *self, PyObject* func) {
     }
 
     PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
-    if (jitted->j_failed || jitted->j_evalfunc == nullptr)
+    if (jitted->j_failed || jitted->j_evalfunc == nullptr || jitted->j_addr == nullptr)
         Py_RETURN_NONE;
 
     auto result_t = PyTuple_New(3);
     if (result_t == nullptr)
         return nullptr;
 
-    auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(jitted->j_evalfunc), jitted->j_nativeSize);
+    auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(jitted->j_addr), jitted->j_nativeSize);
     if (res == nullptr)
         return nullptr;
 
@@ -468,7 +412,7 @@ static PyObject* pyjion_dump_native(PyObject *self, PyObject* func) {
     PyTuple_SET_ITEM(result_t, 1, codeLen);
     Py_INCREF(codeLen);
 
-    auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&jitted->j_evalfunc));
+    auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&jitted->j_addr));
     if (codePosition == nullptr)
         return nullptr;
     PyTuple_SET_ITEM(result_t, 2, codePosition);

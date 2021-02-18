@@ -53,9 +53,6 @@ using namespace std;
 class PyjionCodeProfile{
     unordered_map<int, unordered_map<int, PyTypeObject *>> stackTypes;
 public:
-    PyjionCodeProfile(){
-        int i = 0;
-    }
     void recordType(int opcodePosition, int stackPosition, PyTypeObject* pythonType);
     PyTypeObject* getType(int opcodePosition, int stackPosition);
 };
@@ -120,6 +117,7 @@ public:
 	PY_UINT64_T j_run_count;
 	bool j_failed;
 	Py_EvalFunc j_evalfunc;
+	Py_EvalFunc j_addr;
 	PY_UINT64_T j_specialization_threshold;
 	PyObject* j_code;
 	std::vector<SpecializedTreeNode*> j_optimized;
@@ -133,6 +131,7 @@ public:
 		j_run_count = 0;
 		j_failed = false;
 		j_evalfunc = nullptr;
+		j_addr = nullptr;
 		j_specialization_threshold = HOT_CODE;
 		j_il = nullptr;
 		j_ilLen = 0;
