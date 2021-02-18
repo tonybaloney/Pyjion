@@ -224,7 +224,7 @@ void AbstractInterpreter::initStartingState() {
     updateStartState(lastState, 0);
 }
 
-bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
+bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile) {
     if (!preprocess()) {
         return false;
     }
@@ -246,8 +246,9 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
             InterpreterState lastState = mStartStates.find(curByte)->second;
 
             auto opcodeIndex = curByte;
-
             auto opcode = GET_OPCODE(curByte);
+            bool pgcRequired = false;
+            short pgcSize = 0;
             oparg = GET_OPARG(curByte);
         processOpCode:
 
@@ -407,6 +408,8 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                 case INPLACE_AND:
                 case INPLACE_XOR:
                 case INPLACE_OR: {
+                    pgcRequired = true;
+                    pgcSize = 2;
                     auto two = lastState.popNoEscape();
                     auto one = lastState.popNoEscape();
                     auto out = one.Value->binary(one.Sources, opcode, two);
@@ -586,6 +589,8 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     lastState.push(&Dict);
                     break;
                 case COMPARE_OP: {
+                    pgcRequired = true;
+                    pgcSize = 2;
                     lastState.pop();
                     lastState.pop();
                     lastState.push(&Any);
@@ -601,8 +606,8 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     lastState.push(&Any);
                     break;
                 case CALL_FUNCTION: {
-                    // TODO: Implement abstract value types for CALL_FUNCTION
-                    // @body: Known functions could return known return types.
+                    pgcRequired = true;
+                    pgcSize = oparg + 1;
                     int argCnt = oparg & 0xff;
                     int kwArgCnt = (oparg >> 8) & 0xff;
 
@@ -942,6 +947,8 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
             assert(skipEffect || PyCompile_OpcodeStackEffectWithJump(opcode, oparg, jump) == (lastState.stackSize() - curStackLen));
 #endif
             updateStartState(lastState, curByte + SIZEOF_CODEUNIT);
+            mStartStates[curByte].pgcProbeSize = pgcSize;
+            mStartStates[curByte].requiresPgcProbe = pgcRequired;
         }
 
     next:;
@@ -1183,6 +1190,14 @@ AbstractLocalInfo AbstractInterpreter::getLocalInfo(size_t byteCodeIndex, size_t
 // Returns information about the stack at the specific byte code index.
 InterpreterStack& AbstractInterpreter::getStackInfo(size_t byteCodeIndex) {
     return mStartStates[byteCodeIndex].mStack;
+}
+
+short AbstractInterpreter::pgcProbeSize(size_t byteCodeIndex) {
+    return mStartStates[byteCodeIndex].pgcProbeSize;
+}
+
+bool AbstractInterpreter::pgcProbeRequired(size_t byteCodeIndex) {
+    return mStartStates[byteCodeIndex].requiresPgcProbe;
 }
 
 AbstractValue* AbstractInterpreter::getReturnInfo() {
@@ -1657,6 +1672,10 @@ JittedCode* AbstractInterpreter::compileWorker() {
 
         int curStackSize = m_stack.size();
         bool skipEffect = false;
+
+        if (g_pyjionSettings.pgc && pgcProbeRequired(curByte)){
+            m_comp->emit_pgc_probe(curByte, pgcProbeSize(curByte));
+        }
 
         auto next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
 
@@ -2428,8 +2447,8 @@ void AbstractInterpreter::unaryNot(int opcodeIndex) {
     incStack();
 }
 
-JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals) {
-    bool interpreted = interpret(builtins, globals);
+JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile) {
+    bool interpreted = interpret(builtins, globals, profile);
     if (!interpreted) {
 #ifdef DEBUG
         printf("Failed to interpret");

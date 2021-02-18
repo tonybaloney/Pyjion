@@ -48,13 +48,20 @@
 #include <frameobject.h>
 #include <Python.h>
 
-class PyjionCodeProfile{
-public:
+using namespace std;
 
+struct CodeProfileStack {
+    unordered_map<int, PyTypeObject *> types;
 };
 
-void captureStack(PyjionCodeProfile*, int position);
+class PyjionCodeProfile{
+    unordered_map<int, CodeProfileStack> stackProfiles;
+public:
+    void recordType(int opcodePosition, int stackPosition, PyTypeObject* pythonType);
+};
 
+
+void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, int opcodePosition, int stackPosition);
 struct SpecializedTreeNode;
 class PyjionJittedCode;
 
@@ -68,7 +75,7 @@ typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*, PyThreadStat
 typedef struct PyjionSettings {
     bool tracing = false;
     bool profiling = false;
-    bool pgc = false; // Profile-guided-compilation
+    bool pgc = true; // Profile-guided-compilation
     unsigned short optimizationLevel = 1;
     int recursionLimit = DEFAULT_RECURSION_LIMIT;
     int codeObjectSizeLimit = DEFAULT_CODEOBJECT_SIZE_LIMIT;

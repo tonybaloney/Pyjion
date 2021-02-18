@@ -216,6 +216,7 @@
 #define METHOD_TRACE_EXCEPTION       0x0003000A
 #define METHOD_PROFILE_FRAME_ENTRY   0x0003000B
 #define METHOD_PROFILE_FRAME_EXIT    0x0003000C
+#define METHOD_PGC_PROBE             0x0003000D
 
 #define METHOD_ITERNEXT_TOKEN        0x00040000
 
@@ -483,6 +484,7 @@ public:
     void emit_trace_exception() override;
     void emit_profile_frame_entry() override;
     void emit_profile_frame_exit() override;
+    void emit_pgc_probe(int curByte, int stackSize) override;
 
     void emit_load_frame_locals() override;
     void emit_triple_binary_op(int firstOp, int secondOp) override;

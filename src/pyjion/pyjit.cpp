@@ -84,8 +84,13 @@ PyjionJittedCode::~PyjionJittedCode() {
 	}
 }
 
-void captureStack(PyjionCodeProfile*, int position){
-    int i = 0;
+void PyjionCodeProfile::recordType(int opcodePosition, int stackPosition, PyTypeObject* pythonType){
+    this->stackProfiles[opcodePosition].types[stackPosition] = pythonType;
+}
+
+void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, int opcodePosition, int stackPosition){
+    if (value != nullptr)
+        profile->recordType(opcodePosition, stackPosition, Py_TYPE(value));
 }
 
 int
@@ -243,7 +248,7 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame, PyThreadS
 			    interp.disableProfiling();
 			}
 
-			auto res = interp.compile(frame->f_builtins, frame->f_globals);
+			auto res = interp.compile(frame->f_builtins, frame->f_globals, profile);
 
 			if (res == nullptr) {
 				static int failCount;

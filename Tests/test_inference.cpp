@@ -47,7 +47,9 @@ public:
         m_absint = std::make_unique<AbstractInterpreter>(pyCode, nullptr);
         auto builtins = PyEval_GetBuiltins();
         auto globals_dict = PyObject_ptr(PyDict_New());
-        auto success = m_absint->interpret(builtins, globals_dict.get());
+        auto profile = new PyjionCodeProfile();
+        auto success = m_absint->interpret(builtins, globals_dict.get(), profile);
+        delete profile;
         if (!success) {
             Py_DECREF(pyCode);
             FAIL("Failed to interpret code");

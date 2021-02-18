@@ -30,6 +30,7 @@
 #include <vector>
 #include <unordered_map>
 
+#include "pyjit.h"
 #include "absvalue.h"
 #include "cowvector.h"
 #include "ipycomp.h"
@@ -145,6 +146,8 @@ class InterpreterState {
 public:
     InterpreterStack mStack;
     CowVector<AbstractLocalInfo> mLocals;
+    bool requiresPgcProbe = false;
+    short pgcProbeSize = 0;
 
     InterpreterState() = default;
 
@@ -287,8 +290,8 @@ public:
     AbstractInterpreter(PyCodeObject *code, IPythonCompiler* compiler);
     ~AbstractInterpreter();
 
-    JittedCode* compile(PyObject* builtins, PyObject* globals);
-    bool interpret(PyObject* builtins, PyObject* globals);
+    JittedCode* compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile);
+    bool interpret(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile);
 
     void setLocalType(int index, PyObject* val);
     // Returns information about the specified local variable at a specific
@@ -299,7 +302,8 @@ public:
     InterpreterStack& getStackInfo(size_t byteCodeIndex);
 
     AbstractValue* getReturnInfo();
-
+    bool pgcProbeRequired(size_t byteCodeIndex);
+    short pgcProbeSize(size_t byteCodeIndex);
     void enableTracing();
     void disableTracing();
     void enableProfiling();

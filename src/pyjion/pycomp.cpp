@@ -1828,6 +1828,25 @@ void PythonCompiler::emit_tagged_int_to_float() {
     m_il.emit_call(METHOD_INT_TO_FLOAT);
 }
 
+void PythonCompiler::emit_pgc_probe(int curByte, int stackSize) {
+    Local stack [stackSize];
+    for (int i = 0; i < stackSize; i++){
+        stack[i] = emit_define_local(LK_Pointer);
+        emit_store_local(stack[i]);
+
+        m_il.ld_arg(3);
+        emit_load_local(stack[i]);
+        emit_int(curByte);
+        emit_int(i);
+
+        m_il.emit_call(METHOD_PGC_PROBE);
+    }
+    // Recover the stack in the right order
+    for (int i = stackSize; i > 0; --i){
+        emit_load_and_free_local(stack[i-1]);
+    }
+}
+
 
 
 /************************************************************************
@@ -2078,3 +2097,4 @@ GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, P
 GLOBAL_METHOD(METHOD_TRIPLE_BINARY_OP, &PyJitMath_TripleBinaryOp, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );
 
+GLOBAL_METHOD(METHOD_PGC_PROBE, &capturePgcStackValue, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));
