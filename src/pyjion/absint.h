@@ -383,7 +383,6 @@ private:
 
     JittedCode* compileWorker();
 
-    void periodicWork();
     void storeFast(int local, int opcodeIndex);
 
     void loadConst(int constIndex, int opcodeIndex);

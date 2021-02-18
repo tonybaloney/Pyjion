@@ -43,9 +43,9 @@
 #define UPDATE_PGC(count) \
     pgcRequired = true; \
     pgcSize = count;      \
-    for (int i = 0; i <count ; i++) \
+    for (int i = 0; i < (count) ; i++) \
         lastState[i] = lastState.fromPgc(i, profile->getType(curByte, i), addPgcSource(opcodeIndex)); \
-    updateStartState(lastState, curByte);
+    mStartStates[curByte] = lastState;
 
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
@@ -1555,11 +1555,6 @@ void AbstractInterpreter::decStack(size_t size) {
 
 void AbstractInterpreter::incStack(size_t size, StackEntryKind kind) {
     m_stack.inc(size, kind);
-}
-
-void AbstractInterpreter::periodicWork() {
-    m_comp->emit_periodic_work();
-    intErrorCheck("periodic work");
 }
 
 // Checks to see if -1 is the current value on the stack, and if so, falls into
