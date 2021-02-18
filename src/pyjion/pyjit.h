@@ -63,6 +63,8 @@ struct SpecializedTreeNode;
 class PyjionJittedCode;
 
 bool JitInit();
+PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate, PyjionCodeProfile* profile);
+PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile);
 PyObject* PyJit_EvalFrame(PyThreadState *, PyFrameObject *, int);
 PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject);
 
@@ -95,8 +97,6 @@ typedef struct PyjionSettings {
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
-static PY_UINT64_T jitPassCounter = 0;
-static PY_UINT64_T jitFailCounter = 0;
 
 extern PyjionSettings g_pyjionSettings;
 
@@ -116,7 +116,6 @@ class PyjionJittedCode {
 public:
 	PY_UINT64_T j_run_count;
 	bool j_failed;
-	Py_EvalFunc j_evalfunc;
 	Py_EvalFunc j_addr;
 	PY_UINT64_T j_specialization_threshold;
 	PyObject* j_code;
@@ -130,7 +129,6 @@ public:
 		j_code = code;
 		j_run_count = 0;
 		j_failed = false;
-		j_evalfunc = nullptr;
 		j_addr = nullptr;
 		j_specialization_threshold = HOT_CODE;
 		j_il = nullptr;
@@ -142,8 +140,6 @@ public:
 
 	~PyjionJittedCode();
 };
-
-bool jit_compile(PyCodeObject* code);
 
 void setOptimizationLevel(unsigned short level);
 #endif

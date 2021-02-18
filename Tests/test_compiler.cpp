@@ -47,7 +47,7 @@ private:
         auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
-        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate, nullptr);
+        auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode.get(), frame, tstate, nullptr);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
         //Py_DECREF(frame);
         size_t collected = PyGC_Collect();
@@ -64,9 +64,6 @@ public:
             FAIL("failed to compile code");
         }
         auto jitted = PyJit_EnsureExtra((PyObject *) *m_code);
-        if (!jit_compile(m_code.get())) {
-            FAIL("failed to JIT code");
-        }
         m_jittedcode.reset(jitted);
     }
 
@@ -112,7 +109,7 @@ public:
         if (result_t == nullptr)
             return nullptr;
 
-        auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(m_jittedcode->j_evalfunc), m_jittedcode->j_nativeSize);
+        auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(m_jittedcode->j_addr), m_jittedcode->j_nativeSize);
         if (res == nullptr)
             return nullptr;
 
@@ -125,7 +122,7 @@ public:
         PyTuple_SET_ITEM(result_t, 1, codeLen);
         Py_INCREF(codeLen);
 
-        auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&m_jittedcode->j_evalfunc));
+        auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&m_jittedcode->j_addr));
         if (codePosition == nullptr)
             return nullptr;
         PyTuple_SET_ITEM(result_t, 2, codePosition);

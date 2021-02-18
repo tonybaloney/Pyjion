@@ -69,7 +69,7 @@ AbstractInterpreter::~AbstractInterpreter() {
 }
 
 bool AbstractInterpreter::preprocess() {
-    if (mCode->co_flags & (CO_COROUTINE | CO_GENERATOR)) {
+    if (mCode->co_flags & (CO_COROUTINE | CO_GENERATOR | CO_ITERABLE_COROUTINE | CO_ASYNC_GENERATOR)) {
         // Don't compile co-routines or generators.  We can't rely on
         // detecting yields because they could be optimized out.
         return false;

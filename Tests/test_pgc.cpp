@@ -50,7 +50,7 @@ private:
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
 
-        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate, profile);
+        auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode.get(), frame, tstate, profile);
 
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
         //Py_DECREF(frame);
@@ -69,9 +69,6 @@ public:
             FAIL("failed to compile code");
         }
         auto jitted = PyJit_EnsureExtra((PyObject *) *m_code);
-        if (!jit_compile(m_code.get())) {
-            FAIL("failed to JIT code");
-        }
         m_jittedcode.reset(jitted);
     }
 
