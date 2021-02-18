@@ -48,6 +48,12 @@
 #include <frameobject.h>
 #include <Python.h>
 
+class PyjionCodeProfile{
+public:
+
+};
+
+void captureStack(PyjionCodeProfile*, int position);
 
 struct SpecializedTreeNode;
 class PyjionJittedCode;
@@ -57,11 +63,12 @@ PyObject* PyJit_EvalFrame(PyThreadState *, PyFrameObject *, int);
 PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject);
 
 class PyjionJittedCode;
-typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*, PyThreadState*);
+typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*, PyThreadState*, PyjionCodeProfile*);
 
 typedef struct PyjionSettings {
     bool tracing = false;
     bool profiling = false;
+    bool pgc = false; // Profile-guided-compilation
     unsigned short optimizationLevel = 1;
     int recursionLimit = DEFAULT_RECURSION_LIMIT;
     int codeObjectSizeLimit = DEFAULT_CODEOBJECT_SIZE_LIMIT;
@@ -110,6 +117,7 @@ public:
 	PyObject* j_code;
 	std::vector<SpecializedTreeNode*> j_optimized;
 	Py_EvalFunc j_generic;
+	PyjionCodeProfile* j_profile;
     unsigned char* j_il;
     unsigned int j_ilLen;
     unsigned long j_nativeSize;

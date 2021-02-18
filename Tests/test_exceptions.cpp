@@ -49,7 +49,7 @@ private:
         auto tstate = PyThreadState_Get();
         // Don't DECREF as frames are recycled.
         auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
-        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate);
+        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate, nullptr);
         //Py_DECREF(frame);
         size_t collected = PyGC_Collect();
         printf("Collected %zu values\n", collected);

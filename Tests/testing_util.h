@@ -150,7 +150,7 @@ private:
         auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
-        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate);
+        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate, nullptr);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
 
         size_t collected = PyGC_Collect();

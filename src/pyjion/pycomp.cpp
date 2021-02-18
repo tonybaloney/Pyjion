@@ -76,7 +76,12 @@ ICorJitCompiler* g_jit;
 PythonCompiler::PythonCompiler(PyCodeObject *code) :
     m_il(m_module = new UserModule(g_module),
         CORINFO_TYPE_NATIVEINT,
-        std::vector < Parameter > {Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT) }) {
+        std::vector < Parameter > {
+        Parameter(CORINFO_TYPE_NATIVEINT), // PyjionJittedCode*
+        Parameter(CORINFO_TYPE_NATIVEINT), // struct _frame*
+        Parameter(CORINFO_TYPE_NATIVEINT), // PyThreadState*
+        Parameter(CORINFO_TYPE_NATIVEINT),}) // PyjionCodeProfile*
+{
     this->m_code = code;
     m_lasti = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
 }
