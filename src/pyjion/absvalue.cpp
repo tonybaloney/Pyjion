@@ -104,6 +104,14 @@ AbstractValue* AbstractValue::mergeWith(AbstractValue*other) {
     return &Any;
 }
 
+PyTypeObject *AbstractValue::pythonType() {
+    return GetPyType(this->kind());
+}
+
+bool AbstractValue::known() {
+    return isKnownType(this->kind());
+}
+
 void AbstractSource::escapes() const {
     if (Sources) {
         Sources->m_escapes = true;
@@ -1430,4 +1438,12 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         default:
             return nullptr;
     }
+}
+
+PyTypeObject* PgcValue::pythonType() {
+    return this->_type;
+}
+
+AbstractValueKind PgcValue::kind() {
+    return GetAbstractType(this->_type);
 }

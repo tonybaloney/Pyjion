@@ -189,7 +189,7 @@ public:
             return res;
         else {
             return AbstractValueWithSources(
-                    avkToAbstractValue(GetAbstractType(pyTypeObject)),
+                    new PgcValue(pyTypeObject),
                     source
             );
         }

@@ -287,6 +287,9 @@ public:
     virtual bool isIntern() {
         return false;
     }
+    virtual bool needsGuard() {
+        return false;
+    }
 
     virtual AbstractValue* mergeWith(AbstractValue*other);
     virtual AbstractValueKind kind() = 0;
@@ -297,6 +300,10 @@ public:
     virtual AbstractValueKind resolveMethod(const char* name) {
         return AVK_Any;
     }
+
+    virtual PyTypeObject* pythonType();
+
+    virtual bool known();
 };
 
 struct AbstractValueWithSources {
@@ -561,6 +568,22 @@ class FileValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+};
+
+class PgcValue : public AbstractValue {
+    PyTypeObject* _type;
+public:
+    PgcValue(PyTypeObject* type){
+        _type = type;
+    }
+    AbstractValueKind kind() override;
+    PyTypeObject* pythonType() override;
+    bool known() override {
+        return true;
+    }
+    bool needsGuard() override {
+        return true;
+    }
 };
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);

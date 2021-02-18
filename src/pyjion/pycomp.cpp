@@ -1697,7 +1697,7 @@ void PythonCompiler::emit_pending_calls(){
 }
 
 void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValue) {
-    auto pyType = GetPyType(typeValue->kind());
+    auto pyType = typeValue->pythonType();
 
     if (pyType == nullptr)
     {

@@ -176,13 +176,13 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
     binaryfunc binaryfunc_left = nullptr;
     binaryfunc binaryfunc_right = nullptr;
 
-    if (right.hasValue() && left.hasValue() && isKnownType(left.Value->kind()) && isKnownType(right.Value->kind())){
-        auto leftType = GetPyType(left.Value->kind());
+    if (right.hasValue() && left.hasValue() && left.Value->known() && right.Value->known()){
+        auto leftType = left.Value->pythonType();
         if (leftType->tp_as_number != nullptr){
             binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[nb_slot]));
         }
 
-        auto rightType = GetPyType(right.Value->kind());
+        auto rightType = right.Value->pythonType();
         if (rightType->tp_as_number != nullptr){
             binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
         }
@@ -292,8 +292,8 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
     binaryfunc binaryfunc_right = nullptr;
     bool left_sequence = false, right_sequence = false;
 
-    if (right.hasValue() && left.hasValue() && isKnownType(left.Value->kind()) && isKnownType(right.Value->kind())){
-        auto leftType = GetPyType(left.Value->kind());
+    if (right.hasValue() && left.hasValue() && left.Value->known() && right.Value->known()){
+        auto leftType = left.Value->pythonType();
         if (leftType->tp_as_number != nullptr){
             binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[nb_slot]));
         }
@@ -301,7 +301,7 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
             binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_sequence)[sq_slot]));
             left_sequence = true;
         }
-        auto rightType = GetPyType(right.Value->kind());
+        auto rightType = right.Value->pythonType();
         if (rightType->tp_as_number != nullptr){
             binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
         }
@@ -447,15 +447,15 @@ void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSourc
     binaryfunc binaryfunc_left = nullptr;
     binaryfunc binaryfunc_right = nullptr;
 
-    if (right.hasValue() && left.hasValue() && isKnownType(left.Value->kind()) && isKnownType(right.Value->kind())){
-        auto leftType = GetPyType(left.Value->kind());
+    if (right.hasValue() && left.hasValue() && left.Value->known() && right.Value->known()){
+        auto leftType = left.Value->pythonType();
         if (leftType != nullptr && leftType->tp_as_number != nullptr){
             binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[nb_slot]));
         }
         if (binaryfunc_left == nullptr && leftType != nullptr && leftType->tp_as_sequence != nullptr && sq_slot != -1){
             binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_sequence)[sq_slot]));
         }
-        auto rightType = GetPyType(right.Value->kind());
+        auto rightType = right.Value->pythonType();
         if (rightType != nullptr && rightType->tp_as_number != nullptr){
             binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
         }
@@ -569,12 +569,12 @@ void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSou
     binaryfunc binaryfunc_left = nullptr;
     binaryfunc binaryfunc_right = nullptr;
 
-    if (right.hasValue() && left.hasValue() && isKnownType(left.Value->kind()) && isKnownType(right.Value->kind())){
-        auto leftType = GetPyType(left.Value->kind());
+    if (right.hasValue() && left.hasValue() && left.Value->known() && right.Value->known()){
+        auto leftType = left.Value->pythonType();
         if (leftType->tp_as_number != nullptr){
             binaryfunc_left = (*(binaryfunc*)(& ((char*)leftType->tp_as_number)[nb_slot]));
         }
-        auto rightType = GetPyType(right.Value->kind());
+        auto rightType = right.Value->pythonType();
         if (rightType->tp_as_number != nullptr){
             binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
         }
