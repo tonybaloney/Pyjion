@@ -1,5 +1,20 @@
 # Release notes
 
+## 0.11.0
+
+* Added OPT-13 (OPTIMIZE_TYPESLOT_LOOKUPS) to optimize the type slots for all binary operators and resolve the precedence at compile-time (only for known types)
+* Added OPT-14 (OPTIMIZE_FUNCTION_CALLS) to optimize calls to builtin functions
+* Optimize all frame locals by determining abstract types on compilation
+* Bugfix: Fixed a crash on f-strings with lots (>255) arguments
+* Bugfix: Will now skip all functions containing the use of `exec()` as it contains frame globals which are not supported
+* Updated to .NET 5.0.3
+* Updated the containers to Ubuntu 20
+* Added fileobject abstract type
+* Added enumerator abstract type
+* Added code object abstract type
+* Added integration tests for reference leaks for all binary operations (thanks @amaeckelberghe)
+* Added module type (thanks @vacowboy75)
+
 ## 0.10.0
 
 * Added OPT-12 (OPTIMIZE_BUILTIN_METHOD) to pre-lookup methods for builtin types and bypass LOAD_METHOD (PyObject_GetMethod)
