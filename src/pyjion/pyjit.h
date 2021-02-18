@@ -123,7 +123,6 @@ public:
 	PY_UINT64_T j_specialization_threshold;
 	PyObject* j_code;
 	std::vector<SpecializedTreeNode*> j_optimized;
-	Py_EvalFunc j_generic;
 	PyjionCodeProfile* j_profile;
     unsigned char* j_il;
     unsigned int j_ilLen;
@@ -135,7 +134,6 @@ public:
 		j_failed = false;
 		j_evalfunc = nullptr;
 		j_specialization_threshold = HOT_CODE;
-		j_generic = nullptr;
 		j_il = nullptr;
 		j_ilLen = 0;
 		j_nativeSize = 0;

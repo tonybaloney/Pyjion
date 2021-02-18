@@ -264,7 +264,6 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame, PyThreadS
 			trace->j_il = res->get_il();
 			trace->j_ilLen = res->get_il_len();
             trace->j_nativeSize = res->get_native_size();
-            trace->j_generic = target->addr;
             trace->j_profile = new PyjionCodeProfile();
 
 			return Jit_EvalHelper((void*)target->addr, frame, tstate, trace->j_profile);
