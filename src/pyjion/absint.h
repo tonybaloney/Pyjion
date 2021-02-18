@@ -182,6 +182,19 @@ public:
         return res;
     }
 
+    AbstractValueWithSources fromPgc(int stackPosition, PyTypeObject* pyTypeObject, AbstractSource* source) {
+        assert(!mStack.empty());
+        auto res = mStack[stackPosition];
+        if (pyTypeObject == nullptr)
+            return res;
+        else {
+            return AbstractValueWithSources(
+                    avkToAbstractValue(GetAbstractType(pyTypeObject)),
+                    source
+            );
+        }
+    }
+
     void push(AbstractValueWithSources& value) {
         mStack.push_back(value);
     }
@@ -326,6 +339,7 @@ private:
     AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
     AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
     AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
+    AbstractSource* addPgcSource(size_t opcodeIndex);
 
     void makeFunction(int oparg);
     bool canSkipLastiUpdate(int opcodeIndex);
@@ -397,6 +411,7 @@ private:
     void popExcVars();
     void decExcVars(int count);
     void incExcVars(int count);
+
 };
 
 // TODO : Fetch the range of interned integers from the interpreter state

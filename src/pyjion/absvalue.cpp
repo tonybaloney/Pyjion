@@ -168,6 +168,7 @@ AbstractSource* AbstractSource::combine(AbstractSource* one, AbstractSource* two
     }
     return nullptr;
 }
+
 /*
 void TupleSource::escapes() {
     for (auto cur = m_sources.begin(); cur != m_sources.end(); cur++) {

@@ -108,11 +108,6 @@ struct AbstractSources {
     void escapes() {
         m_escapes = true;
     }
-
-    bool needsBoxing() const {
-        return m_escapes;
-    }
-
 };
 
 class ConstSource : public AbstractSource {
@@ -236,6 +231,13 @@ public:
         else {
             return "Source: Intermediate";
         }
+    }
+};
+
+class PgcSource : public AbstractSource {
+public:
+    const char* describe() override {
+        return "Source: PGC";
     }
 };
 

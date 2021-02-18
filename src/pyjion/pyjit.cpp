@@ -231,7 +231,8 @@ PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame, PyThreadS
 		target->hitCount++;
 		// we've recorded these types before...
 		// No specialized function yet, let's see if we should create one...
-		if (target->hitCount >= trace->j_specialization_threshold) {
+		if (target->hitCount >= trace->j_specialization_threshold ||
+		    g_pyjionSettings.pgc && target->hitCount == trace->j_specialization_threshold) {
 			// Compile and run the now compiled code...
 			PythonCompiler jitter((PyCodeObject*)trace->j_code);
 			AbstractInterpreter interp((PyCodeObject*)trace->j_code, &jitter);

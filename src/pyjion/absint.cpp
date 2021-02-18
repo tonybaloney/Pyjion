@@ -38,6 +38,14 @@
 #define GET_OPARG(index)  _Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
 #define GET_OPCODE(index) _Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
 
+#define PGC_READY() g_pyjionSettings.pgc && profile != nullptr
+
+#define UPDATE_PGC(count) \
+    pgcRequired = true; \
+    pgcSize = count;      \
+    for (int i = 0; i <count ; i++) \
+        lastState[i] = lastState.fromPgc(i, profile->getType(curByte, i), addPgcSource(opcodeIndex)); \
+    updateStartState(lastState, curByte);
 
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
@@ -408,10 +416,14 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals, Pyjio
                 case INPLACE_AND:
                 case INPLACE_XOR:
                 case INPLACE_OR: {
-                    pgcRequired = true;
-                    pgcSize = 2;
-                    auto two = lastState.popNoEscape();
-                    auto one = lastState.popNoEscape();
+                    AbstractValueWithSources two;
+                    AbstractValueWithSources one;
+                    if (PGC_READY()){
+                        UPDATE_PGC(2)
+                    }
+                    two = lastState.popNoEscape();
+                    one = lastState.popNoEscape();
+
                     auto out = one.Value->binary(one.Sources, opcode, two);
                     lastState.push(out);
                 }
@@ -1237,6 +1249,14 @@ AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t c
         return m_opcodeSources[opcodeIndex] = newSource(new ConstSource(value));
     }
 
+    return store->second;
+}
+
+AbstractSource* AbstractInterpreter::addPgcSource(size_t opcodeIndex) {
+    auto store = m_opcodeSources.find(opcodeIndex);
+    if (store == m_opcodeSources.end()) {
+        return m_opcodeSources[opcodeIndex] = newSource(new PgcSource());
+    }
     return store->second;
 }
 
