@@ -1250,7 +1250,7 @@ void AbstractInterpreter::errorCheck(const char *reason, int curByte) {
     m_comp->emit_load_local(mErrorCheckLocal);
 }
 
-Label AbstractInterpreter::getOffsetLabel(int jumpTo) {
+Label AbstractInterpreter::getOffsetLabel(size_t jumpTo) {
     auto jumpToLabelIter = m_offsetLabels.find(jumpTo);
     Label jumpToLabel;
     if (jumpToLabelIter == m_offsetLabels.end()) {
@@ -1617,7 +1617,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_blockStack.push_back(BlockInfo(-1, NOP, rootHandler));
 
     // Loop through all opcodes in this frame
-    for (int curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
+    for (size_t curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
         assert(curByte % SIZEOF_CODEUNIT == 0);
 
         // opcodeIndex is the opcode position (matches the dis.dis() output)
@@ -2407,21 +2407,21 @@ void AbstractInterpreter::testBoolAndBranch(Local value, bool isTrue, Label targ
     m_comp->emit_branch(BranchEqual, target);
 }
 
-void AbstractInterpreter::unaryPositive(int opcodeIndex) {
+void AbstractInterpreter::unaryPositive(size_t opcodeIndex) {
     m_comp->emit_unary_positive();
     decStack();
     errorCheck("unary positive failed", opcodeIndex);
     incStack();
 }
 
-void AbstractInterpreter::unaryNegative(int opcodeIndex) {
+void AbstractInterpreter::unaryNegative(size_t opcodeIndex) {
     m_comp->emit_unary_negative();
     decStack();
     errorCheck("unary negative failed", opcodeIndex);
     incStack();
 }
 
-void AbstractInterpreter::unaryNot(int opcodeIndex) {
+void AbstractInterpreter::unaryNot(size_t opcodeIndex) {
     m_comp->emit_unary_not();
     decStack(1);
     errorCheck("unary not failed", opcodeIndex);
@@ -2475,13 +2475,13 @@ bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
     return false;
 }
 
-void AbstractInterpreter::storeFast(int local, int opcodeIndex) {
+void AbstractInterpreter::storeFast(int local, size_t opcodeIndex) {
     m_comp->emit_store_fast(local);
     decStack();
     m_assignmentState[local] = true;
 }
 
-void AbstractInterpreter::loadConst(int constIndex, int opcodeIndex) {
+void AbstractInterpreter::loadConst(int constIndex, size_t opcodeIndex) {
     auto constValue = PyTuple_GetItem(mCode->co_consts, constIndex);
     m_comp->emit_ptr(constValue);
     m_comp->emit_dup();
@@ -2522,7 +2522,7 @@ void AbstractInterpreter::unwindHandlers(){
     }
 }
 
-void AbstractInterpreter::returnValue(int opcodeIndex) {
+void AbstractInterpreter::returnValue(size_t opcodeIndex) {
     m_comp->emit_store_local(m_retValue);
     m_comp->emit_branch(BranchAlways, m_retLabel);
     decStack();
@@ -2561,7 +2561,7 @@ void AbstractInterpreter::unpackSequence(size_t size, int opcode) {
     m_comp->emit_free_local(fastTmp);
 }
 
-void AbstractInterpreter::forIter(int loopIndex, AbstractValueWithSources* iterator) {
+void AbstractInterpreter::forIter(size_t loopIndex, AbstractValueWithSources* iterator) {
     // dup the iter so that it stays on the stack for the next iteration
     m_comp->emit_dup(); // ..., iter -> iter, iter, ...
 
@@ -2594,11 +2594,11 @@ void AbstractInterpreter::forIter(int loopIndex, AbstractValueWithSources* itera
     m_comp->emit_mark_label(next);
 }
 
-void AbstractInterpreter::forIter(int loopIndex) {
+void AbstractInterpreter::forIter(size_t loopIndex) {
     forIter(loopIndex, nullptr);
 }
 
-void AbstractInterpreter::loadFast(int local, int opcodeIndex) {
+void AbstractInterpreter::loadFast(int local, size_t opcodeIndex) {
     bool checkUnbound = m_assignmentState.find(local) == m_assignmentState.end() || !m_assignmentState.find(local)->second;
     loadFastWorker(local, checkUnbound, opcodeIndex);
     incStack();
@@ -2679,7 +2679,7 @@ void AbstractInterpreter::unpackEx(size_t size, int opcode) {
 }
 
 
-void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) {
+void AbstractInterpreter::jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t jumpTo) {
     if (jumpTo <= opcodeIndex){
         m_comp->emit_pending_calls();
     }
@@ -2699,6 +2699,7 @@ void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) 
     m_comp->emit_load_local(tmp);
     m_comp->emit_is_true();
 
+    // TODO opcodeIndex is unsigned, can it be -1?
     raiseOnNegativeOne(opcodeIndex);
 
     m_comp->emit_branch(isTrue ? BranchFalse : BranchTrue, noJump);
@@ -2716,7 +2717,7 @@ void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) 
     m_comp->emit_free_local(tmp);
 }
 
-void AbstractInterpreter::popJumpIf(bool isTrue, int opcodeIndex, int jumpTo) {
+void AbstractInterpreter::popJumpIf(bool isTrue, size_t opcodeIndex, size_t jumpTo) {
     if (jumpTo <= opcodeIndex){
         m_comp->emit_pending_calls();
     }
@@ -2738,6 +2739,7 @@ void AbstractInterpreter::popJumpIf(bool isTrue, int opcodeIndex, int jumpTo) {
     m_comp->emit_dup();
     m_comp->emit_is_true();
 
+    // TODO opcodeIndex is unsigned, can it be -1?
     raiseOnNegativeOne(opcodeIndex);
 
     m_comp->emit_branch(isTrue ? BranchFalse : BranchTrue, noJump);
@@ -2763,7 +2765,7 @@ void AbstractInterpreter::jumpAbsolute(size_t index, size_t from) {
     m_comp->emit_branch(BranchAlways, getOffsetLabel(index));
 }
 
-void AbstractInterpreter::jumpIfNotExact(int opcodeIndex, int jumpTo) {
+void AbstractInterpreter::jumpIfNotExact(size_t opcodeIndex, size_t jumpTo) {
     if (jumpTo <= opcodeIndex){
         m_comp->emit_pending_calls();
     }

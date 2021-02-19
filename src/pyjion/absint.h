@@ -334,9 +334,9 @@ private:
 
     void buildMap(size_t argCnt);
 
-    Label getOffsetLabel(int jumpTo);
-    void forIter(int loopIndex);
-    void forIter(int loopIndex, AbstractValueWithSources* iterator);
+    Label getOffsetLabel(size_t jumpTo);
+    void forIter(size_t loopIndex);
+    void forIter(size_t loopIndex, AbstractValueWithSources* iterator);
 
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
@@ -366,25 +366,25 @@ private:
     JittedCode* compileWorker();
 
     void periodicWork();
-    void storeFast(int local, int opcodeIndex);
+    void storeFast(int local, size_t opcodeIndex);
 
-    void loadConst(int constIndex, int opcodeIndex);
+    void loadConst(int constIndex, size_t opcodeIndex);
 
-    void returnValue(int opcodeIndex);
+    void returnValue(size_t opcodeIndex);
 
-    void loadFast(int local, int opcodeIndex);
+    void loadFast(int local, size_t opcodeIndex);
     void loadFastWorker(int local, bool checkUnbound, int curByte);
     void unpackSequence(size_t size, int opcode);
 
     void popExcept();
 
-    void unaryPositive(int opcodeIndex);
-    void unaryNegative(int opcodeIndex);
-    void unaryNot(int opcodeIndex);
+    void unaryPositive(size_t opcodeIndex);
+    void unaryNegative(size_t opcodeIndex);
+    void unaryNot(size_t opcodeIndex);
 
-    void jumpIfOrPop(bool isTrue, int opcodeIndex, int offset);
-    void popJumpIf(bool isTrue, int opcodeIndex, int offset);
-    void jumpIfNotExact(int opcodeIndex, int jumpTo);
+    void jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t offset);
+    void popJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
+    void jumpIfNotExact(size_t opcodeIndex, size_t jumpTo);
     void testBoolAndBranch(Local value, bool isTrue, Label target);
 
     void unwindHandlers();
