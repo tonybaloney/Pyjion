@@ -49,8 +49,8 @@ private:
         auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
-
-        auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode.get(), frame, tstate, profile);
+        m_jittedcode->j_profile = profile;
+        auto res = PyJit_EvalFrame(tstate, frame, 0);
 
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
         //Py_DECREF(frame);
@@ -108,6 +108,10 @@ public:
     bool profileEquals(int position, int stackPosition, PyTypeObject* pyType) {
         return profile->getType(position, stackPosition) == pyType;
     }
+
+    PgcStatus pgcStatus() {
+        return m_jittedcode->j_pgc_status;
+    }
 };
 
 TEST_CASE("test most simple application"){
@@ -115,11 +119,14 @@ TEST_CASE("test most simple application"){
         auto t = PgcProfilingTest(
                 "def f():\n  a = 1\n  b = 2\n  c=3\n  return a + b + c\n"
         );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
         CHECK(t.returns() == "6");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
         CHECK(t.profileEquals(16, 0, &PyLong_Type));
         CHECK(t.profileEquals(16, 1, &PyLong_Type));
         CHECK(t.profileEquals(20, 0, &PyLong_Type));
         CHECK(t.profileEquals(20, 1, &PyLong_Type));
         CHECK(t.returns() == "6");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
 }

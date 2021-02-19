@@ -242,12 +242,18 @@ PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject) {
 PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 	auto jitted = PyJit_EnsureExtra((PyObject*)f->f_code);
 	if (jitted != nullptr && !throwflag) {
-		if (jitted->j_addr != nullptr) {
+		if (jitted->j_addr != nullptr && (!g_pyjionSettings.pgc || jitted->j_pgc_status == Optimized)) {
             jitted->j_run_count++;
 			return PyJit_ExecuteJittedFrame((void*)jitted->j_addr, f, ts, jitted->j_profile);
 		}
 		else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {
-			return PyJit_ExecuteAndCompileFrame(jitted, f, ts, jitted->j_profile);
+			auto result = PyJit_ExecuteAndCompileFrame(jitted, f, ts, jitted->j_profile);
+			switch(jitted->j_pgc_status){
+			    case PgcStatus::Uncompiled: jitted->j_pgc_status = PgcStatus::CompiledWithProbes; break;
+			    case PgcStatus::CompiledWithProbes: jitted->j_pgc_status = PgcStatus::Optimized; break;
+			    case PgcStatus::Optimized: break;
+			}
+			return result;
 		}
 	}
 	return _PyEval_EvalFrameDefault(ts, f, throwflag);
@@ -314,8 +320,9 @@ static PyObject *pyjion_info(PyObject *self, PyObject* func) {
 
 	PyDict_SetItemString(res, "failed", jitted->j_failed ? Py_True : Py_False);
 	PyDict_SetItemString(res, "compiled", jitted->j_addr != nullptr ? Py_True : Py_False);
-	
-	auto runCount = PyLong_FromLongLong(jitted->j_run_count);
+    PyDict_SetItemString(res, "pgc", PyLong_FromLong(jitted->j_pgc_status));
+
+    auto runCount = PyLong_FromLongLong(jitted->j_run_count);
 	PyDict_SetItemString(res, "run_count", runCount);
 	Py_DECREF(runCount);
 	

@@ -109,6 +109,11 @@ static void Pyjit_LeaveRecursiveCall();
 
 /* Jitted code object.  This object is returned from the JIT implementation.  The JIT can allocate
 a jitted code object and fill in the state for which is necessary for it to perform an evaluation. */
+enum PgcStatus {
+    Uncompiled = 0,
+    CompiledWithProbes = 1,
+    Optimized = 2
+};
 
 class PyjionJittedCode {
 public:
@@ -121,6 +126,7 @@ public:
     unsigned char* j_il;
     unsigned int j_ilLen;
     unsigned long j_nativeSize;
+    PgcStatus j_pgc_status;
 
 	explicit PyjionJittedCode(PyObject* code) {
 		j_code = code;
@@ -132,6 +138,7 @@ public:
 		j_ilLen = 0;
 		j_nativeSize = 0;
 		j_profile = new PyjionCodeProfile();
+		j_pgc_status = Uncompiled;
 		Py_INCREF(code);
 	}
 
