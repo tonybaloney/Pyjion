@@ -1655,7 +1655,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
 
         auto stackInfo = getStackInfo(curByte);
 
-        int curStackSize = m_stack.size();
+        size_t curStackSize = m_stack.size();
         bool skipEffect = false;
 
         auto next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
@@ -1715,9 +1715,9 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 break;
             case COMPARE_OP: {
                 if (OPT_ENABLED(internRichCompare) && stackInfo.size() >= 2){
-                    m_comp->emit_compare_known_object(oparg, stackInfo.second(), stackInfo.top());
+                    m_comp->emit_compare_known_object(static_cast<int>(oparg), stackInfo.second(), stackInfo.top());
                 } else {
-                    m_comp->emit_compare_object(oparg);
+                    m_comp->emit_compare_object(static_cast<int>(oparg));
                 }
                 decStack(2);
                 errorCheck("failed to compare", curByte);
