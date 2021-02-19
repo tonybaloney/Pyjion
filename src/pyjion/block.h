@@ -34,7 +34,7 @@
 #include "flags.h"
 
 // forward dec exception handlers.
-class ExceptionHandler;
+struct ExceptionHandler;
 
 struct BlockInfo {
     int EndOffset, Kind;
