@@ -81,9 +81,7 @@ void PythonCompiler::emit_binary_object(int opcode) {
         case INPLACE_MODULO:
             m_il.emit_call(METHOD_INPLACE_MODULO_TOKEN); break;
         case INPLACE_ADD:
-            // TODO: We should do the unicode_concatenate ref count optimization
-            m_il.emit_call(METHOD_INPLACE_ADD_TOKEN);
-            break;
+            m_il.emit_call(METHOD_INPLACE_ADD_TOKEN); break;
         case INPLACE_SUBTRACT:
             m_il.emit_call(METHOD_INPLACE_SUBTRACT_TOKEN); break;
         case INPLACE_LSHIFT:
@@ -161,17 +159,48 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             nb_slot = offsetof(PyNumberMethods, nb_inplace_or); fallback_token = METHOD_INPLACE_OR_TOKEN;break;
     }
 
+    bool emit_guard = ((left.hasValue() && left.Value->needsGuard()) || (right.hasValue() && right.Value->needsGuard()));
+    Label execute_fallback = emit_define_label();
+    Label skip_fallback = emit_define_label();
+    Local leftLocal = emit_define_local(LK_Pointer);
+    Local rightLocal = emit_define_local(LK_Pointer);
+    emit_store_local(rightLocal);
+    emit_store_local(leftLocal);
+
+    if (emit_guard){
+        emit_load_local(leftLocal);
+        LD_FIELD(PyObject, ob_type);
+        emit_ptr(left.Value->pythonType());
+        emit_branch(BranchNotEqual, execute_fallback);
+        emit_load_local(rightLocal);
+        LD_FIELD(PyObject, ob_type);
+        emit_ptr(right.Value->pythonType());
+        emit_branch(BranchNotEqual, execute_fallback);
+    }
+
     if (opcode == BINARY_POWER || opcode == INPLACE_POWER)
-        emit_known_binary_op_power(opcode, left, right, nb_slot, sq_slot, fallback_token);
+        emit_known_binary_op_power(opcode, left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
     else if (opcode == BINARY_MULTIPLY || opcode == INPLACE_MULTIPLY)
-        emit_known_binary_op_multiply(opcode, left, right, nb_slot, sq_slot, fallback_token);
+        emit_known_binary_op_multiply(opcode, left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
     else if (opcode == BINARY_ADD || opcode == INPLACE_ADD)
-        emit_known_binary_op_add(opcode, left, right, nb_slot, sq_slot, fallback_token);
+        emit_known_binary_op_add(opcode, left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
     else
-        emit_known_binary_op(opcode, left, right, nb_slot, sq_slot, fallback_token);
+        emit_known_binary_op(opcode, left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
+
+    if (emit_guard){
+        emit_branch(BranchAlways, skip_fallback);
+        emit_mark_label(execute_fallback);
+        emit_load_local(leftLocal);
+        emit_load_local(rightLocal);
+        m_il.emit_call(fallback_token);
+        emit_mark_label(skip_fallback);
+    }
+    emit_free_local(leftLocal);
+    emit_free_local(rightLocal);
 }
 
 void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+                                          Local leftLocal, Local rightLocal,
                                           int nb_slot, int sq_slot, int fallback_token) {
     binaryfunc binaryfunc_left = nullptr;
     binaryfunc binaryfunc_right = nullptr;
@@ -213,14 +242,8 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
 
     if (binaryfunc_left != nullptr){
         // Add the function signature for this binaryfunc.
-        Local leftLocal = emit_define_local(LK_Pointer);
-        Local rightLocal = emit_define_local(LK_Pointer);
         Label leftImplemented = emit_define_label();
         Label rightImplemented = emit_define_label();
-
-        emit_store_local(rightLocal);
-        emit_store_local(leftLocal);
-
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
         m_il.emit_call(left_func_token);
@@ -242,9 +265,9 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
             emit_mark_label(rightImplemented);
             emit_mark_label(leftImplemented);
 
-            emit_load_and_free_local(leftLocal);
+            emit_load_local(leftLocal);
             decref();
-            emit_load_and_free_local(rightLocal);
+            emit_load_local(rightLocal);
             decref();
         } else {
             Label hasDecref = emit_define_label();
@@ -256,17 +279,10 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
             emit_load_local(rightLocal);
             decref();
             emit_mark_label(hasDecref);
-            emit_free_local(leftLocal);
-            emit_free_local(rightLocal);
         }
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
-        Local leftLocal = emit_define_local(LK_Pointer);
-        Local rightLocal = emit_define_local(LK_Pointer);
         Label rightNotImplemented = emit_define_label();
-        emit_store_local(rightLocal);
-        emit_store_local(leftLocal);
-
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
         m_il.emit_call(right_func_token);
@@ -277,16 +293,19 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
         emit_pyerr_setstring(PyExc_TypeError, "Operation not supported on right-hand operand.");
         emit_null();
         emit_mark_label(rightNotImplemented);
-        emit_load_and_free_local(leftLocal);
+        emit_load_local(leftLocal);
         decref();
-        emit_load_and_free_local(rightLocal);
+        emit_load_local(rightLocal);
         decref();
     } else {
+        emit_load_local(leftLocal);
+        emit_load_local(rightLocal);
         m_il.emit_call(fallback_token);
     }
 }
 
 void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+                                                   Local leftLocal, Local rightLocal,
                                                    int nb_slot, int sq_slot, int fallback_token) {
     binaryfunc binaryfunc_left = nullptr;
     binaryfunc binaryfunc_right = nullptr;
@@ -335,14 +354,8 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
 
     if (binaryfunc_left != nullptr){
         // Add the function signature for this binaryfunc.
-        Local leftLocal = emit_define_local(LK_Pointer);
-        Local rightLocal = emit_define_local(LK_Pointer);
         Label leftImplemented = emit_define_label();
         Label rightImplemented = emit_define_label();
-
-        emit_store_local(rightLocal);
-        emit_store_local(leftLocal);
-
         emit_load_local(leftLocal);
 
         if (left_sequence){
@@ -395,9 +408,9 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
             emit_mark_label(rightImplemented);
             emit_mark_label(leftImplemented);
 
-            emit_load_and_free_local(leftLocal);
+            emit_load_local(leftLocal);
             decref();
-            emit_load_and_free_local(rightLocal);
+            emit_load_local(rightLocal);
             decref();
         } else {
             m_il.pop();
@@ -412,17 +425,10 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
             emit_load_local(rightLocal);
             decref();
             emit_mark_label(hasDecref);
-            emit_free_local(leftLocal);
-            emit_free_local(rightLocal);
         }
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
-        Local leftLocal = emit_define_local(LK_Pointer);
-        Local rightLocal = emit_define_local(LK_Pointer);
         Label rightImplemented = emit_define_label();
-        emit_store_local(rightLocal);
-        emit_store_local(leftLocal);
-
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
         m_il.emit_call(right_func_token);
@@ -433,16 +439,19 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
         emit_pyerr_setstring(PyExc_TypeError, "Multiplication operator not supported on right-hand operand.");
         emit_null();
         emit_mark_label(rightImplemented);
-        emit_load_and_free_local(leftLocal);
+        emit_load_local(leftLocal);
         decref();
-        emit_load_and_free_local(rightLocal);
+        emit_load_local(rightLocal);
         decref();
     } else {
+        emit_load_local(leftLocal);
+        emit_load_local(rightLocal);
         m_il.emit_call(fallback_token);
     }
 }
 
 void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+                                              Local leftLocal, Local rightLocal,
                                               int nb_slot, int sq_slot, int fallback_token) {
     binaryfunc binaryfunc_left = nullptr;
     binaryfunc binaryfunc_right = nullptr;
@@ -488,13 +497,8 @@ void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSourc
 
     if (binaryfunc_left != nullptr){
         // Add the function signature for this binaryfunc.
-        Local leftLocal = emit_define_local(LK_Pointer);
-        Local rightLocal = emit_define_local(LK_Pointer);
         Label leftImplemented = emit_define_label();
         Label rightImplemented = emit_define_label();
-
-        emit_store_local(rightLocal);
-        emit_store_local(leftLocal);
 
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
@@ -517,9 +521,9 @@ void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSourc
             emit_mark_label(rightImplemented);
             emit_mark_label(leftImplemented);
 
-            emit_load_and_free_local(leftLocal);
+            emit_load_local(leftLocal);
             decref();
-            emit_load_and_free_local(rightLocal);
+            emit_load_local(rightLocal);
             decref();
         } else {
             m_il.pop();
@@ -534,16 +538,10 @@ void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSourc
             emit_load_local(rightLocal);
             decref();
             emit_mark_label(hasDecref);
-            emit_free_local(leftLocal);
-            emit_free_local(rightLocal);
         }
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
-        Local leftLocal = emit_define_local(LK_Pointer);
-        Local rightLocal = emit_define_local(LK_Pointer);
         Label rightImplemented = emit_define_label();
-        emit_store_local(rightLocal);
-        emit_store_local(leftLocal);
 
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
@@ -555,16 +553,19 @@ void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSourc
         emit_pyerr_setstring(PyExc_TypeError, "Add not supported on right-hand operand.");
         emit_null();
         emit_mark_label(rightImplemented);
-        emit_load_and_free_local(leftLocal);
+        emit_load_local(leftLocal);
         decref();
-        emit_load_and_free_local(rightLocal);
+        emit_load_local(rightLocal);
         decref();
     } else {
+        emit_load_local(leftLocal);
+        emit_load_local(rightLocal);
         m_il.emit_call(fallback_token);
     }
 }
 
 void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+                                                Local leftLocal, Local rightLocal,
                                                 int nb_slot, int sq_slot, int fallback_token) {
     binaryfunc binaryfunc_left = nullptr;
     binaryfunc binaryfunc_right = nullptr;
@@ -607,16 +608,9 @@ void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSou
 
     if (binaryfunc_left != nullptr){
         // Add the function signature for this binaryfunc.
-        Local leftLocal = emit_define_local(LK_Pointer);
-        Local rightLocal = emit_define_local(LK_Pointer);
         Label leftImplemented = emit_define_label();
         Label rightImplemented = emit_define_label();
-
-        emit_store_local(rightLocal);
-        emit_store_local(leftLocal);
-
         emit_load_local(leftLocal);
-
         emit_load_local(rightLocal);
         emit_ptr(Py_None);
         m_il.emit_call(left_func_token);
@@ -638,9 +632,9 @@ void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSou
             emit_mark_label(rightImplemented);
             emit_mark_label(leftImplemented);
 
-            emit_load_and_free_local(leftLocal);
+            emit_load_local(leftLocal);
             decref();
-            emit_load_and_free_local(rightLocal);
+            emit_load_local(rightLocal);
             decref();
         } else {
             m_il.pop();
@@ -655,17 +649,10 @@ void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSou
             emit_load_local(rightLocal);
             decref();
             emit_mark_label(hasDecref);
-            emit_free_local(leftLocal);
-            emit_free_local(rightLocal);
         }
     } else if (binaryfunc_right != nullptr) {
         // Add the function signature for this binaryfunc.
-        Local leftLocal = emit_define_local(LK_Pointer);
-        Local rightLocal = emit_define_local(LK_Pointer);
         Label rightImplemented = emit_define_label();
-        emit_store_local(rightLocal);
-        emit_store_local(leftLocal);
-
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
         emit_ptr(Py_None);
@@ -677,11 +664,13 @@ void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSou
         emit_pyerr_setstring(PyExc_TypeError, "Power not supported on right-hand operand.");
         emit_null();
         emit_mark_label(rightImplemented);
-        emit_load_and_free_local(leftLocal);
+        emit_load_local(leftLocal);
         decref();
-        emit_load_and_free_local(rightLocal);
+        emit_load_local(rightLocal);
         decref();
     } else {
+        emit_load_local(leftLocal);
+        emit_load_local(rightLocal);
         m_il.emit_call(fallback_token);
     }
 }
