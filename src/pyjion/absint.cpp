@@ -43,8 +43,8 @@
 #define UPDATE_PGC(count) \
     pgcRequired = true; \
     pgcSize = count;      \
-    for (int i = 0; i < (count) ; i++) \
-        lastState[i] = lastState.fromPgc(i, profile->getType(curByte, i), addPgcSource(opcodeIndex)); \
+    for (int i = 0, j = (count); i < (count) ; i++, j--) \
+        lastState[j-1] = lastState.fromPgc(i, profile->getType(curByte, i), addPgcSource(opcodeIndex)); \
     mStartStates[curByte] = lastState;
 
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
@@ -232,7 +232,8 @@ void AbstractInterpreter::initStartingState() {
     updateStartState(lastState, 0);
 }
 
-bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile) {
+bool
+AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status) {
     if (!preprocess()) {
         return false;
     }
@@ -1208,8 +1209,10 @@ short AbstractInterpreter::pgcProbeSize(size_t byteCodeIndex) {
     return mStartStates[byteCodeIndex].pgcProbeSize;
 }
 
-bool AbstractInterpreter::pgcProbeRequired(size_t byteCodeIndex) {
-    return mStartStates[byteCodeIndex].requiresPgcProbe;
+bool AbstractInterpreter::pgcProbeRequired(size_t byteCodeIndex, PgcStatus status) {
+    if (status == PgcStatus::Uncompiled)
+        return mStartStates[byteCodeIndex].requiresPgcProbe;
+    return false;
 }
 
 AbstractValue* AbstractInterpreter::getReturnInfo() {
@@ -1605,7 +1608,7 @@ void AbstractInterpreter::popExcVars(){
     m_comp->emit_mark_label(nothing_to_pop);
 }
 
-JittedCode* AbstractInterpreter::compileWorker() {
+JittedCode * AbstractInterpreter::compileWorker(PgcStatus pgc_status) {
     Label ok;
 
     m_comp->emit_lasti_init();
@@ -1688,7 +1691,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
         int curStackSize = m_stack.size();
         bool skipEffect = false;
 
-        if (g_pyjionSettings.pgc && pgcProbeRequired(curByte)){
+        if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status)){
             m_comp->emit_pgc_probe(curByte, pgcProbeSize(curByte));
         }
 
@@ -2462,8 +2465,8 @@ void AbstractInterpreter::unaryNot(int opcodeIndex) {
     incStack();
 }
 
-JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile) {
-    bool interpreted = interpret(builtins, globals, profile);
+JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status) {
+    bool interpreted = interpret(builtins, globals, profile, pgc_status);
     if (!interpreted) {
 #ifdef DEBUG
         printf("Failed to interpret");
@@ -2471,7 +2474,7 @@ JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, 
         return nullptr;
     }
     try {
-        return compileWorker();
+        return compileWorker(pgc_status);
     } catch (const exception& e){
 #ifdef DEBUG
         printf("Error whilst compiling : %s", e.what());

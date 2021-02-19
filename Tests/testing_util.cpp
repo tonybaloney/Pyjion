@@ -105,7 +105,7 @@ void VerifyOldTest(AITestCase testCase) {
     auto builtins = PyEval_GetBuiltins();
     auto globals_dict = PyObject_ptr(PyDict_New());
     auto profile = new PyjionCodeProfile();
-    if (!interpreter.interpret(builtins, globals_dict.get(), profile)) {
+    if (!interpreter.interpret(builtins, globals_dict.get(), profile, Uncompiled)) {
         FAIL("Failed to interpret code");
     }
     delete profile;

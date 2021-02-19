@@ -117,16 +117,16 @@ public:
 TEST_CASE("test most simple application"){
     SECTION("test simple") {
         auto t = PgcProfilingTest(
-                "def f():\n  a = 1\n  b = 2\n  c=3\n  return a + b + c\n"
+                "def f():\n  a = 1\n  b = 2.0\n  c=3\n  return a + b + c\n"
         );
         CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
-        CHECK(t.returns() == "6");
+        CHECK(t.returns() == "6.0");
         CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
         CHECK(t.profileEquals(16, 0, &PyLong_Type));
-        CHECK(t.profileEquals(16, 1, &PyLong_Type));
+        CHECK(t.profileEquals(16, 1, &PyFloat_Type));
         CHECK(t.profileEquals(20, 0, &PyLong_Type));
         CHECK(t.profileEquals(20, 1, &PyLong_Type));
-        CHECK(t.returns() == "6");
+        CHECK(t.returns() == "6.0");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
 }

@@ -180,7 +180,7 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
         interp.disableProfiling();
     }
 
-    auto res = interp.compile(frame->f_builtins, frame->f_globals, profile);
+    auto res = interp.compile(frame->f_builtins, frame->f_globals, profile, state->j_pgc_status);
 
     if (res == nullptr) {
         static int failCount;

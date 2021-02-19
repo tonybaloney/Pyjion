@@ -303,8 +303,8 @@ public:
     AbstractInterpreter(PyCodeObject *code, IPythonCompiler* compiler);
     ~AbstractInterpreter();
 
-    JittedCode* compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile);
-    bool interpret(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile);
+    JittedCode* compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status);
+    bool interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status);
 
     void setLocalType(int index, PyObject* val);
     // Returns information about the specified local variable at a specific
@@ -315,7 +315,7 @@ public:
     InterpreterStack& getStackInfo(size_t byteCodeIndex);
 
     AbstractValue* getReturnInfo();
-    bool pgcProbeRequired(size_t byteCodeIndex);
+    bool pgcProbeRequired(size_t byteCodeIndex, PgcStatus status);
     short pgcProbeSize(size_t byteCodeIndex);
     void enableTracing();
     void disableTracing();
@@ -381,7 +381,7 @@ private:
 
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
 
-    JittedCode* compileWorker();
+    JittedCode *compileWorker(PgcStatus status);
 
     void storeFast(int local, int opcodeIndex);
 

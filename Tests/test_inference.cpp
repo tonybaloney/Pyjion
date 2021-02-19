@@ -48,7 +48,7 @@ public:
         auto builtins = PyEval_GetBuiltins();
         auto globals_dict = PyObject_ptr(PyDict_New());
         auto profile = new PyjionCodeProfile();
-        auto success = m_absint->interpret(builtins, globals_dict.get(), profile);
+        auto success = m_absint->interpret(builtins, globals_dict.get(), profile, Uncompiled);
         delete profile;
         if (!success) {
             Py_DECREF(pyCode);
