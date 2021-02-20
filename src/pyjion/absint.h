@@ -254,7 +254,7 @@ class AbstractInterpreter {
     ExceptionHandlerManager m_exceptionHandler;
     // Labels that map from a Python byte code offset to an ilgen label.  This allows us to branch to any
     // byte code offset.
-    unordered_map<int, Label> m_offsetLabels;
+    unordered_map<size_t, Label> m_offsetLabels;
     // Tracks the current depth of the stack,  as well as if we have an object reference that needs to be freed.
     // True (STACK_KIND_OBJECT) if we have an object, false (STACK_KIND_VALUE) if we don't
     ValueStack m_stack;
@@ -278,7 +278,7 @@ class AbstractInterpreter {
     // Stores information for a stack allocated local used for sequence unpacking.  We need to allocate
     // one of these when we enter the method, and we use it if we don't have a sequence we can efficiently
     // unpack.
-    unordered_map<int, Local> m_sequenceLocals;
+    unordered_map<size_t, Local> m_sequenceLocals;
     unordered_map<int, bool> m_assignmentState;
 
 #pragma warning (default:4251)
@@ -330,7 +330,7 @@ private:
     void extendListRecursively(Local list, size_t argCnt);
     void extendList(size_t argCnt);
     void buildSet(size_t argCnt);
-    void unpackEx(size_t size, int opcode);
+    void unpackEx(size_t size, size_t opcode);
 
     void buildMap(size_t argCnt);
 
@@ -340,22 +340,22 @@ private:
 
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
-    void errorCheck(const char* reason = nullptr, int curByte = -1);
-    void intErrorCheck(const char* reason = nullptr, int curByte = -1);
+    void errorCheck(const char* reason = nullptr, size_t curByte = ~0);
+    void intErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
     void ensureRaiseAndFreeLocals(size_t localCount);
 
     void ensureLabels(vector<Label>& labels, size_t count);
 
-    void branchRaise(const char* reason = nullptr, int curByte = -1);
+    void branchRaise(const char* reason = nullptr, size_t curByte = ~0);
     void raiseOnNegativeOne(int curByte);
 
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);
 
     ExceptionHandler * currentHandler();
 
-    void markOffsetLabel(int index);
+    void markOffsetLabel(size_t index);
 
     void jumpAbsolute(size_t index, size_t from);
 
@@ -374,7 +374,7 @@ private:
 
     void loadFast(int local, size_t opcodeIndex);
     void loadFastWorker(int local, bool checkUnbound, int curByte);
-    void unpackSequence(size_t size, int opcode);
+    void unpackSequence(size_t size, size_t opcode);
 
     void popExcept();
 

@@ -251,7 +251,7 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
             oparg = GET_OPARG(curByte);
         processOpCode:
 
-            int curStackLen = lastState.stackSize();
+            size_t curStackLen = lastState.stackSize();
             int jump = 0;
             bool skipEffect = false;
             switch (opcode) {
@@ -939,7 +939,8 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     break;
             }
 #ifdef DEBUG
-            assert(skipEffect || PyCompile_OpcodeStackEffectWithJump(opcode, oparg, jump) == (lastState.stackSize() - curStackLen));
+            assert(skipEffect || 
+                static_cast<size_t>(PyCompile_OpcodeStackEffectWithJump(opcode, oparg, jump)) == (lastState.stackSize() - curStackLen));
 #endif
             updateStartState(lastState, curByte + SIZEOF_CODEUNIT);
         }
@@ -1227,7 +1228,7 @@ AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t c
 
  // Checks to see if we have a non-zero error code on the stack, and if so,
  // branches to the current error handler.  Consumes the error code in the process
-void AbstractInterpreter::intErrorCheck(const char* reason, int curByte) {
+void AbstractInterpreter::intErrorCheck(const char* reason, size_t curByte) {
     auto noErr = m_comp->emit_define_label();
     m_comp->emit_int(0);
     m_comp->emit_branch(BranchEqual, noErr);
@@ -1238,7 +1239,7 @@ void AbstractInterpreter::intErrorCheck(const char* reason, int curByte) {
 
 // Checks to see if we have a null value as the last value on our stack
 // indicating an error, and if so, branches to our current error handler.
-void AbstractInterpreter::errorCheck(const char *reason, int curByte) {
+void AbstractInterpreter::errorCheck(const char *reason, size_t curByte) {
     auto noErr = m_comp->emit_define_label();
     m_comp->emit_dup();
     m_comp->emit_store_local(mErrorCheckLocal);
@@ -1282,7 +1283,7 @@ void AbstractInterpreter::ensureLabels(vector<Label>& labels, size_t count) {
     }
 }
 
-void AbstractInterpreter::branchRaise(const char *reason, int curByte) {
+void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
     auto ehBlock = currentHandler();
     auto& entryStack = ehBlock->EntryStack;
 
@@ -1400,14 +1401,14 @@ void AbstractInterpreter::buildSet(size_t argCnt) {
         m_comp->emit_store_local(setTmp);
         auto* tmps = new Local[argCnt];
         auto* frees = new Label[argCnt];
-        for (auto i = 0; i < argCnt; i++) {
+        for (size_t i = 0; i < argCnt; i++) {
             tmps[argCnt - (i + 1)] = m_comp->emit_spill();
             decStack();
         }
 
         // load all the values into the set...
         auto err = m_comp->emit_define_label();
-        for (int i = 0; i < argCnt; i++) {
+        for (size_t i = 0; i < argCnt; i++) {
             m_comp->emit_load_local(setTmp);
             m_comp->emit_load_local(tmps[i]);
 
@@ -2236,7 +2237,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             {
                 Local stackArray = m_sequenceLocals[curByte];
                 Local tmp;
-                for (auto i = 0; i < oparg; i++) {
+                for (size_t i = 0; i < oparg; i++) {
                     m_comp->emit_store_to_array(stackArray, oparg - i - 1);
                     decStack();
                 }
@@ -2366,7 +2367,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 return nullptr;
         }
 #ifdef DEBUG
-        assert(skipEffect || PyCompile_OpcodeStackEffect(byte, oparg) == (m_stack.size() - curStackSize));
+        assert(skipEffect ||
+            static_cast<size_t>(PyCompile_OpcodeStackEffect(byte, oparg)) == (m_stack.size() - curStackSize));
 #endif
     }
 
@@ -2529,7 +2531,7 @@ void AbstractInterpreter::returnValue(size_t opcodeIndex) {
 }
 
 
-void AbstractInterpreter::unpackSequence(size_t size, int opcode) {
+void AbstractInterpreter::unpackSequence(size_t size, size_t opcode) {
     auto valueTmp = m_comp->emit_spill();
     decStack();
 
@@ -2629,7 +2631,7 @@ void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound, int curBy
     m_comp->emit_incref();
 }
 
-void AbstractInterpreter::unpackEx(size_t size, int opcode) {
+void AbstractInterpreter::unpackEx(size_t size, size_t opcode) {
     auto valueTmp = m_comp->emit_spill();
     auto listTmp = m_comp->emit_define_local();
     auto remainderTmp = m_comp->emit_define_local();
@@ -2804,7 +2806,7 @@ inline ExceptionHandler* AbstractInterpreter::currentHandler() {
 // and generated locations in the code.  So for each Python byte code index
 // we define a label in the generated code.  If we ever branch to a specific
 // opcode then we'll branch to the generated label.
-void AbstractInterpreter::markOffsetLabel(int index) {
+void AbstractInterpreter::markOffsetLabel(size_t index) {
     auto existingLabel = m_offsetLabels.find(index);
     if (existingLabel != m_offsetLabels.end()) {
         m_comp->emit_mark_label(existingLabel->second);
