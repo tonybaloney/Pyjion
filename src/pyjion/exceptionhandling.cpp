@@ -66,7 +66,7 @@ bool ExceptionHandlerManager::Empty() {
     return m_exceptionHandlers.empty();
 }
 
-bool ExceptionHandlerManager::IsHandlerAtOffset(unsigned long offset) {
+bool ExceptionHandlerManager::IsHandlerAtOffset(size_t offset) {
     return m_handlerIndexes.find(offset) != m_handlerIndexes.end();
 }
 
