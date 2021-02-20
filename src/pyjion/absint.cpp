@@ -43,9 +43,11 @@
 #define UPDATE_PGC(count) \
     pgcRequired = true; \
     pgcSize = count;      \
-    for (int i = 0, j = (count); i < (count) ; i++, j--) \
-        lastState[j-1] = lastState.fromPgc(i, profile->getType(curByte, i), addPgcSource(opcodeIndex)); \
-    mStartStates[curByte] = lastState;
+    if (pgc_status == PgcStatus::CompiledWithProbes) {                      \
+        for (int i = 0, j = (count); i < (count) ; i++, j--) \
+            lastState[j-1] = lastState.fromPgc(i, profile->getType(curByte, i), addPgcSource(opcodeIndex)); \
+        mStartStates[curByte] = lastState; \
+    } \
 
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
@@ -233,7 +235,7 @@ void AbstractInterpreter::initStartingState() {
 }
 
 bool
-AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status) {
+AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus pgc_status) {
     if (!preprocess()) {
         return false;
     }

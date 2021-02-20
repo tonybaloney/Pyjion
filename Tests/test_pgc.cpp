@@ -122,10 +122,10 @@ TEST_CASE("test most simple application"){
         CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
         CHECK(t.returns() == "6.0");
         CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
-        CHECK(t.profileEquals(16, 0, &PyLong_Type));
-        CHECK(t.profileEquals(16, 1, &PyFloat_Type));
-        CHECK(t.profileEquals(20, 0, &PyLong_Type));
-        CHECK(t.profileEquals(20, 1, &PyLong_Type));
+        CHECK(t.profileEquals(16, 0, &PyFloat_Type)); // right
+        CHECK(t.profileEquals(16, 1, &PyLong_Type)); // left
+        CHECK(t.profileEquals(20, 0, &PyLong_Type)); // right
+        CHECK(t.profileEquals(20, 1, &PyFloat_Type)); // left
         CHECK(t.returns() == "6.0");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
