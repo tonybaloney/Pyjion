@@ -987,7 +987,7 @@ bool AbstractInterpreter::mergeStates(InterpreterState& newState, InterpreterSta
         changed |= newState.stackSize() != 0;
     }
     else {
-        int max = mergeTo.stackSize();;
+        size_t max = mergeTo.stackSize();;
         if (newState.stackSize() < mergeTo.stackSize())
             max = newState.stackSize();
 
