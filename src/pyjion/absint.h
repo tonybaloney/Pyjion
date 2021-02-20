@@ -260,7 +260,7 @@ class AbstractInterpreter {
     ValueStack m_stack;
     // Tracks the state of the stack when we perform a branch.  We copy the existing state to the map and
     // reload it when we begin processing at the stack.
-    unordered_map<int, ValueStack> m_offsetStack;
+    unordered_map<size_t, ValueStack> m_offsetStack;
 
     unordered_map<int, ssize_t> nameHashes;
 
@@ -324,7 +324,7 @@ private:
     AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
 
     void makeFunction(int oparg);
-    bool canSkipLastiUpdate(int opcodeIndex);
+    bool canSkipLastiUpdate(size_t opcodeIndex);
     void buildTuple(size_t argCnt);
     void buildList(size_t argCnt);
     void extendListRecursively(Local list, size_t argCnt);

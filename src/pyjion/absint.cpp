@@ -1302,7 +1302,7 @@ void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
         m_comp->emit_trace_exception();
 
     // number of stack entries we need to clear...
-    int count = m_stack.size() - entryStack.size();
+    auto count = m_stack.size() - entryStack.size();
 
     auto cur = m_stack.rbegin();
     for (; cur != m_stack.rend() && count >= 0; cur++) {
@@ -2448,7 +2448,7 @@ JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals) 
     }
 }
 
-bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
+bool AbstractInterpreter::canSkipLastiUpdate(size_t opcodeIndex) {
     switch (GET_OPCODE(opcodeIndex)) {
         case DUP_TOP:
         case DUP_TOP_TWO:
