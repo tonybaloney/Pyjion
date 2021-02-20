@@ -73,10 +73,10 @@ public:
     }
 
     ~PgcProfilingTest(){
-        delete profile;
+        //delete profile;
     }
 
-    std::string returns() {
+    std::string returns(int ref) {
         auto res = PyObject_ptr(run());
         REQUIRE(res.get() != nullptr);
         if (PyErr_Occurred()) {
@@ -84,8 +84,9 @@ public:
             FAIL("Error on Python execution");
             return nullptr;
         }
-
-        auto repr = PyUnicode_AsUTF8(PyObject_Repr(res.get()));
+        PyObject* v = res.get();
+        auto repr = PyUnicode_AsUTF8(PyObject_Repr(v));
+        CHECK(v->ob_refcnt == ref);
         auto tstate = PyThreadState_GET();
         REQUIRE(tstate->curexc_value == nullptr);
         REQUIRE(tstate->curexc_traceback == nullptr);
@@ -94,6 +95,10 @@ public:
         }
 
         return std::string(repr);
+    }
+
+    PyObject* ret(){
+        return run();
     }
 
     PyObject *raises() {
@@ -120,13 +125,36 @@ TEST_CASE("test most simple application"){
                 "def f():\n  a = 1\n  b = 2.0\n  c=3\n  return a + b + c\n"
         );
         CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
-        CHECK(t.returns() == "6.0");
+        CHECK(t.returns(1) == "6.0");
         CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
         CHECK(t.profileEquals(16, 0, &PyFloat_Type)); // right
         CHECK(t.profileEquals(16, 1, &PyLong_Type)); // left
         CHECK(t.profileEquals(20, 0, &PyLong_Type)); // right
         CHECK(t.profileEquals(20, 1, &PyFloat_Type)); // left
-        CHECK(t.returns() == "6.0");
+        CHECK(t.returns(1) == "6.0");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+    SECTION("test changing types") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  a = 1000\n"
+                "  b = 2.0\n"
+                "  c = 'cheese'\n"
+                "  d = ' shop'\n"
+                "  def add(left,right):"
+                "     return left + right\n"
+                "  v = str(add(a, b)) + add(c, d)\n"
+                "  return a,b,c,d\n"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        auto result = t.ret();
+        CHECK(PyTuple_CheckExact(result));
+        auto first = PyTuple_GET_ITEM(result, 0); // 1
+        auto second = PyTuple_GET_ITEM(result, 1); // 2.0
+        auto third = PyTuple_GET_ITEM(result, 2); // 'cheese'
+        auto fourth = PyTuple_GET_ITEM(result, 3); // 'shop'
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.returns(1) == "(1000, 2.0, 'cheese', ' shop')");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
 }
