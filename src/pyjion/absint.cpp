@@ -1531,7 +1531,7 @@ void AbstractInterpreter::periodicWork() {
 // Checks to see if -1 is the current value on the stack, and if so, falls into
 // the logic for raising an exception.  If not execution continues forward progress.
 // Used for checking if an API reports an error (typically true/false/-1)
-void AbstractInterpreter::raiseOnNegativeOne(int curByte) {
+void AbstractInterpreter::raiseOnNegativeOne(size_t curByte) {
     m_comp->emit_dup();
     m_comp->emit_int(-1);
 
@@ -2701,7 +2701,6 @@ void AbstractInterpreter::jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t ju
     m_comp->emit_load_local(tmp);
     m_comp->emit_is_true();
 
-    // TODO opcodeIndex is unsigned, can it be -1?
     raiseOnNegativeOne(opcodeIndex);
 
     m_comp->emit_branch(isTrue ? BranchFalse : BranchTrue, noJump);
@@ -2741,7 +2740,6 @@ void AbstractInterpreter::popJumpIf(bool isTrue, size_t opcodeIndex, size_t jump
     m_comp->emit_dup();
     m_comp->emit_is_true();
 
-    // TODO opcodeIndex is unsigned, can it be -1?
     raiseOnNegativeOne(opcodeIndex);
 
     m_comp->emit_branch(isTrue ? BranchFalse : BranchTrue, noJump);
