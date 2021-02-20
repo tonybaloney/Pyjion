@@ -43,3 +43,7 @@ class DictTestCase(unittest.TestCase):
             d.pop(x2)
         with self.assertRaises(CustomException):
             d.update({x2: 2})
+
+
+if __name__ == "__main__":
+    unittest.main()
