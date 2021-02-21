@@ -51,9 +51,10 @@ public:
  public:
      ValueStack() = default;
 
-    ValueStack(ValueStack const &old)  {
-        for (int i=0; i< old.size(); i++)
+    ValueStack(ValueStack const &old) {
+        for (size_t i = 0; i < old.size(); i++) {
             push_back(old[i]);
+        }
     }
 
     void inc(size_t by, StackEntryKind kind);
@@ -83,9 +84,10 @@ public:
  public:
      BlockStack() = default;
 
-     BlockStack(BlockStack const &old)  {
-         for (int i=0; i< old.size(); i++)
+     BlockStack(BlockStack const &old) {
+         for (size_t i = 0; i < old.size(); i++) {
              push_back(old[i]);
+         }
      }
 
      bool empty(){

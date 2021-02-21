@@ -251,7 +251,7 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
             oparg = GET_OPARG(curByte);
         processOpCode:
 
-            int curStackLen = lastState.stackSize();
+            size_t curStackLen = lastState.stackSize();
             int jump = 0;
             bool skipEffect = false;
             switch (opcode) {
@@ -939,7 +939,8 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     break;
             }
 #ifdef DEBUG
-            assert(skipEffect || PyCompile_OpcodeStackEffectWithJump(opcode, oparg, jump) == (lastState.stackSize() - curStackLen));
+            assert(skipEffect || 
+                static_cast<size_t>(PyCompile_OpcodeStackEffectWithJump(opcode, oparg, jump)) == (lastState.stackSize() - curStackLen));
 #endif
             updateStartState(lastState, curByte + SIZEOF_CODEUNIT);
         }
@@ -987,7 +988,7 @@ bool AbstractInterpreter::mergeStates(InterpreterState& newState, InterpreterSta
         changed |= newState.stackSize() != 0;
     }
     else {
-        int max = mergeTo.stackSize();;
+        size_t max = mergeTo.stackSize();;
         if (newState.stackSize() < mergeTo.stackSize())
             max = newState.stackSize();
 
@@ -1227,7 +1228,7 @@ AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t c
 
  // Checks to see if we have a non-zero error code on the stack, and if so,
  // branches to the current error handler.  Consumes the error code in the process
-void AbstractInterpreter::intErrorCheck(const char* reason, int curByte) {
+void AbstractInterpreter::intErrorCheck(const char* reason, size_t curByte) {
     auto noErr = m_comp->emit_define_label();
     m_comp->emit_int(0);
     m_comp->emit_branch(BranchEqual, noErr);
@@ -1238,7 +1239,7 @@ void AbstractInterpreter::intErrorCheck(const char* reason, int curByte) {
 
 // Checks to see if we have a null value as the last value on our stack
 // indicating an error, and if so, branches to our current error handler.
-void AbstractInterpreter::errorCheck(const char *reason, int curByte) {
+void AbstractInterpreter::errorCheck(const char *reason, size_t curByte) {
     auto noErr = m_comp->emit_define_label();
     m_comp->emit_dup();
     m_comp->emit_store_local(mErrorCheckLocal);
@@ -1250,7 +1251,7 @@ void AbstractInterpreter::errorCheck(const char *reason, int curByte) {
     m_comp->emit_load_local(mErrorCheckLocal);
 }
 
-Label AbstractInterpreter::getOffsetLabel(int jumpTo) {
+Label AbstractInterpreter::getOffsetLabel(size_t jumpTo) {
     auto jumpToLabelIter = m_offsetLabels.find(jumpTo);
     Label jumpToLabel;
     if (jumpToLabelIter == m_offsetLabels.end()) {
@@ -1282,7 +1283,7 @@ void AbstractInterpreter::ensureLabels(vector<Label>& labels, size_t count) {
     }
 }
 
-void AbstractInterpreter::branchRaise(const char *reason, int curByte) {
+void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
     auto ehBlock = currentHandler();
     auto& entryStack = ehBlock->EntryStack;
 
@@ -1301,7 +1302,7 @@ void AbstractInterpreter::branchRaise(const char *reason, int curByte) {
         m_comp->emit_trace_exception();
 
     // number of stack entries we need to clear...
-    int count = m_stack.size() - entryStack.size();
+    auto count = static_cast<ssize_t>(m_stack.size() - entryStack.size());
 
     auto cur = m_stack.rbegin();
     for (; cur != m_stack.rend() && count >= 0; cur++) {
@@ -1400,14 +1401,14 @@ void AbstractInterpreter::buildSet(size_t argCnt) {
         m_comp->emit_store_local(setTmp);
         auto* tmps = new Local[argCnt];
         auto* frees = new Label[argCnt];
-        for (auto i = 0; i < argCnt; i++) {
+        for (size_t i = 0; i < argCnt; i++) {
             tmps[argCnt - (i + 1)] = m_comp->emit_spill();
             decStack();
         }
 
         // load all the values into the set...
         auto err = m_comp->emit_define_label();
-        for (int i = 0; i < argCnt; i++) {
+        for (size_t i = 0; i < argCnt; i++) {
             m_comp->emit_load_local(setTmp);
             m_comp->emit_load_local(tmps[i]);
 
@@ -1530,7 +1531,7 @@ void AbstractInterpreter::periodicWork() {
 // Checks to see if -1 is the current value on the stack, and if so, falls into
 // the logic for raising an exception.  If not execution continues forward progress.
 // Used for checking if an API reports an error (typically true/false/-1)
-void AbstractInterpreter::raiseOnNegativeOne(int curByte) {
+void AbstractInterpreter::raiseOnNegativeOne(size_t curByte) {
     m_comp->emit_dup();
     m_comp->emit_int(-1);
 
@@ -1617,7 +1618,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_blockStack.push_back(BlockInfo(-1, NOP, rootHandler));
 
     // Loop through all opcodes in this frame
-    for (int curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
+    for (size_t curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
         assert(curByte % SIZEOF_CODEUNIT == 0);
 
         // opcodeIndex is the opcode position (matches the dis.dis() output)
@@ -1655,7 +1656,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
 
         auto stackInfo = getStackInfo(curByte);
 
-        int curStackSize = m_stack.size();
+        size_t curStackSize = m_stack.size();
         bool skipEffect = false;
 
         auto next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
@@ -1715,9 +1716,9 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 break;
             case COMPARE_OP: {
                 if (OPT_ENABLED(internRichCompare) && stackInfo.size() >= 2){
-                    m_comp->emit_compare_known_object(oparg, stackInfo.second(), stackInfo.top());
+                    m_comp->emit_compare_known_object(static_cast<int>(oparg), stackInfo.second(), stackInfo.top());
                 } else {
-                    m_comp->emit_compare_object(oparg);
+                    m_comp->emit_compare_object(static_cast<int>(oparg));
                 }
                 decStack(2);
                 errorCheck("failed to compare", curByte);
@@ -2236,7 +2237,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             {
                 Local stackArray = m_sequenceLocals[curByte];
                 Local tmp;
-                for (auto i = 0; i < oparg; i++) {
+                for (size_t i = 0; i < oparg; i++) {
                     m_comp->emit_store_to_array(stackArray, oparg - i - 1);
                     decStack();
                 }
@@ -2366,7 +2367,8 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 return nullptr;
         }
 #ifdef DEBUG
-        assert(skipEffect || PyCompile_OpcodeStackEffect(byte, oparg) == (m_stack.size() - curStackSize));
+        assert(skipEffect ||
+            static_cast<size_t>(PyCompile_OpcodeStackEffect(byte, oparg)) == (m_stack.size() - curStackSize));
 #endif
     }
 
@@ -2407,21 +2409,21 @@ void AbstractInterpreter::testBoolAndBranch(Local value, bool isTrue, Label targ
     m_comp->emit_branch(BranchEqual, target);
 }
 
-void AbstractInterpreter::unaryPositive(int opcodeIndex) {
+void AbstractInterpreter::unaryPositive(size_t opcodeIndex) {
     m_comp->emit_unary_positive();
     decStack();
     errorCheck("unary positive failed", opcodeIndex);
     incStack();
 }
 
-void AbstractInterpreter::unaryNegative(int opcodeIndex) {
+void AbstractInterpreter::unaryNegative(size_t opcodeIndex) {
     m_comp->emit_unary_negative();
     decStack();
     errorCheck("unary negative failed", opcodeIndex);
     incStack();
 }
 
-void AbstractInterpreter::unaryNot(int opcodeIndex) {
+void AbstractInterpreter::unaryNot(size_t opcodeIndex) {
     m_comp->emit_unary_not();
     decStack(1);
     errorCheck("unary not failed", opcodeIndex);
@@ -2446,7 +2448,7 @@ JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals) 
     }
 }
 
-bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
+bool AbstractInterpreter::canSkipLastiUpdate(size_t opcodeIndex) {
     switch (GET_OPCODE(opcodeIndex)) {
         case DUP_TOP:
         case DUP_TOP_TWO:
@@ -2475,13 +2477,13 @@ bool AbstractInterpreter::canSkipLastiUpdate(int opcodeIndex) {
     return false;
 }
 
-void AbstractInterpreter::storeFast(int local, int opcodeIndex) {
+void AbstractInterpreter::storeFast(int local, size_t opcodeIndex) {
     m_comp->emit_store_fast(local);
     decStack();
     m_assignmentState[local] = true;
 }
 
-void AbstractInterpreter::loadConst(int constIndex, int opcodeIndex) {
+void AbstractInterpreter::loadConst(int constIndex, size_t opcodeIndex) {
     auto constValue = PyTuple_GetItem(mCode->co_consts, constIndex);
     m_comp->emit_ptr(constValue);
     m_comp->emit_dup();
@@ -2522,14 +2524,14 @@ void AbstractInterpreter::unwindHandlers(){
     }
 }
 
-void AbstractInterpreter::returnValue(int opcodeIndex) {
+void AbstractInterpreter::returnValue(size_t opcodeIndex) {
     m_comp->emit_store_local(m_retValue);
     m_comp->emit_branch(BranchAlways, m_retLabel);
     decStack();
 }
 
 
-void AbstractInterpreter::unpackSequence(size_t size, int opcode) {
+void AbstractInterpreter::unpackSequence(size_t size, size_t opcode) {
     auto valueTmp = m_comp->emit_spill();
     decStack();
 
@@ -2561,7 +2563,7 @@ void AbstractInterpreter::unpackSequence(size_t size, int opcode) {
     m_comp->emit_free_local(fastTmp);
 }
 
-void AbstractInterpreter::forIter(int loopIndex, AbstractValueWithSources* iterator) {
+void AbstractInterpreter::forIter(size_t loopIndex, AbstractValueWithSources* iterator) {
     // dup the iter so that it stays on the stack for the next iteration
     m_comp->emit_dup(); // ..., iter -> iter, iter, ...
 
@@ -2594,11 +2596,11 @@ void AbstractInterpreter::forIter(int loopIndex, AbstractValueWithSources* itera
     m_comp->emit_mark_label(next);
 }
 
-void AbstractInterpreter::forIter(int loopIndex) {
+void AbstractInterpreter::forIter(size_t loopIndex) {
     forIter(loopIndex, nullptr);
 }
 
-void AbstractInterpreter::loadFast(int local, int opcodeIndex) {
+void AbstractInterpreter::loadFast(int local, size_t opcodeIndex) {
     bool checkUnbound = m_assignmentState.find(local) == m_assignmentState.end() || !m_assignmentState.find(local)->second;
     loadFastWorker(local, checkUnbound, opcodeIndex);
     incStack();
@@ -2629,7 +2631,7 @@ void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound, int curBy
     m_comp->emit_incref();
 }
 
-void AbstractInterpreter::unpackEx(size_t size, int opcode) {
+void AbstractInterpreter::unpackEx(size_t size, size_t opcode) {
     auto valueTmp = m_comp->emit_spill();
     auto listTmp = m_comp->emit_define_local();
     auto remainderTmp = m_comp->emit_define_local();
@@ -2679,7 +2681,7 @@ void AbstractInterpreter::unpackEx(size_t size, int opcode) {
 }
 
 
-void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) {
+void AbstractInterpreter::jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t jumpTo) {
     if (jumpTo <= opcodeIndex){
         m_comp->emit_pending_calls();
     }
@@ -2716,7 +2718,7 @@ void AbstractInterpreter::jumpIfOrPop(bool isTrue, int opcodeIndex, int jumpTo) 
     m_comp->emit_free_local(tmp);
 }
 
-void AbstractInterpreter::popJumpIf(bool isTrue, int opcodeIndex, int jumpTo) {
+void AbstractInterpreter::popJumpIf(bool isTrue, size_t opcodeIndex, size_t jumpTo) {
     if (jumpTo <= opcodeIndex){
         m_comp->emit_pending_calls();
     }
@@ -2763,7 +2765,7 @@ void AbstractInterpreter::jumpAbsolute(size_t index, size_t from) {
     m_comp->emit_branch(BranchAlways, getOffsetLabel(index));
 }
 
-void AbstractInterpreter::jumpIfNotExact(int opcodeIndex, int jumpTo) {
+void AbstractInterpreter::jumpIfNotExact(size_t opcodeIndex, size_t jumpTo) {
     if (jumpTo <= opcodeIndex){
         m_comp->emit_pending_calls();
     }
@@ -2802,7 +2804,7 @@ inline ExceptionHandler* AbstractInterpreter::currentHandler() {
 // and generated locations in the code.  So for each Python byte code index
 // we define a label in the generated code.  If we ever branch to a specific
 // opcode then we'll branch to the generated label.
-void AbstractInterpreter::markOffsetLabel(int index) {
+void AbstractInterpreter::markOffsetLabel(size_t index) {
     auto existingLabel = m_offsetLabels.find(index);
     if (existingLabel != m_offsetLabels.end()) {
         m_comp->emit_mark_label(existingLabel->second);
