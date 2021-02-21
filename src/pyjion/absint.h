@@ -270,13 +270,13 @@ class AbstractInterpreter {
     ExceptionHandlerManager m_exceptionHandler;
     // Labels that map from a Python byte code offset to an ilgen label.  This allows us to branch to any
     // byte code offset.
-    unordered_map<int, Label> m_offsetLabels;
+    unordered_map<size_t, Label> m_offsetLabels;
     // Tracks the current depth of the stack,  as well as if we have an object reference that needs to be freed.
     // True (STACK_KIND_OBJECT) if we have an object, false (STACK_KIND_VALUE) if we don't
     ValueStack m_stack;
     // Tracks the state of the stack when we perform a branch.  We copy the existing state to the map and
     // reload it when we begin processing at the stack.
-    unordered_map<int, ValueStack> m_offsetStack;
+    unordered_map<size_t, ValueStack> m_offsetStack;
 
     unordered_map<int, ssize_t> nameHashes;
 
@@ -294,7 +294,7 @@ class AbstractInterpreter {
     // Stores information for a stack allocated local used for sequence unpacking.  We need to allocate
     // one of these when we enter the method, and we use it if we don't have a sequence we can efficiently
     // unpack.
-    unordered_map<int, Local> m_sequenceLocals;
+    unordered_map<size_t, Local> m_sequenceLocals;
     unordered_map<int, bool> m_assignmentState;
 
 #pragma warning (default:4251)
@@ -342,38 +342,38 @@ private:
     AbstractSource* addPgcSource(size_t opcodeIndex);
 
     void makeFunction(int oparg);
-    bool canSkipLastiUpdate(int opcodeIndex);
+    bool canSkipLastiUpdate(size_t opcodeIndex);
     void buildTuple(size_t argCnt);
     void buildList(size_t argCnt);
     void extendListRecursively(Local list, size_t argCnt);
     void extendList(size_t argCnt);
     void buildSet(size_t argCnt);
-    void unpackEx(size_t size, int opcode);
+    void unpackEx(size_t size, size_t opcode);
 
     void buildMap(size_t argCnt);
 
-    Label getOffsetLabel(int jumpTo);
-    void forIter(int loopIndex);
-    void forIter(int loopIndex, AbstractValueWithSources* iterator);
+    Label getOffsetLabel(size_t jumpTo);
+    void forIter(size_t loopIndex);
+    void forIter(size_t loopIndex, AbstractValueWithSources* iterator);
 
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
-    void errorCheck(const char* reason = nullptr, int curByte = -1);
-    void intErrorCheck(const char* reason = nullptr, int curByte = -1);
+    void errorCheck(const char* reason = nullptr, size_t curByte = ~0);
+    void intErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
     void ensureRaiseAndFreeLocals(size_t localCount);
 
     void ensureLabels(vector<Label>& labels, size_t count);
 
-    void branchRaise(const char* reason = nullptr, int curByte = -1);
-    void raiseOnNegativeOne(int curByte);
+    void branchRaise(const char* reason = nullptr, size_t curByte = ~0);
+    void raiseOnNegativeOne(size_t curByte);
 
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);
 
     ExceptionHandler * currentHandler();
 
-    void markOffsetLabel(int index);
+    void markOffsetLabel(size_t index);
 
     void jumpAbsolute(size_t index, size_t from);
 
@@ -383,25 +383,25 @@ private:
 
     JittedCode *compileWorker(PgcStatus status);
 
-    void storeFast(int local, int opcodeIndex);
+    void storeFast(int local, size_t opcodeIndex);
 
-    void loadConst(int constIndex, int opcodeIndex);
+    void loadConst(int constIndex, size_t opcodeIndex);
 
-    void returnValue(int opcodeIndex);
+    void returnValue(size_t opcodeIndex);
 
-    void loadFast(int local, int opcodeIndex);
+    void loadFast(int local, size_t opcodeIndex);
     void loadFastWorker(int local, bool checkUnbound, int curByte);
-    void unpackSequence(size_t size, int opcode);
+    void unpackSequence(size_t size, size_t opcode);
 
     void popExcept();
 
-    void unaryPositive(int opcodeIndex);
-    void unaryNegative(int opcodeIndex);
-    void unaryNot(int opcodeIndex);
+    void unaryPositive(size_t opcodeIndex);
+    void unaryNegative(size_t opcodeIndex);
+    void unaryNot(size_t opcodeIndex);
 
-    void jumpIfOrPop(bool isTrue, int opcodeIndex, int offset);
-    void popJumpIf(bool isTrue, int opcodeIndex, int offset);
-    void jumpIfNotExact(int opcodeIndex, int jumpTo);
+    void jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t offset);
+    void popJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
+    void jumpIfNotExact(size_t opcodeIndex, size_t jumpTo);
     void testBoolAndBranch(Local value, bool isTrue, Label target);
 
     void unwindHandlers();

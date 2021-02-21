@@ -1,6 +1,7 @@
 import pyjion
 import unittest
 import gc
+import sys
 
 
 class DictTestCase(unittest.TestCase):
@@ -43,3 +44,33 @@ class DictTestCase(unittest.TestCase):
             d.pop(x2)
         with self.assertRaises(CustomException):
             d.update({x2: 2})
+
+    def test_dict_refcount(self):
+        a = 1
+        b = 2
+        c = 3
+        d = 4
+        e = 5
+        f = 6
+        before_a = sys.getrefcount(a)
+        before_b = sys.getrefcount(b)
+        before_c = sys.getrefcount(c)
+        before_d = sys.getrefcount(d)
+        before_e = sys.getrefcount(e)
+        before_f = sys.getrefcount(f)
+        di = {
+            a: d,
+            b: e,
+            c: f,
+        }
+        del di
+        self.assertEqual(before_a, sys.getrefcount(a))
+        self.assertEqual(before_b, sys.getrefcount(b))
+        self.assertEqual(before_c, sys.getrefcount(c))
+        self.assertEqual(before_d, sys.getrefcount(d))
+        self.assertEqual(before_e, sys.getrefcount(e))
+        self.assertEqual(before_f, sys.getrefcount(f))
+
+
+if __name__ == "__main__":
+    unittest.main()
