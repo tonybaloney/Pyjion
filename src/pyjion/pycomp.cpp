@@ -1515,8 +1515,10 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
 }
 
 void PythonCompiler::emit_debug_msg(const char* msg) {
+#ifdef DEBUG
     m_il.ld_i((void*)msg);
     m_il.emit_call(METHOD_DEBUG_TRACE);
+#endif
 }
 
 void PythonCompiler::emit_debug_pyobject() {

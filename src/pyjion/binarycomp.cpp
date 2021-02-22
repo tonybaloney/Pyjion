@@ -188,8 +188,10 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
         emit_known_binary_op(opcode, left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
 
     if (emit_guard){
+        emit_debug_msg("skipping fallback expression from guard");
         emit_branch(BranchAlways, skip_fallback);
         emit_mark_label(execute_fallback);
+        emit_debug_msg("executing fallback expression from guard");
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
         m_il.emit_call(fallback_token);

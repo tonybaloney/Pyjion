@@ -76,7 +76,7 @@ public:
         //delete profile;
     }
 
-    std::string returns(int ref) {
+    std::string returns() {
         auto res = PyObject_ptr(run());
         REQUIRE(res.get() != nullptr);
         if (PyErr_Occurred()) {
@@ -86,7 +86,6 @@ public:
         }
         PyObject* v = res.get();
         auto repr = PyUnicode_AsUTF8(PyObject_Repr(v));
-        CHECK(v->ob_refcnt == ref);
         auto tstate = PyThreadState_GET();
         REQUIRE(tstate->curexc_value == nullptr);
         REQUIRE(tstate->curexc_traceback == nullptr);
@@ -125,13 +124,13 @@ TEST_CASE("test most simple application"){
                 "def f():\n  a = 1\n  b = 2.0\n  c=3\n  return a + b + c\n"
         );
         CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
-        CHECK(t.returns(1) == "6.0");
+        CHECK(t.returns() == "6.0");
         CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
         CHECK(t.profileEquals(16, 0, &PyFloat_Type)); // right
         CHECK(t.profileEquals(16, 1, &PyLong_Type)); // left
         CHECK(t.profileEquals(20, 0, &PyLong_Type)); // right
         CHECK(t.profileEquals(20, 1, &PyFloat_Type)); // left
-        CHECK(t.returns(1) == "6.0");
+        CHECK(t.returns() == "6.0");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
     SECTION("test changing types") {
@@ -147,14 +146,9 @@ TEST_CASE("test most simple application"){
                 "  return a,b,c,d\n"
         );
         CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
-        auto result = t.ret();
-        CHECK(PyTuple_CheckExact(result));
-        auto first = PyTuple_GET_ITEM(result, 0); // 1
-        auto second = PyTuple_GET_ITEM(result, 1); // 2.0
-        auto third = PyTuple_GET_ITEM(result, 2); // 'cheese'
-        auto fourth = PyTuple_GET_ITEM(result, 3); // 'shop'
+        CHECK(t.returns() == "(1000, 2.0, 'cheese', ' shop')");
         CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
-        CHECK(t.returns(1) == "(1000, 2.0, 'cheese', ' shop')");
+        CHECK(t.returns() == "(1000, 2.0, 'cheese', ' shop')");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
 }

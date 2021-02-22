@@ -40,14 +40,14 @@
 
 #define PGC_READY() g_pyjionSettings.pgc && profile != nullptr
 
-#define UPDATE_PGC(count) \
-    pgcRequired = true; \
-    pgcSize = count;      \
+#define PGC_PROBE(count) pgcRequired = true; pgcSize = count;
+
+#define PGC_UPDATE_STACK(count) \
     if (pgc_status == PgcStatus::CompiledWithProbes) {                      \
         for (int i = 0, j = (count); i < (count) ; i++, j--) \
             lastState[j-1] = lastState.fromPgc(i, profile->getType(curByte, i), addPgcSource(opcodeIndex)); \
         mStartStates[curByte] = lastState; \
-    } \
+    }
 
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
@@ -422,7 +422,8 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     AbstractValueWithSources two;
                     AbstractValueWithSources one;
                     if (PGC_READY()){
-                        UPDATE_PGC(2)
+                        PGC_PROBE(2);
+                        // PGC_UPDATE_STACK(2);
                     }
                     two = lastState.popNoEscape();
                     one = lastState.popNoEscape();
@@ -604,8 +605,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     lastState.push(&Dict);
                     break;
                 case COMPARE_OP: {
-                    pgcRequired = true;
-                    pgcSize = 2;
+                    if (PGC_READY()){
+                        PGC_PROBE(2);
+                        // TODO : Update stack PGC_UPDATE_STACK(2)
+                    }
                     lastState.pop();
                     lastState.pop();
                     lastState.push(&Any);
@@ -621,8 +624,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     lastState.push(&Any);
                     break;
                 case CALL_FUNCTION: {
-                    pgcRequired = true;
-                    pgcSize = oparg + 1;
+                    if (PGC_READY()){
+                        PGC_PROBE(oparg + 1);
+                        // TODO : Update stack PGC_UPDATE_STACK(oparg+1)
+                    }
                     int argCnt = oparg & 0xff;
                     int kwArgCnt = (oparg >> 8) & 0xff;
 
