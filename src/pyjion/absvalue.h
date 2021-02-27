@@ -570,10 +570,16 @@ class FileValue : public AbstractValue {
     const char* describe() override;
 };
 
-class PgcValue : public AbstractValue {
+class VolatileValue: public AbstractValue{
+    bool needsGuard() override {
+        return true;
+    }
+};
+
+class PgcValue : public VolatileValue {
     PyTypeObject* _type;
 public:
-    PgcValue(PyTypeObject* type){
+    explicit PgcValue(PyTypeObject* type){
         _type = type;
     }
     AbstractValueKind kind() override;
@@ -581,7 +587,17 @@ public:
     bool known() override {
         return true;
     }
-    bool needsGuard() override {
+};
+
+class ArgumentValue: public VolatileValue {
+    PyTypeObject* _type;
+public:
+    explicit ArgumentValue(PyTypeObject* type){
+        _type = type;
+    }
+    AbstractValueKind kind() override;
+    PyTypeObject* pythonType() override;
+    bool known() override {
         return true;
     }
 };

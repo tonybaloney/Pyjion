@@ -815,8 +815,8 @@ void PyJit_DebugTrace(char* msg) {
 }
 
 void PyJit_DebugPyObject(PyObject* obj) {
-    printf("Object at %p", obj);
-    printf("%s", PyUnicode_AsUTF8(PyObject_Repr(obj)));
+    printf("Object at %p -- ", obj);
+    printf("%s\n", PyUnicode_AsUTF8(PyObject_Repr(obj)));
 }
 
 void PyJit_PyErrRestore(PyObject*tb, PyObject*value, PyObject*exception) {

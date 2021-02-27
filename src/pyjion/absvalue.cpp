@@ -1447,3 +1447,11 @@ PyTypeObject* PgcValue::pythonType() {
 AbstractValueKind PgcValue::kind() {
     return GetAbstractType(this->_type);
 }
+
+PyTypeObject* ArgumentValue::pythonType() {
+    return this->_type;
+}
+
+AbstractValueKind ArgumentValue::kind() {
+    return GetAbstractType(this->_type);
+}

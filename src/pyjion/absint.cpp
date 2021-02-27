@@ -199,7 +199,7 @@ bool AbstractInterpreter::preprocess() {
 void AbstractInterpreter::setLocalType(int index, PyObject* val) {
     auto& lastState = mStartStates[0];
     if (val != nullptr) {
-        auto localInfo = AbstractLocalInfo(toAbstract(val));
+        auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val)));
         localInfo.ValueInfo.Sources = newSource(new LocalSource());
         lastState.replaceLocal(index, localInfo);
     }

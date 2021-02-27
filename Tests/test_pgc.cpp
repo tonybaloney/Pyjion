@@ -140,7 +140,7 @@ TEST_CASE("test most simple application"){
                 "  b = 2.0\n"
                 "  c = 'cheese'\n"
                 "  d = ' shop'\n"
-                "  def add(left,right):"
+                "  def add(left,right):\n"
                 "     return left + right\n"
                 "  v = str(add(a, b)) + add(c, d)\n"
                 "  return a,b,c,d\n"

@@ -484,7 +484,7 @@ public:
     void emit_trace_exception() override;
     void emit_profile_frame_entry() override;
     void emit_profile_frame_exit() override;
-    void emit_pgc_probe(int curByte, int stackSize) override;
+    void emit_pgc_probe(size_t curByte, size_t stackSize) override;
 
     void emit_load_frame_locals() override;
     void emit_triple_binary_op(int firstOp, int secondOp) override;

@@ -1830,21 +1830,20 @@ void PythonCompiler::emit_tagged_int_to_float() {
     m_il.emit_call(METHOD_INT_TO_FLOAT);
 }
 
-void PythonCompiler::emit_pgc_probe(int curByte, int stackSize) {
+void PythonCompiler::emit_pgc_probe(size_t curByte, size_t stackSize) {
     Local stack [stackSize];
     Local hasProbedFlag = emit_define_local(LK_Bool);
     auto hasProbed = emit_define_label();
 
     emit_load_local(hasProbedFlag);
     emit_branch(BranchTrue, hasProbed);
-
-    for (int i = 0; i < stackSize; i++){
+    for (size_t i = 0; i < stackSize; i++){
         stack[i] = emit_define_local(LK_Pointer);
         emit_store_local(stack[i]);
 
         m_il.ld_arg(3);
         emit_load_local(stack[i]);
-        emit_int(curByte);
+        m_il.ld_i4(curByte);
         emit_int(i);
 
         m_il.emit_call(METHOD_PGC_PROBE);
@@ -1852,7 +1851,7 @@ void PythonCompiler::emit_pgc_probe(int curByte, int stackSize) {
     m_il.ld_i4(1);
     emit_store_local(hasProbedFlag);
     // Recover the stack in the right order
-    for (int i = stackSize; i > 0; --i){
+    for (size_t i = stackSize; i > 0; --i){
         emit_load_and_free_local(stack[i-1]);
     }
 
