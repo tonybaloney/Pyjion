@@ -892,7 +892,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     auto self = lastState.pop();
                     for (int i = 0 ; i < oparg; i++)
                         lastState.pop();
-                    if (method.hasValue() && method.Value->kind() == AVK_Method && isKnownType(self->kind())){
+                    if (method.hasValue() && method.Value->kind() == AVK_Method && self->known()){
                         auto meth_source = dynamic_cast<MethodSource*>(method.Sources);
                         lastState.push(avkToAbstractValue(avkToAbstractValue(self->kind())->resolveMethod(meth_source->name())));
                     } else {
@@ -2375,7 +2375,7 @@ JittedCode * AbstractInterpreter::compileWorker(PgcStatus pgc_status) {
             }
             case LOAD_METHOD:
             {
-                if (OPT_ENABLED(builtinMethods) && !stackInfo.empty() && stackInfo.top().hasValue() && isKnownType(stackInfo.top().Value->kind())){
+                if (OPT_ENABLED(builtinMethods) && !stackInfo.empty() && stackInfo.top().hasValue() && stackInfo.top().Value->known() && !stackInfo.top().Value->needsGuard()){
                     m_comp->emit_builtin_method(PyTuple_GetItem(mCode->co_names, oparg), stackInfo.top().Value);
                 } else {
                     m_comp->emit_dup(); // dup self as needs to remain on stack
