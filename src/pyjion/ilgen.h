@@ -550,20 +550,21 @@ public:
     }
 
     void st_loc(Local param) {
+        param.raiseOnInvalid();
         st_loc(param.m_index);
     }
 
     void ld_loc(Local param) {
+        param.raiseOnInvalid();
         ld_loc(param.m_index);
     }
 
     void ld_loca(Local param) {
-        assert(param.is_valid());
+        param.raiseOnInvalid();
         ld_loca(param.m_index);
     }
 
     void st_loc(int index) {
-        assert(index != -1);
         switch (index) {
             case 0: m_il.push_back(CEE_STLOC_0); break;
             case 1: m_il.push_back(CEE_STLOC_1); break;
@@ -584,7 +585,6 @@ public:
     }
 
     void ld_loc(int index) {
-        assert(index != -1);
         switch (index) {
             case 0: m_il.push_back(CEE_LDLOC_0); break;
             case 1: m_il.push_back(CEE_LDLOC_1); break;
@@ -605,7 +605,6 @@ public:
     }
 
     void ld_loca(int index) {
-        assert(index != -1);
         if (index < 256) {
             m_il.push_back(CEE_LDLOCA_S); // Pop0, PushI
             m_il.push_back(index);
