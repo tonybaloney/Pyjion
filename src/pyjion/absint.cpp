@@ -2047,8 +2047,8 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
                 auto jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
-                auto iterator = stackInfo.top();
                 if (OPT_ENABLED(inlineIterators) && !stackInfo.empty()){
+                    auto iterator = stackInfo.top();
                     forIter(
                             jumpTo,
                             &iterator
@@ -2469,10 +2469,7 @@ void AbstractInterpreter::unaryNot(size_t opcodeIndex) {
 
 AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status) {
     AbstractInterpreterResult interpreted = interpret(builtins, globals, profile, pgc_status);
-    if (!interpreted) {
-#ifdef DEBUG
-        printf("Failed to interpret. \n");
-#endif
+    if (interpreted != Success) {
         return {nullptr, interpreted};
     }
     try {
