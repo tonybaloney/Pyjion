@@ -181,20 +181,19 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     }
 
     auto res = interp.compile(frame->f_builtins, frame->f_globals, profile, state->j_pgc_status);
-
-    if (res == nullptr) {
+    state->j_compile_result = res.result;
+    if (res.compiledCode == nullptr || res.result != Success) {
         static int failCount;
         state->j_failed = true;
         return _PyEval_EvalFrameDefault(tstate, frame, 0);
     }
 
     // Update the jitted information for this tree node
-    state->j_addr = (Py_EvalFunc)res->get_code_addr();
+    state->j_addr = (Py_EvalFunc)res.compiledCode->get_code_addr();
     assert(state->j_addr != nullptr);
-
-    state->j_il = res->get_il();
-    state->j_ilLen = res->get_il_len();
-    state->j_nativeSize = res->get_native_size();
+    state->j_il = res.compiledCode->get_il();
+    state->j_ilLen = res.compiledCode->get_il_len();
+    state->j_nativeSize = res.compiledCode->get_native_size();
     state->j_profile = profile;
 
     // Execute it now.
@@ -319,7 +318,8 @@ static PyObject *pyjion_info(PyObject *self, PyObject* func) {
 	PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
 
 	PyDict_SetItemString(res, "failed", jitted->j_failed ? Py_True : Py_False);
-	PyDict_SetItemString(res, "compiled", jitted->j_addr != nullptr ? Py_True : Py_False);
+    PyDict_SetItemString(res, "compile_result", PyLong_FromLong(jitted->j_compile_result));
+    PyDict_SetItemString(res, "compiled", jitted->j_addr != nullptr ? Py_True : Py_False);
     PyDict_SetItemString(res, "pgc", PyLong_FromLong(jitted->j_pgc_status));
 
     auto runCount = PyLong_FromLongLong(jitted->j_run_count);

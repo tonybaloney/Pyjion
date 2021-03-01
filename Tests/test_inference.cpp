@@ -50,7 +50,7 @@ public:
         auto profile = new PyjionCodeProfile();
         auto success = m_absint->interpret(builtins, globals_dict.get(), profile, Uncompiled);
         delete profile;
-        if (!success) {
+        if (success != Success) {
             Py_DECREF(pyCode);
             FAIL("Failed to interpret code");
         }

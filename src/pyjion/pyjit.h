@@ -119,6 +119,7 @@ class PyjionJittedCode {
 public:
 	PY_UINT64_T j_run_count;
 	bool j_failed;
+	short j_compile_result;
 	Py_EvalFunc j_addr;
 	PY_UINT64_T j_specialization_threshold;
 	PyObject* j_code;

@@ -70,11 +70,11 @@ AbstractInterpreter::~AbstractInterpreter() {
     }
 }
 
-bool AbstractInterpreter::preprocess() {
+AbstractInterpreterResult AbstractInterpreter::preprocess() {
     if (mCode->co_flags & (CO_COROUTINE | CO_GENERATOR | CO_ITERABLE_COROUTINE | CO_ASYNC_GENERATOR)) {
         // Don't compile co-routines or generators.  We can't rely on
         // detecting yields because they could be optimized out.
-        return false;
+        return IncompatibleCompilerFlags;
     }
 
     for (int i = 0; i < mCode->co_argcount; i++) {
@@ -82,10 +82,7 @@ bool AbstractInterpreter::preprocess() {
         m_assignmentState[i] = true;
     }
     if (mSize >= g_pyjionSettings.codeObjectSizeLimit){
-#ifdef DEBUG
-        printf("Skipping function because it is too big.");
-#endif
-        return false;
+        return IncompatibleSize;
     }
 
     int oparg;
@@ -123,10 +120,7 @@ bool AbstractInterpreter::preprocess() {
             }
             case YIELD_FROM:
             case YIELD_VALUE:
-#ifdef DEBUG
-                printf("Skipping function because it contains a yield operations.");
-#endif
-                return false;
+                return IncompatibleOpcode_Yield;
 
             case UNPACK_EX:
                 if (m_comp != nullptr) {
@@ -171,7 +165,7 @@ bool AbstractInterpreter::preprocess() {
 #ifdef DEBUG
                     printf("Skipping function because it contains frame globals.");
 #endif
-                    return false;
+                    return IncompatibleFrameGlobal;
                 }
             }
             break;
@@ -193,7 +187,7 @@ bool AbstractInterpreter::preprocess() {
             nameHashes[i] = PyObject_Hash(PyTuple_GetItem(mCode->co_names, i));
         }
     }
-    return true;
+    return Success;
 }
 
 void AbstractInterpreter::setLocalType(int index, PyObject* val) {
@@ -201,7 +195,7 @@ void AbstractInterpreter::setLocalType(int index, PyObject* val) {
     if (val != nullptr) {
         auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val)));
         localInfo.ValueInfo.Sources = newSource(new LocalSource());
-        lastState.replaceLocal(index, localInfo);
+        //lastState.replaceLocal(index, localInfo);
     }
 }
 
@@ -234,10 +228,11 @@ void AbstractInterpreter::initStartingState() {
     updateStartState(lastState, 0);
 }
 
-bool
+AbstractInterpreterResult
 AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus pgc_status) {
-    if (!preprocess()) {
-        return false;
+    auto preprocessResult = preprocess();
+    if (preprocessResult != Success) {
+        return preprocessResult;
     }
 
     // walk all the blocks in the code one by one, analyzing them, and enqueing any
@@ -916,7 +911,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                        Then we push again the TOP exception and the __exit__
                        return value.
                     */
-                    return false; // not implemented
+                    return IncompatibleOpcode_WithExcept; // not implemented
                     auto top = lastState.pop(); // exc
                     auto second = lastState.pop(); // val
                     auto third = lastState.pop(); // tb
@@ -960,7 +955,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 default:
                     PyErr_Format(PyExc_ValueError,
                                  "Unknown unsupported opcode: %s", opcodeName(opcode));
-                    return false;
+                    return IncompatibleOpcode_Unknown;
                     break;
             }
 #ifdef DEBUG
@@ -975,7 +970,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
     next:;
     } while (!queue.empty());
 
-    return true;
+    return Success;
 }
 
 bool AbstractInterpreter::updateStartState(InterpreterState& newState, size_t index) {
@@ -1616,7 +1611,7 @@ void AbstractInterpreter::popExcVars(){
     m_comp->emit_mark_label(nothing_to_pop);
 }
 
-JittedCode * AbstractInterpreter::compileWorker(PgcStatus pgc_status) {
+AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status) {
     Label ok;
 
     m_comp->emit_lasti_init();
@@ -2190,12 +2185,10 @@ JittedCode * AbstractInterpreter::compileWorker(PgcStatus pgc_status) {
                 m_blockStack.pop_back();
                 break;
             case SETUP_WITH:
+                return {nullptr, IncompatibleOpcode_With};
             case YIELD_FROM:
             case YIELD_VALUE:
-#ifdef DEBUG
-                printf("Unsupported opcode: %s (with related)\r\n", opcodeName(byte));
-#endif
-                return nullptr;
+                return {nullptr, IncompatibleOpcode_Yield};
 
             case IMPORT_NAME:
                 m_comp->emit_import_name(PyTuple_GetItem(mCode->co_names, oparg));
@@ -2404,11 +2397,7 @@ JittedCode * AbstractInterpreter::compileWorker(PgcStatus pgc_status) {
                 break;
             }
             default:
-#ifdef DEBUG
-                printf("Unsupported opcode: %s (with related)\r\n", opcodeName(byte));
-#endif
-
-                return nullptr;
+                return {nullptr, IncompatibleOpcode_Unknown};
         }
 #ifdef DEBUG
         assert(skipEffect ||
@@ -2444,7 +2433,11 @@ JittedCode * AbstractInterpreter::compileWorker(PgcStatus pgc_status) {
     m_comp->emit_pop_frame();
 
     m_comp->emit_ret(1);
-    return m_comp->emit_compile();
+    auto code = m_comp->emit_compile();
+    if (code != nullptr)
+        return {code, Success};
+    else
+        return {nullptr, CompilationJitFailure};
 }
 
 void AbstractInterpreter::testBoolAndBranch(Local value, bool isTrue, Label target) {
@@ -2474,21 +2467,21 @@ void AbstractInterpreter::unaryNot(size_t opcodeIndex) {
     incStack();
 }
 
-JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status) {
-    bool interpreted = interpret(builtins, globals, profile, pgc_status);
+AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status) {
+    AbstractInterpreterResult interpreted = interpret(builtins, globals, profile, pgc_status);
     if (!interpreted) {
 #ifdef DEBUG
-        printf("Failed to interpret");
+        printf("Failed to interpret. \n");
 #endif
-        return nullptr;
+        return {nullptr, interpreted};
     }
     try {
         return compileWorker(pgc_status);
     } catch (const exception& e){
 #ifdef DEBUG
-        printf("Error whilst compiling : %s", e.what());
+        printf("Error whilst compiling : %s\n", e.what());
 #endif
-        return nullptr;
+        return {nullptr, CompilationException};
     }
 }
 

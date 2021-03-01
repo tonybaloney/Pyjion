@@ -2,6 +2,7 @@ import ctypes
 import pathlib
 import os
 import platform
+from enum import Enum
 
 __version__ = '0.11.0'
 

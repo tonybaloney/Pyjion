@@ -219,6 +219,28 @@ enum ComprehensionType {
     COMP_SET
 };
 
+enum AbstractInterpreterResult {
+    Success = 1,
+
+    // Failure codes
+    CompilationException = 10,  // Exception within Pyjion
+    CompilationJitFailure = 11, // JIT failed
+
+    // Incompat codes.
+    IncompatibleCompilerFlags  = 100,
+    IncompatibleSize = 101,
+    IncompatibleOpcode_Yield = 102,
+    IncompatibleOpcode_WithExcept = 103,
+    IncompatibleOpcode_With = 104,
+    IncompatibleOpcode_Unknown = 110,
+    IncompatibleFrameGlobal = 120,
+};
+
+struct AbstactInterpreterCompileResult {
+    JittedCode* compiledCode = nullptr;
+    AbstractInterpreterResult result;
+};
+
 class StackImbalanceException: public std::exception {
 public:
     StackImbalanceException() : std::exception() {};
@@ -303,8 +325,8 @@ public:
     AbstractInterpreter(PyCodeObject *code, IPythonCompiler* compiler);
     ~AbstractInterpreter();
 
-    JittedCode* compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status);
-    bool interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status);
+    AbstactInterpreterCompileResult compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status);
+    AbstractInterpreterResult interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status);
 
     void setLocalType(int index, PyObject* val);
     // Returns information about the specified local variable at a specific
@@ -329,7 +351,7 @@ private:
     bool updateStartState(InterpreterState& newState, size_t index);
     void initStartingState();
     const char* opcodeName(int opcode);
-    bool preprocess();
+    AbstractInterpreterResult preprocess();
     AbstractSource* newSource(AbstractSource* source) {
         m_sources.push_back(source);
         return source;
@@ -381,7 +403,7 @@ private:
 
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
 
-    JittedCode *compileWorker(PgcStatus status);
+    AbstactInterpreterCompileResult compileWorker(PgcStatus status);
 
     void storeFast(int local, size_t opcodeIndex);
 
