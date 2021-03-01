@@ -1673,10 +1673,6 @@ void PythonCompiler::emit_load_method(void* name) {
     m_il.emit_call(METHOD_LOAD_METHOD);
 }
 
-void PythonCompiler::emit_periodic_work() {
-    m_il.emit_call(METHOD_PERIODIC_WORK);
-}
-
 void PythonCompiler::emit_init_instr_counter() {
     m_instrCount = emit_define_local(LK_Int);
     m_il.load_null();
@@ -1831,7 +1827,8 @@ void PythonCompiler::emit_tagged_int_to_float() {
 }
 
 void PythonCompiler::emit_pgc_probe(size_t curByte, size_t stackSize) {
-    Local stack [stackSize];
+    vector<Local> stack;
+    stack.resize(stackSize);
     Local hasProbedFlag = emit_define_local(LK_Bool);
     auto hasProbed = emit_define_label();
 
@@ -2066,8 +2063,6 @@ GLOBAL_METHOD(METHOD_BOOL_FROM_LONG, PyBool_FromLong, CORINFO_TYPE_NATIVEINT, Pa
 GLOBAL_METHOD(METHOD_NUMBER_AS_SSIZET, PyNumber_AsSsize_t, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_PYERR_SETSTRING, PyErr_SetString, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
-
-GLOBAL_METHOD(METHOD_PERIODIC_WORK, PyJit_PeriodicWork, CORINFO_TYPE_INT)
 
 GLOBAL_METHOD(METHOD_PYUNICODE_JOINARRAY, &PyJit_UnicodeJoinArray, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_FORMAT_VALUE, &PyJit_FormatValue, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));

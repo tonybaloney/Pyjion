@@ -127,7 +127,6 @@
 #define METHOD_NOT_EQUALS_INT_TOKEN              0x00000068
 #define METHOD_GREATER_THAN_INT_TOKEN            0x00000069
 #define METHOD_GREATER_THAN_EQUALS_INT_TOKEN     0x0000006A
-#define METHOD_PERIODIC_WORK                     0x0000006B
 
 #define METHOD_EXTENDLIST_TOKEN                  0x0000006C
 #define METHOD_LISTTOTUPLE_TOKEN                 0x0000006D
@@ -467,7 +466,6 @@ public:
 
     void emit_load_assertion_error() override;
 
-    void emit_periodic_work() override;
     void emit_pending_calls() override;
     void emit_init_instr_counter() override;
 
