@@ -1886,7 +1886,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case CALL_FUNCTION:
             {
-                if (OPT_ENABLED(functionCalls) && stackInfo.nth(oparg + 1).hasSource() && stackInfo.nth(oparg + 1).Sources->isBuiltin()){
+                if (OPT_ENABLED(functionCalls) && stackInfo.size() >= (oparg + 1) && stackInfo.nth(oparg + 1).hasSource() && stackInfo.nth(oparg + 1).Sources->isBuiltin()){
                     m_comp->emit_builtin_func(oparg, stackInfo.nth(oparg + 1));
                     decStack(oparg + 1); // target + args(oparg)
                     errorCheck("builtin function call failed", curByte);
