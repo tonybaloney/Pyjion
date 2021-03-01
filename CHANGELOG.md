@@ -1,5 +1,16 @@
 # Release notes
 
+## 0.12.0
+
+* Added PGC emitter to first compile pass
+* Drastically simplified the compilation process, resulting in a smaller call stack and allowing for more recursion (and better performance)
+* Added a field to the pyjion.info() dictinary, `compile_result`, indicating cause of compilation failure (if failed), see `AbstractInterpreterResult` for enumerations
+* Fixed a bug in pyjion.dump_native/pyjion.dis.dis_native disassembling the wrapper function
+* Incompatible functions (those with async, yield keyword) are marked as incompatible early in the compilation process
+* Fixed a bug in OPT-13 if the type changed under certain circumstances
+* Arguments to a frame are now marked as volatile and requiring type guards for certain optimizations
+* Any Python type passed as an argument is now available to be optimized by OPT-13, OPT-12
+
 ## 0.11.0
 
 * Added OPT-13 (OPTIMIZE_TYPESLOT_LOOKUPS) to optimize the type slots for all binary operators and resolve the precedence at compile-time (only for known types)
