@@ -179,13 +179,13 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
     }
 
     if (opcode == BINARY_POWER || opcode == INPLACE_POWER)
-        emit_known_binary_op_power(opcode, left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
+        emit_known_binary_op_power(left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
     else if (opcode == BINARY_MULTIPLY || opcode == INPLACE_MULTIPLY)
-        emit_known_binary_op_multiply(opcode, left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
+        emit_known_binary_op_multiply(left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
     else if (opcode == BINARY_ADD || opcode == INPLACE_ADD)
-        emit_known_binary_op_add(opcode, left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
+        emit_known_binary_op_add(left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
     else
-        emit_known_binary_op(opcode, left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
+        emit_known_binary_op(left, right, leftLocal, rightLocal, nb_slot, sq_slot, fallback_token);
 
     if (emit_guard){
         emit_branch(BranchAlways, skip_fallback);
@@ -199,7 +199,7 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
     emit_free_local(rightLocal);
 }
 
-void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+void PythonCompiler::emit_known_binary_op(AbstractValueWithSources &left, AbstractValueWithSources &right,
                                           Local leftLocal, Local rightLocal,
                                           int nb_slot, int sq_slot, int fallback_token) {
     binaryfunc binaryfunc_left = nullptr;
@@ -304,7 +304,7 @@ void PythonCompiler::emit_known_binary_op(int opcode, AbstractValueWithSources &
     }
 }
 
-void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+void PythonCompiler::emit_known_binary_op_multiply(AbstractValueWithSources &left, AbstractValueWithSources &right,
                                                    Local leftLocal, Local rightLocal,
                                                    int nb_slot, int sq_slot, int fallback_token) {
     binaryfunc binaryfunc_left = nullptr;
@@ -450,7 +450,7 @@ void PythonCompiler::emit_known_binary_op_multiply(int opcode, AbstractValueWith
     }
 }
 
-void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+void PythonCompiler::emit_known_binary_op_add(AbstractValueWithSources &left, AbstractValueWithSources &right,
                                               Local leftLocal, Local rightLocal,
                                               int nb_slot, int sq_slot, int fallback_token) {
     binaryfunc binaryfunc_left = nullptr;
@@ -564,7 +564,7 @@ void PythonCompiler::emit_known_binary_op_add(int opcode, AbstractValueWithSourc
     }
 }
 
-void PythonCompiler::emit_known_binary_op_power(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right,
+void PythonCompiler::emit_known_binary_op_power(AbstractValueWithSources &left, AbstractValueWithSources &right,
                                                 Local leftLocal, Local rightLocal,
                                                 int nb_slot, int sq_slot, int fallback_token) {
     binaryfunc binaryfunc_left = nullptr;
