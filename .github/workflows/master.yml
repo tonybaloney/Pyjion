@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 env:
-  BUILD_TYPE: Debug
+  BUILD_TYPE: Release
 
 jobs:
   build-linux:

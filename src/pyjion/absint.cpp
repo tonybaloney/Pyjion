@@ -49,12 +49,6 @@
         mStartStates[curByte] = lastState; \
     }
 
-#ifdef DEBUG
-#define ASSERT(expression) assert(expression)
-#else
-#define ASSERT(expression)
-#endif
-
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
     mSize = PyBytes_Size(code->co_code);
@@ -653,7 +647,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
 
                     // Pop the names tuple
                     auto names = lastState.popNoEscape();
-                    ASSERT(names.Value->kind() == AVK_Tuple);
+                    assert(names.Value->kind() == AVK_Tuple);
 
                     for (int i = 0; i < na; i++) {
                         lastState.pop();
@@ -965,7 +959,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
             }
 #ifdef DEBUG
-            ASSERT(skipEffect || 
+            assert(skipEffect || 
                 static_cast<size_t>(PyCompile_OpcodeStackEffectWithJump(opcode, oparg, jump)) == (lastState.stackSize() - curStackLen));
 #endif
             updateStartState(lastState, curByte + SIZEOF_CODEUNIT);
@@ -1430,7 +1424,7 @@ void AbstractInterpreter::extendListRecursively(Local list, size_t argCnt) {
 }
 
 void AbstractInterpreter::extendList(size_t argCnt) {
-    ASSERT(argCnt > 0);
+    assert(argCnt > 0);
     auto listTmp = m_comp->emit_spill();
     decStack();
     extendListRecursively(listTmp, argCnt);
@@ -1660,7 +1654,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
     // Loop through all opcodes in this frame
     for (size_t curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
-        ASSERT(curByte % SIZEOF_CODEUNIT == 0);
+        assert(curByte % SIZEOF_CODEUNIT == 0);
 
         // opcodeIndex is the opcode position (matches the dis.dis() output)
         auto opcodeIndex = curByte;
@@ -1938,7 +1932,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 intErrorCheck("delete subscr failed", curByte);
                 break;
             case BUILD_SLICE:
-                ASSERT(oparg == 2 || 3);
+                assert(oparg == 2 || 3);
                 if (oparg != 3) {
                     m_comp->emit_null();
                 }
@@ -2314,7 +2308,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             }
             case LIST_EXTEND:
             {
-                ASSERT(oparg == 1); // always 1 in 3.9
+                assert(oparg == 1); // always 1 in 3.9
                 m_comp->lift_n_to_top(oparg);
                 m_comp->emit_list_extend();
                 decStack(2);
@@ -2326,7 +2320,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case DICT_UPDATE:
             {
                 // Calls dict.update(TOS1[-i], TOS). Used to build dicts.
-                ASSERT(oparg == 1); // always 1 in 3.9
+                assert(oparg == 1); // always 1 in 3.9
                 m_comp->lift_n_to_top(oparg);
                 m_comp->emit_dict_update();
                 decStack(2); // dict, item
@@ -2337,7 +2331,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case SET_UPDATE:
             {
                 // Calls set.update(TOS1[-i], TOS). Used to build sets.
-                ASSERT(oparg == 1); // always 1 in 3.9
+                assert(oparg == 1); // always 1 in 3.9
                 m_comp->lift_n_to_top(oparg);
                 m_comp->emit_set_extend();
                 decStack(2); // set, iterable
@@ -2406,7 +2400,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 return {nullptr, IncompatibleOpcode_Unknown};
         }
 #ifdef DEBUG
-        ASSERT(skipEffect ||
+        assert(skipEffect ||
             static_cast<size_t>(PyCompile_OpcodeStackEffect(byte, oparg)) == (m_stack.size() - curStackSize));
 #endif
     }

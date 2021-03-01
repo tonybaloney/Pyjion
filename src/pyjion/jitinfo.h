@@ -1704,7 +1704,6 @@ public:
     void *getHelperFtn(CorInfoHelpFunc ftnNum, void **ppIndirection) override {
         *ppIndirection = nullptr;
         static void* helper = nullptr;
-        assert(ftnNum < CORINFO_HELP_COUNT);
         switch (ftnNum){
             case CORINFO_HELP_USER_BREAKPOINT:
                 helper = (void*)&breakpointFtn;
@@ -1751,7 +1750,6 @@ public:
 #else
     void *getHelperFtn(CorInfoHelpFunc ftnNum, void **ppIndirection) override {
         *ppIndirection = nullptr;
-        assert(ftnNum < CORINFO_HELP_COUNT);
         switch (ftnNum){
             case CORINFO_HELP_USER_BREAKPOINT:
                 return (void*)breakpointFtn;
