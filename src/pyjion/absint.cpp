@@ -195,7 +195,7 @@ void AbstractInterpreter::setLocalType(int index, PyObject* val) {
     if (val != nullptr) {
         auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val)));
         localInfo.ValueInfo.Sources = newSource(new LocalSource());
-        //lastState.replaceLocal(index, localInfo);
+        lastState.replaceLocal(index, localInfo);
     }
 }
 
