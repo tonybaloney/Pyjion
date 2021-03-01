@@ -73,22 +73,16 @@ class SliceTestCase(unittest.TestCase):
         l = [0, 1, 2, 3]
         x = int(2)  # prevent const rolling
         initial_ref = sys.getrefcount(l)
-        initial_ref_x = sys.getrefcount(x)
         self.assertEqual(l[x + 1:0], [])
         self.assertEqual(initial_ref, sys.getrefcount(l))
-        self.assertEqual(initial_ref_x, sys.getrefcount(x))
         self.assertEqual(l[:x - 1], [0])
         self.assertEqual(initial_ref, sys.getrefcount(l))
-        self.assertEqual(initial_ref_x, sys.getrefcount(x))
         self.assertEqual(l[x:x + 1], [2])
         self.assertEqual(initial_ref, sys.getrefcount(l))
-        self.assertEqual(initial_ref_x, sys.getrefcount(x))
         self.assertEqual(l[:x - 4], [0, 1])
         self.assertEqual(initial_ref, sys.getrefcount(l))
-        self.assertEqual(initial_ref_x, sys.getrefcount(x))
         self.assertEqual(l[x::-1], [2, 1, 0])
         self.assertEqual(initial_ref, sys.getrefcount(l))
-        self.assertEqual(initial_ref_x, sys.getrefcount(x))
         self.assertTrue(pyjion.info(self.test_list_slicing_expressions.__code__)['compiled'])
 
     def test_string_slicing(self):

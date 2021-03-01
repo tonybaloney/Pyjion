@@ -32,7 +32,7 @@ class ScopeLeaksTestCase(unittest.TestCase):
             a += a
         before = sys.getrefcount(a)
         x(a)
-        self.assertEqual(before, sys.getrefcount(a), pyjion.dis.dis(x))
+        self.assertEqual(before, sys.getrefcount(a))
 
 
 class FunctionCallsTestCase(unittest.TestCase):
@@ -105,10 +105,10 @@ class FunctionCallsTestCase(unittest.TestCase):
 
     def test_arg1_cfunction(self):
         target = math.sqrt
-        four = 4
+        four = 1024
         pre_ref_cnt = sys.getrefcount(target)
         arg1_pre_ref_cnt = sys.getrefcount(four)
-        self.assertEqual(target(four), 2)
+        self.assertEqual(target(four), 32.0)
         self.assertEqual(sys.getrefcount(target), pre_ref_cnt)
         self.assertEqual(sys.getrefcount(four), arg1_pre_ref_cnt)
         info = pyjion.info(self.test_arg1_cfunction.__code__)
