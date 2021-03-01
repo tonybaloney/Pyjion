@@ -76,7 +76,12 @@ ICorJitCompiler* g_jit;
 PythonCompiler::PythonCompiler(PyCodeObject *code) :
     m_il(m_module = new UserModule(g_module),
         CORINFO_TYPE_NATIVEINT,
-        std::vector < Parameter > {Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT) }) {
+        std::vector < Parameter > {
+        Parameter(CORINFO_TYPE_NATIVEINT), // PyjionJittedCode*
+        Parameter(CORINFO_TYPE_NATIVEINT), // struct _frame*
+        Parameter(CORINFO_TYPE_NATIVEINT), // PyThreadState*
+        Parameter(CORINFO_TYPE_NATIVEINT),}) // PyjionCodeProfile*
+{
     this->m_code = code;
     m_lasti = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
 }
@@ -1510,8 +1515,10 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
 }
 
 void PythonCompiler::emit_debug_msg(const char* msg) {
+#ifdef DEBUG
     m_il.ld_i((void*)msg);
     m_il.emit_call(METHOD_DEBUG_TRACE);
+#endif
 }
 
 void PythonCompiler::emit_debug_pyobject() {
@@ -1666,10 +1673,6 @@ void PythonCompiler::emit_load_method(void* name) {
     m_il.emit_call(METHOD_LOAD_METHOD);
 }
 
-void PythonCompiler::emit_periodic_work() {
-    m_il.emit_call(METHOD_PERIODIC_WORK);
-}
-
 void PythonCompiler::emit_init_instr_counter() {
     m_instrCount = emit_define_local(LK_Int);
     m_il.load_null();
@@ -1692,7 +1695,7 @@ void PythonCompiler::emit_pending_calls(){
 }
 
 void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValue) {
-    auto pyType = GetPyType(typeValue->kind());
+    auto pyType = typeValue->pythonType();
 
     if (pyType == nullptr)
     {
@@ -1821,6 +1824,35 @@ JittedCode* PythonCompiler::emit_compile() {
 
 void PythonCompiler::emit_tagged_int_to_float() {
     m_il.emit_call(METHOD_INT_TO_FLOAT);
+}
+
+void PythonCompiler::emit_pgc_probe(size_t curByte, size_t stackSize) {
+    vector<Local> stack;
+    stack.resize(stackSize);
+    Local hasProbedFlag = emit_define_local(LK_Bool);
+    auto hasProbed = emit_define_label();
+
+    emit_load_local(hasProbedFlag);
+    emit_branch(BranchTrue, hasProbed);
+    for (size_t i = 0; i < stackSize; i++){
+        stack[i] = emit_define_local(LK_Pointer);
+        emit_store_local(stack[i]);
+
+        m_il.ld_arg(3);
+        emit_load_local(stack[i]);
+        m_il.ld_i4(curByte);
+        emit_int(i);
+
+        m_il.emit_call(METHOD_PGC_PROBE);
+    }
+    m_il.ld_i4(1);
+    emit_store_local(hasProbedFlag);
+    // Recover the stack in the right order
+    for (size_t i = stackSize; i > 0; --i){
+        emit_load_and_free_local(stack[i-1]);
+    }
+
+    emit_mark_label(hasProbed);
 }
 
 
@@ -2032,8 +2064,6 @@ GLOBAL_METHOD(METHOD_NUMBER_AS_SSIZET, PyNumber_AsSsize_t, CORINFO_TYPE_NATIVEIN
 
 GLOBAL_METHOD(METHOD_PYERR_SETSTRING, PyErr_SetString, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
-GLOBAL_METHOD(METHOD_PERIODIC_WORK, PyJit_PeriodicWork, CORINFO_TYPE_INT)
-
 GLOBAL_METHOD(METHOD_PYUNICODE_JOINARRAY, &PyJit_UnicodeJoinArray, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_FORMAT_VALUE, &PyJit_FormatValue, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_FORMAT_OBJECT, &PyJit_FormatObject, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
@@ -2073,3 +2103,4 @@ GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, P
 GLOBAL_METHOD(METHOD_TRIPLE_BINARY_OP, &PyJitMath_TripleBinaryOp, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );
 
+GLOBAL_METHOD(METHOD_PGC_PROBE, &capturePgcStackValue, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));

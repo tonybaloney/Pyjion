@@ -108,11 +108,6 @@ struct AbstractSources {
     void escapes() {
         m_escapes = true;
     }
-
-    bool needsBoxing() const {
-        return m_escapes;
-    }
-
 };
 
 class ConstSource : public AbstractSource {
@@ -239,6 +234,13 @@ public:
     }
 };
 
+class PgcSource : public AbstractSource {
+public:
+    const char* describe() override {
+        return "Source: PGC";
+    }
+};
+
 class IteratorSource : public AbstractSource {
     AbstractValueKind _kind;
 public:
@@ -285,6 +287,9 @@ public:
     virtual bool isIntern() {
         return false;
     }
+    virtual bool needsGuard() {
+        return false;
+    }
 
     virtual AbstractValue* mergeWith(AbstractValue*other);
     virtual AbstractValueKind kind() = 0;
@@ -295,6 +300,10 @@ public:
     virtual AbstractValueKind resolveMethod(const char* name) {
         return AVK_Any;
     }
+
+    virtual PyTypeObject* pythonType();
+
+    virtual bool known();
 };
 
 struct AbstractValueWithSources {
@@ -559,6 +568,38 @@ class FileValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+};
+
+class VolatileValue: public AbstractValue{
+    bool needsGuard() override {
+        return true;
+    }
+};
+
+class PgcValue : public VolatileValue {
+    PyTypeObject* _type;
+public:
+    explicit PgcValue(PyTypeObject* type){
+        _type = type;
+    }
+    AbstractValueKind kind() override;
+    PyTypeObject* pythonType() override;
+    bool known() override {
+        return true;
+    }
+};
+
+class ArgumentValue: public VolatileValue {
+    PyTypeObject* _type;
+public:
+    explicit ArgumentValue(PyTypeObject* type){
+        _type = type;
+    }
+    AbstractValueKind kind() override;
+    PyTypeObject* pythonType() override;
+    bool known() override {
+        return true;
+    }
 };
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);

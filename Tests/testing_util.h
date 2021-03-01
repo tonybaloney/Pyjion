@@ -146,16 +146,18 @@ private:
         PyDict_SetItemString(globals.get(), "sys", sysModule.get());
 
         auto tstate = PyThreadState_Get();
+        auto profile = new PyjionCodeProfile();
         // Don't DECREF as frames are recycled.
         auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
-        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate);
+        auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode.get(), frame, tstate, profile);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
 
         size_t collected = PyGC_Collect();
         printf("Collected %zu values\n", collected);
         REQUIRE(!m_jittedcode->j_failed);
+        delete profile;
         return res;
     }
 
@@ -167,9 +169,6 @@ public:
             FAIL("failed to compile in JIT code");
         }
         auto jitted = PyJit_EnsureExtra((PyObject*)*m_code);
-        if (!jit_compile(m_code.get())) {
-            FAIL("failed to JIT code");
-        }
         m_jittedcode.reset(jitted);
     }
 

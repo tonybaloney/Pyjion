@@ -38,6 +38,16 @@
 #define GET_OPARG(index)  _Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
 #define GET_OPCODE(index) _Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
 
+#define PGC_READY() g_pyjionSettings.pgc && profile != nullptr
+
+#define PGC_PROBE(count) pgcRequired = true; pgcSize = count;
+
+#define PGC_UPDATE_STACK(count) \
+    if (pgc_status == PgcStatus::CompiledWithProbes) {                      \
+        for (int i = 0, j = (count); i < (count) ; i++, j--) \
+            lastState[j-1] = lastState.fromPgc(i, profile->getType(curByte, i), addPgcSource(opcodeIndex)); \
+        mStartStates[curByte] = lastState; \
+    }
 
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
@@ -60,11 +70,11 @@ AbstractInterpreter::~AbstractInterpreter() {
     }
 }
 
-bool AbstractInterpreter::preprocess() {
-    if (mCode->co_flags & (CO_COROUTINE | CO_GENERATOR)) {
+AbstractInterpreterResult AbstractInterpreter::preprocess() {
+    if (mCode->co_flags & (CO_COROUTINE | CO_GENERATOR | CO_ITERABLE_COROUTINE | CO_ASYNC_GENERATOR)) {
         // Don't compile co-routines or generators.  We can't rely on
         // detecting yields because they could be optimized out.
-        return false;
+        return IncompatibleCompilerFlags;
     }
 
     for (int i = 0; i < mCode->co_argcount; i++) {
@@ -72,10 +82,7 @@ bool AbstractInterpreter::preprocess() {
         m_assignmentState[i] = true;
     }
     if (mSize >= g_pyjionSettings.codeObjectSizeLimit){
-#ifdef DEBUG
-        printf("Skipping function because it is too big.");
-#endif
-        return false;
+        return IncompatibleSize;
     }
 
     int oparg;
@@ -113,10 +120,7 @@ bool AbstractInterpreter::preprocess() {
             }
             case YIELD_FROM:
             case YIELD_VALUE:
-#ifdef DEBUG
-                printf("Skipping function because it contains a yield operations.");
-#endif
-                return false;
+                return IncompatibleOpcode_Yield;
 
             case UNPACK_EX:
                 if (m_comp != nullptr) {
@@ -161,7 +165,7 @@ bool AbstractInterpreter::preprocess() {
 #ifdef DEBUG
                     printf("Skipping function because it contains frame globals.");
 #endif
-                    return false;
+                    return IncompatibleFrameGlobal;
                 }
             }
             break;
@@ -183,13 +187,13 @@ bool AbstractInterpreter::preprocess() {
             nameHashes[i] = PyObject_Hash(PyTuple_GetItem(mCode->co_names, i));
         }
     }
-    return true;
+    return Success;
 }
 
 void AbstractInterpreter::setLocalType(int index, PyObject* val) {
     auto& lastState = mStartStates[0];
     if (val != nullptr) {
-        auto localInfo = AbstractLocalInfo(toAbstract(val));
+        auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val)));
         localInfo.ValueInfo.Sources = newSource(new LocalSource());
         lastState.replaceLocal(index, localInfo);
     }
@@ -224,9 +228,11 @@ void AbstractInterpreter::initStartingState() {
     updateStartState(lastState, 0);
 }
 
-bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
-    if (!preprocess()) {
-        return false;
+AbstractInterpreterResult
+AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus pgc_status) {
+    auto preprocessResult = preprocess();
+    if (preprocessResult != Success) {
+        return preprocessResult;
     }
 
     // walk all the blocks in the code one by one, analyzing them, and enqueing any
@@ -246,8 +252,9 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
             InterpreterState lastState = mStartStates.find(curByte)->second;
 
             auto opcodeIndex = curByte;
-
             auto opcode = GET_OPCODE(curByte);
+            bool pgcRequired = false;
+            short pgcSize = 0;
             oparg = GET_OPARG(curByte);
         processOpCode:
 
@@ -407,8 +414,15 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                 case INPLACE_AND:
                 case INPLACE_XOR:
                 case INPLACE_OR: {
-                    auto two = lastState.popNoEscape();
-                    auto one = lastState.popNoEscape();
+                    AbstractValueWithSources two;
+                    AbstractValueWithSources one;
+                    if (PGC_READY()){
+                        PGC_PROBE(2);
+                        // PGC_UPDATE_STACK(2);
+                    }
+                    two = lastState.popNoEscape();
+                    one = lastState.popNoEscape();
+
                     auto out = one.Value->binary(one.Sources, opcode, two);
                     lastState.push(out);
                 }
@@ -586,6 +600,10 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     lastState.push(&Dict);
                     break;
                 case COMPARE_OP: {
+                    if (PGC_READY()){
+                        PGC_PROBE(2);
+                        // TODO : Update stack PGC_UPDATE_STACK(2)
+                    }
                     lastState.pop();
                     lastState.pop();
                     lastState.push(&Any);
@@ -601,8 +619,10 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     lastState.push(&Any);
                     break;
                 case CALL_FUNCTION: {
-                    // TODO: Implement abstract value types for CALL_FUNCTION
-                    // @body: Known functions could return known return types.
+                    if (PGC_READY()){
+                        PGC_PROBE(oparg + 1);
+                        // TODO : Update stack PGC_UPDATE_STACK(oparg+1)
+                    }
                     int argCnt = oparg & 0xff;
                     int kwArgCnt = (oparg >> 8) & 0xff;
 
@@ -867,7 +887,7 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                     auto self = lastState.pop();
                     for (int i = 0 ; i < oparg; i++)
                         lastState.pop();
-                    if (method.hasValue() && method.Value->kind() == AVK_Method && isKnownType(self->kind())){
+                    if (method.hasValue() && method.Value->kind() == AVK_Method && self->known()){
                         auto meth_source = dynamic_cast<MethodSource*>(method.Sources);
                         lastState.push(avkToAbstractValue(avkToAbstractValue(self->kind())->resolveMethod(meth_source->name())));
                     } else {
@@ -891,7 +911,7 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                        Then we push again the TOP exception and the __exit__
                        return value.
                     */
-                    return false; // not implemented
+                    return IncompatibleOpcode_WithExcept; // not implemented
                     auto top = lastState.pop(); // exc
                     auto second = lastState.pop(); // val
                     auto third = lastState.pop(); // tb
@@ -935,7 +955,7 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                 default:
                     PyErr_Format(PyExc_ValueError,
                                  "Unknown unsupported opcode: %s", opcodeName(opcode));
-                    return false;
+                    return IncompatibleOpcode_Unknown;
                     break;
             }
 #ifdef DEBUG
@@ -943,12 +963,14 @@ bool AbstractInterpreter::interpret(PyObject* builtins, PyObject* globals) {
                 static_cast<size_t>(PyCompile_OpcodeStackEffectWithJump(opcode, oparg, jump)) == (lastState.stackSize() - curStackLen));
 #endif
             updateStartState(lastState, curByte + SIZEOF_CODEUNIT);
+            mStartStates[curByte].pgcProbeSize = pgcSize;
+            mStartStates[curByte].requiresPgcProbe = pgcRequired;
         }
 
     next:;
     } while (!queue.empty());
 
-    return true;
+    return Success;
 }
 
 bool AbstractInterpreter::updateStartState(InterpreterState& newState, size_t index) {
@@ -1186,6 +1208,16 @@ InterpreterStack& AbstractInterpreter::getStackInfo(size_t byteCodeIndex) {
     return mStartStates[byteCodeIndex].mStack;
 }
 
+short AbstractInterpreter::pgcProbeSize(size_t byteCodeIndex) {
+    return mStartStates[byteCodeIndex].pgcProbeSize;
+}
+
+bool AbstractInterpreter::pgcProbeRequired(size_t byteCodeIndex, PgcStatus status) {
+    if (status == PgcStatus::Uncompiled)
+        return mStartStates[byteCodeIndex].requiresPgcProbe;
+    return false;
+}
+
 AbstractValue* AbstractInterpreter::getReturnInfo() {
     return mReturnValue;
 }
@@ -1223,6 +1255,14 @@ AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t c
         return m_opcodeSources[opcodeIndex] = newSource(new ConstSource(value));
     }
 
+    return store->second;
+}
+
+AbstractSource* AbstractInterpreter::addPgcSource(size_t opcodeIndex) {
+    auto store = m_opcodeSources.find(opcodeIndex);
+    if (store == m_opcodeSources.end()) {
+        return m_opcodeSources[opcodeIndex] = newSource(new PgcSource());
+    }
     return store->second;
 }
 
@@ -1523,11 +1563,6 @@ void AbstractInterpreter::incStack(size_t size, StackEntryKind kind) {
     m_stack.inc(size, kind);
 }
 
-void AbstractInterpreter::periodicWork() {
-    m_comp->emit_periodic_work();
-    intErrorCheck("periodic work");
-}
-
 // Checks to see if -1 is the current value on the stack, and if so, falls into
 // the logic for raising an exception.  If not execution continues forward progress.
 // Used for checking if an API reports an error (typically true/false/-1)
@@ -1576,7 +1611,7 @@ void AbstractInterpreter::popExcVars(){
     m_comp->emit_mark_label(nothing_to_pop);
 }
 
-JittedCode* AbstractInterpreter::compileWorker() {
+AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status) {
     Label ok;
 
     m_comp->emit_lasti_init();
@@ -1658,6 +1693,10 @@ JittedCode* AbstractInterpreter::compileWorker() {
 
         size_t curStackSize = m_stack.size();
         bool skipEffect = false;
+
+        if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status)){
+            m_comp->emit_pgc_probe(curByte, pgcProbeSize(curByte));
+        }
 
         auto next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
 
@@ -2146,12 +2185,10 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 m_blockStack.pop_back();
                 break;
             case SETUP_WITH:
+                return {nullptr, IncompatibleOpcode_With};
             case YIELD_FROM:
             case YIELD_VALUE:
-#ifdef DEBUG
-                printf("Unsupported opcode: %s (with related)\r\n", opcodeName(byte));
-#endif
-                return nullptr;
+                return {nullptr, IncompatibleOpcode_Yield};
 
             case IMPORT_NAME:
                 m_comp->emit_import_name(PyTuple_GetItem(mCode->co_names, oparg));
@@ -2331,7 +2368,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
             }
             case LOAD_METHOD:
             {
-                if (OPT_ENABLED(builtinMethods) && !stackInfo.empty() && stackInfo.top().hasValue() && isKnownType(stackInfo.top().Value->kind())){
+                if (OPT_ENABLED(builtinMethods) && !stackInfo.empty() && stackInfo.top().hasValue() && stackInfo.top().Value->known() && !stackInfo.top().Value->needsGuard()){
                     m_comp->emit_builtin_method(PyTuple_GetItem(mCode->co_names, oparg), stackInfo.top().Value);
                 } else {
                     m_comp->emit_dup(); // dup self as needs to remain on stack
@@ -2360,11 +2397,7 @@ JittedCode* AbstractInterpreter::compileWorker() {
                 break;
             }
             default:
-#ifdef DEBUG
-                printf("Unsupported opcode: %s (with related)\r\n", opcodeName(byte));
-#endif
-
-                return nullptr;
+                return {nullptr, IncompatibleOpcode_Unknown};
         }
 #ifdef DEBUG
         assert(skipEffect ||
@@ -2400,7 +2433,11 @@ JittedCode* AbstractInterpreter::compileWorker() {
     m_comp->emit_pop_frame();
 
     m_comp->emit_ret(1);
-    return m_comp->emit_compile();
+    auto code = m_comp->emit_compile();
+    if (code != nullptr)
+        return {code, Success};
+    else
+        return {nullptr, CompilationJitFailure};
 }
 
 void AbstractInterpreter::testBoolAndBranch(Local value, bool isTrue, Label target) {
@@ -2430,21 +2467,21 @@ void AbstractInterpreter::unaryNot(size_t opcodeIndex) {
     incStack();
 }
 
-JittedCode* AbstractInterpreter::compile(PyObject* builtins, PyObject* globals) {
-    bool interpreted = interpret(builtins, globals);
+AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status) {
+    AbstractInterpreterResult interpreted = interpret(builtins, globals, profile, pgc_status);
     if (!interpreted) {
 #ifdef DEBUG
-        printf("Failed to interpret");
+        printf("Failed to interpret. \n");
 #endif
-        return nullptr;
+        return {nullptr, interpreted};
     }
     try {
-        return compileWorker();
+        return compileWorker(pgc_status);
     } catch (const exception& e){
 #ifdef DEBUG
-        printf("Error whilst compiling : %s", e.what());
+        printf("Error whilst compiling : %s\n", e.what());
 #endif
-        return nullptr;
+        return {nullptr, CompilationException};
     }
 }
 

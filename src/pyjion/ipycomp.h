@@ -212,7 +212,6 @@ public:
     virtual void emit_store_subscr(AbstractValueWithSources, AbstractValueWithSources, AbstractValueWithSources) = 0;
 
     virtual void emit_delete_subscr() = 0;
-    virtual void emit_periodic_work() = 0;
     virtual void emit_pending_calls() = 0;
     virtual void emit_init_instr_counter() = 0;
 
@@ -428,6 +427,7 @@ public:
     virtual void emit_trace_exception() = 0;
     virtual void emit_profile_frame_entry() = 0;
     virtual void emit_profile_frame_exit() = 0;
+    virtual void emit_pgc_probe(size_t curByte, size_t stackSize) = 0;
 
     /* Compiles the generated code */
     virtual JittedCode* emit_compile() = 0;

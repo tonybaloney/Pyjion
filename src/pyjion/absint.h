@@ -30,6 +30,7 @@
 #include <vector>
 #include <unordered_map>
 
+#include "pyjit.h"
 #include "absvalue.h"
 #include "cowvector.h"
 #include "ipycomp.h"
@@ -145,6 +146,8 @@ class InterpreterState {
 public:
     InterpreterStack mStack;
     CowVector<AbstractLocalInfo> mLocals;
+    bool requiresPgcProbe = false;
+    short pgcProbeSize = 0;
 
     InterpreterState() = default;
 
@@ -179,6 +182,19 @@ public:
         return res;
     }
 
+    AbstractValueWithSources fromPgc(int stackPosition, PyTypeObject* pyTypeObject, AbstractSource* source) {
+        assert(!mStack.empty());
+        auto res = mStack[stackPosition];
+        if (pyTypeObject == nullptr)
+            return res;
+        else {
+            return AbstractValueWithSources(
+                    new PgcValue(pyTypeObject),
+                    source
+            );
+        }
+    }
+
     void push(AbstractValueWithSources& value) {
         mStack.push_back(value);
     }
@@ -201,6 +217,28 @@ enum ComprehensionType {
     COMP_LIST,
     COMP_DICT,
     COMP_SET
+};
+
+enum AbstractInterpreterResult {
+    Success = 1,
+
+    // Failure codes
+    CompilationException = 10,  // Exception within Pyjion
+    CompilationJitFailure = 11, // JIT failed
+
+    // Incompat codes.
+    IncompatibleCompilerFlags  = 100,
+    IncompatibleSize = 101,
+    IncompatibleOpcode_Yield = 102,
+    IncompatibleOpcode_WithExcept = 103,
+    IncompatibleOpcode_With = 104,
+    IncompatibleOpcode_Unknown = 110,
+    IncompatibleFrameGlobal = 120,
+};
+
+struct AbstactInterpreterCompileResult {
+    JittedCode* compiledCode = nullptr;
+    AbstractInterpreterResult result;
 };
 
 class StackImbalanceException: public std::exception {
@@ -287,8 +325,8 @@ public:
     AbstractInterpreter(PyCodeObject *code, IPythonCompiler* compiler);
     ~AbstractInterpreter();
 
-    JittedCode* compile(PyObject* builtins, PyObject* globals);
-    bool interpret(PyObject* builtins, PyObject* globals);
+    AbstactInterpreterCompileResult compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status);
+    AbstractInterpreterResult interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status);
 
     void setLocalType(int index, PyObject* val);
     // Returns information about the specified local variable at a specific
@@ -299,7 +337,8 @@ public:
     InterpreterStack& getStackInfo(size_t byteCodeIndex);
 
     AbstractValue* getReturnInfo();
-
+    bool pgcProbeRequired(size_t byteCodeIndex, PgcStatus status);
+    short pgcProbeSize(size_t byteCodeIndex);
     void enableTracing();
     void disableTracing();
     void enableProfiling();
@@ -312,7 +351,7 @@ private:
     bool updateStartState(InterpreterState& newState, size_t index);
     void initStartingState();
     const char* opcodeName(int opcode);
-    bool preprocess();
+    AbstractInterpreterResult preprocess();
     AbstractSource* newSource(AbstractSource* source) {
         m_sources.push_back(source);
         return source;
@@ -322,6 +361,7 @@ private:
     AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
     AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
     AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
+    AbstractSource* addPgcSource(size_t opcodeIndex);
 
     void makeFunction(int oparg);
     bool canSkipLastiUpdate(size_t opcodeIndex);
@@ -363,9 +403,8 @@ private:
 
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
 
-    JittedCode* compileWorker();
+    AbstactInterpreterCompileResult compileWorker(PgcStatus status);
 
-    void periodicWork();
     void storeFast(int local, size_t opcodeIndex);
 
     void loadConst(int constIndex, size_t opcodeIndex);
@@ -393,6 +432,7 @@ private:
     void popExcVars();
     void decExcVars(int count);
     void incExcVars(int count);
+
 };
 
 // TODO : Fetch the range of interned integers from the interpreter state

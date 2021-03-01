@@ -127,7 +127,6 @@
 #define METHOD_NOT_EQUALS_INT_TOKEN              0x00000068
 #define METHOD_GREATER_THAN_INT_TOKEN            0x00000069
 #define METHOD_GREATER_THAN_EQUALS_INT_TOKEN     0x0000006A
-#define METHOD_PERIODIC_WORK                     0x0000006B
 
 #define METHOD_EXTENDLIST_TOKEN                  0x0000006C
 #define METHOD_LISTTOTUPLE_TOKEN                 0x0000006D
@@ -216,6 +215,7 @@
 #define METHOD_TRACE_EXCEPTION       0x0003000A
 #define METHOD_PROFILE_FRAME_ENTRY   0x0003000B
 #define METHOD_PROFILE_FRAME_EXIT    0x0003000C
+#define METHOD_PGC_PROBE             0x0003000D
 
 #define METHOD_ITERNEXT_TOKEN        0x00040000
 
@@ -466,7 +466,6 @@ public:
 
     void emit_load_assertion_error() override;
 
-    void emit_periodic_work() override;
     void emit_pending_calls() override;
     void emit_init_instr_counter() override;
 
@@ -483,6 +482,7 @@ public:
     void emit_trace_exception() override;
     void emit_profile_frame_entry() override;
     void emit_profile_frame_exit() override;
+    void emit_pgc_probe(size_t curByte, size_t stackSize) override;
 
     void emit_load_frame_locals() override;
     void emit_triple_binary_op(int firstOp, int secondOp) override;
@@ -504,13 +504,13 @@ private:
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
     void emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset );
 
-    void emit_known_binary_op(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+    void emit_known_binary_op(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
                               int sq_slot, int fallback_token);
-    void emit_known_binary_op_power(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+    void emit_known_binary_op_power(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
                               int sq_slot, int fallback_token);
-    void emit_known_binary_op_add(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+    void emit_known_binary_op_add(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
                               int sq_slot, int fallback_token);
-    void emit_known_binary_op_multiply(int opcode, AbstractValueWithSources &left, AbstractValueWithSources &right, int nb_slot,
+    void emit_known_binary_op_multiply(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
                               int sq_slot, int fallback_token);
 };
 

@@ -111,7 +111,7 @@ def offset_momentum(ref, bodies=SYSTEM, px=0.0, py=0.0, pz=0.0):
     v[2] = pz / m
 
 
-def main(n=5000000, ref='sun'):
+def main(n=50000, ref='sun'):
     offset_momentum(BODIES[ref])
     report_energy()
     advance(0.01, n)
@@ -119,8 +119,8 @@ def main(n=5000000, ref='sun'):
 
 
 if __name__ == "__main__":
-    print("N-body took {0} without Pyjion".format(timeit.timeit(main, number=1)))
+    print("N-body took {0} without Pyjion".format(timeit.repeat(main, repeat=5, number=1)))
     pyjion.enable()
-    print("N-body took {0} with Pyjion".format(timeit.timeit(main, number=1)))
+    print("N-body took {0} with Pyjion".format(timeit.repeat(main, repeat=5, number=1)))
     pyjion.disable()
     gc.collect()

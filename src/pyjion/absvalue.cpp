@@ -104,6 +104,14 @@ AbstractValue* AbstractValue::mergeWith(AbstractValue*other) {
     return &Any;
 }
 
+PyTypeObject *AbstractValue::pythonType() {
+    return GetPyType(this->kind());
+}
+
+bool AbstractValue::known() {
+    return isKnownType(this->kind());
+}
+
 void AbstractSource::escapes() const {
     if (Sources) {
         Sources->m_escapes = true;
@@ -168,6 +176,7 @@ AbstractSource* AbstractSource::combine(AbstractSource* one, AbstractSource* two
     }
     return nullptr;
 }
+
 /*
 void TupleSource::escapes() {
     for (auto cur = m_sources.begin(); cur != m_sources.end(); cur++) {
@@ -1429,4 +1438,20 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         default:
             return nullptr;
     }
+}
+
+PyTypeObject* PgcValue::pythonType() {
+    return this->_type;
+}
+
+AbstractValueKind PgcValue::kind() {
+    return GetAbstractType(this->_type);
+}
+
+PyTypeObject* ArgumentValue::pythonType() {
+    return this->_type;
+}
+
+AbstractValueKind ArgumentValue::kind() {
+    return GetAbstractType(this->_type);
 }
