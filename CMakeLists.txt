@@ -47,6 +47,10 @@ IF(CMAKE_BUILD_TYPE MATCHES Debug)
     set(BUILD_TESTS ON)
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
 
+IF(CMAKE_BUILD_TYPE MATCHES Release)
+    add_definitions(-DNDEBUG)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Release)
+
 if(DUMP_JIT_TRACES)
     message(STATUS "Enabling very-very-verbose messages")
     add_definitions(-DDUMP_JIT_TRACES)

@@ -48,7 +48,19 @@ PyObject* g_emptyTuple;
     "free variable '%.200s' referenced before assignment" \
     " in enclosing scope"
 
-FILE * g_traceLog = stdout;
+#define ASSERT_ARG(arg) \
+   if ((arg) == nullptr) { \
+        PyErr_SetString(PyExc_ValueError, \
+        "Argument null in internal function"); \
+        return nullptr; \
+    } \
+
+#define ASSERT_ARG_INT(arg) \
+   if ((arg) == nullptr) { \
+        PyErr_SetString(PyExc_ValueError, \
+        "Argument null in internal function"); \
+        return -1; \
+    } \
 
 template<typename T>
 void decref(T v) {
@@ -410,21 +422,21 @@ PyObject* PyJit_BuildSlice(PyObject* start, PyObject* stop, PyObject* step) {
 }
 
 PyObject* PyJit_UnaryPositive(PyObject* value) {
-    assert(value != nullptr);
+    ASSERT_ARG(value);
     auto res = PyNumber_Positive(value);
     Py_DECREF(value);
     return res;
 }
 
 PyObject* PyJit_UnaryNegative(PyObject* value) {
-    assert(value != nullptr);
+    ASSERT_ARG(value);
     auto res = PyNumber_Negative(value);
     Py_DECREF(value);
     return res;
 }
 
 PyObject* PyJit_UnaryNot(PyObject* value) {
-    assert(value != nullptr);
+    ASSERT_ARG(value);
     int err = PyObject_IsTrue(value);
     Py_DECREF(value);
     if (err == 0) {
@@ -439,7 +451,7 @@ PyObject* PyJit_UnaryNot(PyObject* value) {
 }
 
 int PyJit_UnaryNot_Int(PyObject* value) {
-    assert(value != nullptr);
+    ASSERT_ARG_INT(value);
     int err = PyObject_IsTrue(value);
     Py_DECREF(value);
     if (err < 0) {
@@ -449,7 +461,7 @@ int PyJit_UnaryNot_Int(PyObject* value) {
 }
 
 PyObject* PyJit_UnaryInvert(PyObject* value) {
-    assert(value != nullptr);
+    ASSERT_ARG(value);
     auto res = PyNumber_Invert(value);
     Py_DECREF(value);
     return res;
@@ -461,8 +473,12 @@ PyObject* PyJit_NewList(size_t size){
 }
 
 PyObject* PyJit_ListAppend(PyObject* list, PyObject* value) {
-    assert(list != nullptr);
-    assert(PyList_CheckExact(list));
+    ASSERT_ARG(list);
+    if (!PyList_CheckExact(list)){
+        PyErr_SetString(PyExc_TypeError, "Expected list to internal call");
+        Py_DECREF(list);
+        return nullptr;
+    }
     int err = PyList_Append(list, value);
     Py_DECREF(value);
     if (err) {
@@ -472,7 +488,7 @@ PyObject* PyJit_ListAppend(PyObject* list, PyObject* value) {
 }
 
 PyObject* PyJit_SetAdd(PyObject* set, PyObject* value) {
-    assert(set != nullptr);
+    ASSERT_ARG(set);
     int err ;
     err = PySet_Add(set, value);
     Py_DECREF(value);
@@ -485,7 +501,7 @@ error:
 }
 
 PyObject* PyJit_UpdateSet(PyObject* iterable, PyObject* set) {
-    assert(set != nullptr);
+    ASSERT_ARG(set);
     int res = _PySet_Update(set, iterable);
     Py_DECREF(iterable);
     if (res < 0)
@@ -496,7 +512,7 @@ error:
 }
 
 PyObject* PyJit_MapAdd(PyObject*map, PyObject*key, PyObject* value) {
-    assert(map != nullptr);
+    ASSERT_ARG(map);
     if (!PyDict_Check(map)) {
         PyErr_SetString(PyExc_TypeError,
                         "invalid argument type to MapAdd");
@@ -746,7 +762,10 @@ void PyJit_PrepareException(PyObject** exc, PyObject**val, PyObject** tb, PyObje
     tstate->curexc_type = *exc;
     Py_INCREF(*val);
     tstate->curexc_value = *val;
-    assert(PyExceptionInstance_Check(*val));
+    if (!PyExceptionInstance_Check(*val)){
+        PyErr_SetString(PyExc_RuntimeError,  "Error unwinding exception data");
+        return;
+    }
     tstate->curexc_traceback = *tb;
     if (*tb == nullptr)
         *tb = Py_None;
@@ -755,7 +774,10 @@ void PyJit_PrepareException(PyObject** exc, PyObject**val, PyObject** tb, PyObje
 
 void PyJit_UnwindEh(PyObject*exc, PyObject*val, PyObject*tb) {
     auto tstate = PyThreadState_GET();
-    assert(val == nullptr || PyExceptionInstance_Check(val));
+    if (val != nullptr && !PyExceptionInstance_Check(val)){
+        PyErr_SetString(PyExc_RuntimeError,  "Error unwinding exception data");
+        return;
+    }
     auto oldtb = tstate->curexc_traceback;
     auto oldtype = tstate->curexc_type;
     auto oldvalue = tstate->curexc_value;
@@ -1216,7 +1238,10 @@ PyObject* PyJit_LoadClassDeref(PyFrameObject* frame, size_t oparg) {
     PyObject* value;
     PyCodeObject* co = frame->f_code;
     size_t idx = oparg - PyTuple_GET_SIZE(co->co_cellvars);
-    assert(idx >= 0 && idx < ((size_t)PyTuple_GET_SIZE(co->co_freevars)));
+    if (idx >= ((size_t)PyTuple_GET_SIZE(co->co_freevars))) {
+        PyErr_SetString(PyExc_RuntimeError,  "Invalid cellref index");
+        return nullptr;
+    }
     auto name = PyTuple_GET_ITEM(co->co_freevars, idx);
     auto locals = frame->f_locals;
     if (PyDict_CheckExact(locals)) {
@@ -1247,8 +1272,11 @@ PyObject* PyJit_LoadClassDeref(PyFrameObject* frame, size_t oparg) {
 }
 
 PyObject* PyJit_ExtendList(PyObject *iterable, PyObject *list) {
-    assert(list != nullptr);
-    assert(PyList_CheckExact(list));
+    ASSERT_ARG(list);
+    if (!PyList_CheckExact(list)){
+        PyErr_SetString(PyExc_TypeError, "Expected list to internal function PyJit_ExtendList");
+        return nullptr;
+    }
     PyObject *none_val = _PyList_Extend((PyListObject *)list, iterable);
     if (none_val == nullptr) {
         if (Py_TYPE(iterable)->tp_iter == nullptr && !PySequence_Check(iterable))
@@ -1275,8 +1303,11 @@ PyObject* PyJit_ListToTuple(PyObject *list) {
 }
 
 int PyJit_StoreMap(PyObject *key, PyObject *value, PyObject* map) {
-    assert(PyDict_CheckExact(map));
-    assert(value != nullptr);
+    if(!PyDict_CheckExact(map)){
+        PyErr_SetString(PyExc_TypeError, "Expected dict to internal function PyJit_StoreMap");
+        return -1;
+    }
+    ASSERT_ARG_INT(value);
     auto res = PyDict_SetItem(map, key, value);
     Py_DECREF(key);
     Py_DECREF(value);
@@ -1284,15 +1315,18 @@ int PyJit_StoreMap(PyObject *key, PyObject *value, PyObject* map) {
 }
 
 int PyJit_StoreMapNoDecRef(PyObject *key, PyObject *value, PyObject* map) {
-    assert(map != nullptr);
-    assert(value != nullptr);
-	assert(PyDict_CheckExact(map));
+    ASSERT_ARG_INT(map);
+    ASSERT_ARG_INT(value);
+    if(!PyDict_CheckExact(map)){
+        PyErr_SetString(PyExc_TypeError, "Expected dict to internal function PyJit_StoreMapNoDecRef");
+        return -1;
+    }
 	auto res = PyDict_SetItem(map, key, value);
 	return res;
 }
 
 PyObject * PyJit_BuildDictFromTuples(PyObject *keys_and_values) {
-    assert(keys_and_values != nullptr);
+    ASSERT_ARG(keys_and_values);
     auto len = PyTuple_GET_SIZE(keys_and_values) - 1;
     PyObject* keys = PyTuple_GET_ITEM(keys_and_values, len);
     if (keys == nullptr){
@@ -1329,7 +1363,7 @@ PyObject* PyJit_LoadAssertionError() {
 }
 
 PyObject* PyJit_DictUpdate(PyObject* other, PyObject* dict) {
-    assert(dict != nullptr);
+    ASSERT_ARG(dict);
     if (PyDict_Update(dict, other) < 0){
         if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
             PyErr_Format(PyExc_TypeError,
@@ -1347,7 +1381,7 @@ error:
 }
 
 PyObject* PyJit_DictMerge(PyObject* dict, PyObject* other) {
-    assert(dict != nullptr);
+    ASSERT_ARG(dict);
     if (_PyDict_MergeEx(dict, other, 2) < 0){
         if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
             PyErr_Format(PyExc_TypeError,
@@ -2086,12 +2120,6 @@ int PyJit_DeleteName(PyFrameObject* f, PyObject* name) {
     return err;
 }
 
-
-template<typename T>
-inline T tuple_build(PyObject* v, PyObject* arg) {
-    int l = PyTuple_Size(v);
-}
-
 template<typename T>
 inline PyObject* Call(PyObject* target) {
     return Call0(target);
@@ -2136,7 +2164,7 @@ inline PyObject* Call(PyObject *target, Args...args) {
         }
         std::vector<PyObject*> args_v = {args...};
         for (int i = 0; i < args_v.size() ; i ++) {
-            assert(args_v[i] != nullptr);
+            ASSERT_ARG(args_v[i]);
             PyTuple_SetItem(t_args, i, args_v[i]);
             Py_INCREF(args_v[i]);
         }
@@ -2398,7 +2426,7 @@ PyObject* MethCallN(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
         } else {
             auto args_tuple = PyTuple_New(PyTuple_Size(args) + 1);
 
-            assert(obj != nullptr);
+            ASSERT_ARG(obj);
             if (PyTuple_SetItem(args_tuple, 0, obj) == -1){
                 return nullptr;
             }
@@ -2407,7 +2435,7 @@ PyObject* MethCallN(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 
             for (int i = 0 ; i < PyTuple_Size(args) ; i ++){
                 auto ix = PyTuple_GET_ITEM(args, i);
-                assert(ix != nullptr);
+                ASSERT_ARG(ix);
                 if (PyTuple_SetItem(args_tuple, i+1, ix) == -1){
                     return nullptr;
                 }
@@ -2528,30 +2556,6 @@ void PyJit_DecRef(PyObject* value) {
 	Py_XDECREF(value);
 }
 
-static int g_counter;
-int PyJit_PeriodicWork() {
-	g_counter++;
-	if (!(g_counter & 0xfff)) {
-		// Pulse the GIL
-		g_counter = 0;
-		Py_BEGIN_ALLOW_THREADS
-		Py_END_ALLOW_THREADS
-	}
-
-	if (!(g_counter & 0xffff)) {
-		auto ts = PyThreadState_GET();
-		if (ts->async_exc != nullptr) {
-			PyErr_SetNone(ts->async_exc);
-			Py_DECREF(ts->async_exc);
-			ts->async_exc = nullptr;
-			return -1;
-		}
-		return Py_MakePendingCalls();
-	}
-
-	return 0;
-}
-
 PyObject* PyJit_UnicodeJoinArray(PyObject** items, ssize_t count) {
 	auto empty = PyUnicode_New(0, 0);
 	auto res = _PyUnicode_JoinArray(empty, items, count);
@@ -2604,8 +2608,8 @@ inline int trace(PyThreadState *tstate, PyFrameObject *f, int ty, PyObject *args
     tstate->tracing++;
     tstate->use_tracing = 0;
     int result = func(tracearg, f, ty, args);
-    tstate->use_tracing = ((tstate->c_tracefunc != NULL)
-                           || (tstate->c_profilefunc != NULL));
+    tstate->use_tracing = ((tstate->c_tracefunc != nullptr)
+                           || (tstate->c_profilefunc != nullptr));
     tstate->tracing--;
     return result;
 }
@@ -2706,16 +2710,16 @@ void PyJit_TraceFrameException(PyFrameObject* f){
         PyObject *type, *value, *traceback, *orig_traceback, *arg;
         int result = 0;
         PyErr_Fetch(&type, &value, &orig_traceback);
-        if (value == NULL) {
+        if (value == nullptr) {
             value = Py_None;
             Py_INCREF(value);
         }
         if (type == nullptr)
             type = PyExc_Exception;
         PyErr_NormalizeException(&type, &value, &orig_traceback);
-        traceback = (orig_traceback != NULL) ? orig_traceback : Py_None;
+        traceback = (orig_traceback != nullptr) ? orig_traceback : Py_None;
         arg = PyTuple_Pack(3, type, value, traceback);
-        if (arg == NULL) {
+        if (arg == nullptr) {
             PyErr_Restore(type, value, orig_traceback);
             return;
         }
