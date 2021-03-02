@@ -395,6 +395,20 @@ TEST_CASE("Iterators") {
                               " return total");
         CHECK(t.returns() == "6");
     }
+
+    SECTION("test changing types iterator") {
+        auto t = EmissionTest(
+                "def f():\n"
+                "  def _sum(s):\n"
+                "     tot = 0\n"
+                "     for i in s:\n"
+                "       tot += i\n"
+                "     return tot\n"
+                "  v = _sum((0,1,2)) + _sum([0,1,2])\n"
+                "  return v\n"
+        );
+        CHECK(t.returns() == "6");
+    };
 }
 
 TEST_CASE("Binary slice subscripts") {

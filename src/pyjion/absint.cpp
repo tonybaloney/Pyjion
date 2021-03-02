@@ -763,9 +763,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 case GET_ITER: {
                     auto iteratorType = lastState.popNoEscape();
+                    // TODO : Allow guarded/PGC sources to be optimized.
                     auto source = AbstractValueWithSources(
                             &Iterable,
-                            newSource(new IteratorSource(iteratorType.Value->kind())));
+                            newSource(new IteratorSource(iteratorType.Value->needsGuard() ? AVK_Any: iteratorType.Value->kind())));
                     lastState.push(source);
                 }
                     break;
