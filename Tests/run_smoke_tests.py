@@ -23,39 +23,44 @@ with open(os.path.join(SAVEDCWD, args.fromfile)) as fp:
 
 has_failures = False
 
-for test in tests:
-    test_cases = unittest.defaultTestLoader.loadTestsFromName(f"test.{test}")
-    print(f"Testing {test}")
-    for case in test_cases:
-        pyjion.enable()
-        r = unittest.result.TestResult()
-        case.run(r)
-        if r.wasSuccessful():
-            print(f"All tests in case successful.")
-        else:
-            print(f"Failures occurred.")
-            has_failures = True
+OPT_LEVELS = [1]
 
-            for failedcase, reason in r.expectedFailures:
-                print(f"---------------------------------------------------------------")
-                print(f"Test case {failedcase} was expected to fail:")
-                print(reason)
-                print(f"---------------------------------------------------------------")
+for opt_level in OPT_LEVELS:
+    for test in tests:
+        test_cases = unittest.defaultTestLoader.loadTestsFromName(f"test.{test}")
+        print(f"Testing {test}")
+        for case in test_cases:
+            pyjion.enable()
+            print(f"Trying with Optimizations = {opt_level}")
+            pyjion.set_optimization_level(opt_level)
+            r = unittest.result.TestResult()
+            case.run(r)
+            if r.wasSuccessful():
+                print(f"All tests in case successful.")
+            else:
+                print(f"Failures occurred.")
+                has_failures = True
 
-            for failedcase, reason in r.failures:
-                print(f"---------------------------------------------------------------")
-                print(f"Test case {failedcase} failed:")
-                print(reason)
-                print(f"---------------------------------------------------------------")
+                for failedcase, reason in r.expectedFailures:
+                    print(f"---------------------------------------------------------------")
+                    print(f"Test case {failedcase} was expected to fail:")
+                    print(reason)
+                    print(f"---------------------------------------------------------------")
 
-            for failedcase, reason in r.errors:
-                print(f"---------------------------------------------------------------")
-                print(f"Test case {failedcase} failed with errors:")
-                print(reason)
-                print(f"---------------------------------------------------------------")
+                for failedcase, reason in r.failures:
+                    print(f"---------------------------------------------------------------")
+                    print(f"Test case {failedcase} failed:")
+                    print(reason)
+                    print(f"---------------------------------------------------------------")
 
-        pyjion.disable()
-        gc.collect()
+                for failedcase, reason in r.errors:
+                    print(f"---------------------------------------------------------------")
+                    print(f"Test case {failedcase} failed with errors:")
+                    print(reason)
+                    print(f"---------------------------------------------------------------")
+
+            pyjion.disable()
+            gc.collect()
 
 if has_failures:
     exit(1)
