@@ -961,6 +961,7 @@ inline PyObject* PyJitMath_TripleBinaryOpStrStrStr(PyObject* a, PyObject* b, PyO
             if (c == nullptr)
                 return nullptr;
             Py_DECREF(res);
+            Py_INCREF(c);
             return c;
     }
     UNSUPPORTED_MATH_OP(firstOp);

@@ -25,7 +25,7 @@ class StringFormattingTestCase(unittest.TestCase):
         c += a % b
         self.assertEqual(sys.getrefcount(a), before_ref, "a leak")
         self.assertEqual(sys.getrefcount(b), before_ref_b, "b leak")
-        # self.assertEqual(sys.getrefcount(c), before_ref_c, "c leak")  # TODO : establish this leak
+        self.assertEqual(sys.getrefcount(c), before_ref_c, "c leak")
         self.assertEqual(c, "Hello worldHello w0rld", "output fail")
         c += a % ("x", )
 
@@ -39,7 +39,7 @@ class StringFormattingTestCase(unittest.TestCase):
         c += a + b
         self.assertEqual(sys.getrefcount(a), before_ref, )
         self.assertEqual(sys.getrefcount(b), before_ref_b, )
-        self.assertEqual(sys.getrefcount(c), before_ref_c - 1 )
+        self.assertEqual(sys.getrefcount(c), before_ref_c - 1)
         self.assertEqual(c, "...Hello world!")
 
 
