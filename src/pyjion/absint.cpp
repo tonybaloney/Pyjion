@@ -1691,6 +1691,8 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         }
 
         auto stackInfo = getStackInfo(curByte);
+        auto next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
+        auto nextStackInfo = getStackInfo(next_byte);
 
         size_t curStackSize = m_stack.size();
         bool skipEffect = false;
@@ -1699,9 +1701,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             m_comp->emit_pgc_probe(curByte, pgcProbeSize(curByte));
         }
 
-        auto next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
-
-        if (OPT_ENABLED(tripleBinaryFunctions) && isBinaryMathOp(byte) && isMathOp(next_byte)){
+        if (OPT_ENABLED(tripleBinaryFunctions) && stackInfo.size() >= 2 && nextStackInfo.size() >= 1 && canBeOptimized(byte, next_byte, stackInfo.top().Value->kind(), stackInfo.second().Value->kind(), nextStackInfo.top().Value->kind())){
             m_comp->emit_triple_binary_op(byte, next_byte);
             decStack(3);
             errorCheck("binary math op failed", curByte);

@@ -98,6 +98,30 @@ double dmod(double left, double right){
     return mod;
 }
 
+bool canBeOptimized(int firstOp, int secondOp, AbstractValueKind type_a, AbstractValueKind type_b, AbstractValueKind type_c){
+    if (!isBinaryMathOp(firstOp) || !isMathOp(secondOp))
+        return false;
+    if (type_a == AVK_Float && type_b == AVK_Float && type_c == AVK_Float)
+        return true;
+    if (type_a == AVK_Integer && type_b == AVK_Integer && type_c == AVK_Integer && firstOp == BINARY_TRUE_DIVIDE)
+        return true;
+    if (type_a == AVK_Float && type_b == AVK_Integer && type_c == AVK_Integer)
+        return true;
+    if (type_a == AVK_Integer && type_b == AVK_Float && type_c == AVK_Integer)
+        return true;
+    if (type_a == AVK_Integer && type_b == AVK_Integer && type_c == AVK_Float)
+        return true;
+    if (type_a == AVK_Integer && type_b == AVK_Float && type_c == AVK_Float)
+        return true;
+    if (type_a == AVK_Float && type_b == AVK_Float && type_c == AVK_Integer)
+        return true;
+    if (type_a == AVK_Float && type_b == AVK_Integer && type_c == AVK_Float)
+        return true;
+    if (type_a == AVK_String && type_b == AVK_String && type_c == AVK_String)
+        return true;
+    return false;
+}
+
 PyObject* PyJitMath_TripleBinaryOp(PyObject* c, PyObject* a, PyObject* b, int firstOp, int secondOp) {
     PyObject* res = nullptr;
     if (PyFloat_CheckExact(a) && PyFloat_CheckExact(b) && PyFloat_CheckExact(c))
@@ -118,8 +142,10 @@ PyObject* PyJitMath_TripleBinaryOp(PyObject* c, PyObject* a, PyObject* b, int fi
         res =  PyJitMath_TripleBinaryOpFloatIntFloat(a, b, c, firstOp, secondOp);
     else if (PyUnicode_Check(a) && PyUnicode_Check(b) && PyUnicode_Check(c))
         return PyJitMath_TripleBinaryOpStrStrStr(a, b, c, firstOp, secondOp); // special rules on references
-    else
-        res =  PyJitMath_TripleBinaryOpObjObjObj(a, b, c, firstOp, secondOp);
+    else {
+        PyErr_SetString(PyExc_TypeError, "Cannot optimize these types, this error is a failure in the Pyjion type inference compiler.");
+        return nullptr;
+    }
     // Decref first op
     Py_DECREF(a);
     Py_DECREF(b);
@@ -841,7 +867,15 @@ inline PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyO
             res = PyNumber_Subtract(a, b);
             break;
         case BINARY_ADD:
-            res = PyNumber_Add(a, b);
+            if (PyUnicode_CheckExact(a) && PyUnicode_CheckExact(b)) {
+                PyUnicode_Append(&a, b);
+                res = a;
+                Py_INCREF(res);
+            }
+            else {
+                res = PyNumber_Add(a, b);
+            }
+
             break;
         case BINARY_POWER:
             res = PyNumber_Power(a, b, Py_None);
@@ -878,7 +912,15 @@ inline PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyO
             res2 =  PyNumber_Subtract(c, res);
             break;
         case BINARY_ADD:
-            res2 =  PyNumber_Add(c, res);
+            if (PyUnicode_CheckExact(c) && PyUnicode_CheckExact(res)) {
+                PyUnicode_Append(&c, res);
+                res2 = c;
+                Py_INCREF(res2);
+            }
+            else {
+                res2 = PyNumber_Add(c, res);
+            }
+
             break;
         case INPLACE_POWER:
             res2 =  PyNumber_InPlacePower(c, res, Py_None);
@@ -899,7 +941,14 @@ inline PyObject* PyJitMath_TripleBinaryOpObjObjObj(PyObject* a, PyObject* b, PyO
             res2 =  PyNumber_InPlaceRemainder(c, res);
             break;
         case INPLACE_ADD:
-            res2 =  PyNumber_InPlaceAdd(c, res);
+            if (PyUnicode_CheckExact(c) && PyUnicode_CheckExact(res)) {
+                PyUnicode_Append(&c, res);
+                res2 = c;
+                Py_INCREF(c);
+            }
+            else {
+                res2 = PyNumber_InPlaceAdd(c, res);
+            }
             break;
         case INPLACE_SUBTRACT:
             res2 =  PyNumber_InPlaceSubtract(c, res);
