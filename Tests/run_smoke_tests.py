@@ -1,31 +1,27 @@
-import sys
 import pyjion
 import re
 import os
 import gc
-import test.libregrtest.cmdline
 import unittest
+import argparse
 
-args = test.libregrtest.cmdline._parse_args(sys.argv[1:])
 
-SAVEDCWD = os.getcwd()
-tests = []
+def main(input_file, opt_level):
+    SAVEDCWD = os.getcwd()
+    tests = []
 
-# Lifted from libregr.main
-regex = re.compile(r'\btest_[a-zA-Z0-9_]+\b')
-with open(os.path.join(SAVEDCWD, args.fromfile)) as fp:
-    for line in fp:
-        line = line.split('#', 1)[0]
-        line = line.strip()
-        match = regex.search(line)
-        if match is not None:
-            tests.append(match.group())
+    # Lifted from libregr.main
+    regex = re.compile(r'\btest_[a-zA-Z0-9_]+\b')
+    with open(os.path.join(SAVEDCWD, input_file)) as fp:
+        for line in fp:
+            line = line.split('#', 1)[0]
+            line = line.strip()
+            match = regex.search(line)
+            if match is not None:
+                tests.append(match.group())
 
-has_failures = False
+    has_failures = False
 
-OPT_LEVELS = [1]
-
-for opt_level in OPT_LEVELS:
     for test in tests:
         test_cases = unittest.defaultTestLoader.loadTestsFromName(f"test.{test}")
         print(f"Testing {test}")
@@ -62,7 +58,15 @@ for opt_level in OPT_LEVELS:
             pyjion.disable()
             gc.collect()
 
-if has_failures:
-    exit(1)
-else:
-    exit(0)
+    return has_failures
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Pyjion smoke tests")
+    parser.add_argument('-f', '--fromfile', metavar='FILE',
+                               help='read names of tests to run from a file.')
+    parser.add_argument('-o', '--opt-level', type=int,
+                       default=1,
+                       help='target optimization level')
+    args = parser.parse_args()
+    main(args.fromfile, args.opt_level)

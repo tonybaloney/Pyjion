@@ -63,7 +63,10 @@ jobs:
 
       - name: Run smoke tests
         shell: bash
-        run: python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
+        run: |
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 0
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
 
       - name: Run full test suite
@@ -153,7 +156,10 @@ jobs:
 
       - name: Run smoke tests
         shell: bash
-        run: python -X dev Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
+        run: |
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 0
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
 
       - name: Run full test suite
@@ -233,7 +239,10 @@ jobs:
 
       - name: Run smoke tests
         shell: bash
-        run: python -X dev Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
+        run: |
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 0
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
 
       - name: Run full test suite
@@ -328,7 +337,10 @@ jobs:
 
       - name: Run smoke tests
         shell: bash
-        run: python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -v
+        run: |
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 0
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1
+          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
 
       - name: Run full test suite
