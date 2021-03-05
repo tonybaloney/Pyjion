@@ -27,6 +27,7 @@ def main(input_file, opt_level):
         print(f"Testing {test}")
         for case in test_cases:
             pyjion.enable()
+            pyjion.enable_tracing()
             print(f"Trying with Optimizations = {opt_level}")
             pyjion.set_optimization_level(opt_level)
             r = unittest.result.TestResult()

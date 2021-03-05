@@ -42,7 +42,7 @@ PyjionSettings g_pyjionSettings;
 void setOptimizationLevel(unsigned short level){
     g_pyjionSettings.optimizationLevel = level;
     SET_OPT(inlineIs, level, 1);
-    SET_OPT(inlineDecref, level, 2);
+    SET_OPT(inlineDecref, level, 1);
     SET_OPT(internRichCompare, level, 1);
     SET_OPT(nativeLocals, level, 2);
     SET_OPT(inlineFramePushPop, level, 1);
@@ -272,6 +272,7 @@ static PyInterpreterState* inter(){
 }
 
 static PyObject *pyjion_enable(PyObject *self, PyObject* args) {
+    setOptimizationLevel(1);
     auto prev = _PyInterpreterState_GetEvalFrameFunc(inter());
     _PyInterpreterState_SetEvalFrameFunc(inter(), PyJit_EvalFrame);
     if (prev == PyJit_EvalFrame) {
