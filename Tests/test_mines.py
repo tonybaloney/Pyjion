@@ -21,9 +21,3 @@ class ProblemTestCase(unittest.TestCase):
             return bytearray(map(ord, s))
         b = by("Hello, world")
         self.assertEqual(re.findall(br"\w+", b), [by("Hello"), by("world")])
-
-    def test_bad_regex(self):
-        def by(s):
-            return bytearray(map(ord, s))
-        b = by("Hello, world")
-        re.findall(br"\w+\q", b), [by("Hello"), by("world")]
