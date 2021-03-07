@@ -110,4 +110,15 @@ TEST_CASE("test simple func"){
         );
         CHECK(t.returns() == "6");
     };
+    SECTION("test weird function") {
+        auto t = TracingTest(
+                "def f():\n"
+                "  \n"
+                "  a = 1\n"
+                "  b = 2\n"
+                "  c=3\n"
+                "  return a + b + c\n"
+        );
+        CHECK(t.returns() == "6");
+    };
 }
