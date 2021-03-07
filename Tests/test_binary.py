@@ -91,6 +91,32 @@ class BinaryOperationTestCase(unittest.TestCase):
         self.assertEqual(sys.getrefcount(c), before_ref_c - 1)
         self.assertEqual(c, 256)
 
+    def test_or(self):
+        a = 1999
+        b = 2999
+        c = 1234
+        before_ref_a = sys.getrefcount(a)
+        before_ref_b = sys.getrefcount(b)
+        before_ref_c = sys.getrefcount(c)
+        c = a | b
+        self.assertEqual(sys.getrefcount(a), before_ref_a)
+        self.assertEqual(sys.getrefcount(b), before_ref_b)
+        self.assertEqual(sys.getrefcount(c), 2)
+        self.assertEqual(c, 4095)
+    
+    def test_and(self):
+        a = 1999
+        b = 2999
+        c = 1234
+        before_ref_a = sys.getrefcount(a)
+        before_ref_b = sys.getrefcount(b)
+        before_ref_c = sys.getrefcount(c)
+        c = a & b
+        self.assertEqual(sys.getrefcount(a), before_ref_a)
+        self.assertEqual(sys.getrefcount(b), before_ref_b)
+        self.assertEqual(sys.getrefcount(c), 2)
+        self.assertEqual(c, 903)
+
 
 class CPythonComparison(unittest.TestCase):
 
