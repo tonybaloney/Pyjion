@@ -1400,7 +1400,7 @@ void PythonCompiler::emit_inc_local(Local local, int value) {
 void PythonCompiler::emit_dec_local(Local local, int value) {
     emit_load_local(local);
     emit_int(value);
-    m_il.sub_with_overflow();
+    m_il.sub();
     emit_store_local(local);
 }
 
