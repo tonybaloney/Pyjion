@@ -237,6 +237,7 @@ void PythonCompiler::decref() {
         emit_branch(BranchAlways, exit);
 
         emit_mark_label(dealloc);
+        emit_load_local(obj);
         m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
 
         emit_mark_label(exit);
