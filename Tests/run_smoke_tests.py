@@ -6,7 +6,7 @@ import unittest
 import argparse
 
 
-def main(input_file, opt_level):
+def main(input_file, opt_level, pgc):
     SAVEDCWD = os.getcwd()
     tests = []
 
@@ -28,6 +28,12 @@ def main(input_file, opt_level):
         for case in test_cases:
             pyjion.enable()
             pyjion.enable_tracing()
+            if pgc:
+                pyjion.enable_pgc()
+                print("Enabling PGC")
+            else:
+                pyjion.disable_pgc()
+                print("Disabling PGC")
             print(f"Trying with Optimizations = {opt_level}")
             pyjion.set_optimization_level(opt_level)
             r = unittest.result.TestResult()
@@ -69,5 +75,6 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--opt-level', type=int,
                        default=1,
                        help='target optimization level')
+    parser.add_argument('--pgc', action='store_true', help='Enable PGC')
     args = parser.parse_args()
-    main(args.fromfile, args.opt_level)
+    main(args.fromfile, args.opt_level, args.pgc)
