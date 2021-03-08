@@ -211,28 +211,37 @@ void PythonCompiler::emit_incref() {
 void PythonCompiler::decref() {
     if (OPT_ENABLED(inlineDecref)){ // obj
         Label done = emit_define_label();
-        Label popAndGo = emit_define_label();
-        m_il.dup();                     // obj, obj
-        emit_branch(BranchFalse, popAndGo);
+        Label exit = emit_define_label();
+        Label dealloc = emit_define_label();
+        Local refcnt = emit_define_local(LK_Int);
+        Local obj = emit_define_local(LK_Pointer);
 
-        m_il.dup(); m_il.dup();         // obj, obj, obj
-        LD_FIELDA(PyObject, ob_refcnt); // obj, obj, refcnt
-        m_il.dup();                     // obj, obj, refcnt, refcnt
-        m_il.ld_ind_i();               // obj, obj, refcnt, *refcnt
-        m_il.load_one();                 // obj, obj, refcnt,  *refcnt, 1
-        m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
-        m_il.st_ind_i();              // obj, obj
-        LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
-        m_il.load_null();                 // obj, refcnt, 0
-        emit_branch(BranchGreaterThan, popAndGo);
+        emit_store_local(obj);
 
+        emit_load_local(obj);
+        emit_branch(BranchFalse, exit); // if ob == nullptr goto exit;
+
+        emit_load_local(obj);
+        LD_FIELD(PyObject, ob_refcnt);
+        emit_store_local(refcnt);
+
+        emit_load_local(refcnt);
+        emit_branch(BranchFalse, dealloc); // if ob->ob_refcnt == 0 ; dealloc
+
+        emit_load_local(obj);
+        LD_FIELDA(PyObject, ob_refcnt);
+        emit_load_local(refcnt);
+        emit_int(1);
+        m_il.sub();
+        m_il.st_ind_i();
+        emit_branch(BranchAlways, exit);
+
+        emit_mark_label(dealloc);
         m_il.emit_call(METHOD_DEALLOC_OBJECT); // _Py_Dealloc
-        emit_branch(BranchAlways, done);
 
-        emit_mark_label(popAndGo);
-        emit_pop();
-
-        emit_mark_label(done);
+        emit_mark_label(exit);
+        emit_free_local(obj);
+        emit_free_local(refcnt);
     } else {
         m_il.emit_call(METHOD_DECREF_TOKEN);
     }

@@ -42,7 +42,7 @@ PyjionSettings g_pyjionSettings;
 void setOptimizationLevel(unsigned short level){
     g_pyjionSettings.optimizationLevel = level;
     SET_OPT(inlineIs, level, 1);
-    SET_OPT(inlineDecref, level, 2);
+    SET_OPT(inlineDecref, level, 1);
     SET_OPT(internRichCompare, level, 1);
     SET_OPT(nativeLocals, level, 2);
     SET_OPT(inlineFramePushPop, level, 1);
