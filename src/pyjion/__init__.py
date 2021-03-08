@@ -21,6 +21,9 @@ def _which_dotnet():
         _dotnet_root = pathlib.Path(os.environ['DOTNET_ROOT'])
         if not _dotnet_root.exists():
             _no_dotnet(_dotnet_root)
+    if 'DOTNET_LIB_PATH' in os.environ:
+        ctypes.cdll.LoadLibrary(os.environ['DOTNET_LIB_PATH'])
+        return
     if platform.system() == "Darwin":
         if not _dotnet_root:
             _dotnet_root = pathlib.Path('/usr/local/share/dotnet/')
