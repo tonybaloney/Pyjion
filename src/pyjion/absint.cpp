@@ -123,17 +123,13 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
                 return IncompatibleOpcode_Yield;
 
             case UNPACK_EX:
-                if (m_comp != nullptr) {
-                    m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(((oparg & 0xFF) + (oparg >> 8)) * sizeof(void*));
-                }
+                m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(((oparg & 0xFF) + (oparg >> 8)) * sizeof(void*));
                 break;
             case BUILD_STRING:
             case UNPACK_SEQUENCE:
-                // we need a buffer for the slow case, but we need 
+                // TODO : we need a buffer for the slow case, but we need 
                 // to avoid allocating it in loops.
-                if (m_comp != nullptr) {
-                    m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(oparg * sizeof(void*));
-                }
+                m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(oparg * sizeof(void*));
                 break;
             case DELETE_FAST:
                 if (oparg < mCode->co_argcount) {
