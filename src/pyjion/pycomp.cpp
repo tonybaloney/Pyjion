@@ -302,7 +302,7 @@ void PythonCompiler::emit_store_fast(int local) {
         m_il.free_local(valueTmp);
 
         // now dec ref the old value potentially freeing it.
-        decref(true);
+        decref(true); // Definitely don't speed up this one
     }
 }
 
