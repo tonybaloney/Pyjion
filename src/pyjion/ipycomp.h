@@ -71,7 +71,8 @@ enum LocalKind {
     LK_Pointer,
     LK_Float,
     LK_Int,
-    LK_Bool
+    LK_Bool,
+    LK_NativeInt
 };
 
 enum BranchType {
