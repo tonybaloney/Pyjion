@@ -1426,8 +1426,8 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     auto exhaust = emit_define_label();
     auto exhausted = emit_define_label();
     auto end = emit_define_label();
-    auto it_seq = emit_define_local(LK_Pointer);
-    auto item = emit_define_local(LK_Pointer);
+    auto it_seq = emit_define_local(LK_NativeInt);
+    auto item = emit_define_local(LK_NativeInt);
 
     auto it = emit_spill();
 
@@ -1487,7 +1487,7 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     m_il.st_ind_i();   // it->it_seq = nullptr;
 
     emit_load_local(it_seq);
-    decref(true);             // Py_DECREF(it->it_seq); return 0xff
+    decref();             // Py_DECREF(it->it_seq); return 0xff
 
     emit_mark_label(exhausted);
     emit_ptr((void *) 0xff); // Return 0xff
