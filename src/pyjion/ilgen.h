@@ -192,6 +192,11 @@ public:
         }
     }
 
+    void ld_u4(unsigned int i) {
+        ld_i4(i);
+        push_back(CEE_CONV_U4);
+    }
+
     void ld_i8(long long i) {
         push_back(CEE_LDC_I8); // Pop0 + PushI8
         auto* value = (unsigned char*)(&i);
@@ -714,24 +719,29 @@ public:
 #ifdef DEBUG
                 printf("JIT failed to compile the submitted method.\n");
 #endif
+                res.m_addr = nullptr;
                 break;
             case CORJIT_OUTOFMEM:
                 printf("out of memory.\n");
+                res.m_addr = nullptr;
                 break;
             case CORJIT_INTERNALERROR:
 #ifdef DEBUG
                 printf("internal error code.\n");
 #endif
+                res.m_addr = nullptr;
                 break;
             case CORJIT_SKIPPED:
 #ifdef DEBUG
                 printf("skipped code.\n");
 #endif
+                res.m_addr = nullptr;
                 break;
             case CORJIT_RECOVERABLEERROR:
 #ifdef DEBUG
                 printf("recoverable error code.\n");
 #endif
+                res.m_addr = nullptr;
                 break;
         }
         return res;
