@@ -208,13 +208,13 @@ void PythonCompiler::emit_incref() {
     m_il.st_ind_i();
 }
 
-void PythonCompiler::decref() {
+void PythonCompiler::decref(bool noopt) {
     /*
      * PyObject* is on the top of the stack
      * Should decrement obj->ob_refcnt
      * by either doing it inline, or calling PyJit_Decref
      */
-    if (OPT_ENABLED(inlineDecref)){ // obj
+    if (OPT_ENABLED(inlineDecref) && !noopt){ // obj
         Label done = emit_define_label();
         Label popAndGo = emit_define_label();
         m_il.dup();                     // obj, obj
@@ -302,7 +302,7 @@ void PythonCompiler::emit_store_fast(int local) {
         m_il.free_local(valueTmp);
 
         // now dec ref the old value potentially freeing it.
-        decref();
+        decref(true);
     }
 }
 
@@ -488,7 +488,7 @@ void PythonCompiler::lift_n_to_top(int pos){
 }
 
 void PythonCompiler::emit_pop_top() {
-    decref();
+    decref(true);
 }
 // emit_pop_top is for the POP_TOP opcode, which should pop the stack AND decref. pop_top is just for pop'ing the value.
 void PythonCompiler::pop_top() {
@@ -1487,7 +1487,7 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     m_il.st_ind_i();   // it->it_seq = nullptr;
 
     emit_load_local(it_seq);
-    decref();             // Py_DECREF(it->it_seq); return 0xff
+    decref(true);             // Py_DECREF(it->it_seq); return 0xff
 
     emit_mark_label(exhausted);
     emit_ptr((void *) 0xff); // Return 0xff
@@ -1804,9 +1804,9 @@ void PythonCompiler::emit_builtin_func(size_t args, AbstractValueWithSources fun
     // Decref all the args.
     // Because this tuple was built with borrowed references, it has the effect of decref'ing all args
     emit_load_and_free_local(args_tuple);
-    decref();
+    decref(true);
     emit_load_and_free_local(function_object);
-    decref();
+    decref(true);
 }
 
 JittedCode* PythonCompiler::emit_compile() {
@@ -1822,7 +1822,16 @@ JittedCode* PythonCompiler::emit_compile() {
 #endif
         delete jitInfo;
         return nullptr;
+    } 
+#ifdef DEBUG
+    else {
+        printf("Compiling success %s from %s line %d\r\n",
+            PyUnicode_AsUTF8(m_code->co_name),
+            PyUnicode_AsUTF8(m_code->co_filename),
+            m_code->co_firstlineno
+            );
     }
+#endif
     return jitInfo;
 }
 
