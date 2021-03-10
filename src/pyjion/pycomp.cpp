@@ -209,8 +209,12 @@ void PythonCompiler::emit_incref() {
 }
 
 void PythonCompiler::decref() {
+    /*
+     * PyObject* is on the top of the stack
+     * Should decrement obj->ob_refcnt
+     * by either doing it inline, or calling PyJit_Decref
+     */
     if (OPT_ENABLED(inlineDecref)){ // obj
-        Label done = emit_define_label();
         Label exit = emit_define_label();
         Label dealloc = emit_define_label();
         Local refcnt = emit_define_local(LK_Int);
