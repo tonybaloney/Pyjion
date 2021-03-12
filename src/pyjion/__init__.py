@@ -4,7 +4,7 @@ import os
 import platform
 from enum import Enum
 
-__version__ = '0.11.0'
+__version__ = '0.12.0'
 
 
 def _no_dotnet(path):

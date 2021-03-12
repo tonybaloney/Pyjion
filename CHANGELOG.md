@@ -10,6 +10,8 @@
 * Fixed a bug in OPT-13 if the type changed under certain circumstances
 * Arguments to a frame are now marked as volatile and requiring type guards for certain optimizations
 * Any Python type passed as an argument is now available to be optimized by OPT-13, OPT-12
+* Fixed a bug occuring on Linux and Windows in sre_parse._compile which caused a GuardStackException when doing an inline decref operation.
+* Added an environment variable DOTNET_LIB_PATH to allow specifying the exact path to libclrjit
 
 ## 0.11.0
 
