@@ -158,7 +158,6 @@ bool JitInit() {
 }
 
 PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate, PyjionCodeProfile* profile) {
-	assert (state != nullptr) ;
     // Compile and run the now compiled code...
     PythonCompiler jitter((PyCodeObject*)state->j_code);
     AbstractInterpreter interp((PyCodeObject*)state->j_code, &jitter);
@@ -273,6 +272,7 @@ static PyInterpreterState* inter(){
 }
 
 static PyObject *pyjion_enable(PyObject *self, PyObject* args) {
+    setOptimizationLevel(1);
     auto prev = _PyInterpreterState_GetEvalFrameFunc(inter());
     _PyInterpreterState_SetEvalFrameFunc(inter(), PyJit_EvalFrame);
     if (prev == PyJit_EvalFrame) {

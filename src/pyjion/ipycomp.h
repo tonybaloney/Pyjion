@@ -27,7 +27,18 @@
 #define PYJION_IPYCOMP_H
 
 #include <cstdint>
+#include <exception>
 #include "absvalue.h"
+
+class InvalidLocalException: public std::exception {
+public:
+    InvalidLocalException(): std::exception() {};
+    const char * what () const noexcept override
+    {
+        return "Invalid CIL Local";
+    }
+};
+
 
 class Local {
 public:
@@ -39,6 +50,11 @@ public:
 
     bool is_valid() const {
         return m_index != -1;
+    }
+
+    void raiseOnInvalid(){
+        if (m_index == -1)
+            throw InvalidLocalException();
     }
 };
 
@@ -55,7 +71,8 @@ enum LocalKind {
     LK_Pointer,
     LK_Float,
     LK_Int,
-    LK_Bool
+    LK_Bool,
+    LK_NativeInt
 };
 
 enum BranchType {

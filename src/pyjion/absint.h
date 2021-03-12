@@ -168,7 +168,8 @@ public:
     }
 
     AbstractValue* pop() {
-        assert(!mStack.empty());
+        if (mStack.empty())
+            throw StackUnderflowException();
         auto res = mStack.back();
         res.escapes();
         mStack.pop_back();
@@ -176,14 +177,16 @@ public:
     }
 
     AbstractValueWithSources popNoEscape() {
-        assert(!mStack.empty());
+        if (mStack.empty())
+            throw StackUnderflowException();
         auto res = mStack.back();
         mStack.pop_back();
         return res;
     }
 
     AbstractValueWithSources fromPgc(int stackPosition, PyTypeObject* pyTypeObject, AbstractSource* source) {
-        assert(!mStack.empty());
+        if (mStack.empty())
+            throw StackUnderflowException();
         auto res = mStack[stackPosition];
         if (pyTypeObject == nullptr)
             return res;

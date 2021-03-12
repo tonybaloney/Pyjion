@@ -123,17 +123,13 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
                 return IncompatibleOpcode_Yield;
 
             case UNPACK_EX:
-                if (m_comp != nullptr) {
-                    m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(((oparg & 0xFF) + (oparg >> 8)) * sizeof(void*));
-                }
+                m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(((oparg & 0xFF) + (oparg >> 8)) * sizeof(void*));
                 break;
             case BUILD_STRING:
             case UNPACK_SEQUENCE:
-                // we need a buffer for the slow case, but we need 
+                // TODO : we need a buffer for the slow case, but we need 
                 // to avoid allocating it in loops.
-                if (m_comp != nullptr) {
-                    m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(oparg * sizeof(void*));
-                }
+                m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(oparg * sizeof(void*));
                 break;
             case DELETE_FAST:
                 if (oparg < mCode->co_argcount) {
@@ -763,9 +759,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 case GET_ITER: {
                     auto iteratorType = lastState.popNoEscape();
+                    // TODO : Allow guarded/PGC sources to be optimized.
                     auto source = AbstractValueWithSources(
                             &Iterable,
-                            newSource(new IteratorSource(iteratorType.Value->kind())));
+                            newSource(new IteratorSource(iteratorType.Value->needsGuard() ? AVK_Any: iteratorType.Value->kind())));
                     lastState.push(source);
                 }
                     break;
@@ -1690,6 +1687,8 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         }
 
         auto stackInfo = getStackInfo(curByte);
+        auto next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
+        auto nextStackInfo = getStackInfo(next_byte);
 
         size_t curStackSize = m_stack.size();
         bool skipEffect = false;
@@ -1698,9 +1697,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             m_comp->emit_pgc_probe(curByte, pgcProbeSize(curByte));
         }
 
-        auto next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
-
-        if (OPT_ENABLED(tripleBinaryFunctions) && isBinaryMathOp(byte) && isMathOp(next_byte)){
+        if (OPT_ENABLED(tripleBinaryFunctions) && stackInfo.size() >= 2 && nextStackInfo.size() >= 1 && canBeOptimized(byte, next_byte, stackInfo.top().Value->kind(), stackInfo.second().Value->kind(), nextStackInfo.top().Value->kind())){
             m_comp->emit_triple_binary_op(byte, next_byte);
             decStack(3);
             errorCheck("binary math op failed", curByte);
@@ -1886,7 +1883,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case CALL_FUNCTION:
             {
-                if (OPT_ENABLED(functionCalls) && stackInfo.nth(oparg + 1).hasSource() && stackInfo.nth(oparg + 1).Sources->isBuiltin()){
+                if (OPT_ENABLED(functionCalls) && stackInfo.size() >= (oparg + 1) && stackInfo.nth(oparg + 1).hasSource() && stackInfo.nth(oparg + 1).Sources->isBuiltin()){
                     m_comp->emit_builtin_func(oparg, stackInfo.nth(oparg + 1));
                     decStack(oparg + 1); // target + args(oparg)
                     errorCheck("builtin function call failed", curByte);
@@ -2047,8 +2044,8 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
                 auto jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
-                auto iterator = stackInfo.top();
                 if (OPT_ENABLED(inlineIterators) && !stackInfo.empty()){
+                    auto iterator = stackInfo.top();
                     forIter(
                             jumpTo,
                             &iterator
@@ -2469,10 +2466,7 @@ void AbstractInterpreter::unaryNot(size_t opcodeIndex) {
 
 AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status) {
     AbstractInterpreterResult interpreted = interpret(builtins, globals, profile, pgc_status);
-    if (!interpreted) {
-#ifdef DEBUG
-        printf("Failed to interpret. \n");
-#endif
+    if (interpreted != Success) {
         return {nullptr, interpreted};
     }
     try {

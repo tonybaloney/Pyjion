@@ -208,8 +208,13 @@ void PythonCompiler::emit_incref() {
     m_il.st_ind_i();
 }
 
-void PythonCompiler::decref() {
-    if (OPT_ENABLED(inlineDecref)){ // obj
+void PythonCompiler::decref(bool noopt) {
+    /*
+     * PyObject* is on the top of the stack
+     * Should decrement obj->ob_refcnt
+     * by either doing it inline, or calling PyJit_Decref
+     */
+    if (OPT_ENABLED(inlineDecref) && !noopt){ // obj
         Label done = emit_define_label();
         Label popAndGo = emit_define_label();
         m_il.dup();                     // obj, obj
@@ -240,7 +245,7 @@ void PythonCompiler::decref() {
 
 Local PythonCompiler::emit_allocate_stack_array(size_t bytes) {
     auto sequenceTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
-    m_il.ld_i(bytes);
+    m_il.ld_u4(bytes);
     m_il.localloc();
     m_il.st_loc(sequenceTmp);
     return sequenceTmp;
@@ -265,6 +270,7 @@ CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
         case LK_Int: return CORINFO_TYPE_INT;
         case LK_Bool: return CORINFO_TYPE_BOOL;
         case LK_Pointer: return CORINFO_TYPE_PTR;
+        case LK_NativeInt: return CORINFO_TYPE_NATIVEINT;
     }
     return CORINFO_TYPE_NATIVEINT;
 }
@@ -296,7 +302,7 @@ void PythonCompiler::emit_store_fast(int local) {
         m_il.free_local(valueTmp);
 
         // now dec ref the old value potentially freeing it.
-        decref();
+        decref(true); // Definitely don't speed up this one
     }
 }
 
@@ -482,7 +488,7 @@ void PythonCompiler::lift_n_to_top(int pos){
 }
 
 void PythonCompiler::emit_pop_top() {
-    decref();
+    decref(true);
 }
 // emit_pop_top is for the POP_TOP opcode, which should pop the stack AND decref. pop_top is just for pop'ing the value.
 void PythonCompiler::pop_top() {
@@ -1400,7 +1406,7 @@ void PythonCompiler::emit_inc_local(Local local, int value) {
 void PythonCompiler::emit_dec_local(Local local, int value) {
     emit_load_local(local);
     emit_int(value);
-    m_il.sub_with_overflow();
+    m_il.sub();
     emit_store_local(local);
 }
 
@@ -1420,8 +1426,8 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     auto exhaust = emit_define_label();
     auto exhausted = emit_define_label();
     auto end = emit_define_label();
-    auto it_seq = emit_define_local(LK_Pointer);
-    auto item = emit_define_local(LK_Pointer);
+    auto it_seq = emit_define_local(LK_NativeInt);
+    auto item = emit_define_local(LK_NativeInt);
 
     auto it = emit_spill();
 
@@ -1504,11 +1510,9 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
     auto iterable = dynamic_cast<IteratorSource*>(iterator.Sources);
     switch (iterable->kind()) {
         case AVK_List:
-            emit_varobject_iter_next(offsetof(_listiterobject, it_seq), offsetof(_listiterobject, it_index), offsetof(PyListObject, ob_item));
+            emit_varobject_iter_next(offsetof(_listiterobject, it_seq), offsetof(_listiterobject, it_index),
+                                         offsetof(PyListObject, ob_item));
             break;
-//        case AVK_Tuple:
-//            emit_varobject_iter_next(offsetof(_tupleiterobject , it_seq), offsetof(_tupleiterobject , it_index), offsetof(PyTupleObject, ob_item));
-//            break;
         default:
             return emit_for_next();
     }
@@ -1800,9 +1804,9 @@ void PythonCompiler::emit_builtin_func(size_t args, AbstractValueWithSources fun
     // Decref all the args.
     // Because this tuple was built with borrowed references, it has the effect of decref'ing all args
     emit_load_and_free_local(args_tuple);
-    decref();
+    decref(true);
     emit_load_and_free_local(function_object);
-    decref();
+    decref(true);
 }
 
 JittedCode* PythonCompiler::emit_compile() {
@@ -1818,7 +1822,16 @@ JittedCode* PythonCompiler::emit_compile() {
 #endif
         delete jitInfo;
         return nullptr;
+    } 
+#ifdef DEBUG
+    else {
+        printf("Compiling success %s from %s line %d\r\n",
+            PyUnicode_AsUTF8(m_code->co_name),
+            PyUnicode_AsUTF8(m_code->co_filename),
+            m_code->co_firstlineno
+            );
     }
+#endif
     return jitInfo;
 }
 

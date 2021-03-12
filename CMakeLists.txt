@@ -47,6 +47,10 @@ IF(CMAKE_BUILD_TYPE MATCHES Debug)
     set(BUILD_TESTS ON)
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
 
+IF(CMAKE_BUILD_TYPE MATCHES Release)
+    add_definitions(-DNDEBUG)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Release)
+
 if(DUMP_JIT_TRACES)
     message(STATUS "Enabling very-very-verbose messages")
     add_definitions(-DDUMP_JIT_TRACES)
@@ -165,6 +169,8 @@ endif()
 
 if(NET_SRC_LIB)  # use the libraries compiled from source
     set(DOTNETPATH ${CMAKE_SOURCE_DIR}/CoreCLR/artifacts/bin/coreclr/${CLR_OS_BUILD})
+    message(STATUS "Using .NET builds " ${DOTNETPATH})
+
 endif()
 
 set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/block.cpp src/pyjion/pyjitmath.cpp src/pyjion/pyjitmath.h src/pyjion/codemodel.cpp src/pyjion/binarycomp.cpp)

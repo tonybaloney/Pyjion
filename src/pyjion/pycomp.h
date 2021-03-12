@@ -498,7 +498,7 @@ private:
     void load_frame();
     void load_tstate();
     void load_local(int oparg);
-    void decref();
+    void decref(bool noopt = false);
     CorInfoType to_clr_type(LocalKind kind);
     void pop_top() override;
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);

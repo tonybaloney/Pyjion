@@ -299,8 +299,6 @@ extern PyObject* g_emptyTuple;
 
 void PyJit_DecRef(PyObject* value);
 
-int PyJit_PeriodicWork();
-
 PyObject* PyJit_UnicodeJoinArray(PyObject** items, ssize_t count);
 PyObject* PyJit_FormatObject(PyObject* item, PyObject*fmtSpec);
 PyObject* PyJit_FormatValue(PyObject* item);
