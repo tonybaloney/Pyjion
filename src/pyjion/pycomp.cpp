@@ -302,7 +302,7 @@ void PythonCompiler::emit_store_fast(int local) {
         m_il.free_local(valueTmp);
 
         // now dec ref the old value potentially freeing it.
-        decref(true); // Definitely don't speed up this one
+        decref();
     }
 }
 
@@ -488,7 +488,7 @@ void PythonCompiler::lift_n_to_top(int pos){
 }
 
 void PythonCompiler::emit_pop_top() {
-    decref(true);
+    decref();
 }
 // emit_pop_top is for the POP_TOP opcode, which should pop the stack AND decref. pop_top is just for pop'ing the value.
 void PythonCompiler::pop_top() {
@@ -1804,9 +1804,9 @@ void PythonCompiler::emit_builtin_func(size_t args, AbstractValueWithSources fun
     // Decref all the args.
     // Because this tuple was built with borrowed references, it has the effect of decref'ing all args
     emit_load_and_free_local(args_tuple);
-    decref(true);
+    decref();
     emit_load_and_free_local(function_object);
-    decref(true);
+    decref();
 }
 
 JittedCode* PythonCompiler::emit_compile() {
