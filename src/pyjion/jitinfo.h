@@ -1723,7 +1723,7 @@ public:
                 helper = (void*)&raiseOverflowExceptionHelper;
                 break;
             case CORINFO_HELP_FAIL_FAST:
-                helper = (void*)&failFastExceptionHelper;
+                failFastExceptionHelper();
                 break;
             case CORINFO_HELP_RNGCHKFAIL:
                 helper = (void*)&rangeCheckExceptionHelper;
@@ -1762,7 +1762,8 @@ public:
             case CORINFO_HELP_OVERFLOW:
                 return (void*)raiseOverflowExceptionHelper;
             case CORINFO_HELP_FAIL_FAST:
-                return (void*)failFastExceptionHelper;
+                failFastExceptionHelper();
+                break;
             case CORINFO_HELP_RNGCHKFAIL:
                 return (void*)rangeCheckExceptionHelper;
             case CORINFO_HELP_THROWDIVZERO:
