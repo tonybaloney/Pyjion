@@ -340,13 +340,18 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
 
         m_il.dup();
         emit_null();
+
         emit_branch(BranchNotEqual, success);
-        emit_int(-1);
-        emit_store_local(result);
-        emit_branch(BranchAlways, endbranch);
+            // Failure
+            emit_int(1);
+            emit_store_local(result);
+            emit_branch(BranchAlways, endbranch);
+
         emit_mark_label(success);
-        emit_dup();
-        emit_incref();
+            // Success
+            emit_dup();
+            emit_incref();
+
         emit_mark_label(endbranch);
     }
 

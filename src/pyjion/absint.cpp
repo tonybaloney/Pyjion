@@ -1264,9 +1264,7 @@ AbstractSource* AbstractInterpreter::addPgcSource(size_t opcodeIndex) {
  // branches to the current error handler.  Consumes the error code in the process
 void AbstractInterpreter::intErrorCheck(const char* reason, size_t curByte) {
     auto noErr = m_comp->emit_define_label();
-    m_comp->emit_int(0);
-    m_comp->emit_branch(BranchEqual, noErr);
-
+    m_comp->emit_branch(BranchFalse, noErr);
     branchRaise(reason, curByte);
     m_comp->emit_mark_label(noErr);
 }
