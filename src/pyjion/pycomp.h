@@ -307,6 +307,9 @@ public:
     void emit_new_tuple(size_t size) override;
     void emit_tuple_store(size_t size) override;
     void emit_tuple_load(size_t index) override;
+    void emit_list_load(size_t index) override;
+    void emit_tuple_length() override;
+    void emit_list_length() override;
 
     void emit_new_list(size_t argCnt) override;
     void emit_list_store(size_t argCnt) override;
@@ -352,7 +355,10 @@ public:
 
     void emit_load_build_class() override;
 
-    void emit_unpack_sequence(Local sequence, Local sequenceStorage, Label success, size_t size) override;
+    void emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) override;
+    void emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) override;
+    void emit_unpack_list(size_t size, AbstractValueWithSources iterable) override;
+    void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) override;
     void emit_load_array(int index) override;
     void emit_store_to_array(Local array, int index) override;
 

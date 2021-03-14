@@ -1498,6 +1498,13 @@ TEST_CASE("test slicing"){
     }
 }
 TEST_CASE("test unpacking", "[!mayfail]") {
+    SECTION("test basic unpack"){
+        auto t = CompilerTest(
+                "def f():\n    a, b = (1, 2)\n    return a + b"
+        );
+        CHECK(t.returns() == "3");
+    }
+
     SECTION("test83") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = range(3)\n    return a"

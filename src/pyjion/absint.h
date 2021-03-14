@@ -416,7 +416,7 @@ private:
 
     void loadFast(int local, size_t opcodeIndex);
     void loadFastWorker(int local, bool checkUnbound, int curByte);
-    void unpackSequence(size_t size, size_t opcode);
+    void unpackSequence(size_t size, size_t opcode, AbstractValueWithSources sources);
 
     void popExcept();
 

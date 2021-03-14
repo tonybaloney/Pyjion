@@ -240,6 +240,10 @@ public:
     // Stores all of the values on the stack into a tuple
     virtual void emit_tuple_store(size_t size) = 0;
 	virtual void emit_tuple_load(size_t index) = 0;
+    virtual void emit_list_load(size_t index) = 0;
+    virtual void emit_tuple_length() = 0;
+    virtual void emit_list_length() = 0;
+
     // Convert a list to a tuple
     virtual void emit_list_to_tuple() = 0;
 
@@ -305,7 +309,10 @@ public:
     virtual void emit_load_build_class() = 0;
 
     // Unpacks the sequence onto the stack
-    virtual void emit_unpack_sequence(Local sequence, Local sequenceStorage, Label success, size_t size) = 0;
+    virtual void emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_list(size_t size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) = 0;
     // Unpacks the sequence onto the stack, supporting a remainder list
     virtual void emit_unpack_ex(Local sequence, size_t leftSize, size_t rightSize, Local sequenceStorage, Local list, Local remainder) = 0;
     // Loads an element from the array on the stack

@@ -126,9 +126,6 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
                 m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(((oparg & 0xFF) + (oparg >> 8)) * sizeof(void*));
                 break;
             case BUILD_STRING:
-            case UNPACK_SEQUENCE:
-                // TODO : we need a buffer for the slow case, but we need 
-                // to avoid allocating it in loops.
                 m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(oparg * sizeof(void*));
                 break;
             case DELETE_FAST:
@@ -1850,7 +1847,10 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case LOAD_FAST:
                 loadFast(oparg, opcodeIndex); break;
             case UNPACK_SEQUENCE:
-                unpackSequence(oparg, curByte);
+                m_comp->emit_unpack_sequence(oparg, stackInfo.top());
+                decStack();
+                intErrorCheck("failed to unpack");
+                incStack(oparg);
                 break;
             case UNPACK_EX:
                 unpackEx(oparg, curByte); break;
@@ -2559,39 +2559,6 @@ void AbstractInterpreter::returnValue(size_t opcodeIndex) {
     m_comp->emit_store_local(m_retValue);
     m_comp->emit_branch(BranchAlways, m_retLabel);
     decStack();
-}
-
-
-void AbstractInterpreter::unpackSequence(size_t size, size_t opcode) {
-    auto valueTmp = m_comp->emit_spill();
-    decStack();
-
-    auto success = m_comp->emit_define_label();
-    m_comp->emit_unpack_sequence(valueTmp, m_sequenceLocals[opcode], success, size);
-
-    branchRaise("failed to unpack sequence", opcode);
-
-    m_comp->emit_mark_label(success);
-    auto fastTmp = m_comp->emit_spill();
-
-    // Equivalent to CPython's:
-    //while (oparg--) {
-    //    item = items[oparg];
-    //    Py_INCREF(item);
-    //    PUSH(item);
-    //}
-
-    auto tmpOpArg = size;
-    while (tmpOpArg--) {
-        m_comp->emit_load_local(fastTmp);
-        m_comp->emit_load_array(tmpOpArg);
-        incStack();
-    }
-
-    m_comp->emit_load_and_free_local(valueTmp);
-    m_comp->emit_pop_top();
-
-    m_comp->emit_free_local(fastTmp);
 }
 
 void AbstractInterpreter::forIter(size_t loopIndex, AbstractValueWithSources* iterator) {
