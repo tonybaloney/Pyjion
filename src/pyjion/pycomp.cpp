@@ -255,7 +255,7 @@ void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources ite
     Local t_value = emit_define_local(LK_NativeInt);
     Label raiseValueError = emit_define_label();
     Label returnValues = emit_define_label();
-    size_t idx = size;
+    size_t idx = size, idx2 = size;
     emit_store_local(t_value);
 
     emit_load_local(t_value);
@@ -275,6 +275,10 @@ void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources ite
     emit_branch(BranchAlways, returnValues);
 
     emit_mark_label(raiseValueError);
+    while (idx2--){
+        emit_null();
+    }
+    emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
     emit_int(-1);
 
     emit_mark_label(returnValues);
@@ -305,6 +309,10 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
     emit_branch(BranchAlways, returnValues);
 
     emit_mark_label(raiseValueError);
+    while (idx2--) {
+        emit_null();
+    }
+    emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
     emit_int(-1);
 
     emit_mark_label(returnValues);
@@ -313,19 +321,38 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
 }
 
 void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources iterable) {
-    Local t_value = emit_define_local(LK_NativeInt);
-    emit_store_local(t_value);
+    Local t_iter = emit_define_local(LK_NativeInt), t_object = emit_define_local(LK_NativeInt);
+    Local result = emit_define_local(LK_Int);
+    Label success = emit_define_label(), endbranch = emit_define_label();
+
+    m_il.ld_i4(0);
+    emit_store_local(result);
+
+    m_il.dup();
+    emit_getiter();
+    emit_store_local(t_iter);
+    emit_store_local(t_object);
 
     size_t idx = size;
     while (idx--) {
-        emit_load_local(t_value);
-        m_il.ld_i8(idx);
-        m_il.emit_call(METHOD_SUBSCR_OBJ_I);
+        emit_load_local(t_iter);
+        emit_for_next();
+
+        m_il.dup();
+        emit_null();
+        emit_branch(BranchNotEqual, success);
+        emit_int(-1);
+        emit_store_local(result);
+        emit_branch(BranchAlways, endbranch);
+        emit_mark_label(success);
         emit_dup();
         emit_incref();
+        emit_mark_label(endbranch);
     }
-    emit_load_and_free_local(t_value);
+
+    emit_load_and_free_local(t_object);
     decref();
+    emit_load_and_free_local(result);
 }
 
 void PythonCompiler::emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) {

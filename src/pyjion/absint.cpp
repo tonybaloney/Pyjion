@@ -1849,8 +1849,8 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case UNPACK_SEQUENCE:
                 m_comp->emit_unpack_sequence(oparg, stackInfo.top());
                 decStack();
-                intErrorCheck("failed to unpack");
                 incStack(oparg);
+                intErrorCheck("failed to unpack");
                 break;
             case UNPACK_EX:
                 unpackEx(oparg, curByte); break;

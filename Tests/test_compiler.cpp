@@ -1570,7 +1570,7 @@ TEST_CASE("test unpacking", "[!mayfail]") {
                 "def f():\n    a, *b, c = [1, 3]\n    return b"
         );
         CHECK(t.returns() == "[]");
-    }SECTION("test unpack") {
+    }SECTION("test unpack from function call") {
         auto t = CompilerTest(
                 "def f():\n    a, b = range(2)\n    return a"
         );
