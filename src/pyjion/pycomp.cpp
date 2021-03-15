@@ -321,9 +321,9 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
 }
 
 void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources iterable) {
+    vector<Local> iterated(size);
     Local t_iter = emit_define_local(LK_NativeInt), t_object = emit_define_local(LK_NativeInt);
     Local result = emit_define_local(LK_Int);
-    Label success = emit_define_label(), endbranch = emit_define_label();
 
     m_il.ld_i4(0);
     emit_store_local(result);
@@ -335,13 +335,13 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
 
     size_t idx = size;
     while (idx--) {
+        iterated[idx] = emit_define_local(LK_NativeInt);
+        Label success = emit_define_label(), endbranch = emit_define_label();
         emit_load_local(t_iter);
         emit_for_next();
 
         m_il.dup();
-        emit_null();
-
-        emit_branch(BranchNotEqual, success);
+        emit_branch(BranchTrue, success);
             // Failure
             emit_int(1);
             emit_store_local(result);
@@ -353,7 +353,10 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
             emit_incref();
 
         emit_mark_label(endbranch);
+        emit_store_local(iterated[idx]);
     }
+    for (int i = 0; i < size ; i++)
+        emit_load_local(iterated[i]);
 
     emit_load_and_free_local(t_object);
     decref();
@@ -370,8 +373,9 @@ void PythonCompiler::emit_unpack_sequence(size_t size, AbstractValueWithSources 
             default:
                 return emit_unpack_generic(size, iterable);
         }
+    } else {
+        return emit_unpack_generic(size, iterable);
     }
-    return emit_unpack_generic(size, iterable);
 }
 
 /************************************************************************
