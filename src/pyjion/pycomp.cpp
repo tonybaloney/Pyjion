@@ -263,23 +263,23 @@ void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources ite
     emit_int(size);
     emit_branch(BranchNotEqual,raiseValueError);
 
+        while (idx--) {
+            emit_load_local(t_value);
+            emit_tuple_load(idx);
+            emit_dup();
+            emit_incref();
+        }
+        emit_int(0);
 
-    while (idx--) {
-        emit_load_local(t_value);
-        emit_tuple_load(idx);
-        emit_dup();
-        emit_incref();
-    }
-    emit_int(0);
-
-    emit_branch(BranchAlways, returnValues);
+        emit_branch(BranchAlways, returnValues);
 
     emit_mark_label(raiseValueError);
-    while (idx2--){
-        emit_null();
-    }
-    emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
-    emit_int(-1);
+
+        while (idx2--){
+            emit_null();
+        }
+        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+        emit_int(-1);
 
     emit_mark_label(returnValues);
     emit_load_and_free_local(t_value);
@@ -348,7 +348,7 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
             emit_branch(BranchAlways, endbranch);
 
         emit_mark_label(success);
-            // Success
+            // Success, Py_INCREF
             emit_dup();
             emit_incref();
 
@@ -357,7 +357,8 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
     }
     for (int i = 0; i < size ; i++)
         emit_load_local(iterated[i]);
-
+    emit_load_and_free_local(t_iter);
+    decref();
     emit_load_and_free_local(t_object);
     decref();
     emit_load_and_free_local(result);

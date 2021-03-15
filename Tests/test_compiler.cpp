@@ -49,7 +49,7 @@ private:
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
         auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode.get(), frame, tstate, nullptr);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
-        //Py_DECREF(frame);
+        Py_DECREF(frame);
         size_t collected = PyGC_Collect();
         printf("Collected %zu values\n", collected);
         REQUIRE(!m_jittedcode->j_failed);
@@ -1467,7 +1467,9 @@ TEST_CASE("Test unpacking with UNPACK_SEQUENCE", "[!mayfail]") {
                 "def f():\n    a, b = (1, 2)\n    return a, b"
         );
         CHECK(t.returns() == "(1, 2)");
-    }SECTION("Too many items to unpack from list raises valueerror") {
+    }
+
+    SECTION("Too many items to unpack from list raises valueerror") {
         auto t = CompilerTest(
                 "def f():\n    x = [1,2,3]\n    a, b = x"
         );
