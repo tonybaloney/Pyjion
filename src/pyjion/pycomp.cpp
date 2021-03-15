@@ -336,21 +336,27 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
     size_t idx = size;
     while (idx--) {
         iterated[idx] = emit_define_local(LK_NativeInt);
-        Label success = emit_define_label(), endbranch = emit_define_label();
+        Label successOrStopIter = emit_define_label(), endbranch = emit_define_label();
         emit_load_local(t_iter);
         emit_for_next();
 
         m_il.dup();
-        emit_branch(BranchTrue, success);
+        emit_branch(BranchTrue, successOrStopIter);
             // Failure
             emit_int(1);
             emit_store_local(result);
             emit_branch(BranchAlways, endbranch);
 
-        emit_mark_label(success);
-            // Success, Py_INCREF
-            emit_dup();
-            emit_incref();
+        emit_mark_label(successOrStopIter);
+            // Either success or received stopiter (0xff)
+            m_il.dup();
+            emit_ptr((void *) 0xff);
+            emit_branch(BranchNotEqual, endbranch);
+                m_il.pop();
+                emit_null();
+                emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+                emit_int(1);
+                emit_store_local(result);
 
         emit_mark_label(endbranch);
         emit_store_local(iterated[idx]);

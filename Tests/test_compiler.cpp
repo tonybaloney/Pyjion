@@ -49,7 +49,7 @@ private:
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
         auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode.get(), frame, tstate, nullptr);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
-        Py_DECREF(frame);
+
         size_t collected = PyGC_Collect();
         printf("Collected %zu values\n", collected);
         REQUIRE(!m_jittedcode->j_failed);
@@ -85,6 +85,12 @@ public:
         }
 
         return std::string(repr);
+    }
+
+    PyObject* return_value() {
+        auto res = run();
+        REQUIRE(res != nullptr);
+        return res;
     }
 
     PyObject *raises() {
@@ -1483,12 +1489,44 @@ TEST_CASE("Test unpacking with UNPACK_SEQUENCE", "[!mayfail]") {
         CHECK(t.raises() == PyExc_ValueError);
     }
 
+    SECTION("test sum from function call") {
+        auto t = CompilerTest(
+                "def f():\n    a, b, c = range(3)\n    return a + b + c"
+        );
+        CHECK(t.returns() == "3");
+    }
+
     SECTION("test unpack from function call") {
         auto t = CompilerTest(
-                "def f():\n    a, b = range(2)\n    return a, b"
+                "def f():\n    a, b = range(2000, 2002)\n    return a, b"
         );
-        CHECK(t.returns() == "(0, 1)");
+        PyObject* tuple = t.return_value();
+        REQUIRE(tuple->ob_type == &PyTuple_Type);
+        CHECK(((PyVarObject*)tuple)->ob_size == 2);
+        CHECK(((PyObject*)tuple)->ob_refcnt == 1);
+        auto first = PyTuple_GetItem(tuple, 0);
+        auto second = PyTuple_GetItem(tuple, 1);
+        REQUIRE(first != nullptr);
+        CHECK(first->ob_refcnt == 2);
+        REQUIRE(second != nullptr);
+        CHECK(second->ob_refcnt == 2);
+        Py_DECREF(tuple);
     }
+
+    SECTION("test basic unpack again") {
+        auto t = CompilerTest(
+                "def f():\n    a, b = (1, 2)\n    return a, b"
+        );
+        CHECK(t.returns() == "(1, 2)");
+    }
+
+    SECTION("test unpack from function call too few") {
+        auto t = CompilerTest(
+                "def f():\n    a, b, c = range(2)\n    return a, b, c"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
+
     SECTION("test multiple assignments by unpack") {
         auto t = CompilerTest(
                 "def f():\n    a, b = 1, 2\n    return a, b"
