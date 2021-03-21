@@ -362,9 +362,10 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
         emit_store_local(iterated[idx]);
     }
     for (int i = 0; i < size ; i++)
-        emit_load_local(iterated[i]);
+        emit_load_and_free_local(iterated[i]);
     emit_load_and_free_local(t_iter);
     decref();
+    emit_free_local(t_object);
     emit_load_and_free_local(result);
 }
 
