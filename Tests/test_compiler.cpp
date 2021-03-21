@@ -1461,7 +1461,7 @@ TEST_CASE("test slicing"){
         CHECK(t.returns() == "[1, 3]");
     }
 }
-TEST_CASE("Test unpacking with UNPACK_SEQUENCE", "[!mayfail]") {
+TEST_CASE("Test unpacking with UNPACK_SEQUENCE") {
     SECTION("test basic unpack") {
         auto t = CompilerTest(
                 "def f():\n    a, b = (1, 2)\n    return a, b"
