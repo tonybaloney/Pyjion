@@ -87,12 +87,6 @@ public:
         return std::string(repr);
     }
 
-    PyObject* return_value() {
-        auto res = run();
-        REQUIRE(res != nullptr);
-        return res;
-    }
-
     PyObject *raises() {
         auto res = run();
         REQUIRE(res == nullptr);
@@ -1500,17 +1494,7 @@ TEST_CASE("Test unpacking with UNPACK_SEQUENCE", "[!mayfail]") {
         auto t = CompilerTest(
                 "def f():\n    a, b = range(2000, 2002)\n    return a, b"
         );
-        PyObject* tuple = t.return_value();
-        REQUIRE(tuple->ob_type == &PyTuple_Type);
-        CHECK(((PyVarObject*)tuple)->ob_size == 2);
-        CHECK(((PyObject*)tuple)->ob_refcnt == 1);
-        auto first = PyTuple_GetItem(tuple, 0);
-        auto second = PyTuple_GetItem(tuple, 1);
-        REQUIRE(first != nullptr);
-        CHECK(first->ob_refcnt == 2);
-        REQUIRE(second != nullptr);
-        CHECK(second->ob_refcnt == 2);
-        Py_DECREF(tuple);
+        CHECK(t.returns() == "(2000, 2001)");
     }
 
     SECTION("test basic unpack again") {

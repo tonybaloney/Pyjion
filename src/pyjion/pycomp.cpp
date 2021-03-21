@@ -365,13 +365,11 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
         emit_load_local(iterated[i]);
     emit_load_and_free_local(t_iter);
     decref();
-    emit_load_and_free_local(t_object);
-    decref();
     emit_load_and_free_local(result);
 }
 
 void PythonCompiler::emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) {
-    if (iterable.Value->known()) {
+    if (iterable.Value->known() && !iterable.Value->needsGuard()) {
         switch (iterable.Value->kind()) {
             case AVK_Tuple:
                 return emit_unpack_tuple(size, iterable);
