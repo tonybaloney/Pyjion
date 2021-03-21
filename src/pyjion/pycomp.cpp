@@ -251,6 +251,137 @@ Local PythonCompiler::emit_allocate_stack_array(size_t bytes) {
     return sequenceTmp;
 }
 
+void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) {
+    Local t_value = emit_define_local(LK_NativeInt);
+    Label raiseValueError = emit_define_label();
+    Label returnValues = emit_define_label();
+    size_t idx = size, idx2 = size;
+    emit_store_local(t_value);
+
+    emit_load_local(t_value);
+    emit_tuple_length();
+    emit_int(size);
+    emit_branch(BranchNotEqual,raiseValueError);
+
+        while (idx--) {
+            emit_load_local(t_value);
+            emit_tuple_load(idx);
+            emit_dup();
+            emit_incref();
+        }
+        emit_int(0);
+
+        emit_branch(BranchAlways, returnValues);
+
+    emit_mark_label(raiseValueError);
+
+        while (idx2--){
+            emit_null();
+        }
+        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+        emit_int(-1);
+
+    emit_mark_label(returnValues);
+    emit_load_and_free_local(t_value);
+    decref();
+}
+
+void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iterable) {
+    Local t_value = emit_define_local(LK_NativeInt);
+    Label raiseValueError = emit_define_label();
+    Label returnValues = emit_define_label();
+    size_t idx = size, idx2 = size;
+
+    emit_store_local(t_value);
+
+    emit_load_local(t_value);
+    emit_list_length();
+    emit_int(size);
+    emit_branch(BranchNotEqual,raiseValueError);
+
+    while (idx--) {
+        emit_load_local(t_value);
+        emit_list_load(idx);
+        emit_dup();
+        emit_incref();
+    }
+    emit_int(0);
+    emit_branch(BranchAlways, returnValues);
+
+    emit_mark_label(raiseValueError);
+    while (idx2--) {
+        emit_null();
+    }
+    emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+    emit_int(-1);
+
+    emit_mark_label(returnValues);
+    emit_load_and_free_local(t_value);
+    decref();
+}
+
+void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources iterable) {
+    vector<Local> iterated(size);
+    Local t_iter = emit_define_local(LK_NativeInt), t_object = emit_define_local(LK_NativeInt);
+    Local result = emit_define_local(LK_Int);
+
+    m_il.ld_i4(0);
+    emit_store_local(result);
+
+    m_il.dup();
+    emit_getiter();
+    emit_store_local(t_iter);
+    emit_store_local(t_object);
+
+    size_t idx = size;
+    while (idx--) {
+        iterated[idx] = emit_define_local(LK_NativeInt);
+        Label successOrStopIter = emit_define_label(), endbranch = emit_define_label();
+        emit_load_local(t_iter);
+        emit_for_next();
+
+        m_il.dup();
+        emit_branch(BranchTrue, successOrStopIter);
+            // Failure
+            emit_int(1);
+            emit_store_local(result);
+            emit_branch(BranchAlways, endbranch);
+
+        emit_mark_label(successOrStopIter);
+            // Either success or received stopiter (0xff)
+            m_il.dup();
+            emit_ptr((void *) 0xff);
+            emit_branch(BranchNotEqual, endbranch);
+                m_il.pop();
+                emit_null();
+                emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+                emit_int(1);
+                emit_store_local(result);
+
+        emit_mark_label(endbranch);
+        emit_store_local(iterated[idx]);
+    }
+    for (int i = 0; i < size ; i++)
+        emit_load_local(iterated[i]);
+    emit_load_and_free_local(t_iter);
+    decref();
+    emit_load_and_free_local(result);
+}
+
+void PythonCompiler::emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) {
+    if (iterable.Value->known() && !iterable.Value->needsGuard()) {
+        switch (iterable.Value->kind()) {
+            case AVK_Tuple:
+                return emit_unpack_tuple(size, iterable);
+            case AVK_List:
+                return emit_unpack_list(size, iterable);
+            default:
+                return emit_unpack_generic(size, iterable);
+        }
+    } else {
+        return emit_unpack_generic(size, iterable);
+    }
+}
 
 /************************************************************************
  * Compiler interface implementation
@@ -745,6 +876,25 @@ void PythonCompiler::emit_tuple_load(size_t index) {
 	m_il.ld_ind_i();
 }
 
+void PythonCompiler::emit_tuple_length(){
+    m_il.ld_i(offsetof(PyVarObject, ob_size));
+    m_il.add();
+    m_il.ld_ind_i();
+}
+
+void PythonCompiler::emit_list_load(size_t index) {
+    m_il.ld_i(index * sizeof(size_t) + offsetof(PyListObject, ob_item));
+    m_il.add();
+    m_il.ld_ind_i();
+}
+
+void PythonCompiler::emit_list_length(){
+    m_il.ld_i(offsetof(PyVarObject, ob_size));
+    m_il.add();
+    m_il.ld_ind_i();
+}
+
+
 void PythonCompiler::emit_tuple_store(size_t argCnt) {
     /// This function emits a tuple from the stack, only using borrowed references.
     auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
@@ -1052,22 +1202,6 @@ void PythonCompiler::emit_import_star() {
 void PythonCompiler::emit_load_build_class() {
     load_frame();
     m_il.emit_call(METHOD_GETBUILDCLASS_TOKEN);
-}
-
-void PythonCompiler::emit_unpack_sequence(Local sequence, Local sequenceStorage, Label success, size_t size) {
-    // load the iterable, the count, and our temporary
-    // storage if we need to iterate over the object.
-    m_il.ld_loc(sequence);
-    m_il.ld_i(size);
-    m_il.ld_loc(sequenceStorage);
-    m_il.emit_call(METHOD_UNPACK_SEQUENCE_TOKEN);
-
-    m_il.dup();
-    m_il.load_null();
-    m_il.branch(BranchNotEqual, success);
-    m_il.pop();
-    m_il.ld_loc(sequence);
-    decref();
 }
 
 void PythonCompiler::emit_load_array(int index) {

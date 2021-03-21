@@ -1659,9 +1659,9 @@ PyObject* PyJit_GetIter(PyObject* iterable) {
 
 PyObject* PyJit_IterNext(PyObject* iter) {
     if (iter == nullptr || !PyIter_Check(iter)){
-        PyErr_Format(PyExc_ValueError,
-                     "Invalid iterator given to iternext, got %s - %s at %p.", ObjInfo(iter),
-                     PyUnicode_AsUTF8(PyObject_Repr(iter)), iter);
+        PyErr_Format(PyExc_TypeError,
+                     "Unable to iterate, this type is not iterable. I got %s - %s.", ObjInfo(iter),
+                     PyUnicode_AsUTF8(PyObject_Repr(iter)));
         return nullptr;
     }
 
