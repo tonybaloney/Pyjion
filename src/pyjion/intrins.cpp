@@ -1863,38 +1863,6 @@ void PyJit_UnpackError(size_t expected, size_t got) {
     }
 }
 
-// Unpacks the given sequence and returns a pointer to where the sequence
-// is stored.  If this is a type we can just grab the array from it returns
-// the array.  Otherwise we unpack the sequence into tempStorage which was
-// allocated on the stack when we entered the generated method body.
-PyObject** PyJit_UnpackSequence(PyObject* seq, size_t size, PyObject** tempStorage) {
-    if (PyTuple_CheckExact(seq)) {
-        if (PyTuple_GET_SIZE(seq) == size) {
-            PyObject** res = ((PyTupleObject *)seq)->ob_item;
-            for (int i = 0; i < size; i++) {
-                Py_INCREF(res[i]);
-            }
-            return res;
-        }
-
-        PyJit_UnpackError(size, PyTuple_GET_SIZE(seq));
-        return nullptr;
-    }
-    else if (PyList_CheckExact(seq)) {
-        if (PyList_GET_SIZE(seq) == size) {
-            PyObject** res = ((PyListObject *)seq)->ob_item;
-            for (int i = 0; i < size; i++) {
-                Py_INCREF(res[i]);
-            }
-            return res;
-        }
-        PyJit_UnpackError(size, PyList_GET_SIZE(seq));
-        return nullptr;
-    }
-
-    return PyJit_UnpackSequenceEx(seq, size, 0, tempStorage, nullptr, nullptr);
-}
-
 PyObject* PyJit_LoadAttr(PyObject* owner, PyObject* name) {
     PyObject *res = PyObject_GetAttr(owner, name);
     Py_DECREF(owner);
@@ -2556,12 +2524,14 @@ void PyJit_DecRef(PyObject* value) {
 	Py_XDECREF(value);
 }
 
-PyObject* PyJit_UnicodeJoinArray(PyObject** items, ssize_t count) {
+PyObject* PyJit_UnicodeJoinArray(PyObject* items, ssize_t count) {
 	auto empty = PyUnicode_New(0, 0);
-	auto res = _PyUnicode_JoinArray(empty, items, count);
-	for (auto i = 0; i < count; i++) {
-		Py_DECREF(items[i]);
+	auto items_vec = std::vector<PyObject*>(count) ;
+	for (size_t i = 0 ; i < count ; i++){
+	    items_vec[i] = PyTuple_GET_ITEM(items, i);
 	}
+	auto res = _PyUnicode_JoinArray(empty, items_vec.data(), count);
+	Py_DECREF(items);
 	Py_DECREF(empty);
 	return res;
 }

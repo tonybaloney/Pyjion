@@ -125,9 +125,6 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
             case UNPACK_EX:
                 m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(((oparg & 0xFF) + (oparg >> 8)) * sizeof(void*));
                 break;
-            case BUILD_STRING:
-                m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(oparg * sizeof(void*));
-                break;
             case DELETE_FAST:
                 if (oparg < mCode->co_argcount) {
                     // this local is deleted, so we need to check for assignment
@@ -2267,20 +2264,12 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             }
             case BUILD_STRING:
             {
-                Local stackArray = m_sequenceLocals[curByte];
-                Local tmp;
-                for (size_t i = 0; i < oparg; i++) {
-                    m_comp->emit_store_to_array(stackArray, oparg - i - 1);
-                    decStack();
-                }
-
-                // Array
-                m_comp->emit_load_local(stackArray);
-                // Count
+                buildTuple(oparg);
                 m_comp->emit_long_long(oparg);
-
+                incStack(2);
                 m_comp->emit_unicode_joinarray();
-
+                decStack(2);
+                errorCheck("build string (fstring) failed", curByte);
                 incStack();
                 break;
             }

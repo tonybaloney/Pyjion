@@ -249,12 +249,6 @@ PyObject* PyJit_BuildClass(PyFrameObject *f);
 // address where the remainder live.
 PyObject** PyJit_UnpackSequenceEx(PyObject* seq, size_t leftSize, size_t rightSize, PyObject** tempStorage, PyObject** listRes, PyObject*** remainder);
 
-// Unpacks the given sequence and returns a pointer to where the sequence
-// is stored.  If this is a type we can just grab the array from it returns
-// the array.  Otherwise we unpack the sequence into tempStorage which was
-// allocated on the stack when we entered the generated method body.
-PyObject** PyJit_UnpackSequence(PyObject* seq, size_t size, PyObject** tempStorage);
-
 PyObject* PyJit_LoadAttr(PyObject* owner, PyObject* name);
 
 int PyJit_StoreAttr(PyObject* value, PyObject* owner, PyObject* name);
@@ -299,7 +293,7 @@ extern PyObject* g_emptyTuple;
 
 void PyJit_DecRef(PyObject* value);
 
-PyObject* PyJit_UnicodeJoinArray(PyObject** items, ssize_t count);
+PyObject* PyJit_UnicodeJoinArray(PyObject* items, ssize_t count);
 PyObject* PyJit_FormatObject(PyObject* item, PyObject*fmtSpec);
 PyObject* PyJit_FormatValue(PyObject* item);
 
