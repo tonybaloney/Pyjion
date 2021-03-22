@@ -299,21 +299,22 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
     emit_int(size);
     emit_branch(BranchNotEqual,raiseValueError);
 
-    while (idx--) {
-        emit_load_local(t_value);
-        emit_list_load(idx);
-        emit_dup();
-        emit_incref();
-    }
-    emit_int(0);
-    emit_branch(BranchAlways, returnValues);
+        while (idx--) {
+            emit_load_local(t_value);
+            emit_list_load(idx);
+            emit_dup();
+            emit_incref();
+        }
+        emit_int(0);
+        emit_branch(BranchAlways, returnValues);
 
     emit_mark_label(raiseValueError);
-    while (idx2--) {
-        emit_null();
-    }
-    emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
-    emit_int(-1);
+
+        while (idx2--) {
+            emit_null();
+        }
+        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+        emit_int(-1);
 
     emit_mark_label(returnValues);
     emit_load_and_free_local(t_value);
@@ -884,8 +885,13 @@ void PythonCompiler::emit_tuple_length(){
 }
 
 void PythonCompiler::emit_list_load(size_t index) {
-    m_il.ld_i(index * sizeof(size_t) + offsetof(PyListObject, ob_item));
+    m_il.ld_i(offsetof(PyListObject, ob_item));
     m_il.add();
+    m_il.ld_ind_i();
+    if (index > 0) {
+        m_il.ld_i(index * sizeof(size_t));
+        m_il.add();
+    }
     m_il.ld_ind_i();
 }
 

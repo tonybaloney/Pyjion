@@ -1542,26 +1542,20 @@ TEST_CASE("Test unpacking with UNPACK_SEQUENCE") {
     SECTION("test deleting unpacked vars 1") {
         // Lifted from the stdlib test suite test_grammar test_del
         auto t = CompilerTest(
-                "def f():"
-                "        # 'del' exprlist\n"
+                "def f():\n"
                 "        abc = [1,2,3]\n"
                 "        x, y, z = abc\n"
                 "        xyz = x, y, z\n"
                 "        del abc\n"
                 "        del x, y, (z, xyz)\n"
-                "        del x\n"
-                "        del y,\n"
-                "        del (z)\n"
-                "        del ()\n"
         );
         CHECK(t.returns() == "None");
     }
     SECTION("test deleting unpacked vars 2") {
         auto t = CompilerTest(
-                "def f():"
+                "def f():\n"
                 "        a, b, c, d, e, f, g = \"abcdefg\"\n"
                 "        del a, (b, c), (d, (e, f))\n"
-                "\n"
                 "        a, b, c, d, e, f, g = \"abcdefg\"\n"
                 "        del a, [b, c], (d, [e, f])\n"
         );
@@ -1569,7 +1563,7 @@ TEST_CASE("Test unpacking with UNPACK_SEQUENCE") {
     }
     SECTION("test deleting unpacked vars 3"){
         auto t = CompilerTest(
-                "def f():"
+                "def f():\n"
                 "        abcd = list(\"abcd\")\n"
                 "        del abcd[1:2]"
         );
