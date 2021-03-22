@@ -63,7 +63,7 @@
 #define METHOD_GETBUILDCLASS_TOKEN               0x00000011
 #define METHOD_LOADNAME_TOKEN                    0x00000012
 #define METHOD_STORENAME_TOKEN                   0x00000013
-#define METHOD_UNPACK_SEQUENCE_TOKEN             0x00000014
+#define METHOD_SEQUENCE_AS_LIST                  0x00000014
 #define METHOD_UNPACK_SEQUENCEEX_TOKEN           0x00000015
 #define METHOD_DELETENAME_TOKEN                  0x00000016
 #define METHOD_PYCELL_SET_TOKEN                  0x00000017
@@ -359,10 +359,7 @@ public:
     void emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) override;
     void emit_unpack_list(size_t size, AbstractValueWithSources iterable) override;
     void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) override;
-    void emit_load_array(int index) override;
-    void emit_store_to_array(Local array, int index) override;
-
-    void emit_unpack_ex(Local sequence, size_t leftSize, size_t rightSize, Local sequenceStorage, Local list, Local remainder) override;
+    void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) override;
 
     // Emits a call for the specified argument count.  If the compiler
     // can't emit a call with this number of args then it returns false,
@@ -396,7 +393,6 @@ public:
     Local emit_define_local(bool cache) override;
     Local emit_define_local(LocalKind kind) override;
     void emit_free_local(Local local) override;
-    Local emit_allocate_stack_array(size_t elements) override;
 
     void emit_set_add() override;
     void emit_map_add() override;

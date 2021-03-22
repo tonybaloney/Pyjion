@@ -1573,24 +1573,24 @@ TEST_CASE("Test unpacking with UNPACK_SEQUENCE") {
 
 TEST_CASE("Test unpacking with UNPACK_EX", "[!mayfail]") {
     SECTION("failure to unpack shouldn't crash, should raise Python exception") {
-    auto t = CompilerTest(
-            "def f():\n    x = [1]\n    a, b, *c = x"
-    );
-    CHECK(t.raises() == PyExc_ValueError);
+        auto t = CompilerTest(
+                "def f():\n    x = [1]\n    a, b, *c = x"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
     }
-    SECTION("test83") {
+    SECTION("basic unpack from range iterator, return left") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = range(3)\n    return a"
         );
         CHECK(t.returns() == "0");
     }
-    SECTION("test84") {
+    SECTION("basic unpack from range iterator, return sequence") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = range(3)\n    return b"
         );
         CHECK(t.returns() == "[1]");
     }
-    SECTION("test85") {
+    SECTION("basic unpack from range iterator, return right") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = range(3)\n    return c"
         );
