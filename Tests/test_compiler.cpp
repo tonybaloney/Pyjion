@@ -192,7 +192,7 @@ TEST_CASE("Test IL dump") {
     }
 }
 
-TEST_CASE("Test f-strings", "[!mayfail]") {
+TEST_CASE("Test f-strings") {
     SECTION("test3") {
         auto t = CompilerTest(
                 "def f(): print(f'x {42}')"
