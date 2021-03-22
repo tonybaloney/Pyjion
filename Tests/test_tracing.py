@@ -101,6 +101,20 @@ class TracingTestCase(unittest.TestCase):
 
         self.assertIn("Hit exception", f.getvalue())
 
+    def test_raising_tracer(self):
+        def custom_trace(frame, event, args):
+            raise TypeError("uh oh!")
+
+        def test_f():
+            return 100
+
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            sys.settrace(custom_trace)
+            with self.assertRaises(TypeError):
+                test_f()
+            sys.settrace(None)
+
 
 class ProfilingTestCase(unittest.TestCase):
 

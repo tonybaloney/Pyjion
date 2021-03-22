@@ -1675,6 +1675,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         if (!canSkipLastiUpdate(curByte)) {
             if (mTracingEnabled){
                 m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
+                intErrorCheck("trace line failed");
             }
         }
 
