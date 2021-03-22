@@ -1469,6 +1469,13 @@ TEST_CASE("Test unpacking with UNPACK_SEQUENCE") {
         CHECK(t.returns() == "(1, 2)");
     }
 
+    SECTION("unpack from list") {
+        auto t = CompilerTest(
+                "def f():\n  a, b, c = [1,2,3]\n  return a, b, c\n"
+        );
+        CHECK(t.returns() == "(1, 2, 3)");
+    }
+
     SECTION("Too many items to unpack from list raises valueerror") {
         auto t = CompilerTest(
                 "def f():\n    x = [1,2,3]\n    a, b = x"
@@ -1528,6 +1535,37 @@ TEST_CASE("Test unpacking with UNPACK_SEQUENCE") {
     SECTION("test unpack for loop") {
         auto t = CompilerTest(
                 "def f():\n    cs = [('CATEGORY', 'CATEGORY_SPACE')]\n    for op, av in cs:\n        while True:\n            break\n        print(op, av)"
+        );
+        CHECK(t.returns() == "None");
+    }
+
+    SECTION("test deleting unpacked vars 1") {
+        // Lifted from the stdlib test suite test_grammar test_del
+        auto t = CompilerTest(
+                "def f():\n"
+                "        abc = [1,2,3]\n"
+                "        x, y, z = abc\n"
+                "        xyz = x, y, z\n"
+                "        del abc\n"
+                "        del x, y, (z, xyz)\n"
+        );
+        CHECK(t.returns() == "None");
+    }
+    SECTION("test deleting unpacked vars 2") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "        a, b, c, d, e, f, g = \"abcdefg\"\n"
+                "        del a, (b, c), (d, (e, f))\n"
+                "        a, b, c, d, e, f, g = \"abcdefg\"\n"
+                "        del a, [b, c], (d, [e, f])\n"
+        );
+        CHECK(t.returns() == "None");
+    }
+    SECTION("test deleting unpacked vars 3"){
+        auto t = CompilerTest(
+                "def f():\n"
+                "        abcd = list(\"abcd\")\n"
+                "        del abcd[1:2]"
         );
         CHECK(t.returns() == "None");
     }
