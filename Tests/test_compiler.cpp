@@ -1571,90 +1571,129 @@ TEST_CASE("Test unpacking with UNPACK_SEQUENCE") {
     }
 }
 
-TEST_CASE("Test unpacking with UNPACK_EX", "[!mayfail]") {
-    SECTION("failure to unpack shouldn't crash, should raise Python exception") {
-    auto t = CompilerTest(
-            "def f():\n    x = [1]\n    a, b, *c = x"
-    );
-    CHECK(t.raises() == PyExc_ValueError);
-    }
-    SECTION("test83") {
+TEST_CASE("Test unpacking with UNPACK_EX") {
+    SECTION("basic unpack from range iterator, return left") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = range(3)\n    return a"
         );
         CHECK(t.returns() == "0");
     }
-    SECTION("test84") {
+    SECTION("basic unpack from range iterator, return sequence") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = range(3)\n    return b"
         );
         CHECK(t.returns() == "[1]");
     }
-    SECTION("test85") {
+    SECTION("basic unpack from range iterator, return right") {
         auto t = CompilerTest(
-                "def f():\n    a, *b, c = range(3)\n    return c"
+                "def f():\n    a, *b, c = range(5)\n    return c"
         );
-        CHECK(t.returns() == "2");
+        CHECK(t.returns() == "4");
     }
-    SECTION("test86") {
+    SECTION("unpack from const assignment, return left") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = 1, 2, 3\n    return a"
         );
         CHECK(t.returns() == "1");
     }
-    SECTION("test87") {
+    SECTION("unpack from const assignment, return middle") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = 1, 2, 3\n    return b"
         );
         CHECK(t.returns() == "[2]");
     }
-    SECTION("test88") {
+    SECTION("unpack from const assignment, return right") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = 1, 2, 3\n    return c"
         );
         CHECK(t.returns() == "3");
     }
-    SECTION("test89") {
+    SECTION("unpack from const assignment, return right with empty middle") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = 1, 3\n    return c"
         );
         CHECK(t.returns() == "3");
     }
-    SECTION("test90") {
+    SECTION("unpack from const assignment, return middle empty") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = 1, 3\n    return b"
         );
         CHECK(t.returns() == "[]");
     }
-    SECTION("test91") {
+    SECTION("unpack from list, return left") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = [1, 2, 3]\n    return a"
         );
         CHECK(t.returns() == "1");
     }
-    SECTION("test92") {
+    SECTION("unpack from list, return middle") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = [1, 2, 3]\n    return b"
         );
         CHECK(t.returns() == "[2]");
     }
-    SECTION("test * unpack 1") {
+    SECTION("unpack from list, return right") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = [1, 2, 3]\n    return c"
         );
         CHECK(t.returns() == "3");
     }
-    SECTION("test * unpack 2") {
+
+    SECTION("unpack from list, return all packed") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = [1, 3]\n    return a, b, c"
         );
-        CHECK(t.returns() == "3");
+        CHECK(t.returns() == "(1, [], 3)");
     }
-    SECTION("test * unpack 3") {
+
+    SECTION("unpacks in right sequence") {
         auto t = CompilerTest(
-                "def f():\n    a, *b, c = [1, 3]\n    return a, b, c"
+                "def f():\n    a, b, c, *m, d, e, f = (0, 1, 2, 3, 4, 5, 6, 7, 8)\n    return a, b, c, d, e, f, m"
         );
-        CHECK(t.returns() == "[]");
+        CHECK(t.returns() == "(0, 1, 2, 6, 7, 8, [3, 4, 5])");
+    }
+
+    SECTION("unpack imbalanced sequence") {
+        auto t = CompilerTest(
+                "def f():\n  first, second, third, *_, last = (0, 1, 2, 3, 4, 5, 6, 7, 8)\n  return second"
+        );
+        CHECK(t.returns() == "1");
+    }
+
+    SECTION("unpack reversed imbalanced sequence") {
+        auto t = CompilerTest(
+                "def f():\n  first, *_, before, before2, last = (0, 1, 2, 3, 4, 5, 6, 7, 8)\n  return before2"
+        );
+        CHECK(t.returns() == "7");
+    }
+
+    /* Failure cases */
+    SECTION("left too short") {
+        auto t = CompilerTest(
+                "def f():\n    x = [1]\n    a, b, *c = x"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
+
+    SECTION("both too short") {
+        auto t = CompilerTest(
+                "def f():\n    a, *b, c = dict()"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
+
+    SECTION("right too short") {
+        auto t = CompilerTest(
+                "def f():\n    a, *b, c, d, e = range(3)"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
+
+    SECTION("not iterable") {
+        auto t = CompilerTest(
+                "def f():\n    a, *b, c, d, e = 3"
+        );
+        CHECK(t.raises() == PyExc_TypeError);
     }
 }
 TEST_CASE("test classes") {

@@ -134,8 +134,6 @@ public:
     virtual void emit_mark_label(Label label) = 0;
     // Emits a branch to the specified label 
     virtual void emit_branch(BranchType branchType, Label label) = 0;
-    // Compares if the last two values pushed onto the stack are equal
-    virtual void emit_compare_equal() = 0;
 
     // Emits an unboxed integer value onto the stack
     virtual void emit_int(int value) = 0;
@@ -173,8 +171,7 @@ public:
     virtual Local emit_define_local(LocalKind kind = LK_Pointer) = 0;
     // Frees a local making it available for re-use
     virtual void emit_free_local(Local local) = 0;
-    // Creates an array on the stack for temporary storage
-    virtual Local emit_allocate_stack_array(size_t elements) = 0;
+
 
     /*****************************************************
      * Frames, basic function semantics */
@@ -314,11 +311,8 @@ public:
     virtual void emit_unpack_list(size_t size, AbstractValueWithSources iterable) = 0;
     virtual void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) = 0;
     // Unpacks the sequence onto the stack, supporting a remainder list
-    virtual void emit_unpack_ex(Local sequence, size_t leftSize, size_t rightSize, Local sequenceStorage, Local list, Local remainder) = 0;
-    // Loads an element from the array on the stack
-    virtual void emit_load_array(int index) = 0;
-	virtual void emit_store_to_array(Local array, int index) = 0;
-
+    virtual void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) = 0;
+    virtual void emit_list_shrink(size_t by) = 0;
     // Emits a call for the specified argument count.  If the compiler
     // can't emit a call with this number of args then it returns false,
     // and emit_call_with_tuple is used to call with a variable sized

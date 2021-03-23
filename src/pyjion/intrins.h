@@ -245,10 +245,6 @@ PyObject* PyJit_PyTuple_New(ssize_t len);
 
 PyObject* PyJit_BuildClass(PyFrameObject *f);
 
-// Returns: the address for the 1st set of items, the constructed list, and the
-// address where the remainder live.
-PyObject** PyJit_UnpackSequenceEx(PyObject* seq, size_t leftSize, size_t rightSize, PyObject** tempStorage, PyObject** listRes, PyObject*** remainder);
-
 PyObject* PyJit_LoadAttr(PyObject* owner, PyObject* name);
 
 int PyJit_StoreAttr(PyObject* value, PyObject* owner, PyObject* name);
@@ -314,4 +310,5 @@ PyObject* MethCallN(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 
 int PyJit_SetupAnnotations(PyFrameObject* frame);
 
+PyObject* PyJit_GetListItemReversed(PyObject* list, size_t index);
 #endif

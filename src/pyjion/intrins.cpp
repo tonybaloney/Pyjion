@@ -1660,8 +1660,7 @@ PyObject* PyJit_GetIter(PyObject* iterable) {
 PyObject* PyJit_IterNext(PyObject* iter) {
     if (iter == nullptr || !PyIter_Check(iter)){
         PyErr_Format(PyExc_TypeError,
-                     "Unable to iterate, this type is not iterable. I got %s - %s.", ObjInfo(iter),
-                     PyUnicode_AsUTF8(PyObject_Repr(iter)));
+                     "Unable to iterate, this type is not iterable.");
         return nullptr;
     }
 
@@ -1732,135 +1731,6 @@ PyObject* PyJit_BuildClass(PyFrameObject *f) {
         }
     }
     return bc;
-}
-
-// Returns: the address for the 1st set of items, the constructed list, and the
-// address where the remainder live.
-PyObject** PyJit_UnpackSequenceEx(PyObject* seq, size_t leftSize, size_t rightSize, PyObject** tempStorage, PyObject** listRes, PyObject*** remainder) {
-    if (PyTuple_CheckExact(seq) && ((size_t)PyTuple_GET_SIZE(seq)) >= (leftSize + rightSize)) {
-        auto listSize = PyTuple_GET_SIZE(seq) - (leftSize + rightSize);
-        auto list = (PyListObject*)PyList_New(listSize);
-        if (list == nullptr) {
-            return nullptr;
-        }
-        for (int i = 0; i < listSize; i++) {
-            list->ob_item[i] = ((PyTupleObject *)seq)->ob_item[i + leftSize];
-        }
-        *remainder = ((PyTupleObject *)seq)->ob_item + leftSize + listSize;
-        *listRes = (PyObject*)list;
-        auto res = ((PyTupleObject *)seq)->ob_item;
-        auto size = PyTuple_GET_SIZE(seq);
-        for (int i = 0; i < size; i++) {
-            Py_INCREF(res[i]);
-        }
-        return res;
-    }
-    else if (PyList_CheckExact(seq) && ((size_t)PyList_GET_SIZE(seq)) >= (leftSize + rightSize)) {
-        auto listSize = PyList_GET_SIZE(seq) - (leftSize + rightSize);
-        auto list = (PyListObject*)PyList_New(listSize);
-        if (list == nullptr) {
-            return nullptr;
-        }
-        for (int i = 0; i < listSize; i++) {
-            list->ob_item[i] = ((PyListObject *)seq)->ob_item[i + leftSize];
-        }
-        *remainder = ((PyListObject *)seq)->ob_item + leftSize + listSize;
-        *listRes = (PyObject*)list;
-
-        auto res = ((PyListObject *)seq)->ob_item;
-        auto size = PyList_GET_SIZE(seq);
-        for (int i = 0; i < size; i++) {
-            Py_INCREF(res[i]);
-        }
-        return res;
-    }
-    else {
-        // the function allocated space on the stack for us to
-        // store these temporarily.
-        auto it = PyObject_GetIter(seq);
-        int i = 0;
-        auto sp = tempStorage + leftSize + rightSize;
-
-        if (it == nullptr) {
-            goto Error;
-        }
-
-
-        for (; i < leftSize; i++) {
-            auto w = PyIter_Next(it);
-            if (w == nullptr) {
-                /* Iterator done, via error or exhaustion. */
-                if (!PyErr_Occurred()) {
-                    PyErr_Format(PyExc_ValueError,
-                        "need more than %d value%s to unpack",
-                        i, i == 1 ? "" : "s");
-                }
-                goto Error;
-            }
-            tempStorage[i] = w;
-        }
-
-        if (listRes == nullptr) {
-            /* We better have exhausted the iterator now. */
-            auto w = PyIter_Next(it);
-            if (w == nullptr) {
-                if (PyErr_Occurred())
-                    goto Error;
-                Py_DECREF(it);
-                return tempStorage;
-            }
-            Py_DECREF(w);
-            PyErr_Format(PyExc_ValueError, "too many values to unpack "
-                "(expected %d)", leftSize);
-            goto Error;
-        }
-        else {
-
-            auto l = PySequence_List(it);
-            if (l == nullptr)
-                goto Error;
-            *listRes = l;
-            i++;
-
-            size_t ll = PyList_GET_SIZE(l);
-            if (ll < rightSize) {
-                PyErr_Format(PyExc_ValueError, "need more than %zd values to unpack",
-                    leftSize + ll);
-                goto Error;
-            }
-
-            /* Pop the "after-variable" args off the list. */
-            for (auto j = rightSize; j > 0; j--, i++) {
-                *--sp = PyList_GET_ITEM(l, ll - j);
-            }
-            /* Resize the list. */
-            Py_SIZE(l) = ll - rightSize;
-        }
-        Py_DECREF(it);
-        if (remainder != nullptr) {
-            *remainder = tempStorage + leftSize;
-        }
-        return tempStorage;
-
-    Error:
-        for (int j = 0; j < leftSize; j++) {
-            Py_XDECREF(tempStorage[j]);
-        }
-        Py_XDECREF(it);
-        return nullptr;
-    }
-}
-
-void PyJit_UnpackError(size_t expected, size_t got) {
-    if (got < expected) {
-        PyErr_Format(PyExc_ValueError,
-            "need more than %d value%s to unpack",
-            got, got == 1 ? "" : "s");
-    }
-    else if (got > expected) {
-        PyErr_Format(PyExc_ValueError, "too many values to unpack "
-            "(expected %d)", expected);
-    }
 }
 
 PyObject* PyJit_LoadAttr(PyObject* owner, PyObject* name) {
@@ -2707,4 +2577,8 @@ void PyJit_TraceFrameException(PyFrameObject* f){
             Py_XDECREF(orig_traceback);
         }
     }
+}
+
+PyObject* PyJit_GetListItemReversed(PyObject* list, size_t index){
+    return PyList_GET_ITEM(list, PyList_GET_SIZE(list) - index - 1);
 }

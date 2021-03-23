@@ -144,11 +144,6 @@ public:
         }
     }
 
-    void localloc() {
-        push_back(CEE_PREFIX1); // NIL CEE SE
-        push_back((BYTE)CEE_LOCALLOC); // PopI + PushI
-    }
-
     void brk(){
         // emit a breakpoint in the IL
         push_back(CEE_BREAK);
@@ -181,12 +176,11 @@ public:
             default:
                 if (i < 256) {
                     push_back(CEE_LDC_I4_S);
-                    m_il.push_back(i);
-
+                    push_back(i);
                 }
                 else {
-                    m_il.push_back(CEE_LDC_I4);
-                    m_il.push_back((BYTE)CEE_STLOC); // Pop1 + Push0
+                    push_back(CEE_LDC_I4);
+                    m_il.push_back((BYTE)CEE_STLOC); // TODO : Work out why this opcode is here?!
                     emit_int(i);
                 }
         }

@@ -89,7 +89,7 @@ class MethodTokens (Enum):
     METHOD_LOADNAME_TOKEN                    = 0x00000012
     METHOD_STORENAME_TOKEN                   = 0x00000013
     METHOD_UNPACK_SEQUENCE_TOKEN             = 0x00000014
-    METHOD_UNPACK_SEQUENCEEX_TOKEN           = 0x00000015
+    METHOD_SEQUENCE_AS_LIST                  = 0x00000015
     METHOD_DELETENAME_TOKEN                  = 0x00000016
     METHOD_PYCELL_SET_TOKEN                  = 0x00000017
     METHOD_SET_CLOSURE                       = 0x00000018

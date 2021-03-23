@@ -63,8 +63,8 @@
 #define METHOD_GETBUILDCLASS_TOKEN               0x00000011
 #define METHOD_LOADNAME_TOKEN                    0x00000012
 #define METHOD_STORENAME_TOKEN                   0x00000013
-#define METHOD_UNPACK_SEQUENCE_TOKEN             0x00000014
-#define METHOD_UNPACK_SEQUENCEEX_TOKEN           0x00000015
+#define METHOD_SEQUENCE_AS_LIST                  0x00000014
+#define METHOD_LIST_ITEM_FROM_BACK               0x00000015
 #define METHOD_DELETENAME_TOKEN                  0x00000016
 #define METHOD_PYCELL_SET_TOKEN                  0x00000017
 #define METHOD_SET_CLOSURE                       0x00000018
@@ -359,11 +359,8 @@ public:
     void emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) override;
     void emit_unpack_list(size_t size, AbstractValueWithSources iterable) override;
     void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) override;
-    void emit_load_array(int index) override;
-    void emit_store_to_array(Local array, int index) override;
-
-    void emit_unpack_ex(Local sequence, size_t leftSize, size_t rightSize, Local sequenceStorage, Local list, Local remainder) override;
-
+    void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) override;
+    void emit_list_shrink(size_t by) override;
     // Emits a call for the specified argument count.  If the compiler
     // can't emit a call with this number of args then it returns false,
     // and emit_call_with_tuple is used to call with a variable sized
@@ -396,7 +393,6 @@ public:
     Local emit_define_local(bool cache) override;
     Local emit_define_local(LocalKind kind) override;
     void emit_free_local(Local local) override;
-    Local emit_allocate_stack_array(size_t elements) override;
 
     void emit_set_add() override;
     void emit_map_add() override;
@@ -438,7 +434,6 @@ public:
     Label emit_define_label() override;
     void emit_mark_label(Label label) override;
     void emit_branch(BranchType branchType, Label label) override;
-    void emit_compare_equal() override;
 
     void emit_int(int value) override;
     void emit_long_long(long long value) override;
@@ -518,6 +513,7 @@ private:
                               int sq_slot, int fallback_token);
     void emit_known_binary_op_multiply(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
                               int sq_slot, int fallback_token);
+    void fill_local_vector(vector<Local> & vec, size_t len);
 };
 
 // Copies of internal CPython structures

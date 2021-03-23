@@ -122,9 +122,6 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
             case YIELD_VALUE:
                 return IncompatibleOpcode_Yield;
 
-            case UNPACK_EX:
-                m_sequenceLocals[curByte] = m_comp->emit_allocate_stack_array(((oparg & 0xFF) + (oparg >> 8)) * sizeof(void*));
-                break;
             case DELETE_FAST:
                 if (oparg < mCode->co_argcount) {
                     // this local is deleted, so we need to check for assignment
@@ -1847,8 +1844,14 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 incStack(oparg);
                 intErrorCheck("failed to unpack");
                 break;
-            case UNPACK_EX:
-                unpackEx(oparg, curByte); break;
+            case UNPACK_EX: {
+                size_t rightSize = oparg >> 8, leftSize = oparg & 0xff;
+                m_comp->emit_unpack_sequence_ex(leftSize, rightSize, stackInfo.top());
+                decStack();
+                incStack(leftSize + rightSize + 1);
+                intErrorCheck("failed to unpack");
+                break;
+            }
             case CALL_FUNCTION_KW: {
                 // names is a tuple on the stack, should have come from a LOAD_CONST
                 auto names = m_comp->emit_spill();
@@ -2615,56 +2618,6 @@ void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound, int curBy
     m_comp->emit_dup();
     m_comp->emit_incref();
 }
-
-void AbstractInterpreter::unpackEx(size_t size, size_t opcode) {
-    auto valueTmp = m_comp->emit_spill();
-    auto listTmp = m_comp->emit_define_local();
-    auto remainderTmp = m_comp->emit_define_local();
-
-    decStack();
-
-    m_comp->emit_unpack_ex(valueTmp, size & 0xff, size >> 8, m_sequenceLocals[opcode], listTmp, remainderTmp);
-    // load the iterable, the sizes, and our temporary 
-    // storage if we need to iterate over the object, 
-    // the list local address, and the remainder address
-    // PyObject* seq, size_t leftSize, size_t rightSize, PyObject** tempStorage, PyObject** list, PyObject*** remainder
-
-    errorCheck("unpack ex failed", opcode); // TODO: We leak the sequence on failure
-
-    auto fastTmp = m_comp->emit_spill();
-
-    // load the right hand side...
-    auto tmpOpArg = size >> 8;
-    while (tmpOpArg--) {
-        m_comp->emit_load_local(remainderTmp);
-        m_comp->emit_load_array(tmpOpArg);
-        incStack();
-    }
-
-    // load the list
-    m_comp->emit_load_and_free_local(listTmp);
-    incStack();
-    // load the left hand side, Equivalent to CPython's:
-    //while (oparg--) {
-    //    item = items[oparg];
-    //    Py_INCREF(item);
-    //    PUSH(item);
-    //}
-
-    tmpOpArg = size & 0xff;
-    while (tmpOpArg--) {
-        m_comp->emit_load_local(fastTmp);
-        m_comp->emit_load_array(tmpOpArg);
-        incStack();
-    }
-
-    m_comp->emit_load_and_free_local(valueTmp);
-    m_comp->emit_pop_top();
-
-    m_comp->emit_free_local(fastTmp);
-    m_comp->emit_free_local(remainderTmp);
-}
-
 
 void AbstractInterpreter::jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t jumpTo) {
     if (jumpTo <= opcodeIndex){

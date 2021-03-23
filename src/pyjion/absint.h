@@ -316,10 +316,6 @@ class AbstractInterpreter {
     unordered_set<size_t> m_jumpsTo;
     Label m_retLabel;
     Local m_retValue;
-    // Stores information for a stack allocated local used for sequence unpacking.  We need to allocate
-    // one of these when we enter the method, and we use it if we don't have a sequence we can efficiently
-    // unpack.
-    unordered_map<size_t, Local> m_sequenceLocals;
     unordered_map<int, bool> m_assignmentState;
 
 #pragma warning (default:4251)
