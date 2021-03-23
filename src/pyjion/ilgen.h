@@ -180,7 +180,8 @@ public:
                 }
                 else {
                     push_back(CEE_LDC_I4);
-                    push_back(i);
+                    m_il.push_back((BYTE)CEE_STLOC); // Pop1 + Push0
+                    emit_int(i);
                 }
         }
     }
@@ -569,7 +570,7 @@ public:
             case 2: m_il.push_back(CEE_STLOC_2); break;
             case 3: m_il.push_back(CEE_STLOC_3); break;
             default:
-                if (index < 255) {
+                if (index < 256) {
                     m_il.push_back(CEE_STLOC_S); 
                     m_il.push_back(index);
                 }
