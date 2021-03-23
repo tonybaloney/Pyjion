@@ -31,5 +31,6 @@ if __name__ == "__main__":
 
     print("Django Template took {0} without Pyjion".format(timeit.repeat(bench_django_template, repeat=5, number=1)))
     pyjion.enable()
+    pyjion.set_optimization_level(1)
     print("Django Template took {0} with Pyjion".format(timeit.repeat(bench_django_template, repeat=5, number=1)))
     pyjion.disable()
