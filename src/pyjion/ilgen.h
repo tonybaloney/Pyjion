@@ -180,7 +180,7 @@ public:
                 }
                 else {
                     push_back(CEE_LDC_I4);
-                    m_il.push_back((BYTE)CEE_STLOC); // Pop1 + Push0
+                    m_il.push_back((BYTE)CEE_STLOC); // TODO : Work out why this opcode is here?!
                     emit_int(i);
                 }
         }
