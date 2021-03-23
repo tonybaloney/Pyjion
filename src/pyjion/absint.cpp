@@ -585,10 +585,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     lastState.push(&Dict);
                     break;
                 case COMPARE_OP: {
-                    if (PGC_READY()){
-                        PGC_PROBE(2);
-                        // TODO : Update stack PGC_UPDATE_STACK(2)
-                    }
                     lastState.pop();
                     lastState.pop();
                     lastState.push(&Any);

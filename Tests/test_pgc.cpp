@@ -151,4 +151,22 @@ TEST_CASE("test most simple application"){
         CHECK(t.returns() == "(1000, 2.0, 'cheese', ' shop')");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
+
+    SECTION("test changing types for COMPARE_OP") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  a = 1000\n"
+                "  b = 2.0\n"
+                "  c = 'cheese'\n"
+                "  d = ' shop'\n"
+                "  def equal(left,right):\n"
+                "     return left == right\n"
+                "  return equal(a,b), equal (c,d), equal(a, d)\n"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "(False, False, False)");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.returns() == "(False, False, False)");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
 }
