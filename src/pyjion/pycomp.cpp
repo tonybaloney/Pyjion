@@ -208,6 +208,15 @@ void PythonCompiler::emit_incref() {
     m_il.st_ind_i();
 }
 
+void PythonCompiler::emit_list_shrink(size_t by) {
+    LD_FIELDA(PyVarObject, ob_size);
+    m_il.dup();
+    m_il.ld_ind_i();
+    emit_int(by);
+    m_il.sub();
+    m_il.st_ind_i();
+}
+
 void PythonCompiler::decref(bool noopt) {
     /*
      * PyObject* is on the top of the stack
@@ -377,13 +386,19 @@ void PythonCompiler::emit_unpack_sequence(size_t size, AbstractValueWithSources 
     }
 }
 
+void PythonCompiler::fill_local_vector(vector<Local> & vec, size_t len){
+    for (size_t i = 0 ; i < len; i++)
+        vec[i] = emit_define_local(LK_NativeInt);
+}
+
 void PythonCompiler::emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) {
     vector<Local> leftLocals(leftSize), rightLocals(rightSize);
     Local t_iter = emit_define_local(LK_NativeInt), t_object = emit_define_local(LK_NativeInt);
     Local result = emit_define_local(LK_Int);
     Local resultList = emit_define_local(LK_NativeInt);
     Label raiseValueError = emit_define_label(), returnValues = emit_define_label();
-
+    fill_local_vector(leftLocals, leftSize);
+    fill_local_vector(rightLocals, rightSize);
     m_il.ld_i4(0);
     emit_store_local(result);
 
@@ -395,7 +410,6 @@ void PythonCompiler::emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, 
     // Step 1 : Iterate the first number of values
     size_t idx = leftSize;
     while (idx--) {
-        leftLocals[idx] = emit_define_local(LK_NativeInt);
         Label successOrStopIter = emit_define_label(), endbranch = emit_define_label();
             emit_load_local(t_iter);
             emit_for_next();
@@ -405,6 +419,7 @@ void PythonCompiler::emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, 
             // Failure
             emit_int(1);
             emit_store_local(result);
+            emit_debug_msg("cannot unpack left");
             emit_branch(BranchAlways, endbranch);
 
         emit_mark_label(successOrStopIter);
@@ -416,6 +431,7 @@ void PythonCompiler::emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, 
                 emit_null();
                 emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
                 emit_int(1);
+                emit_debug_msg("cannot unpack left - mismatch");
                 emit_store_local(result);
 
         emit_mark_label(endbranch);
@@ -432,36 +448,38 @@ void PythonCompiler::emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, 
     emit_load_local(resultList);
     emit_list_length();
     emit_int(rightSize);
-    emit_branch(BranchNotEqual, raiseValueError);
+    emit_branch(BranchLessThan, raiseValueError);
 
         while (j_idx--) {
-            rightLocals[j_idx] = emit_define_local(LK_NativeInt);
             emit_load_local(resultList);
             emit_list_load(j_idx);
             emit_dup();
             emit_incref();
             emit_store_local(rightLocals[j_idx]);
         }
-        emit_int(0);
         emit_branch(BranchAlways, returnValues);
 
     emit_mark_label(raiseValueError);
 
         while (j_idx2--) {
             emit_null();
-            emit_store_local(rightLocals[j_idx]);
+            emit_store_local(rightLocals[j_idx2]);
         }
+        emit_debug_msg("cannot unpack right");
         emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
-        emit_int(-1);
+        emit_int(1);
         emit_store_local(result);
     emit_mark_label(returnValues);
 
     // Finally: Return
-    for (size_t i = 0; i < leftSize ; i++)
-        emit_load_and_free_local(leftLocals[i]);
-    emit_load_and_free_local(resultList);
     for (size_t i = 0; i < rightSize ; i++)
         emit_load_and_free_local(rightLocals[i]);
+    // Shorten list
+    emit_load_and_free_local(resultList);
+    m_il.dup();
+    emit_list_shrink(rightSize);
+    for (size_t i = 0; i < leftSize ; i++)
+        emit_load_and_free_local(leftLocals[i]);
 
     emit_load_and_free_local(t_iter);
     decref();

@@ -360,7 +360,7 @@ public:
     void emit_unpack_list(size_t size, AbstractValueWithSources iterable) override;
     void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) override;
     void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) override;
-
+    void emit_list_shrink(size_t by) override;
     // Emits a call for the specified argument count.  If the compiler
     // can't emit a call with this number of args then it returns false,
     // and emit_call_with_tuple is used to call with a variable sized
@@ -514,6 +514,7 @@ private:
                               int sq_slot, int fallback_token);
     void emit_known_binary_op_multiply(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
                               int sq_slot, int fallback_token);
+    void fill_local_vector(vector<Local> & vec, size_t len);
 };
 
 // Copies of internal CPython structures

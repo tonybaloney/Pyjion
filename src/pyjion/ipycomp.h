@@ -314,7 +314,7 @@ public:
     virtual void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) = 0;
     // Unpacks the sequence onto the stack, supporting a remainder list
     virtual void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) = 0;
-
+    virtual void emit_list_shrink(size_t by) = 0;
     // Emits a call for the specified argument count.  If the compiler
     // can't emit a call with this number of args then it returns false,
     // and emit_call_with_tuple is used to call with a variable sized

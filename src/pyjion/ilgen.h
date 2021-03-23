@@ -144,11 +144,6 @@ public:
         }
     }
 
-    void localloc() {
-        push_back(CEE_PREFIX1); // NIL CEE SE
-        push_back((BYTE)CEE_LOCALLOC); // PopI + PushI
-    }
-
     void brk(){
         // emit a breakpoint in the IL
         push_back(CEE_BREAK);
@@ -181,13 +176,11 @@ public:
             default:
                 if (i < 256) {
                     push_back(CEE_LDC_I4_S);
-                    m_il.push_back(i);
-
+                    push_back(i);
                 }
                 else {
-                    m_il.push_back(CEE_LDC_I4);
-                    m_il.push_back((BYTE)CEE_STLOC); // Pop1 + Push0
-                    emit_int(i);
+                    push_back(CEE_LDC_I4);
+                    push_back(i);
                 }
         }
     }
@@ -576,7 +569,7 @@ public:
             case 2: m_il.push_back(CEE_STLOC_2); break;
             case 3: m_il.push_back(CEE_STLOC_3); break;
             default:
-                if (index < 256) {
+                if (index < 255) {
                     m_il.push_back(CEE_STLOC_S); 
                     m_il.push_back(index);
                 }
