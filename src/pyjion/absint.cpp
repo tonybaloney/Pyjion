@@ -602,7 +602,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case CALL_FUNCTION: {
                     if (PGC_READY()){
                         PGC_PROBE(oparg + 1);
-                        // TODO : Update stack PGC_UPDATE_STACK(oparg+1)
+                        PGC_UPDATE_STACK(oparg+1);
                     }
                     int argCnt = oparg & 0xff;
                     int kwArgCnt = (oparg >> 8) & 0xff;
@@ -1875,7 +1875,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case CALL_FUNCTION:
             {
-                if (OPT_ENABLED(functionCalls) && stackInfo.size() >= (oparg + 1) && stackInfo.nth(oparg + 1).hasSource() && stackInfo.nth(oparg + 1).Sources->isBuiltin()){
+                if (OPT_ENABLED(functionCalls) &&
+                    stackInfo.size() >= (oparg + 1) &&
+                    stackInfo.nth(oparg + 1).hasSource() &&
+                    stackInfo.nth(oparg + 1).hasValue())
+                {
                     m_comp->emit_builtin_func(oparg, stackInfo.nth(oparg + 1));
                     decStack(oparg + 1); // target + args(oparg)
                     errorCheck("builtin function call failed", curByte);

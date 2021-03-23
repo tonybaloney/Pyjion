@@ -1960,8 +1960,7 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
 }
 
 void PythonCompiler::emit_builtin_func(size_t args, AbstractValueWithSources functionValue) {
-    auto builtin = reinterpret_cast<BuiltinSource*>(functionValue.Sources);
-    auto func = builtin->getValue();
+    auto func = functionValue.Value->pythonType();
     Local args_tuple = emit_define_local(LK_Pointer);
     Local function_object = emit_define_local(LK_Pointer);
     emit_ptr(func);
