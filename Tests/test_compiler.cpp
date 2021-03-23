@@ -1586,9 +1586,9 @@ TEST_CASE("Test unpacking with UNPACK_EX") {
     }
     SECTION("basic unpack from range iterator, return right") {
         auto t = CompilerTest(
-                "def f():\n    a, *b, c = range(3)\n    return c"
+                "def f():\n    a, *b, c = range(5)\n    return c"
         );
-        CHECK(t.returns() == "2");
+        CHECK(t.returns() == "4");
     }
     SECTION("unpack from const assignment, return left") {
         auto t = CompilerTest(
@@ -1644,6 +1644,7 @@ TEST_CASE("Test unpacking with UNPACK_EX") {
         );
         CHECK(t.returns() == "(1, [], 3)");
     }
+
     /* Failure cases */
     SECTION("left too short") {
         auto t = CompilerTest(
@@ -1652,12 +1653,13 @@ TEST_CASE("Test unpacking with UNPACK_EX") {
         CHECK(t.raises() == PyExc_ValueError);
     }
 
-    SECTION("non iterable") {
+    SECTION("both too short") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = dict()"
         );
         CHECK(t.raises() == PyExc_ValueError);
     }
+
     SECTION("right too short") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c, d, e = range(3)"

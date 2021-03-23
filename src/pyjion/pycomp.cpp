@@ -438,13 +438,21 @@ void PythonCompiler::emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, 
         emit_store_local(leftLocals[idx]);
     }
 
+    // If the first part already failed, don't try the second part
+    emit_load_local(result);
+    emit_branch(BranchTrue, returnValues);
+
+    // If this cant be iterated, return  (should already have exception set on frame
+    emit_load_local(t_iter);
+    emit_branch(BranchFalse, returnValues);
+
     // Step 2: Convert the rest of the iterator to a list
     emit_load_local(t_iter);
     m_il.emit_call(METHOD_SEQUENCE_AS_LIST);
     emit_store_local(resultList);
 
     // Step 3: Yield the right-hand values off the back of the list
-    size_t j_idx = rightSize, j_idx2 = rightSize;
+    size_t j_idx = rightSize;
     emit_load_local(resultList);
     emit_list_length();
     emit_int(rightSize);
@@ -452,32 +460,28 @@ void PythonCompiler::emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, 
 
         while (j_idx--) {
             emit_load_local(resultList);
-            emit_list_load(j_idx);
+            emit_int(j_idx);
+            m_il.emit_call(METHOD_LIST_ITEM_FROM_BACK);
             emit_dup();
             emit_incref();
             emit_store_local(rightLocals[j_idx]);
         }
+        emit_load_local(resultList);
+        emit_list_shrink(rightSize);
         emit_branch(BranchAlways, returnValues);
 
     emit_mark_label(raiseValueError);
-
-        while (j_idx2--) {
-            emit_null();
-            emit_store_local(rightLocals[j_idx2]);
-        }
         emit_debug_msg("cannot unpack right");
         emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
         emit_int(1);
         emit_store_local(result);
+
     emit_mark_label(returnValues);
 
     // Finally: Return
     for (size_t i = 0; i < rightSize ; i++)
         emit_load_and_free_local(rightLocals[i]);
-    // Shorten list
     emit_load_and_free_local(resultList);
-    m_il.dup();
-    emit_list_shrink(rightSize);
     for (size_t i = 0; i < leftSize ; i++)
         emit_load_and_free_local(leftLocals[i]);
 
@@ -987,9 +991,7 @@ void PythonCompiler::emit_tuple_length(){
 }
 
 void PythonCompiler::emit_list_load(size_t index) {
-    m_il.ld_i(offsetof(PyListObject, ob_item));
-    m_il.add();
-    m_il.ld_ind_i();
+    LD_FIELD(PyListObject, ob_item);
     if (index > 0) {
         m_il.ld_i(index * sizeof(size_t));
         m_il.add();
@@ -1347,6 +1349,8 @@ bool PythonCompiler::emit_func_call(size_t argCnt) {
         case 8: m_il.emit_call(METHOD_CALL_8_TOKEN); return true;
         case 9: m_il.emit_call(METHOD_CALL_9_TOKEN); return true;
         case 10: m_il.emit_call(METHOD_CALL_10_TOKEN); return true;
+        default:
+            return false;
     }
     return false;
 }
@@ -1364,6 +1368,8 @@ bool PythonCompiler::emit_method_call(size_t argCnt) {
         case 8: m_il.emit_call(METHOD_METHCALL_8_TOKEN); return true;
         case 9: m_il.emit_call(METHOD_METHCALL_9_TOKEN); return true;
         case 10: m_il.emit_call(METHOD_METHCALL_10_TOKEN); return true;
+        default:
+            return false;
     }
     return false;
 }
@@ -1417,10 +1423,6 @@ void PythonCompiler::emit_free_local(Local local) {
 
 void PythonCompiler::emit_branch(BranchType branchType, Label label) {
     m_il.branch(branchType, label);
-}
-
-void PythonCompiler::emit_compare_equal() {
-    m_il.compare_eq();
 }
 
 void PythonCompiler::emit_restore_err() {
@@ -1885,7 +1887,7 @@ void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWit
 }
 
 void PythonCompiler::emit_load_method(void* name) {
-    PyJitMethodLocation * methodLocation = reinterpret_cast<PyJitMethodLocation *>(_PyObject_New(&PyJitMethodLocation_Type));
+    auto * methodLocation = reinterpret_cast<PyJitMethodLocation *>(_PyObject_New(&PyJitMethodLocation_Type));
     methodLocation->method = nullptr;
     methodLocation->object = nullptr;
 
@@ -2330,3 +2332,4 @@ GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );
 
 GLOBAL_METHOD(METHOD_PGC_PROBE, &capturePgcStackValue, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_SEQUENCE_AS_LIST, &PySequence_List, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_LIST_ITEM_FROM_BACK, &PyJit_GetListItemReversed, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));

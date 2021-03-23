@@ -310,4 +310,5 @@ PyObject* MethCallN(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 
 int PyJit_SetupAnnotations(PyFrameObject* frame);
 
+PyObject* PyJit_GetListItemReversed(PyObject* list, size_t index);
 #endif

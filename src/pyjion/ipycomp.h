@@ -134,8 +134,6 @@ public:
     virtual void emit_mark_label(Label label) = 0;
     // Emits a branch to the specified label 
     virtual void emit_branch(BranchType branchType, Label label) = 0;
-    // Compares if the last two values pushed onto the stack are equal
-    virtual void emit_compare_equal() = 0;
 
     // Emits an unboxed integer value onto the stack
     virtual void emit_int(int value) = 0;

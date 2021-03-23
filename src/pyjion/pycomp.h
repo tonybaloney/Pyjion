@@ -64,7 +64,7 @@
 #define METHOD_LOADNAME_TOKEN                    0x00000012
 #define METHOD_STORENAME_TOKEN                   0x00000013
 #define METHOD_SEQUENCE_AS_LIST                  0x00000014
-#define METHOD_UNPACK_SEQUENCEEX_TOKEN           0x00000015
+#define METHOD_LIST_ITEM_FROM_BACK               0x00000015
 #define METHOD_DELETENAME_TOKEN                  0x00000016
 #define METHOD_PYCELL_SET_TOKEN                  0x00000017
 #define METHOD_SET_CLOSURE                       0x00000018
@@ -434,7 +434,6 @@ public:
     Label emit_define_label() override;
     void emit_mark_label(Label label) override;
     void emit_branch(BranchType branchType, Label label) override;
-    void emit_compare_equal() override;
 
     void emit_int(int value) override;
     void emit_long_long(long long value) override;

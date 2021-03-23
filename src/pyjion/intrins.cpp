@@ -2579,3 +2579,7 @@ void PyJit_TraceFrameException(PyFrameObject* f){
         }
     }
 }
+
+PyObject* PyJit_GetListItemReversed(PyObject* list, size_t index){
+    return PyList_GET_ITEM(list, PyList_GET_SIZE(list) - index - 1);
+}
