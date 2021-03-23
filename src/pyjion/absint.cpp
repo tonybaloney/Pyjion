@@ -374,7 +374,20 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     lastState.getLocal(oparg).ValueInfo.escapes();
                     lastState.replaceLocal(oparg, AbstractLocalInfo(&Undefined, true));
                     break;
-                case BINARY_SUBSCR:
+                case BINARY_SUBSCR:{
+                    AbstractValueWithSources two;
+                    AbstractValueWithSources one;
+                    if (PGC_READY()){
+                        PGC_PROBE(2);
+                        PGC_UPDATE_STACK(2);
+                    }
+                    two = lastState.popNoEscape();
+                    one = lastState.popNoEscape();
+
+                    auto out = one.Value->binary(one.Sources, opcode, two);
+                    lastState.push(out);
+                }
+                break;
                 case BINARY_TRUE_DIVIDE:
                 case BINARY_FLOOR_DIVIDE:
                 case BINARY_POWER:
@@ -405,7 +418,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     AbstractValueWithSources one;
                     if (PGC_READY()){
                         PGC_PROBE(2);
-                        // PGC_UPDATE_STACK(2);
+                        //PGC_UPDATE_STACK(2);
                     }
                     two = lastState.popNoEscape();
                     one = lastState.popNoEscape();
