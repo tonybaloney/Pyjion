@@ -554,8 +554,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     lastState.pop();
                     break;
                 case LOAD_ATTR:
-                    // TODO: Add support for resolving known members of known types
-                    // @body: Implement resolving types into abstract value types for LOAD_ATTR
                     lastState.pop();
                     lastState.push(&Any);
                     break;
@@ -587,10 +585,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     lastState.push(&Dict);
                     break;
                 case COMPARE_OP: {
-                    if (PGC_READY()){
-                        PGC_PROBE(2);
-                        // TODO : Update stack PGC_UPDATE_STACK(2)
-                    }
                     lastState.pop();
                     lastState.pop();
                     lastState.push(&Any);
