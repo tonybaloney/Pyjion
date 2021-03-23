@@ -1638,11 +1638,33 @@ TEST_CASE("Test unpacking with UNPACK_EX") {
         );
         CHECK(t.returns() == "3");
     }
+
     SECTION("unpack from list, return all packed") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = [1, 3]\n    return a, b, c"
         );
         CHECK(t.returns() == "(1, [], 3)");
+    }
+
+    SECTION("unpacks in right sequence") {
+        auto t = CompilerTest(
+                "def f():\n    a, b, c, *m, d, e, f = (0, 1, 2, 3, 4, 5, 6, 7, 8)\n    return a, b, c, d, e, f, m"
+        );
+        CHECK(t.returns() == "(0, 1, 2, 6, 7, 8, [3, 4, 5])");
+    }
+
+    SECTION("unpack imbalanced sequence") {
+        auto t = CompilerTest(
+                "def f():\n  first, second, third, *_, last = (0, 1, 2, 3, 4, 5, 6, 7, 8)\n  return second"
+        );
+        CHECK(t.returns() == "1");
+    }
+
+    SECTION("unpack reversed imbalanced sequence") {
+        auto t = CompilerTest(
+                "def f():\n  first, *_, before, before2, last = (0, 1, 2, 3, 4, 5, 6, 7, 8)\n  return before2"
+        );
+        CHECK(t.returns() == "7");
     }
 
     /* Failure cases */
@@ -1665,6 +1687,13 @@ TEST_CASE("Test unpacking with UNPACK_EX") {
                 "def f():\n    a, *b, c, d, e = range(3)"
         );
         CHECK(t.raises() == PyExc_ValueError);
+    }
+
+    SECTION("not iterable") {
+        auto t = CompilerTest(
+                "def f():\n    a, *b, c, d, e = 3"
+        );
+        CHECK(t.raises() == PyExc_TypeError);
     }
 }
 TEST_CASE("test classes") {

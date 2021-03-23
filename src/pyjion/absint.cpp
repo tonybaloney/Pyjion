@@ -1845,7 +1845,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 intErrorCheck("failed to unpack");
                 break;
             case UNPACK_EX: {
-                size_t leftSize = oparg >> 8, rightSize = oparg & 0xff;
+                size_t rightSize = oparg >> 8, leftSize = oparg & 0xff;
                 m_comp->emit_unpack_sequence_ex(leftSize, rightSize, stackInfo.top());
                 decStack();
                 incStack(leftSize + rightSize + 1);
