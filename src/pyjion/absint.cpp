@@ -703,8 +703,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     }
                     break;
                 case UNPACK_SEQUENCE:
-                    // TODO: Implement abstract value types for UNPACK_SEQUENCE
-                    // @body: If the sequence is a known type we could know what types we're pushing here.
+                    if (PGC_READY()){
+                        PGC_PROBE(1);
+                        PGC_UPDATE_STACK(1);
+                    }
                     lastState.pop();
                     for (int i = 0; i < oparg; i++) {
                         lastState.push(&Any);
