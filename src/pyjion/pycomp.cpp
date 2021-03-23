@@ -372,7 +372,7 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
 }
 
 void PythonCompiler::emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) {
-    if (iterable.Value->known() && !iterable.Value->needsGuard()) {
+    if (iterable.Value->known()) {
         switch (iterable.Value->kind()) {
             case AVK_Tuple:
                 return emit_unpack_tuple(size, iterable);
