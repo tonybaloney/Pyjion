@@ -213,6 +213,10 @@ public:
     AbstractValueWithSources& operator[](const size_t index) {
         return mStack[index];
     }
+
+    void push_n(const size_t n, const AbstractValueWithSources& value){
+        mStack[mStack.size() - 1 - n] = value;
+    }
 };
 
 enum ComprehensionType {

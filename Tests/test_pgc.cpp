@@ -170,3 +170,34 @@ TEST_CASE("test most simple application"){
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
 }
+
+TEST_CASE("test UNPACK_SEQUENCE PGC") {
+    SECTION("test simple") {
+        auto t = PgcProfilingTest(
+                "def f():\n  a, b, c = ['a', 'b', 'c']\n  return a, b, c"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "('a', 'b', 'c')");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.profileEquals(6, 0, &PyList_Type));
+        CHECK(t.returns() == "('a', 'b', 'c')");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+    SECTION("test for_iter stacked"){
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  x = [(1,2), (3,4)]\n"
+                "  results = []\n"
+                "  for i, j in x:\n"
+                "    results.append(i); results.append(j)\n"
+                "  return results\n"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "[1, 2, 3, 4]");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.profileEquals(18, 0, &PyTuple_Type));
+        CHECK(t.returns() == "[1, 2, 3, 4]");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+
+    }
+}
