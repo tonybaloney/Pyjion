@@ -198,6 +198,21 @@ TEST_CASE("test UNPACK_SEQUENCE PGC") {
         CHECK(t.profileEquals(18, 0, &PyTuple_Type));
         CHECK(t.returns() == "[1, 2, 3, 4]");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    }
 
+    SECTION("test changed types"){
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  results = []\n"
+                "  def x(it):\n"
+                "    a, b = it\n"
+                "    return int(a) + int(b)\n"
+                "  return x((1,2)) + x([3, 4]) + x('56')\n"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "21");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.returns() == "21");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
     }
 }
