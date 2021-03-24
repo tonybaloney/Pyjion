@@ -253,6 +253,18 @@ void PythonCompiler::decref(bool noopt) {
 }
 
 void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) {
+    Label passedGuard, failedGuard;
+    if (iterable.Value->needsGuard()){
+        passedGuard = emit_define_label(), failedGuard = emit_define_label();
+        m_il.dup();
+        LD_FIELD(PyObject, ob_type);
+        emit_ptr(iterable.Value->pythonType());
+        emit_branch(BranchEqual, passedGuard);
+        emit_unpack_generic(size, iterable);
+        emit_branch(BranchAlways, failedGuard);
+        emit_mark_label(passedGuard);
+    }
+
     Local t_value = emit_define_local(LK_NativeInt);
     Label raiseValueError = emit_define_label();
     Label returnValues = emit_define_label();
@@ -285,9 +297,24 @@ void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources ite
     emit_mark_label(returnValues);
     emit_load_and_free_local(t_value);
     decref();
+
+    if (iterable.Value->needsGuard()){
+        emit_mark_label(failedGuard);
+    }
 }
 
 void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iterable) {
+    Label passedGuard, failedGuard;
+    if (iterable.Value->needsGuard()){
+        passedGuard = emit_define_label(), failedGuard = emit_define_label();
+        m_il.dup();
+        LD_FIELD(PyObject, ob_type);
+        emit_ptr(iterable.Value->pythonType());
+        emit_branch(BranchEqual, passedGuard);
+        emit_unpack_generic(size, iterable);
+        emit_branch(BranchAlways, failedGuard);
+        emit_mark_label(passedGuard);
+    }
     Local t_value = emit_define_local(LK_NativeInt);
     Label raiseValueError = emit_define_label();
     Label returnValues = emit_define_label();
@@ -320,6 +347,10 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
     emit_mark_label(returnValues);
     emit_load_and_free_local(t_value);
     decref();
+
+    if (iterable.Value->needsGuard()){
+        emit_mark_label(failedGuard);
+    }
 }
 
 void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources iterable) {
