@@ -1462,6 +1462,15 @@ TEST_CASE("test slicing"){
     }
 }
 TEST_CASE("Test unpacking with UNPACK_SEQUENCE") {
+    SECTION("test single unpack"){
+        auto t = CompilerTest(
+                "def f():\n"
+                "  a, = (1,)\n"
+                "  return a"
+                );
+        CHECK(t.returns() == "1");
+    }
+
     SECTION("test basic unpack") {
         auto t = CompilerTest(
                 "def f():\n    a, b = (1, 2)\n    return a, b"
@@ -1637,6 +1646,18 @@ TEST_CASE("Test unpacking with UNPACK_EX") {
                 "def f():\n    a, *b, c = [1, 2, 3]\n    return c"
         );
         CHECK(t.returns() == "3");
+    }
+
+    SECTION("unpack from list comp") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "   obj = {'a': 1, 'b': 2}\n"
+                "   return dict([\n"
+                "     (value, key)\n"
+                "     for (key, value) in obj.items()\n"
+                "   ])"
+        );
+        CHECK(t.returns() == "{1: 'a', 2: 'b'}");
     }
 
     SECTION("unpack from list, return all packed") {

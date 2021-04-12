@@ -187,7 +187,7 @@ public:
     AbstractValueWithSources fromPgc(int stackPosition, PyTypeObject* pyTypeObject, AbstractSource* source) {
         if (mStack.empty())
             throw StackUnderflowException();
-        auto res = mStack[stackPosition];
+        auto res = mStack[mStack.size() - 1 - stackPosition];
         if (pyTypeObject == nullptr)
             return res;
         else {
@@ -212,6 +212,10 @@ public:
 
     AbstractValueWithSources& operator[](const size_t index) {
         return mStack[index];
+    }
+
+    void push_n(const size_t n, const AbstractValueWithSources& value){
+        mStack[mStack.size() - 1 - n] = value;
     }
 };
 

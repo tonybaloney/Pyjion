@@ -44,8 +44,8 @@
 
 #define PGC_UPDATE_STACK(count) \
     if (pgc_status == PgcStatus::CompiledWithProbes) {                      \
-        for (int i = 0, j = (count); i < (count) ; i++, j--) \
-            lastState[j-1] = lastState.fromPgc(i, profile->getType(curByte, i), addPgcSource(opcodeIndex)); \
+        for (int pos = 0; pos < (count) ; pos++) \
+            lastState.push_n(pos, lastState.fromPgc(pos, profile->getType(curByte, pos), addPgcSource(opcodeIndex))); \
         mStartStates[curByte] = lastState; \
     }
 
