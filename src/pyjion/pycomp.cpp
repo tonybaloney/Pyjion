@@ -1994,6 +1994,7 @@ void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithS
     PyObject* functionObject = nullptr;
     Local argumentLocal = emit_define_local(LK_Pointer),
           functionLocal = emit_define_local(LK_Pointer);
+    Label fallback = emit_define_label(), pass = emit_define_label();
 
     if (func.Sources->isBuiltin()){
         auto builtin = reinterpret_cast<BuiltinSource*>(func.Sources);
@@ -2030,10 +2031,27 @@ void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithS
         emit_load_local(argumentLocal);
         /* If this is not a METH_VARARGS function, delegate to vectorcall */
         emit_null(); // kwargs is always null
-        m_il.emit_call(METHOD_VECTORCALL);
+        if (func.Value->needsGuard()){
+            emit_load_local(functionLocal);
+            emit_ptr(functionObject);
+            emit_branch(BranchNotEqual, fallback);
+            m_il.emit_call(METHOD_VECTORCALL);
+            emit_branch(BranchAlways, pass);
+            emit_mark_label(fallback);
+            m_il.emit_call(METHOD_OBJECTCALL);
+            emit_mark_label(pass);
+        } else {
+            m_il.emit_call(METHOD_VECTORCALL);
+        }
     } else {
         PyCFunction meth = PyCFunction_GET_FUNCTION(functionObject);
         PyObject *self = PyCFunction_GET_SELF(functionObject);
+        if (func.Value->needsGuard()) {
+            emit_load_local(functionLocal);
+            emit_ptr(functionObject);
+            emit_branch(BranchNotEqual, fallback);
+        }
+
         emit_ptr(self);
         emit_load_local(argumentLocal);
 
@@ -2054,6 +2072,15 @@ void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithS
                                               (void *) meth);
         }
         m_il.emit_call(builtinToken);
+
+        if (func.Value->needsGuard()){
+            emit_branch(BranchAlways, pass);
+            emit_mark_label(fallback);
+            emit_load_local(functionLocal);
+            emit_load_local(argumentLocal);
+            m_il.emit_call(METHOD_OBJECTCALL);
+            emit_mark_label(pass);
+        }
     }
     // Decref all the args.
     // Because this tuple was built with borrowed references, it has the effect of decref'ing all args

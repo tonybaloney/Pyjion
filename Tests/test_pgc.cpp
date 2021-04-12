@@ -78,12 +78,12 @@ public:
 
     std::string returns() {
         auto res = PyObject_ptr(run());
-        REQUIRE(res.get() != nullptr);
         if (PyErr_Occurred()) {
             PyErr_PrintEx(-1);
             FAIL("Error on Python execution");
             return nullptr;
         }
+        REQUIRE(res.get() != nullptr);
         PyObject* v = res.get();
         auto repr = PyUnicode_AsUTF8(PyObject_Repr(v));
         auto tstate = PyThreadState_GET();
@@ -242,6 +242,43 @@ TEST_CASE("test CALL_FUNCTION PGC") {
         CHECK(t.profileEquals(4, 0, &PyUnicode_Type));
         CHECK(t.profileEquals(4, 1, &PyCFunction_Type));
         CHECK(t.returns() == "4");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+
+    SECTION("test python function") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  def half(x):\n"
+                "     return x/2\n"
+                "  return half(2000)"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "1000.0");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.profileEquals(12, 0, &PyLong_Type));
+        CHECK(t.profileEquals(12, 1, &PyFunction_Type));
+        CHECK(t.returns() == "1000.0");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+
+    SECTION("test changing callable") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  def half(x):\n"
+                "     return x/2\n"
+                "  def result_of(x, a):\n"
+                "     return x(a)\n"
+                "  r1 = result_of(len, 'hello')\n"
+                "  result_of(len, 'hello')\n"
+                "  r2 = result_of(float, 1000)\n"
+                "  return r1, r2"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "(5, 1000.0)");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.returns() == "(5, 1000.0)");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+        CHECK(t.returns() == "(5, 1000.0)");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
 }
