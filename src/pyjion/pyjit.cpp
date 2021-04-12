@@ -57,6 +57,16 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(functionCalls, level, 1);
 }
 
+PgcStatus nextPgcStatus(PgcStatus status){
+    switch(status){
+        case PgcStatus::Uncompiled: return PgcStatus::CompiledWithProbes;
+        case PgcStatus::CompiledWithProbes: return PgcStatus::Optimized;
+        case PgcStatus::Optimized:
+        default:
+            return PgcStatus::Optimized;
+    }
+}
+
 PyjionJittedCode::~PyjionJittedCode() {
 	delete j_profile;
 }
@@ -246,11 +256,7 @@ PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 		}
 		else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {
 			auto result = PyJit_ExecuteAndCompileFrame(jitted, f, ts, jitted->j_profile);
-			switch(jitted->j_pgc_status){
-			    case PgcStatus::Uncompiled: jitted->j_pgc_status = PgcStatus::CompiledWithProbes; break;
-			    case PgcStatus::CompiledWithProbes: jitted->j_pgc_status = PgcStatus::Optimized; break;
-			    case PgcStatus::Optimized: break;
-			}
+            jitted->j_pgc_status = nextPgcStatus(jitted->j_pgc_status);
 			return result;
 		}
 	}
