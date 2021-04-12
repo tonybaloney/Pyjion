@@ -2010,7 +2010,10 @@ void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithS
     }
     emit_store_local(argumentLocal);
     emit_store_local(functionLocal);
-    if (functionType != &PyCFunction_Type || functionObject == nullptr){
+    if (functionType != &PyCFunction_Type ||
+        functionObject == nullptr ||
+        _PyObject_IsFreed(functionObject) ||
+        !PyCFunction_Check(functionObject)){
         emit_load_local(functionLocal);
         emit_load_local(argumentLocal);
         emit_null(); // kwargs
