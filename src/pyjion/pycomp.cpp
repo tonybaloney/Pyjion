@@ -291,7 +291,7 @@ void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources ite
         while (idx2--){
             emit_null();
         }
-        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack tuple due to size mismatch");
         emit_int(-1);
 
     emit_mark_label(returnValues);
@@ -321,7 +321,8 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
     size_t idx = size, idx2 = size;
 
     emit_store_local(t_value);
-
+    emit_load_local(t_value);
+    emit_debug_pyobject();
     emit_load_local(t_value);
     emit_list_length();
     emit_int(size);
@@ -341,7 +342,7 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
         while (idx2--) {
             emit_null();
         }
-        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack list due to size mismatch");
         emit_int(-1);
 
     emit_mark_label(returnValues);
@@ -387,7 +388,7 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
             emit_branch(BranchNotEqual, endbranch);
                 m_il.pop();
                 emit_null();
-                emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+                emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack object due to size mismatch");
                 emit_int(1);
                 emit_store_local(result);
 
@@ -1127,7 +1128,6 @@ void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractV
             }
     }
 }
-
 
 void PythonCompiler::emit_delete_subscr() {
     // stack is container, index
