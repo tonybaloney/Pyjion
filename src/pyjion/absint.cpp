@@ -45,7 +45,7 @@
 #define PGC_UPDATE_STACK(count) \
     if (pgc_status == PgcStatus::CompiledWithProbes) {                      \
         for (int pos = 0; pos < (count) ; pos++) \
-            lastState.push_n(pos, lastState.fromPgc(pos, profile->getType(curByte, pos), addPgcSource(opcodeIndex))); \
+            lastState.push_n(pos, lastState.fromPgc(pos, profile->getType(curByte, pos), profile->getValue(curByte, pos), addPgcSource(opcodeIndex))); \
         mStartStates[curByte] = lastState; \
     }
 
@@ -180,7 +180,7 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
 void AbstractInterpreter::setLocalType(int index, PyObject* val) {
     auto& lastState = mStartStates[0];
     if (val != nullptr) {
-        auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val)));
+        auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val));
         localInfo.ValueInfo.Sources = newSource(new LocalSource());
         lastState.replaceLocal(index, localInfo);
     }

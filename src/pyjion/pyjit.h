@@ -52,9 +52,11 @@ using namespace std;
 
 class PyjionCodeProfile{
     unordered_map<int, unordered_map<int, PyTypeObject *>> stackTypes;
+    unordered_map<int, unordered_map<int, PyObject *>> stackValues;
 public:
-    void recordType(int opcodePosition, int stackPosition, PyTypeObject* pythonType);
+    void record(int opcodePosition, int stackPosition, PyObject* obj);
     PyTypeObject* getType(int opcodePosition, int stackPosition);
+    PyObject* getValue(int opcodePosition, int stackPosition);
 };
 
 

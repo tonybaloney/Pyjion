@@ -1990,43 +1990,49 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
 }
 
 void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithSources func) {
-    auto function = func.Value->pythonType();
-    Local args_tuple = emit_define_local(LK_Pointer),
-          function_object = emit_define_local(LK_Pointer);
+    auto functionType = func.Value->pythonType();
+    PyObject* functionObject = nullptr;
+    Local argumentLocal = emit_define_local(LK_Pointer),
+          functionLocal = emit_define_local(LK_Pointer);
 
     if (func.Sources->isBuiltin()){
         auto builtin = reinterpret_cast<BuiltinSource*>(func.Sources);
-        function = builtin->getValue()->ob_type;
+        functionType = builtin->getValue()->ob_type;
+        functionObject = builtin->getValue();
+    }
+    if (func.Value->needsGuard()){
+        auto vol = reinterpret_cast<VolatileValue*>(func.Value);
+        functionObject = vol->lastValue();
     }
     emit_new_tuple(n_args);
     if (n_args != 0) {
         emit_tuple_store(n_args);
     }
-    emit_store_local(args_tuple);
-    emit_store_local(function_object);
-    if (!PyCFunction_Check(function)){
-        emit_load_local(function_object);
-        emit_load_local(args_tuple);
+    emit_store_local(argumentLocal);
+    emit_store_local(functionLocal);
+    if (functionType != &PyCFunction_Type || functionObject == nullptr){
+        emit_load_local(functionLocal);
+        emit_load_local(argumentLocal);
         emit_null(); // kwargs
         m_il.emit_call(METHOD_OBJECTCALL);
-        emit_load_and_free_local(args_tuple);
+        emit_load_and_free_local(argumentLocal);
         decref();
-        emit_load_and_free_local(function_object);
+        emit_load_and_free_local(functionLocal);
         decref();
         return;
     }
-    int flags = PyCFunction_GET_FLAGS(function);
+    int flags = PyCFunction_GET_FLAGS(functionObject);
     if (!(flags & METH_VARARGS)) {
-        emit_load_local(function_object);
-        emit_load_local(args_tuple);
+        emit_load_local(functionLocal);
+        emit_load_local(argumentLocal);
         /* If this is not a METH_VARARGS function, delegate to vectorcall */
         emit_null(); // kwargs is always null
         m_il.emit_call(METHOD_VECTORCALL);
     } else {
-        PyCFunction meth = PyCFunction_GET_FUNCTION(function);
-        PyObject *self = PyCFunction_GET_SELF(function);
+        PyCFunction meth = PyCFunction_GET_FUNCTION(functionObject);
+        PyObject *self = PyCFunction_GET_SELF(functionObject);
         emit_ptr(self);
-        emit_load_local(args_tuple);
+        emit_load_local(argumentLocal);
 
         int builtinToken;
         if (flags & METH_KEYWORDS) {
@@ -2048,9 +2054,9 @@ void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithS
     }
     // Decref all the args.
     // Because this tuple was built with borrowed references, it has the effect of decref'ing all args
-    emit_load_and_free_local(args_tuple);
+    emit_load_and_free_local(argumentLocal);
     decref();
-    emit_load_and_free_local(function_object);
+    emit_load_and_free_local(functionLocal);
     decref();
 }
 

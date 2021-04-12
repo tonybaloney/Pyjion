@@ -71,17 +71,22 @@ PyjionJittedCode::~PyjionJittedCode() {
 	delete j_profile;
 }
 
-void PyjionCodeProfile::recordType(int opcodePosition, int stackPosition, PyTypeObject* pythonType){
-    this->stackTypes[opcodePosition][stackPosition] = pythonType;
+void PyjionCodeProfile::record(int opcodePosition, int stackPosition, PyObject* value){
+    this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
+    this->stackValues[opcodePosition][stackPosition] = value;
 }
 
 PyTypeObject* PyjionCodeProfile::getType(int opcodePosition, int stackPosition) {
     return this->stackTypes[opcodePosition][stackPosition];
 }
 
+PyObject* PyjionCodeProfile::getValue(int opcodePosition, int stackPosition) {
+    return this->stackValues[opcodePosition][stackPosition];
+}
+
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, int opcodePosition, int stackPosition){
     if (value != nullptr && profile != nullptr)
-        profile->recordType(opcodePosition, stackPosition, Py_TYPE(value));
+        profile->record(opcodePosition, stackPosition, value);
 }
 
 int
