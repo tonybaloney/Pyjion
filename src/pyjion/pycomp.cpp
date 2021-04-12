@@ -321,8 +321,7 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
     size_t idx = size, idx2 = size;
 
     emit_store_local(t_value);
-    emit_load_local(t_value);
-    emit_debug_pyobject();
+
     emit_load_local(t_value);
     emit_list_length();
     emit_int(size);
