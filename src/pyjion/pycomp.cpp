@@ -1996,20 +1996,18 @@ void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithS
 
     if (func.Sources->isBuiltin()){
         auto builtin = reinterpret_cast<BuiltinSource*>(func.Sources);
-        emit_ptr(builtin->getValue());
-    } else {
-        emit_ptr(function);
+        function = builtin->getValue()->ob_type;
     }
-
+    emit_new_tuple(n_args);
+    if (n_args != 0) {
+        emit_tuple_store(n_args);
+    }
+    emit_store_local(args_tuple);
     emit_store_local(function_object);
     if (!PyCFunction_Check(function)){
-        emit_new_tuple(n_args);
-        if (n_args != 0) {
-            emit_tuple_store(n_args);
-        }
-        m_il.dup();
-        emit_store_local(args_tuple);
-        emit_null();
+        emit_load_local(function_object);
+        emit_load_local(args_tuple);
+        emit_null(); // kwargs
         m_il.emit_call(METHOD_OBJECTCALL);
         emit_load_and_free_local(args_tuple);
         decref();
@@ -2019,24 +2017,12 @@ void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithS
     }
     int flags = PyCFunction_GET_FLAGS(function);
     if (!(flags & METH_VARARGS)) {
+        emit_load_local(function_object);
+        emit_load_local(args_tuple);
         /* If this is not a METH_VARARGS function, delegate to vectorcall */
-        emit_new_tuple(n_args);
-        if (n_args != 0) {
-            emit_tuple_store(n_args);
-        }
-        m_il.dup();
-        emit_store_local(args_tuple);
         emit_null(); // kwargs is always null
         m_il.emit_call(METHOD_VECTORCALL);
     } else {
-        emit_new_tuple(n_args);
-        if (n_args != 0) {
-            emit_tuple_store(n_args);
-        }
-
-        emit_store_local(args_tuple);
-        m_il.pop(); // Drop the function object. I don't care about it now.
-
         PyCFunction meth = PyCFunction_GET_FUNCTION(function);
         PyObject *self = PyCFunction_GET_SELF(function);
         emit_ptr(self);
