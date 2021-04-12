@@ -1,5 +1,14 @@
 # Release notes
 
+## 0.13.0
+
+* The compiler will now fail (and default back to CPython) if .NET emits a FAST_FAIL helper
+* UNPACK_SEQUENCE is rewritten to be more efficient and use optimized  paths for LIST and TUPLE types
+* f-string (BUILD_STRING) is rewritten to be more efficient
+* UNPACK_EX is rewritten to remove the requirement for dynamic heap allocation (and the stack canary) and leverage .NET compiler's dynamic eval stack
+* PGC implemented for UNPACK_SEQUENCE
+* PGC implemented for BINARY_SUBSCR
+
 ## 0.12.0
 
 * Added PGC emitter to first compile pass

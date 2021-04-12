@@ -115,6 +115,8 @@ enum PgcStatus {
     Optimized = 2
 };
 
+PgcStatus nextPgcStatus(PgcStatus status);
+
 class PyjionJittedCode {
 public:
 	PY_UINT64_T j_run_count;

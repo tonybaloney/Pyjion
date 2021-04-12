@@ -121,6 +121,12 @@ def main(n=50000, ref='sun'):
 if __name__ == "__main__":
     print("N-body took {0} without Pyjion".format(timeit.repeat(main, repeat=5, number=1)))
     pyjion.enable()
+    pyjion.set_optimization_level(1)
     print("N-body took {0} with Pyjion".format(timeit.repeat(main, repeat=5, number=1)))
     pyjion.disable()
+    import pyjion.dis
+    print(pyjion.dis.dis(advance))
+    print(pyjion.info(offset_momentum))
+    print(pyjion.info(advance))
+    print(pyjion.info(report_energy))
     gc.collect()

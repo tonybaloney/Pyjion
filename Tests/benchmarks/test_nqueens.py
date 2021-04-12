@@ -61,5 +61,6 @@ if __name__ == "__main__":
     queen_count = 8
     print("N-Queens took {0} without Pyjion".format(timeit.repeat(bench_n_queens, repeat=5, number=1)))
     pyjion.enable()
+    pyjion.set_optimization_level(1)
     print("N-Queens took {0} with Pyjion".format(timeit.repeat(bench_n_queens, repeat=5, number=1)))
     pyjion.disable()

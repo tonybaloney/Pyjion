@@ -253,6 +253,18 @@ void PythonCompiler::decref(bool noopt) {
 }
 
 void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) {
+    Label passedGuard, failedGuard;
+    if (iterable.Value->needsGuard()){
+        passedGuard = emit_define_label(), failedGuard = emit_define_label();
+        m_il.dup();
+        LD_FIELD(PyObject, ob_type);
+        emit_ptr(iterable.Value->pythonType());
+        emit_branch(BranchEqual, passedGuard);
+        emit_unpack_generic(size, iterable);
+        emit_branch(BranchAlways, failedGuard);
+        emit_mark_label(passedGuard);
+    }
+
     Local t_value = emit_define_local(LK_NativeInt);
     Label raiseValueError = emit_define_label();
     Label returnValues = emit_define_label();
@@ -279,15 +291,30 @@ void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources ite
         while (idx2--){
             emit_null();
         }
-        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack tuple due to size mismatch");
         emit_int(-1);
 
     emit_mark_label(returnValues);
     emit_load_and_free_local(t_value);
     decref();
+
+    if (iterable.Value->needsGuard()){
+        emit_mark_label(failedGuard);
+    }
 }
 
 void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iterable) {
+    Label passedGuard, failedGuard;
+    if (iterable.Value->needsGuard()){
+        passedGuard = emit_define_label(), failedGuard = emit_define_label();
+        m_il.dup();
+        LD_FIELD(PyObject, ob_type);
+        emit_ptr(iterable.Value->pythonType());
+        emit_branch(BranchEqual, passedGuard);
+        emit_unpack_generic(size, iterable);
+        emit_branch(BranchAlways, failedGuard);
+        emit_mark_label(passedGuard);
+    }
     Local t_value = emit_define_local(LK_NativeInt);
     Label raiseValueError = emit_define_label();
     Label returnValues = emit_define_label();
@@ -314,12 +341,16 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
         while (idx2--) {
             emit_null();
         }
-        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+        emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack list due to size mismatch");
         emit_int(-1);
 
     emit_mark_label(returnValues);
     emit_load_and_free_local(t_value);
     decref();
+
+    if (iterable.Value->needsGuard()){
+        emit_mark_label(failedGuard);
+    }
 }
 
 void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources iterable) {
@@ -356,7 +387,7 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
             emit_branch(BranchNotEqual, endbranch);
                 m_il.pop();
                 emit_null();
-                emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack due to size mismatch");
+                emit_pyerr_setstring(PyExc_ValueError, "Cannot unpack object due to size mismatch");
                 emit_int(1);
                 emit_store_local(result);
 
@@ -372,7 +403,7 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
 }
 
 void PythonCompiler::emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) {
-    if (iterable.Value->known() && !iterable.Value->needsGuard()) {
+    if (iterable.Value->known()) {
         switch (iterable.Value->kind()) {
             case AVK_Tuple:
                 return emit_unpack_tuple(size, iterable);
@@ -1096,7 +1127,6 @@ void PythonCompiler::emit_store_subscr(AbstractValueWithSources value, AbstractV
             }
     }
 }
-
 
 void PythonCompiler::emit_delete_subscr() {
     // stack is container, index
