@@ -313,11 +313,10 @@ public:
     // Unpacks the sequence onto the stack, supporting a remainder list
     virtual void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) = 0;
     virtual void emit_list_shrink(size_t by) = 0;
-    // Emits a call for the specified argument count.  If the compiler
-    // can't emit a call with this number of args then it returns false,
-    // and emit_call_with_tuple is used to call with a variable sized
-    // tuple instead.
-    virtual bool emit_func_call(size_t argCnt) = 0;
+
+    virtual void emit_builtin_method(PyObject* name, AbstractValue* typeValue) = 0;
+    virtual void emit_call_function_inline(size_t n_args, AbstractValueWithSources func) = 0;
+    virtual bool emit_call_function(size_t argCnt) = 0;
 
     // Emits a call for the specified argument count.
     virtual bool emit_method_call(size_t argCnt) = 0;
@@ -461,9 +460,6 @@ public:
 
     virtual void emit_load_frame_locals() = 0;
     virtual void emit_triple_binary_op(int firstOp, int secondOp) = 0;
-    virtual void emit_builtin_method(PyObject* name, AbstractValue* typeValue) = 0;
-
-    virtual void emit_builtin_func(size_t i, AbstractValueWithSources func) = 0;
 };
 
 #endif

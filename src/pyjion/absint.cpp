@@ -1882,11 +1882,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                     stackInfo.nth(oparg + 1).hasSource() &&
                     stackInfo.nth(oparg + 1).hasValue())
                 {
-                    m_comp->emit_builtin_func(oparg, stackInfo.nth(oparg + 1));
+                    m_comp->emit_call_function_inline(oparg, stackInfo.nth(oparg + 1));
                     decStack(oparg + 1); // target + args(oparg)
                     errorCheck("builtin function call failed", curByte);
                 } else {
-                    if (!m_comp->emit_func_call(oparg)) {
+                    if (!m_comp->emit_call_function(oparg)) {
                         buildTuple(oparg);
                         incStack();
                         m_comp->emit_call_with_tuple();

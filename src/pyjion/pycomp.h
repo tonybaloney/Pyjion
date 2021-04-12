@@ -361,11 +361,9 @@ public:
     void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) override;
     void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) override;
     void emit_list_shrink(size_t by) override;
-    // Emits a call for the specified argument count.  If the compiler
-    // can't emit a call with this number of args then it returns false,
-    // and emit_call_with_tuple is used to call with a variable sized
-    // tuple instead.
-    bool emit_func_call(size_t argCnt) override;
+    void emit_builtin_method(PyObject* name, AbstractValue* typeValue) override;
+    void emit_call_function_inline(size_t n_args, AbstractValueWithSources func) override;
+    bool emit_call_function(size_t argCnt) override;
     void emit_call_with_tuple() override;
 
     void emit_kwcall_with_tuple() override;
@@ -493,8 +491,7 @@ public:
     void lift_n_to_third(int pos) override;
     void sink_top_to_n(int pos) override;
 
-    void emit_builtin_method(PyObject* name, AbstractValue* typeValue) override;
-    void emit_builtin_func(size_t i, AbstractValueWithSources func) override;
+
 private:
     void load_frame();
     void load_tstate();

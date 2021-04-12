@@ -216,3 +216,32 @@ TEST_CASE("test UNPACK_SEQUENCE PGC") {
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     }
 }
+
+
+TEST_CASE("test CALL_FUNCTION PGC") {
+    SECTION("test callable type object") {
+        auto t = PgcProfilingTest(
+                "def f():\n  return int('2000')"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "2000");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.profileEquals(4, 0, &PyUnicode_Type));
+        CHECK(t.profileEquals(4, 1, &PyType_Type));
+        CHECK(t.returns() == "2000");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+
+    SECTION("test builtin function") {
+        auto t = PgcProfilingTest(
+                "def f():\n  return len('2000')"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "4");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.profileEquals(4, 0, &PyUnicode_Type));
+        CHECK(t.profileEquals(4, 1, &PyCFunction_Type));
+        CHECK(t.returns() == "4");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+}
