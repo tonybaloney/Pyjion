@@ -1366,7 +1366,7 @@ void PythonCompiler::emit_call_kwargs() {
     m_il.emit_call(METHOD_CALL_KWARGS);
 }
 
-bool PythonCompiler::emit_func_call(size_t argCnt) {
+bool PythonCompiler::emit_call_function(size_t argCnt) {
     switch (argCnt) {
         case 0: m_il.emit_call(METHOD_CALL_0_TOKEN); return true;
         case 1: m_il.emit_call(METHOD_CALL_1_TOKEN); return true;
@@ -1989,72 +1989,107 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
     emit_load_and_free_local(meth_location);
 }
 
-void PythonCompiler::emit_builtin_func(size_t args, AbstractValueWithSources functionValue) {
-    auto builtin = reinterpret_cast<BuiltinSource*>(functionValue.Sources);
-    auto func = builtin->getValue();
-    Local args_tuple = emit_define_local(LK_Pointer);
-    Local function_object = emit_define_local(LK_Pointer);
-    emit_ptr(func);
-    emit_store_local(function_object);
-    if (!PyCFunction_Check(func)){
-        emit_new_tuple(args);
-        if (args != 0) {
-            emit_tuple_store(args);
-        }
-        m_il.dup();
-        emit_store_local(args_tuple);
-        emit_null();
+void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithSources func) {
+    auto functionType = func.Value->pythonType();
+    PyObject* functionObject = nullptr;
+    Local argumentLocal = emit_define_local(LK_Pointer),
+          functionLocal = emit_define_local(LK_Pointer),
+          gstate = emit_define_local(LK_Pointer);
+    Label fallback = emit_define_label(), pass = emit_define_label();
+
+    m_il.emit_call(METHOD_GIL_ENSURE);
+    emit_store_local(gstate);
+
+    if (func.Sources->isBuiltin()){
+        auto builtin = reinterpret_cast<BuiltinSource*>(func.Sources);
+        functionType = builtin->getValue()->ob_type;
+        functionObject = builtin->getValue();
+    }
+    if (func.Value->needsGuard()){
+        auto vol = reinterpret_cast<VolatileValue*>(func.Value);
+        functionObject = vol->lastValue();
+    }
+    emit_new_tuple(n_args);
+    if (n_args != 0) {
+        emit_tuple_store(n_args);
+    }
+    emit_store_local(argumentLocal);
+    emit_store_local(functionLocal);
+    if (functionType != &PyCFunction_Type ||
+        functionObject == nullptr ||
+        _PyObject_IsFreed(functionObject) ||
+        !PyCFunction_Check(functionObject))
+    {
+        emit_load_local(functionLocal);
+        emit_load_local(argumentLocal);
+        emit_null(); // kwargs
         m_il.emit_call(METHOD_OBJECTCALL);
-        return;
-    }
-    int flags = PyCFunction_GET_FLAGS(func);
-    if (!(flags & METH_VARARGS)) {
-        /* If this is not a METH_VARARGS function, delegate to vectorcall */
-        emit_new_tuple(args);
-        if (args != 0) {
-            emit_tuple_store(args);
-        }
-        m_il.dup();
-        emit_store_local(args_tuple);
-        emit_null(); // kwargs is always null
-        m_il.emit_call(METHOD_VECTORCALL);
     } else {
-        emit_new_tuple(args);
-        if (args != 0) {
-            emit_tuple_store(args);
-        }
-
-        emit_store_local(args_tuple);
-        m_il.pop(); // Drop the function object. I don't care about it now.
-
-        PyCFunction meth = PyCFunction_GET_FUNCTION(func);
-        PyObject *self = PyCFunction_GET_SELF(func);
-        emit_ptr(self);
-        emit_load_local(args_tuple);
-
-        int builtinToken;
-        if (flags & METH_KEYWORDS) {
-            emit_null();
-            builtinToken = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
-                                              vector<Parameter>{
-                                                      Parameter(CORINFO_TYPE_NATIVEINT), // Self
-                                                      Parameter(CORINFO_TYPE_NATIVEINT), // Args-tuple
-                                                      Parameter(CORINFO_TYPE_NATIVEINT)}, // kwargs
-                                              (void *) meth);
+        int flags = PyCFunction_GET_FLAGS(functionObject);
+        if (!(flags & METH_VARARGS)) {
+            emit_load_local(functionLocal);
+            emit_load_local(argumentLocal);
+            /* If this is not a METH_VARARGS function, delegate to vectorcall */
+            emit_null(); // kwargs is always null
+            if (func.Value->needsGuard()) {
+                emit_load_local(functionLocal);
+                emit_ptr(functionObject);
+                emit_branch(BranchNotEqual, fallback);
+                m_il.emit_call(METHOD_VECTORCALL);
+                emit_branch(BranchAlways, pass);
+                emit_mark_label(fallback);
+                m_il.emit_call(METHOD_OBJECTCALL);
+                emit_mark_label(pass);
+            } else {
+                m_il.emit_call(METHOD_VECTORCALL);
+            }
         } else {
-            builtinToken = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
-                                              vector<Parameter>{
-                                                      Parameter(CORINFO_TYPE_NATIVEINT), // Self
-                                                      Parameter(CORINFO_TYPE_NATIVEINT)}, // Args-tuple
-                                              (void *) meth);
+            PyCFunction meth = PyCFunction_GET_FUNCTION(functionObject);
+            PyObject *self = PyCFunction_GET_SELF(functionObject);
+            if (func.Value->needsGuard()) {
+                emit_load_local(functionLocal);
+                emit_ptr(functionObject);
+                emit_branch(BranchNotEqual, fallback);
+            }
+
+            emit_ptr(self);
+            emit_load_local(argumentLocal);
+
+            int builtinToken;
+            if (flags & METH_KEYWORDS) {
+                emit_null();
+                builtinToken = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                  vector<Parameter>{
+                                                          Parameter(CORINFO_TYPE_NATIVEINT), // Self
+                                                          Parameter(CORINFO_TYPE_NATIVEINT), // Args-tuple
+                                                          Parameter(CORINFO_TYPE_NATIVEINT)}, // kwargs
+                                                  (void *) meth);
+            } else {
+                builtinToken = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                  vector<Parameter>{
+                                                          Parameter(CORINFO_TYPE_NATIVEINT), // Self
+                                                          Parameter(CORINFO_TYPE_NATIVEINT)}, // Args-tuple
+                                                  (void *) meth);
+            }
+            m_il.emit_call(builtinToken);
+
+            if (func.Value->needsGuard()) {
+                emit_branch(BranchAlways, pass);
+                emit_mark_label(fallback);
+                emit_load_local(functionLocal);
+                emit_load_local(argumentLocal);
+                m_il.emit_call(METHOD_OBJECTCALL);
+                emit_mark_label(pass);
+            }
         }
-        m_il.emit_call(builtinToken);
     }
+    emit_load_local(gstate);
+    m_il.emit_call(METHOD_GIL_RELEASE);
     // Decref all the args.
     // Because this tuple was built with borrowed references, it has the effect of decref'ing all args
-    emit_load_and_free_local(args_tuple);
+    emit_load_and_free_local(argumentLocal);
     decref();
-    emit_load_and_free_local(function_object);
+    emit_load_and_free_local(functionLocal);
     decref();
 }
 
@@ -2363,3 +2398,6 @@ GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );
 GLOBAL_METHOD(METHOD_PGC_PROBE, &capturePgcStackValue, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_SEQUENCE_AS_LIST, &PySequence_List, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_LIST_ITEM_FROM_BACK, &PyJit_GetListItemReversed, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+
+GLOBAL_METHOD(METHOD_GIL_ENSURE, &PyGILState_Ensure, CORINFO_TYPE_NATIVEINT);
+GLOBAL_METHOD(METHOD_GIL_RELEASE, &PyGILState_Release, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));

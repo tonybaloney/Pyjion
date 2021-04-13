@@ -571,34 +571,48 @@ class FileValue : public AbstractValue {
 };
 
 class VolatileValue: public AbstractValue{
+public:
     bool needsGuard() override {
         return true;
+    }
+    virtual PyObject* lastValue() {
+        Py_RETURN_NONE;
     }
 };
 
 class PgcValue : public VolatileValue {
     PyTypeObject* _type;
+    PyObject* _object;
 public:
-    explicit PgcValue(PyTypeObject* type){
+    explicit PgcValue(PyTypeObject* type, PyObject* object){
         _type = type;
+        _object = object;
     }
     AbstractValueKind kind() override;
     PyTypeObject* pythonType() override;
     bool known() override {
         return true;
+    }
+    PyObject* lastValue() override {
+        return _object;
     }
 };
 
 class ArgumentValue: public VolatileValue {
     PyTypeObject* _type;
+    PyObject* _value;
 public:
-    explicit ArgumentValue(PyTypeObject* type){
+    explicit ArgumentValue(PyTypeObject* type, PyObject* value){
         _type = type;
+        _value = value;
     }
     AbstractValueKind kind() override;
     PyTypeObject* pythonType() override;
     bool known() override {
         return true;
+    }
+    PyObject* lastValue() override {
+        return _value;
     }
 };
 

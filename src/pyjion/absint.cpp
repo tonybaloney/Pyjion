@@ -45,7 +45,7 @@
 #define PGC_UPDATE_STACK(count) \
     if (pgc_status == PgcStatus::CompiledWithProbes) {                      \
         for (int pos = 0; pos < (count) ; pos++) \
-            lastState.push_n(pos, lastState.fromPgc(pos, profile->getType(curByte, pos), addPgcSource(opcodeIndex))); \
+            lastState.push_n(pos, lastState.fromPgc(pos, profile->getType(curByte, pos), profile->getValue(curByte, pos), addPgcSource(opcodeIndex))); \
         mStartStates[curByte] = lastState; \
     }
 
@@ -180,7 +180,7 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
 void AbstractInterpreter::setLocalType(int index, PyObject* val) {
     auto& lastState = mStartStates[0];
     if (val != nullptr) {
-        auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val)));
+        auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val));
         localInfo.ValueInfo.Sources = newSource(new LocalSource());
         lastState.replaceLocal(index, localInfo);
     }
@@ -602,7 +602,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case CALL_FUNCTION: {
                     if (PGC_READY()){
                         PGC_PROBE(oparg + 1);
-                        // TODO : Update stack PGC_UPDATE_STACK(oparg+1)
+                        PGC_UPDATE_STACK(oparg+1);
                     }
                     int argCnt = oparg & 0xff;
                     int kwArgCnt = (oparg >> 8) & 0xff;
@@ -1877,12 +1877,17 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case CALL_FUNCTION:
             {
-                if (OPT_ENABLED(functionCalls) && stackInfo.size() >= (oparg + 1) && stackInfo.nth(oparg + 1).hasSource() && stackInfo.nth(oparg + 1).Sources->isBuiltin()){
-                    m_comp->emit_builtin_func(oparg, stackInfo.nth(oparg + 1));
+                if (OPT_ENABLED(functionCalls) &&
+                    stackInfo.size() >= (oparg + 1) &&
+                    stackInfo.nth(oparg + 1).hasSource() &&
+                    stackInfo.nth(oparg + 1).hasValue() &&
+                    !mTracingEnabled)
+                {
+                    m_comp->emit_call_function_inline(oparg, stackInfo.nth(oparg + 1));
                     decStack(oparg + 1); // target + args(oparg)
-                    errorCheck("builtin function call failed", curByte);
+                    errorCheck("inline function call failed", curByte);
                 } else {
-                    if (!m_comp->emit_func_call(oparg)) {
+                    if (!m_comp->emit_call_function(oparg)) {
                         buildTuple(oparg);
                         incStack();
                         m_comp->emit_call_with_tuple();
