@@ -1,5 +1,9 @@
 # Release notes
 
+## 0.14.0
+
+* Updated to .NET 5.0.5 (5.0.202)
+
 ## 0.13.0
 
 * The compiler will now fail (and default back to CPython) if .NET emits a FAST_FAIL helper
