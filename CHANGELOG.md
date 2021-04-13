@@ -3,6 +3,10 @@
 ## 0.14.0
 
 * Updated to .NET 5.0.5 (5.0.202)
+* Fixed a bug in PGC for large functions meaning they wouldn't be optimized
+* Implemented PGC for BINARY_SUBSCR (OPT-5)
+* Implemented PGC for STORE_SUBSCR (OPT-6)
+* Implemented PGC for all inplace and regular binary operators (+, -, / etc) see OPT-13
 
 ## 0.13.0
 
