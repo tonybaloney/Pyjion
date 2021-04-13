@@ -405,7 +405,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     AbstractValueWithSources one;
                     if (PGC_READY()){
                         PGC_PROBE(2);
-                        // PGC_UPDATE_STACK(2);
+                        PGC_UPDATE_STACK(2);
                     }
                     two = lastState.popNoEscape();
                     one = lastState.popNoEscape();
@@ -718,6 +718,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     }
                     goto next;
                 case STORE_SUBSCR:
+                    if (PGC_READY()){
+                        PGC_PROBE(3);
+                        PGC_UPDATE_STACK(3);
+                    }
                     lastState.pop();
                     lastState.pop();
                     lastState.pop();

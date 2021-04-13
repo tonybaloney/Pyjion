@@ -71,20 +71,20 @@ PyjionJittedCode::~PyjionJittedCode() {
 	delete j_profile;
 }
 
-void PyjionCodeProfile::record(int opcodePosition, int stackPosition, PyObject* value){
+void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyObject* value){
     this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
     this->stackValues[opcodePosition][stackPosition] = value;
 }
 
-PyTypeObject* PyjionCodeProfile::getType(int opcodePosition, int stackPosition) {
+PyTypeObject* PyjionCodeProfile::getType(size_t opcodePosition, size_t stackPosition) {
     return this->stackTypes[opcodePosition][stackPosition];
 }
 
-PyObject* PyjionCodeProfile::getValue(int opcodePosition, int stackPosition) {
+PyObject* PyjionCodeProfile::getValue(size_t opcodePosition, size_t stackPosition) {
     return this->stackValues[opcodePosition][stackPosition];
 }
 
-void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, int opcodePosition, int stackPosition){
+void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition){
     if (value != nullptr && profile != nullptr)
         profile->record(opcodePosition, stackPosition, value);
 }
@@ -108,7 +108,7 @@ Pyjit_CheckRecursiveCall(PyThreadState *tstate, const char *where)
         --tstate->recursion_depth;
         tstate->overflowed = 1;
         PyErr_Format(PyExc_RecursionError,
-                      "maximum recursion depth exceeded%s",
+                      "maximum recursion depth exceeded - %s.",
                       where);
         return -1;
     }
