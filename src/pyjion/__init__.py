@@ -2,9 +2,8 @@ import ctypes
 import pathlib
 import os
 import platform
-from enum import Enum
 
-__version__ = '0.12.0'
+__version__ = '0.13.0'
 
 
 def _no_dotnet(path):

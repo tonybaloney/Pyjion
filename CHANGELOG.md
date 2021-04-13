@@ -8,6 +8,7 @@
 * UNPACK_EX is rewritten to remove the requirement for dynamic heap allocation (and the stack canary) and leverage .NET compiler's dynamic eval stack
 * PGC implemented for UNPACK_SEQUENCE
 * PGC implemented for BINARY_SUBSCR
+* PGC implemented for CALL_FUNCTION/OPT-14
 
 ## 0.12.0
 
