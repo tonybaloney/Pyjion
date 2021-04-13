@@ -188,7 +188,7 @@ public:
         if (mStack.empty())
             throw StackUnderflowException();
         auto existing = mStack[mStack.size() - 1 - stackPosition];
-        if (existing.hasValue() && existing.Sources->hasConstValue())
+        if (existing.hasSource() && existing.Sources->hasConstValue())
             return existing;
         if (pyTypeObject == nullptr)
             return existing;
