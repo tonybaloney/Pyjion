@@ -1880,11 +1880,12 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 if (OPT_ENABLED(functionCalls) &&
                     stackInfo.size() >= (oparg + 1) &&
                     stackInfo.nth(oparg + 1).hasSource() &&
-                    stackInfo.nth(oparg + 1).hasValue())
+                    stackInfo.nth(oparg + 1).hasValue() &&
+                    !mTracingEnabled)
                 {
                     m_comp->emit_call_function_inline(oparg, stackInfo.nth(oparg + 1));
                     decStack(oparg + 1); // target + args(oparg)
-                    errorCheck("builtin function call failed", curByte);
+                    errorCheck("inline function call failed", curByte);
                 } else {
                     if (!m_comp->emit_call_function(oparg)) {
                         buildTuple(oparg);

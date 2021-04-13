@@ -211,6 +211,9 @@ class MethodTokens (Enum):
 
     METHOD_LOAD_METHOD           = 0x00013000
 
+    METHOD_GIL_ENSURE            = 0x00014000
+    METHOD_GIL_RELEASE           = 0x00014001
+
     METHOD_PYTUPLE_NEW           = 0x00020000
     METHOD_PYLIST_NEW            = 0x00020001
     METHOD_PYDICT_NEWPRESIZED    = 0x00020002

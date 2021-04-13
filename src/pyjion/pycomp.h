@@ -184,6 +184,9 @@
 
 #define METHOD_LOAD_METHOD           0x00013000
 
+#define METHOD_GIL_ENSURE            0x00014000
+#define METHOD_GIL_RELEASE           0x00014001
+
 // Py* helpers
 #define METHOD_PYTUPLE_NEW           0x00020000
 #define METHOD_PYLIST_NEW            0x00020001
