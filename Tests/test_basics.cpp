@@ -395,6 +395,20 @@ TEST_CASE("Iterators") {
                               " return total");
         CHECK(t.returns() == "6");
     }
+
+    SECTION("test changing types iterator") {
+        auto t = EmissionTest(
+                "def f():\n"
+                "  def _sum(s):\n"
+                "     tot = 0\n"
+                "     for i in s:\n"
+                "       tot += i\n"
+                "     return tot\n"
+                "  v = _sum((0,1,2)) + _sum([0,1,2])\n"
+                "  return v\n"
+        );
+        CHECK(t.returns() == "6");
+    };
 }
 
 TEST_CASE("Binary slice subscripts") {
@@ -516,4 +530,68 @@ TEST_CASE("Type object methods") {
         auto t = EmissionTest("def f(): return int.__format__(2, '%')");
         CHECK(t.returns() == "'200.000000%'");
     }
+}
+
+TEST_CASE("Sequence binary operations") {
+    SECTION("add two lists") {
+        auto t = EmissionTest("def f(): return ['hello'] + ['world']");
+        CHECK(t.returns() == "['hello', 'world']");
+    }
+    SECTION("assert multi list by number") {
+        auto t = EmissionTest("def f(): return ['hello'] * 5");
+        CHECK(t.returns() == "['hello', 'hello', 'hello', 'hello', 'hello']");
+    }
+    SECTION("assert multi list by number reversed") {
+        auto t = EmissionTest("def f(): return 5* ['hello']");
+        CHECK(t.returns() == "['hello', 'hello', 'hello', 'hello', 'hello']");
+    }
+    SECTION("assert multi list by complex number") {
+        auto t = EmissionTest("def f(): return ['hello'] * int(5)");
+        CHECK(t.returns() == "['hello', 'hello', 'hello', 'hello', 'hello']");
+    }
+    SECTION("assert multi list by complex number reversed") {
+        auto t = EmissionTest("def f(): return int(5) * ['hello']");
+        CHECK(t.returns() == "['hello', 'hello', 'hello', 'hello', 'hello']");
+    }
+    SECTION("assert multi letter by complex number") {
+        auto t = EmissionTest("def f(): return 'a' * int(5)");
+        CHECK(t.returns() == "'aaaaa'");
+    }
+}
+
+
+TEST_CASE("Test builtins") {
+    SECTION("call print()") {
+        auto t = EmissionTest("def f(): return print('hello world')");
+        CHECK(t.returns() == "None");
+    }
+    SECTION("call ord()") {
+        auto t = EmissionTest("def f(): return ord('a')");
+        CHECK(t.returns() == "97");
+    }
+    SECTION("call int()") {
+        auto t = EmissionTest("def f(): return int('97')");
+        CHECK(t.returns() == "97");
+    }
+    SECTION("call min()") {
+        auto t = EmissionTest("def f(): return min([100, 101, 97])");
+        CHECK(t.returns() == "97");
+    }
+    SECTION("call min() again") {
+        auto t = EmissionTest("def f(): return min(100, 101, 97)");
+        CHECK(t.returns() == "97");
+    }
+    SECTION("call type()") {
+        auto t = EmissionTest("def f(): return type(2)");
+        CHECK(t.returns() == "<class 'int'>");
+    }
+    SECTION("call type() more complicatedly?") {
+        auto t = EmissionTest("def f(): return isinstance(type(2), type)");
+        CHECK(t.returns() == "True");
+    }
+    SECTION("call max() and map()") {
+        auto t = EmissionTest("def f(): args=('a', 'aaa', 'aaaaa'); return max(map(len, args))");
+        CHECK(t.returns() == "5");
+    }
+
 }

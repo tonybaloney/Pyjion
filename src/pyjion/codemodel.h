@@ -46,20 +46,34 @@
 
 #include <corjit.h>
 
+#define METHOD_SLOT_SPACE 0x00100000
+
 using namespace std;
 
 class Method;
 class BaseMethod;
 class CorClass;
 
+class Parameter {
+public:
+    CorInfoType m_type;
+    explicit Parameter(CorInfoType type) {
+        m_type = type;
+    }
+};
+
 class BaseModule {
 public:
     unordered_map<int, BaseMethod*> m_methods;
+    unordered_map<void*, int> existingSlots;
+    int slotCursor = 0;
     BaseModule() = default;
 
     virtual BaseMethod* ResolveMethod(unsigned int tokenId) {
         return m_methods[tokenId];
     }
+
+    virtual int AddMethod(CorInfoType returnType, std::vector<Parameter> params, void* addr);
 };
 
 class UserModule : public BaseModule {
@@ -79,13 +93,7 @@ public:
     }
 };
 
-class Parameter {
-public:
-    CorInfoType m_type;
-    explicit Parameter(CorInfoType type) {
-        m_type = type;
-    }
-};
+
 
 class BaseMethod {
 public:
@@ -139,5 +147,6 @@ public:
         pResult->addr = &m_addr;
     }
 };
+
 
 #endif

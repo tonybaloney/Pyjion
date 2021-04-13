@@ -19,7 +19,7 @@ with open("CHANGELOG.md", "r") as fh:
 
 setup(
     name='pyjion',
-    version='0.10.0',
+    version='0.13.0',
     description='A JIT compiler wrapper for CPython',
     author='Anthony Shaw and Microsoft',
     author_email='anthonyshaw@apache.org',
@@ -28,8 +28,8 @@ setup(
     packages=['pyjion'],
     package_dir={'': 'src'},
     setup_requires=setup_requires,
-    extras_require = {
-        'dis':  ["rich", "distorm3"]
+    extras_require={
+        'dis': ["rich", "distorm3"]
     },
     python_requires='>=3.9',
     include_package_data=True,

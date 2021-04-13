@@ -111,7 +111,7 @@ struct ExceptionHandler {
 
 class ExceptionHandlerManager {
     vector<ExceptionHandler*> m_exceptionHandlers;
-    unordered_map<unsigned long, ExceptionHandler*> m_handlerIndexes;
+    unordered_map<size_t, ExceptionHandler*> m_handlerIndexes;
 public:
     ExceptionHandlerManager() = default;
 
@@ -129,8 +129,8 @@ public:
 
     vector<ExceptionHandler*> GetHandlers();
 
-    bool IsHandlerAtOffset(int offset);
-    ExceptionHandler* HandlerAtOffset(int offset);
+    bool IsHandlerAtOffset(size_t offset);
+    ExceptionHandler* HandlerAtOffset(size_t offset);
 };
 
 #endif //PYJION_EXCEPTIONHANDLING_H

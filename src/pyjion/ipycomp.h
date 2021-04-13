@@ -27,7 +27,18 @@
 #define PYJION_IPYCOMP_H
 
 #include <cstdint>
+#include <exception>
 #include "absvalue.h"
+
+class InvalidLocalException: public std::exception {
+public:
+    InvalidLocalException(): std::exception() {};
+    const char * what () const noexcept override
+    {
+        return "Invalid CIL Local";
+    }
+};
+
 
 class Local {
 public:
@@ -39,6 +50,11 @@ public:
 
     bool is_valid() const {
         return m_index != -1;
+    }
+
+    void raiseOnInvalid(){
+        if (m_index == -1)
+            throw InvalidLocalException();
     }
 };
 
@@ -55,7 +71,8 @@ enum LocalKind {
     LK_Pointer,
     LK_Float,
     LK_Int,
-    LK_Bool
+    LK_Bool,
+    LK_NativeInt
 };
 
 enum BranchType {
@@ -117,8 +134,6 @@ public:
     virtual void emit_mark_label(Label label) = 0;
     // Emits a branch to the specified label 
     virtual void emit_branch(BranchType branchType, Label label) = 0;
-    // Compares if the last two values pushed onto the stack are equal
-    virtual void emit_compare_equal() = 0;
 
     // Emits an unboxed integer value onto the stack
     virtual void emit_int(int value) = 0;
@@ -156,8 +171,7 @@ public:
     virtual Local emit_define_local(LocalKind kind = LK_Pointer) = 0;
     // Frees a local making it available for re-use
     virtual void emit_free_local(Local local) = 0;
-    // Creates an array on the stack for temporary storage
-    virtual Local emit_allocate_stack_array(size_t elements) = 0;
+
 
     /*****************************************************
      * Frames, basic function semantics */
@@ -212,7 +226,6 @@ public:
     virtual void emit_store_subscr(AbstractValueWithSources, AbstractValueWithSources, AbstractValueWithSources) = 0;
 
     virtual void emit_delete_subscr() = 0;
-    virtual void emit_periodic_work() = 0;
     virtual void emit_pending_calls() = 0;
     virtual void emit_init_instr_counter() = 0;
 
@@ -224,6 +237,10 @@ public:
     // Stores all of the values on the stack into a tuple
     virtual void emit_tuple_store(size_t size) = 0;
 	virtual void emit_tuple_load(size_t index) = 0;
+    virtual void emit_list_load(size_t index) = 0;
+    virtual void emit_tuple_length() = 0;
+    virtual void emit_list_length() = 0;
+
     // Convert a list to a tuple
     virtual void emit_list_to_tuple() = 0;
 
@@ -289,18 +306,17 @@ public:
     virtual void emit_load_build_class() = 0;
 
     // Unpacks the sequence onto the stack
-    virtual void emit_unpack_sequence(Local sequence, Local sequenceStorage, Label success, size_t size) = 0;
+    virtual void emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_list(size_t size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) = 0;
     // Unpacks the sequence onto the stack, supporting a remainder list
-    virtual void emit_unpack_ex(Local sequence, size_t leftSize, size_t rightSize, Local sequenceStorage, Local list, Local remainder) = 0;
-    // Loads an element from the array on the stack
-    virtual void emit_load_array(int index) = 0;
-	virtual void emit_store_to_array(Local array, int index) = 0;
+    virtual void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) = 0;
+    virtual void emit_list_shrink(size_t by) = 0;
 
-    // Emits a call for the specified argument count.  If the compiler
-    // can't emit a call with this number of args then it returns false,
-    // and emit_call_with_tuple is used to call with a variable sized
-    // tuple instead.
-    virtual bool emit_call(size_t argCnt) = 0;
+    virtual void emit_builtin_method(PyObject* name, AbstractValue* typeValue) = 0;
+    virtual void emit_call_function_inline(size_t n_args, AbstractValueWithSources func) = 0;
+    virtual bool emit_call_function(size_t argCnt) = 0;
 
     // Emits a call for the specified argument count.
     virtual bool emit_method_call(size_t argCnt) = 0;
@@ -362,6 +378,7 @@ public:
     virtual void emit_binary_float(int opcode) = 0;
     // Performs a binary operation for values on the stack which are boxed objects
     virtual void emit_binary_object(int opcode) = 0;
+    virtual void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) = 0;
@@ -427,6 +444,7 @@ public:
     virtual void emit_trace_exception() = 0;
     virtual void emit_profile_frame_entry() = 0;
     virtual void emit_profile_frame_exit() = 0;
+    virtual void emit_pgc_probe(size_t curByte, size_t stackSize) = 0;
 
     /* Compiles the generated code */
     virtual JittedCode* emit_compile() = 0;
@@ -442,7 +460,6 @@ public:
 
     virtual void emit_load_frame_locals() = 0;
     virtual void emit_triple_binary_op(int firstOp, int secondOp) = 0;
-    virtual void emit_builtin_method(PyObject* name, AbstractValue* typeValue) = 0;
 };
 
 #endif

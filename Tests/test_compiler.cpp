@@ -47,9 +47,9 @@ private:
         auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
-        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate);
+        auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode.get(), frame, tstate, nullptr);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
-        //Py_DECREF(frame);
+
         size_t collected = PyGC_Collect();
         printf("Collected %zu values\n", collected);
         REQUIRE(!m_jittedcode->j_failed);
@@ -64,9 +64,6 @@ public:
             FAIL("failed to compile code");
         }
         auto jitted = PyJit_EnsureExtra((PyObject *) *m_code);
-        if (!jit_compile(m_code.get())) {
-            FAIL("failed to JIT code");
-        }
         m_jittedcode.reset(jitted);
     }
 
@@ -112,7 +109,7 @@ public:
         if (result_t == nullptr)
             return nullptr;
 
-        auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(m_jittedcode->j_evalfunc), m_jittedcode->j_nativeSize);
+        auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(m_jittedcode->j_addr), m_jittedcode->j_nativeSize);
         if (res == nullptr)
             return nullptr;
 
@@ -125,7 +122,7 @@ public:
         PyTuple_SET_ITEM(result_t, 1, codeLen);
         Py_INCREF(codeLen);
 
-        auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&m_jittedcode->j_evalfunc));
+        auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&m_jittedcode->j_addr));
         if (codePosition == nullptr)
             return nullptr;
         PyTuple_SET_ITEM(result_t, 2, codePosition);
@@ -341,41 +338,6 @@ TEST_CASE("Test boxing") {
         );
         CHECK(t.returns() == "42");
     }
-
-    SECTION("Too many items to unpack from list raises valueerror") {
-        auto t = CompilerTest(
-                "def f():\n    x = [1,2,3]\n    a, b = x"
-        );
-        CHECK(t.raises() == PyExc_ValueError);
-    }
-
-    SECTION("Too many items to unpack from tuple raises valueerror") {
-        auto t = CompilerTest(
-                "def f():\n    x = (1,2,3)\n    a, b = x"
-        );
-        CHECK(t.raises() == PyExc_ValueError);
-    }
-
-    SECTION("failure to unpack shouldn't crash, should raise Python exception") {
-        auto t = CompilerTest(
-                "def f():\n    x = [1]\n    a, b, *c = x"
-        );
-        CHECK(t.raises() == PyExc_ValueError);
-    }
-
-    SECTION("unpacking non-iterable shouldn't crash") {
-        auto t = CompilerTest(
-                "def f():\n    a, b, c = len"
-        );
-        CHECK(t.raises() == PyExc_TypeError);
-    }
-
-    SECTION("test") {
-        auto t = CompilerTest(
-                "def f():\n    cs = [('CATEGORY', 'CATEGORY_SPACE')]\n    for op, av in cs:\n        while True:\n            break\n        print(op, av)"
-        );
-        CHECK(t.returns() == "None");
-    }
 }
 
 TEST_CASE("Conditional returns") {
@@ -453,12 +415,20 @@ TEST_CASE("Unary tests") {
                 "def f():\n  x=True\n  return not x\n"
         );
         CHECK(t.returns() == "False");
-    }SECTION("in place add") {
+    }
+    SECTION("in place add") {
         auto t = CompilerTest(
                 "def f():\n  x=1\n  x+=1\n  return x"
         );
         CHECK(t.returns() == "2");
-    }SECTION("test1") {
+    }
+    SECTION("simple add") {
+        auto t = CompilerTest(
+                "def f():\n  x=1\n  y=2\n  z = x+y\n  return z"
+        );
+        CHECK(t.returns() == "3");
+    }
+    SECTION("test1") {
         auto t = CompilerTest(
                 "def f():\n    x = 4611686018427387903\n    x += 1\n    x -= 1\n    y = not x\n    return y"
         );
@@ -1491,82 +1461,260 @@ TEST_CASE("test slicing"){
         CHECK(t.returns() == "[1, 3]");
     }
 }
-TEST_CASE("test unpacking") {
-    SECTION("test83") {
+TEST_CASE("Test unpacking with UNPACK_SEQUENCE") {
+    SECTION("test single unpack"){
+        auto t = CompilerTest(
+                "def f():\n"
+                "  a, = (1,)\n"
+                "  return a"
+                );
+        CHECK(t.returns() == "1");
+    }
+
+    SECTION("test basic unpack") {
+        auto t = CompilerTest(
+                "def f():\n    a, b = (1, 2)\n    return a, b"
+        );
+        CHECK(t.returns() == "(1, 2)");
+    }
+
+    SECTION("unpack from list") {
+        auto t = CompilerTest(
+                "def f():\n  a, b, c = [1,2,3]\n  return a, b, c\n"
+        );
+        CHECK(t.returns() == "(1, 2, 3)");
+    }
+
+    SECTION("Too many items to unpack from list raises valueerror") {
+        auto t = CompilerTest(
+                "def f():\n    x = [1,2,3]\n    a, b = x"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
+
+    SECTION("Too many items to unpack from tuple raises valueerror") {
+        auto t = CompilerTest(
+                "def f():\n    x = (1,2,3)\n    a, b = x"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
+
+    SECTION("test sum from function call") {
+        auto t = CompilerTest(
+                "def f():\n    a, b, c = range(3)\n    return a + b + c"
+        );
+        CHECK(t.returns() == "3");
+    }
+
+    SECTION("test unpack from function call") {
+        auto t = CompilerTest(
+                "def f():\n    a, b = range(2000, 2002)\n    return a, b"
+        );
+        CHECK(t.returns() == "(2000, 2001)");
+    }
+
+    SECTION("test basic unpack again") {
+        auto t = CompilerTest(
+                "def f():\n    a, b = (1, 2)\n    return a, b"
+        );
+        CHECK(t.returns() == "(1, 2)");
+    }
+
+    SECTION("test unpack from function call too few") {
+        auto t = CompilerTest(
+                "def f():\n    a, b, c = range(2)\n    return a, b, c"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
+
+    SECTION("test multiple assignments by unpack") {
+        auto t = CompilerTest(
+                "def f():\n    a, b = 1, 2\n    return a, b"
+        );
+        CHECK(t.returns() == "(1, 2)");
+    }
+
+    SECTION("unpacking non-iterable shouldn't crash") {
+        auto t = CompilerTest(
+                "def f():\n    a, b, c = len"
+        );
+        CHECK(t.raises() == PyExc_TypeError);
+    }
+
+    SECTION("test unpack for loop") {
+        auto t = CompilerTest(
+                "def f():\n    cs = [('CATEGORY', 'CATEGORY_SPACE')]\n    for op, av in cs:\n        while True:\n            break\n        print(op, av)"
+        );
+        CHECK(t.returns() == "None");
+    }
+
+    SECTION("test deleting unpacked vars 1") {
+        // Lifted from the stdlib test suite test_grammar test_del
+        auto t = CompilerTest(
+                "def f():\n"
+                "        abc = [1,2,3]\n"
+                "        x, y, z = abc\n"
+                "        xyz = x, y, z\n"
+                "        del abc\n"
+                "        del x, y, (z, xyz)\n"
+        );
+        CHECK(t.returns() == "None");
+    }
+    SECTION("test deleting unpacked vars 2") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "        a, b, c, d, e, f, g = \"abcdefg\"\n"
+                "        del a, (b, c), (d, (e, f))\n"
+                "        a, b, c, d, e, f, g = \"abcdefg\"\n"
+                "        del a, [b, c], (d, [e, f])\n"
+        );
+        CHECK(t.returns() == "None");
+    }
+    SECTION("test deleting unpacked vars 3"){
+        auto t = CompilerTest(
+                "def f():\n"
+                "        abcd = list(\"abcd\")\n"
+                "        del abcd[1:2]"
+        );
+        CHECK(t.returns() == "None");
+    }
+}
+
+TEST_CASE("Test unpacking with UNPACK_EX") {
+    SECTION("basic unpack from range iterator, return left") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = range(3)\n    return a"
         );
         CHECK(t.returns() == "0");
-    }SECTION("test84") {
+    }
+    SECTION("basic unpack from range iterator, return sequence") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = range(3)\n    return b"
         );
         CHECK(t.returns() == "[1]");
-    }SECTION("test85") {
+    }
+    SECTION("basic unpack from range iterator, return right") {
         auto t = CompilerTest(
-                "def f():\n    a, *b, c = range(3)\n    return c"
+                "def f():\n    a, *b, c = range(5)\n    return c"
         );
-        CHECK(t.returns() == "2");
-    }SECTION("test86") {
+        CHECK(t.returns() == "4");
+    }
+    SECTION("unpack from const assignment, return left") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = 1, 2, 3\n    return a"
         );
         CHECK(t.returns() == "1");
-    }SECTION("test87") {
+    }
+    SECTION("unpack from const assignment, return middle") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = 1, 2, 3\n    return b"
         );
         CHECK(t.returns() == "[2]");
-    }SECTION("test88") {
+    }
+    SECTION("unpack from const assignment, return right") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = 1, 2, 3\n    return c"
         );
         CHECK(t.returns() == "3");
-    }SECTION("test89") {
+    }
+    SECTION("unpack from const assignment, return right with empty middle") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = 1, 3\n    return c"
         );
         CHECK(t.returns() == "3");
-    }SECTION("test90") {
+    }
+    SECTION("unpack from const assignment, return middle empty") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = 1, 3\n    return b"
         );
         CHECK(t.returns() == "[]");
-    }SECTION("test91") {
+    }
+    SECTION("unpack from list, return left") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = [1, 2, 3]\n    return a"
         );
         CHECK(t.returns() == "1");
-    }SECTION("test92") {
+    }
+    SECTION("unpack from list, return middle") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = [1, 2, 3]\n    return b"
         );
         CHECK(t.returns() == "[2]");
-    }SECTION("test * unpack 1") {
+    }
+    SECTION("unpack from list, return right") {
         auto t = CompilerTest(
                 "def f():\n    a, *b, c = [1, 2, 3]\n    return c"
         );
         CHECK(t.returns() == "3");
-    }SECTION("test * unpack 2") {
+    }
+
+    SECTION("unpack from list comp") {
         auto t = CompilerTest(
-                "def f():\n    a, *b, c = [1, 3]\n    return c"
+                "def f():\n"
+                "   obj = {'a': 1, 'b': 2}\n"
+                "   return dict([\n"
+                "     (value, key)\n"
+                "     for (key, value) in obj.items()\n"
+                "   ])"
         );
-        CHECK(t.returns() == "3");
-    }SECTION("test * unpack 3") {
+        CHECK(t.returns() == "{1: 'a', 2: 'b'}");
+    }
+
+    SECTION("unpack from list, return all packed") {
         auto t = CompilerTest(
-                "def f():\n    a, *b, c = [1, 3]\n    return b"
+                "def f():\n    a, *b, c = [1, 3]\n    return a, b, c"
         );
-        CHECK(t.returns() == "[]");
-    }SECTION("test unpack") {
+        CHECK(t.returns() == "(1, [], 3)");
+    }
+
+    SECTION("unpacks in right sequence") {
         auto t = CompilerTest(
-                "def f():\n    a, b = range(2)\n    return a"
+                "def f():\n    a, b, c, *m, d, e, f = (0, 1, 2, 3, 4, 5, 6, 7, 8)\n    return a, b, c, d, e, f, m"
         );
-        CHECK(t.returns() == "0");
-    }SECTION("test multiple assignments by unpack") {
+        CHECK(t.returns() == "(0, 1, 2, 6, 7, 8, [3, 4, 5])");
+    }
+
+    SECTION("unpack imbalanced sequence") {
         auto t = CompilerTest(
-                "def f():\n    a, b = 1, 2\n    return a"
+                "def f():\n  first, second, third, *_, last = (0, 1, 2, 3, 4, 5, 6, 7, 8)\n  return second"
         );
         CHECK(t.returns() == "1");
+    }
+
+    SECTION("unpack reversed imbalanced sequence") {
+        auto t = CompilerTest(
+                "def f():\n  first, *_, before, before2, last = (0, 1, 2, 3, 4, 5, 6, 7, 8)\n  return before2"
+        );
+        CHECK(t.returns() == "7");
+    }
+
+    /* Failure cases */
+    SECTION("left too short") {
+        auto t = CompilerTest(
+                "def f():\n    x = [1]\n    a, b, *c = x"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
+
+    SECTION("both too short") {
+        auto t = CompilerTest(
+                "def f():\n    a, *b, c = dict()"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
+
+    SECTION("right too short") {
+        auto t = CompilerTest(
+                "def f():\n    a, *b, c, d, e = range(3)"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
+
+    SECTION("not iterable") {
+        auto t = CompilerTest(
+                "def f():\n    a, *b, c, d, e = 3"
+        );
+        CHECK(t.raises() == PyExc_TypeError);
     }
 }
 TEST_CASE("test classes") {
@@ -1697,5 +1845,19 @@ TEST_CASE("Test locals propagation", "[!mayfail]") {
                 "    return locals()\n"
         );
         CHECK(t.returns() == "3");
+    }
+}
+
+TEST_CASE("byte arrays") {
+    SECTION("test bytearray buffer overrun") {
+        auto t = CompilerTest(
+                "def f():\n"
+                "    b = bytearray(10)\n"
+                "    b.pop() \n"  // Defeat expanding buffer off-by-one quirk
+                "    del b[:1]\n"  // Advance start pointer without reallocating
+                "    b += bytes(2)\n"  // Append exactly the number of deleted bytes
+                "    del b\n"
+        );
+        CHECK(t.returns() == "None");
     }
 }

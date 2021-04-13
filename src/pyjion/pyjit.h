@@ -48,23 +48,36 @@
 #include <frameobject.h>
 #include <Python.h>
 
+using namespace std;
 
-struct SpecializedTreeNode;
+class PyjionCodeProfile{
+    unordered_map<size_t, unordered_map<size_t, PyTypeObject *>> stackTypes;
+    unordered_map<size_t, unordered_map<size_t, PyObject *>> stackValues;
+public:
+    void record(size_t opcodePosition, size_t stackPosition, PyObject* obj);
+    PyTypeObject* getType(size_t opcodePosition, size_t stackPosition);
+    PyObject* getValue(size_t opcodePosition, size_t stackPosition);
+};
+
+
+void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition);
 class PyjionJittedCode;
 
 bool JitInit();
+PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate, PyjionCodeProfile* profile);
+PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile);
 PyObject* PyJit_EvalFrame(PyThreadState *, PyFrameObject *, int);
 PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject);
 
-class PyjionJittedCode;
-typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*, PyThreadState*);
+typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*, PyThreadState*, PyjionCodeProfile*);
 
 typedef struct PyjionSettings {
     bool tracing = false;
     bool profiling = false;
+    bool pgc = true; // Profile-guided-compilation
     unsigned short optimizationLevel = 1;
     int recursionLimit = DEFAULT_RECURSION_LIMIT;
-    int codeObjectSizeLimit = DEFAULT_CODEOBJECT_SIZE_LIMIT;
+    size_t codeObjectSizeLimit = DEFAULT_CODEOBJECT_SIZE_LIMIT;
 
     // Optimizations
     bool opt_inlineIs = OPTIMIZE_IS; // OPT-1
@@ -79,12 +92,11 @@ typedef struct PyjionSettings {
     bool opt_hashedNames = OPTIMIZE_HASHED_NAMES; // OPT-10
     bool opt_subscrSlice = OPTIMIZE_BINARY_SLICE; // OPT-11
     bool opt_builtinMethods = OPTIMIZE_BUILTIN_METHODS; // OPT-12
-
+    bool opt_typeSlotLookups = OPTIMIZE_TYPESLOT_LOOKUPS; // OPT-13
+    bool opt_functionCalls = OPTIMIZE_FUNCTION_CALLS; // OPT-14
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
-static PY_UINT64_T jitPassCounter = 0;
-static PY_UINT64_T jitFailCounter = 0;
 
 extern PyjionSettings g_pyjionSettings;
 
@@ -99,37 +111,44 @@ static void Pyjit_LeaveRecursiveCall();
 
 /* Jitted code object.  This object is returned from the JIT implementation.  The JIT can allocate
 a jitted code object and fill in the state for which is necessary for it to perform an evaluation. */
+enum PgcStatus {
+    Uncompiled = 0,
+    CompiledWithProbes = 1,
+    Optimized = 2
+};
+
+PgcStatus nextPgcStatus(PgcStatus status);
 
 class PyjionJittedCode {
 public:
 	PY_UINT64_T j_run_count;
 	bool j_failed;
-	Py_EvalFunc j_evalfunc;
+	short j_compile_result;
+	Py_EvalFunc j_addr;
 	PY_UINT64_T j_specialization_threshold;
 	PyObject* j_code;
-	std::vector<SpecializedTreeNode*> j_optimized;
-	Py_EvalFunc j_generic;
+	PyjionCodeProfile* j_profile;
     unsigned char* j_il;
     unsigned int j_ilLen;
     unsigned long j_nativeSize;
+    PgcStatus j_pgc_status;
 
 	explicit PyjionJittedCode(PyObject* code) {
 		j_code = code;
 		j_run_count = 0;
 		j_failed = false;
-		j_evalfunc = nullptr;
+		j_addr = nullptr;
 		j_specialization_threshold = HOT_CODE;
-		j_generic = nullptr;
 		j_il = nullptr;
 		j_ilLen = 0;
 		j_nativeSize = 0;
+		j_profile = new PyjionCodeProfile();
+		j_pgc_status = Uncompiled;
 		Py_INCREF(code);
 	}
 
 	~PyjionJittedCode();
 };
-
-bool jit_compile(PyCodeObject* code);
 
 void setOptimizationLevel(unsigned short level);
 #endif

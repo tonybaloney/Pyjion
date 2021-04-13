@@ -63,8 +63,8 @@
 #define METHOD_GETBUILDCLASS_TOKEN               0x00000011
 #define METHOD_LOADNAME_TOKEN                    0x00000012
 #define METHOD_STORENAME_TOKEN                   0x00000013
-#define METHOD_UNPACK_SEQUENCE_TOKEN             0x00000014
-#define METHOD_UNPACK_SEQUENCEEX_TOKEN           0x00000015
+#define METHOD_SEQUENCE_AS_LIST                  0x00000014
+#define METHOD_LIST_ITEM_FROM_BACK               0x00000015
 #define METHOD_DELETENAME_TOKEN                  0x00000016
 #define METHOD_PYCELL_SET_TOKEN                  0x00000017
 #define METHOD_SET_CLOSURE                       0x00000018
@@ -119,6 +119,7 @@
 #define METHOD_FLOAT_FROM_DOUBLE                 0x00000053
 #define METHOD_BOOL_FROM_LONG                    0x00000054
 #define METHOD_PYERR_SETSTRING                   0x00000055
+#define METHOD_NUMBER_AS_SSIZET                  0x00000056
 
 #define METHOD_EQUALS_INT_TOKEN                  0x00000065
 #define METHOD_LESS_THAN_INT_TOKEN               0x00000066
@@ -126,7 +127,6 @@
 #define METHOD_NOT_EQUALS_INT_TOKEN              0x00000068
 #define METHOD_GREATER_THAN_INT_TOKEN            0x00000069
 #define METHOD_GREATER_THAN_EQUALS_INT_TOKEN     0x0000006A
-#define METHOD_PERIODIC_WORK                     0x0000006B
 
 #define METHOD_EXTENDLIST_TOKEN                  0x0000006C
 #define METHOD_LISTTOTUPLE_TOKEN                 0x0000006D
@@ -162,6 +162,8 @@
 #define METHOD_CALL_9_TOKEN        0x00010009
 #define METHOD_CALL_10_TOKEN       0x0001000A
 #define METHOD_CALLN_TOKEN         0x000100FF
+#define METHOD_VECTORCALL          0x00010100
+#define METHOD_OBJECTCALL          0x00010101
 
 #define METHOD_METHCALL_0_TOKEN    0x00011000
 #define METHOD_METHCALL_1_TOKEN    0x00011001
@@ -181,6 +183,9 @@
 #define METHOD_KWCALLN_TOKEN       0x00012003
 
 #define METHOD_LOAD_METHOD           0x00013000
+
+#define METHOD_GIL_ENSURE            0x00014000
+#define METHOD_GIL_RELEASE           0x00014001
 
 // Py* helpers
 #define METHOD_PYTUPLE_NEW           0x00020000
@@ -213,6 +218,7 @@
 #define METHOD_TRACE_EXCEPTION       0x0003000A
 #define METHOD_PROFILE_FRAME_ENTRY   0x0003000B
 #define METHOD_PROFILE_FRAME_EXIT    0x0003000C
+#define METHOD_PGC_PROBE             0x0003000D
 
 #define METHOD_ITERNEXT_TOKEN        0x00040000
 
@@ -240,6 +246,7 @@
 #define METHOD_SUBSCR_LIST_SLICE    0x00070009
 #define METHOD_SUBSCR_LIST_SLICE_STEPPED 0x0007000A
 #define METHOD_SUBSCR_LIST_SLICE_REVERSED 0x0007000B
+
 
 
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
@@ -303,6 +310,9 @@ public:
     void emit_new_tuple(size_t size) override;
     void emit_tuple_store(size_t size) override;
     void emit_tuple_load(size_t index) override;
+    void emit_list_load(size_t index) override;
+    void emit_tuple_length() override;
+    void emit_list_length() override;
 
     void emit_new_list(size_t argCnt) override;
     void emit_list_store(size_t argCnt) override;
@@ -348,17 +358,15 @@ public:
 
     void emit_load_build_class() override;
 
-    void emit_unpack_sequence(Local sequence, Local sequenceStorage, Label success, size_t size) override;
-    void emit_load_array(int index) override;
-    void emit_store_to_array(Local array, int index) override;
-
-    void emit_unpack_ex(Local sequence, size_t leftSize, size_t rightSize, Local sequenceStorage, Local list, Local remainder) override;
-
-    // Emits a call for the specified argument count.  If the compiler
-    // can't emit a call with this number of args then it returns false,
-    // and emit_call_with_tuple is used to call with a variable sized
-    // tuple instead.
-    bool emit_call(size_t argCnt) override;
+    void emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) override;
+    void emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) override;
+    void emit_unpack_list(size_t size, AbstractValueWithSources iterable) override;
+    void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) override;
+    void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) override;
+    void emit_list_shrink(size_t by) override;
+    void emit_builtin_method(PyObject* name, AbstractValue* typeValue) override;
+    void emit_call_function_inline(size_t n_args, AbstractValueWithSources func) override;
+    bool emit_call_function(size_t argCnt) override;
     void emit_call_with_tuple() override;
 
     void emit_kwcall_with_tuple() override;
@@ -386,7 +394,6 @@ public:
     Local emit_define_local(bool cache) override;
     Local emit_define_local(LocalKind kind) override;
     void emit_free_local(Local local) override;
-    Local emit_allocate_stack_array(size_t elements) override;
 
     void emit_set_add() override;
     void emit_map_add() override;
@@ -404,6 +411,7 @@ public:
 
     void emit_binary_float(int opcode) override;
     void emit_binary_object(int opcode) override;
+    void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) override;
@@ -427,7 +435,6 @@ public:
     Label emit_define_label() override;
     void emit_mark_label(Label label) override;
     void emit_branch(BranchType branchType, Label label) override;
-    void emit_compare_equal() override;
 
     void emit_int(int value) override;
     void emit_long_long(long long value) override;
@@ -461,7 +468,6 @@ public:
 
     void emit_load_assertion_error() override;
 
-    void emit_periodic_work() override;
     void emit_pending_calls() override;
     void emit_init_instr_counter() override;
 
@@ -478,6 +484,7 @@ public:
     void emit_trace_exception() override;
     void emit_profile_frame_entry() override;
     void emit_profile_frame_exit() override;
+    void emit_pgc_probe(size_t curByte, size_t stackSize) override;
 
     void emit_load_frame_locals() override;
     void emit_triple_binary_op(int firstOp, int secondOp) override;
@@ -487,18 +494,26 @@ public:
     void lift_n_to_third(int pos) override;
     void sink_top_to_n(int pos) override;
 
-    void emit_builtin_method(PyObject* name, AbstractValue* typeValue) override;
 
 private:
     void load_frame();
     void load_tstate();
     void load_local(int oparg);
-    void decref();
+    void decref(bool noopt = false);
     CorInfoType to_clr_type(LocalKind kind);
     void pop_top() override;
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
     void emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset );
 
+    void emit_known_binary_op(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
+                              int sq_slot, int fallback_token);
+    void emit_known_binary_op_power(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
+                              int sq_slot, int fallback_token);
+    void emit_known_binary_op_add(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
+                              int sq_slot, int fallback_token);
+    void emit_known_binary_op_multiply(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
+                              int sq_slot, int fallback_token);
+    void fill_local_vector(vector<Local> & vec, size_t len);
 };
 
 // Copies of internal CPython structures

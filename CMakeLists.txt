@@ -30,7 +30,7 @@ if (SKBUILD)
 endif (SKBUILD)
 
 if (NOT PYTHON_LIBRARIES)
-    find_package (Python3 3.9 COMPONENTS Interpreter Development)
+    find_package (Python3 3.9 EXACT COMPONENTS Interpreter Development)
 else()
     set(Python3_LIBRARIES ${PYTHON_LIBRARIES})
     set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
@@ -50,6 +50,10 @@ IF(CMAKE_BUILD_TYPE MATCHES Debug)
     add_definitions(-DDEBUG)
     set(BUILD_TESTS ON)
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
+
+IF(CMAKE_BUILD_TYPE MATCHES Release)
+    add_definitions(-DNDEBUG)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Release)
 
 if(DUMP_JIT_TRACES)
     message(STATUS "Enabling very-very-verbose messages")
@@ -170,9 +174,11 @@ endif()
 
 if(NET_SRC_LIB)  # use the libraries compiled from source
     set(DOTNETPATH ${CMAKE_SOURCE_DIR}/CoreCLR/artifacts/bin/coreclr/${CLR_OS_BUILD})
+    message(STATUS "Using .NET builds " ${DOTNETPATH})
+
 endif()
 
-set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/block.cpp src/pyjion/pyjitmath.cpp src/pyjion/pyjitmath.h)
+set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/block.cpp src/pyjion/pyjitmath.cpp src/pyjion/pyjitmath.h src/pyjion/codemodel.cpp src/pyjion/binarycomp.cpp)
 
 if (WIN32)
     enable_language(ASM_MASM)
@@ -213,7 +219,7 @@ endif()
 if (BUILD_TESTS)
     # Testing
     add_subdirectory(Tests/Catch)
-    set(TEST_SOURCES Tests/testing_util.cpp Tests/test_basics.cpp Tests/test_compiler.cpp Tests/test_absint.cpp Tests/Tests.cpp Tests/test_wrappers.cpp Tests/test_exceptions.cpp Tests/test_scopes.cpp Tests/test_tracing.cpp Tests/test_inference.cpp Tests/test_math.cpp)
+    set(TEST_SOURCES Tests/testing_util.cpp Tests/test_basics.cpp Tests/test_compiler.cpp Tests/test_absint.cpp Tests/Tests.cpp Tests/test_wrappers.cpp Tests/test_exceptions.cpp Tests/test_scopes.cpp Tests/test_tracing.cpp Tests/test_inference.cpp Tests/test_math.cpp Tests/test_pgc.cpp)
     add_executable(unit_tests ${TEST_SOURCES} $<TARGET_OBJECTS:pyjionlib>)
     if (NOT WIN32)
         set_property(TARGET unit_tests PROPERTY CXX_STANDARD 17)

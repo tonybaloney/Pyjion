@@ -24,6 +24,7 @@
 */
 
 #include <Python.h>
+#include "absvalue.h"
 
 #ifndef SRC_PYJION_PYJITMATH_H
 #define SRC_PYJION_PYJITMATH_H
@@ -32,6 +33,7 @@ bool isBinaryMathOp(int opcode);
 bool isMathOp(int opcode);
 bool isInplaceMathOp(int opcode);
 
+bool canBeOptimized(int firstOp, int secondOp, AbstractValueKind type_a, AbstractValueKind type_b, AbstractValueKind type_c);
 
 PyObject* PyJitMath_TripleBinaryOp(PyObject*, PyObject*, PyObject*, int, int);
 PyObject* PyJitMath_TripleBinaryOpFloatFloatFloat(PyFloatObject * a, PyFloatObject* b, PyFloatObject* c, int firstOp, int secondOp);

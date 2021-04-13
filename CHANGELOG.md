@@ -1,5 +1,50 @@
 # Release notes
 
+## 0.14.0
+
+* Updated to .NET 5.0.5 (5.0.202)
+* Fixed a bug in PGC for large functions meaning they wouldn't be optimized
+* Implemented PGC for BINARY_SUBSCR (OPT-5)
+* Implemented PGC for STORE_SUBSCR (OPT-6)
+* Implemented PGC for all inplace and regular binary operators (+, -, / etc) see OPT-13
+
+## 0.13.0
+
+* The compiler will now fail (and default back to CPython) if .NET emits a FAST_FAIL helper
+* UNPACK_SEQUENCE is rewritten to be more efficient and use optimized  paths for LIST and TUPLE types
+* f-string (BUILD_STRING) is rewritten to be more efficient
+* UNPACK_EX is rewritten to remove the requirement for dynamic heap allocation (and the stack canary) and leverage .NET compiler's dynamic eval stack
+* PGC implemented for UNPACK_SEQUENCE
+* PGC implemented for BINARY_SUBSCR
+* PGC implemented for CALL_FUNCTION/OPT-14
+
+## 0.12.0
+
+* Added PGC emitter to first compile pass
+* Drastically simplified the compilation process, resulting in a smaller call stack and allowing for more recursion (and better performance)
+* Added a field to the pyjion.info() dictinary, `compile_result`, indicating cause of compilation failure (if failed), see `AbstractInterpreterResult` for enumerations
+* Fixed a bug in pyjion.dump_native/pyjion.dis.dis_native disassembling the wrapper function
+* Incompatible functions (those with async, yield keyword) are marked as incompatible early in the compilation process
+* Fixed a bug in OPT-13 if the type changed under certain circumstances
+* Arguments to a frame are now marked as volatile and requiring type guards for certain optimizations
+* Any Python type passed as an argument is now available to be optimized by OPT-13, OPT-12
+* Fixed a bug occuring on Linux and Windows in sre_parse._compile which caused a GuardStackException when doing an inline decref operation.
+* Added an environment variable DOTNET_LIB_PATH to allow specifying the exact path to libclrjit
+
+## 0.11.0
+
+* Added OPT-13 (OPTIMIZE_TYPESLOT_LOOKUPS) to optimize the type slots for all binary operators and resolve the precedence at compile-time (only for known types)
+* Added OPT-14 (OPTIMIZE_FUNCTION_CALLS) to optimize calls to builtin functions
+* Optimize all frame locals by determining abstract types on compilation
+* Bugfix: Fixed a crash on f-strings with lots (>255) arguments
+* Bugfix: Will now skip all functions containing the use of `exec()` as it contains frame globals which are not supported
+* Updated to .NET 5.0.3
+* Updated the containers to Ubuntu 20
+* Added fileobject abstract type
+* Added enumerator abstract type
+* Added code object abstract type
+* Added integration tests for reference leaks for all binary operations (thanks @amaeckelberghe)
+* Added module type (thanks @vacowboy75)
 
 ## 0.10.0
 

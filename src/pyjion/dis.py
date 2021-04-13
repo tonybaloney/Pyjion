@@ -89,7 +89,7 @@ class MethodTokens (Enum):
     METHOD_LOADNAME_TOKEN                    = 0x00000012
     METHOD_STORENAME_TOKEN                   = 0x00000013
     METHOD_UNPACK_SEQUENCE_TOKEN             = 0x00000014
-    METHOD_UNPACK_SEQUENCEEX_TOKEN           = 0x00000015
+    METHOD_SEQUENCE_AS_LIST                  = 0x00000015
     METHOD_DELETENAME_TOKEN                  = 0x00000016
     METHOD_PYCELL_SET_TOKEN                  = 0x00000017
     METHOD_SET_CLOSURE                       = 0x00000018
@@ -147,7 +147,7 @@ class MethodTokens (Enum):
     METHOD_FLOAT_FROM_DOUBLE                 = 0x00000053
     METHOD_BOOL_FROM_LONG                    = 0x00000054
     METHOD_PYERR_SETSTRING                   = 0x00000055
-    METHOD_BOX_TAGGED_PTR                    = 0x00000056
+    METHOD_NUMBER_AS_SSIZET                  = 0x00000056
 
     METHOD_EQUALS_INT_TOKEN                  = 0x00000065
     METHOD_LESS_THAN_INT_TOKEN               = 0x00000066
@@ -155,7 +155,6 @@ class MethodTokens (Enum):
     METHOD_NOT_EQUALS_INT_TOKEN              = 0x00000068
     METHOD_GREATER_THAN_INT_TOKEN            = 0x00000069
     METHOD_GREATER_THAN_EQUALS_INT_TOKEN     = 0x0000006A
-    METHOD_PERIODIC_WORK                     = 0x0000006B
 
     METHOD_EXTENDLIST_TOKEN                  = 0x0000006C
     METHOD_LISTTOTUPLE_TOKEN                 = 0x0000006D
@@ -190,6 +189,8 @@ class MethodTokens (Enum):
     METHOD_CALL_9_TOKEN        = 0x00010009
     METHOD_CALL_10_TOKEN       = 0x0001000A
     METHOD_CALLN_TOKEN         = 0x000100FF
+    METHOD_VECTORCALL          = 0x00010100
+    METHOD_OBJECTCALL          = 0x00010101
 
     METHOD_METHCALL_0_TOKEN    = 0x00011000
     METHOD_METHCALL_1_TOKEN    = 0x00011001
@@ -209,6 +210,9 @@ class MethodTokens (Enum):
     METHOD_KWCALLN_TOKEN         = 0x00012003
 
     METHOD_LOAD_METHOD           = 0x00013000
+
+    METHOD_GIL_ENSURE            = 0x00014000
+    METHOD_GIL_RELEASE           = 0x00014001
 
     METHOD_PYTUPLE_NEW           = 0x00020000
     METHOD_PYLIST_NEW            = 0x00020001
@@ -238,7 +242,7 @@ class MethodTokens (Enum):
     METHOD_TRACE_EXCEPTION       = 0x0003000A
     METHOD_PROFILE_FRAME_ENTRY   = 0x0003000B
     METHOD_PROFILE_FRAME_EXIT    = 0x0003000C
-
+    METHOD_PGC_PROBE             = 0x0003000D
     METHOD_ITERNEXT_TOKEN        = 0x00040000
 
     METHOD_FLOAT_POWER_TOKEN     = 0x00050000
@@ -627,7 +631,10 @@ def print_il(il):
                 continue
             elif op.size == InlineMethod:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                meth = MethodTokens(target)
+                try:
+                    meth = MethodTokens(target)
+                except ValueError:
+                    meth = f"METHOD_SLOT_SPACE ({target})"
                 print(f"[IL_{pc:04x}] M {op.name:15} ({target} : {meth})")
                 pc += 5
                 continue

@@ -1704,7 +1704,6 @@ public:
     void *getHelperFtn(CorInfoHelpFunc ftnNum, void **ppIndirection) override {
         *ppIndirection = nullptr;
         static void* helper = nullptr;
-        assert(ftnNum < CORINFO_HELP_COUNT);
         switch (ftnNum){
             case CORINFO_HELP_USER_BREAKPOINT:
                 helper = (void*)&breakpointFtn;
@@ -1724,7 +1723,7 @@ public:
                 helper = (void*)&raiseOverflowExceptionHelper;
                 break;
             case CORINFO_HELP_FAIL_FAST:
-                helper = (void*)&failFastExceptionHelper;
+                failFastExceptionHelper();
                 break;
             case CORINFO_HELP_RNGCHKFAIL:
                 helper = (void*)&rangeCheckExceptionHelper;
@@ -1751,7 +1750,6 @@ public:
 #else
     void *getHelperFtn(CorInfoHelpFunc ftnNum, void **ppIndirection) override {
         *ppIndirection = nullptr;
-        assert(ftnNum < CORINFO_HELP_COUNT);
         switch (ftnNum){
             case CORINFO_HELP_USER_BREAKPOINT:
                 return (void*)breakpointFtn;
@@ -1764,7 +1762,8 @@ public:
             case CORINFO_HELP_OVERFLOW:
                 return (void*)raiseOverflowExceptionHelper;
             case CORINFO_HELP_FAIL_FAST:
-                return (void*)failFastExceptionHelper;
+                failFastExceptionHelper();
+                break;
             case CORINFO_HELP_RNGCHKFAIL:
                 return (void*)rangeCheckExceptionHelper;
             case CORINFO_HELP_THROWDIVZERO:

@@ -104,10 +104,11 @@ void VerifyOldTest(AITestCase testCase) {
     AbstractInterpreter interpreter(codeObj, nullptr);
     auto builtins = PyEval_GetBuiltins();
     auto globals_dict = PyObject_ptr(PyDict_New());
-    if (!interpreter.interpret(builtins, globals_dict.get())) {
+    auto profile = new PyjionCodeProfile();
+    if (interpreter.interpret(builtins, globals_dict.get(), profile, Uncompiled) != Success) {
         FAIL("Failed to interpret code");
     }
-
+    delete profile;
     testCase.verify(interpreter);
 
     Py_DECREF(codeObj);

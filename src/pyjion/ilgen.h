@@ -144,11 +144,6 @@ public:
         }
     }
 
-    void localloc() {
-        push_back(CEE_PREFIX1); // NIL CEE SE
-        push_back((BYTE)CEE_LOCALLOC); // PopI + PushI
-    }
-
     void brk(){
         // emit a breakpoint in the IL
         push_back(CEE_BREAK);
@@ -181,15 +176,19 @@ public:
             default:
                 if (i < 256) {
                     push_back(CEE_LDC_I4_S);
-                    m_il.push_back(i);
-
+                    push_back(i);
                 }
                 else {
-                    m_il.push_back(CEE_LDC_I4);
-                    m_il.push_back((BYTE)CEE_STLOC); // Pop1 + Push0
+                    push_back(CEE_LDC_I4);
+                    m_il.push_back((BYTE)CEE_STLOC); // TODO : Work out why this opcode is here?!
                     emit_int(i);
                 }
         }
+    }
+
+    void ld_u4(unsigned int i) {
+        ld_i4(i);
+        push_back(CEE_CONV_U4);
     }
 
     void ld_i8(long long i) {
@@ -550,20 +549,21 @@ public:
     }
 
     void st_loc(Local param) {
+        param.raiseOnInvalid();
         st_loc(param.m_index);
     }
 
     void ld_loc(Local param) {
+        param.raiseOnInvalid();
         ld_loc(param.m_index);
     }
 
     void ld_loca(Local param) {
-        assert(param.is_valid());
+        param.raiseOnInvalid();
         ld_loca(param.m_index);
     }
 
     void st_loc(int index) {
-        assert(index != -1);
         switch (index) {
             case 0: m_il.push_back(CEE_STLOC_0); break;
             case 1: m_il.push_back(CEE_STLOC_1); break;
@@ -584,7 +584,6 @@ public:
     }
 
     void ld_loc(int index) {
-        assert(index != -1);
         switch (index) {
             case 0: m_il.push_back(CEE_LDLOC_0); break;
             case 1: m_il.push_back(CEE_LDLOC_1); break;
@@ -605,7 +604,6 @@ public:
     }
 
     void ld_loca(int index) {
-        assert(index != -1);
         if (index < 256) {
             m_il.push_back(CEE_LDLOCA_S); // Pop0, PushI
             m_il.push_back(index);
@@ -715,24 +713,29 @@ public:
 #ifdef DEBUG
                 printf("JIT failed to compile the submitted method.\n");
 #endif
+                res.m_addr = nullptr;
                 break;
             case CORJIT_OUTOFMEM:
                 printf("out of memory.\n");
+                res.m_addr = nullptr;
                 break;
             case CORJIT_INTERNALERROR:
 #ifdef DEBUG
                 printf("internal error code.\n");
 #endif
+                res.m_addr = nullptr;
                 break;
             case CORJIT_SKIPPED:
 #ifdef DEBUG
                 printf("skipped code.\n");
 #endif
+                res.m_addr = nullptr;
                 break;
             case CORJIT_RECOVERABLEERROR:
 #ifdef DEBUG
                 printf("recoverable error code.\n");
 #endif
+                res.m_addr = nullptr;
                 break;
         }
         return res;

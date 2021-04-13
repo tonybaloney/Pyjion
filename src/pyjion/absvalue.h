@@ -108,11 +108,6 @@ struct AbstractSources {
     void escapes() {
         m_escapes = true;
     }
-
-    bool needsBoxing() const {
-        return m_escapes;
-    }
-
 };
 
 class ConstSource : public AbstractSource {
@@ -209,6 +204,10 @@ public:
     const char* getName() {
         return _name;
     }
+
+    PyObject* getValue() {
+        return _value;
+    }
 };
 
 class LocalSource : public AbstractSource {
@@ -232,6 +231,13 @@ public:
         else {
             return "Source: Intermediate";
         }
+    }
+};
+
+class PgcSource : public AbstractSource {
+public:
+    const char* describe() override {
+        return "Source: PGC";
     }
 };
 
@@ -281,6 +287,9 @@ public:
     virtual bool isIntern() {
         return false;
     }
+    virtual bool needsGuard() {
+        return false;
+    }
 
     virtual AbstractValue* mergeWith(AbstractValue*other);
     virtual AbstractValueKind kind() = 0;
@@ -291,6 +300,10 @@ public:
     virtual AbstractValueKind resolveMethod(const char* name) {
         return AVK_Any;
     }
+
+    virtual PyTypeObject* pythonType();
+
+    virtual bool known();
 };
 
 struct AbstractValueWithSources {
@@ -555,6 +568,52 @@ class FileValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+};
+
+class VolatileValue: public AbstractValue{
+public:
+    bool needsGuard() override {
+        return true;
+    }
+    virtual PyObject* lastValue() {
+        Py_RETURN_NONE;
+    }
+};
+
+class PgcValue : public VolatileValue {
+    PyTypeObject* _type;
+    PyObject* _object;
+public:
+    explicit PgcValue(PyTypeObject* type, PyObject* object){
+        _type = type;
+        _object = object;
+    }
+    AbstractValueKind kind() override;
+    PyTypeObject* pythonType() override;
+    bool known() override {
+        return true;
+    }
+    PyObject* lastValue() override {
+        return _object;
+    }
+};
+
+class ArgumentValue: public VolatileValue {
+    PyTypeObject* _type;
+    PyObject* _value;
+public:
+    explicit ArgumentValue(PyTypeObject* type, PyObject* value){
+        _type = type;
+        _value = value;
+    }
+    AbstractValueKind kind() override;
+    PyTypeObject* pythonType() override;
+    bool known() override {
+        return true;
+    }
+    PyObject* lastValue() override {
+        return _value;
+    }
 };
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);

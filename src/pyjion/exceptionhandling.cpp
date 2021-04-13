@@ -66,11 +66,11 @@ bool ExceptionHandlerManager::Empty() {
     return m_exceptionHandlers.empty();
 }
 
-bool ExceptionHandlerManager::IsHandlerAtOffset(int offset){
+bool ExceptionHandlerManager::IsHandlerAtOffset(size_t offset) {
     return m_handlerIndexes.find(offset) != m_handlerIndexes.end();
 }
 
-ExceptionHandler* ExceptionHandlerManager::HandlerAtOffset(int offset){
+ExceptionHandler* ExceptionHandlerManager::HandlerAtOffset(size_t offset) {
     return m_handlerIndexes.find(offset)->second;
 }
 

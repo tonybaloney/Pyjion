@@ -34,27 +34,6 @@ typedef ICorJitCompiler* (__cdecl* GETJIT)();
 
 HINSTANCE            g_pMSCorEE;
 
-// Tracks types for a function call.  Each argument has a SpecializedTreeNode with
-// children for the subsequent arguments.  When we get to the leaves of the tree
-// we'll have a jitted code object & optimized evalutation function optimized
-// for those arguments.  
-struct SpecializedTreeNode {
-	vector<PyTypeObject*> types;
-	Py_EvalFunc addr;
-	JittedCode* jittedCode;
-	int hitCount;
-
-	explicit SpecializedTreeNode(vector<PyTypeObject*>& types) : types(types) {
-		addr = nullptr;
-		jittedCode = nullptr;
-		hitCount = 0;
-	}
-
-	~SpecializedTreeNode() {
-		delete jittedCode;
-	}
-};
-
 PyjionSettings g_pyjionSettings;
 
 #define SET_OPT(opt, actualLevel, minLevel) \
@@ -74,12 +53,40 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(hashedNames, level, 1);
     SET_OPT(subscrSlice, level, 1);
     SET_OPT(builtinMethods, level, 1);
+    SET_OPT(typeSlotLookups, level, 1);
+    SET_OPT(functionCalls, level, 1);
+}
+
+PgcStatus nextPgcStatus(PgcStatus status){
+    switch(status){
+        case PgcStatus::Uncompiled: return PgcStatus::CompiledWithProbes;
+        case PgcStatus::CompiledWithProbes: return PgcStatus::Optimized;
+        case PgcStatus::Optimized:
+        default:
+            return PgcStatus::Optimized;
+    }
 }
 
 PyjionJittedCode::~PyjionJittedCode() {
-	for (auto & cur : j_optimized) {
-		delete cur;
-	}
+	delete j_profile;
+}
+
+void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyObject* value){
+    this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
+    this->stackValues[opcodePosition][stackPosition] = value;
+}
+
+PyTypeObject* PyjionCodeProfile::getType(size_t opcodePosition, size_t stackPosition) {
+    return this->stackTypes[opcodePosition][stackPosition];
+}
+
+PyObject* PyjionCodeProfile::getValue(size_t opcodePosition, size_t stackPosition) {
+    return this->stackValues[opcodePosition][stackPosition];
+}
+
+void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition){
+    if (value != nullptr && profile != nullptr)
+        profile->record(opcodePosition, stackPosition, value);
 }
 
 int
@@ -101,7 +108,7 @@ Pyjit_CheckRecursiveCall(PyThreadState *tstate, const char *where)
         --tstate->recursion_depth;
         tstate->overflowed = 1;
         PyErr_Format(PyExc_RecursionError,
-                      "maximum recursion depth exceeded%s",
+                      "maximum recursion depth exceeded - %s.",
                       where);
         return -1;
     }
@@ -119,15 +126,14 @@ static inline void Pyjit_LeaveRecursiveCall() {
     tstate->recursion_depth--;
 }
 
-PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate);
-PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame, PyThreadState* tstate) {
+PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile) {
     if (Pyjit_EnterRecursiveCall("")) {
         return nullptr;
     }
 
 	frame->f_executing = 1;
     try {
-        auto res = ((Py_EvalFunc)state)(nullptr, frame, tstate);
+        auto res = ((Py_EvalFunc)state)(nullptr, frame, tstate, profile);
         Pyjit_LeaveRecursiveCall();
         frame->f_executing = 0;
         return res;
@@ -140,7 +146,6 @@ PyObject* Jit_EvalHelper(void* state, PyFrameObject*frame, PyThreadState* tstate
 }
 
 static Py_tss_t* g_extraSlot;
-
 
 bool JitInit() {
     g_pyjionSettings = {false, false};
@@ -167,104 +172,47 @@ bool JitInit() {
     return true;
 }
 
-bool jit_compile(PyCodeObject* code) {
-    // TODO : support for generator expressions
-    if (strcmp(PyUnicode_AsUTF8(code->co_name), "<genexpr>") == 0) {
-        return false;
+PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate, PyjionCodeProfile* profile) {
+    // Compile and run the now compiled code...
+    PythonCompiler jitter((PyCodeObject*)state->j_code);
+    AbstractInterpreter interp((PyCodeObject*)state->j_code, &jitter);
+    int argCount = frame->f_code->co_argcount + frame->f_code->co_kwonlyargcount;
+
+    // provide the interpreter information about the specialized types
+    for (int i = 0; i < argCount; i++) {
+        interp.setLocalType(i, frame->f_localsplus[i]);
     }
-    auto jittedCode = PyJit_EnsureExtra((PyObject *) code);
 
-    jittedCode->j_evalfunc = &Jit_EvalTrace;
-    return true;
-}
-
-PyTypeObject* GetArgType(int arg, PyObject** locals) {
-    auto objValue = locals[arg];
-    PyTypeObject* type = nullptr;
-    if (objValue != nullptr) {
-        type = objValue->ob_type;
+    if (g_pyjionSettings.tracing){
+        interp.enableTracing();
+    } else {
+        interp.disableTracing();
     }
-    return type;
+    if (g_pyjionSettings.profiling){
+        interp.enableProfiling();
+    } else {
+        interp.disableProfiling();
+    }
+
+    auto res = interp.compile(frame->f_builtins, frame->f_globals, profile, state->j_pgc_status);
+    state->j_compile_result = res.result;
+    if (res.compiledCode == nullptr || res.result != Success) {
+        static int failCount;
+        state->j_failed = true;
+        return _PyEval_EvalFrameDefault(tstate, frame, 0);
+    }
+
+    // Update the jitted information for this tree node
+    state->j_addr = (Py_EvalFunc)res.compiledCode->get_code_addr();
+    assert(state->j_addr != nullptr);
+    state->j_il = res.compiledCode->get_il();
+    state->j_ilLen = res.compiledCode->get_il_len();
+    state->j_nativeSize = res.compiledCode->get_native_size();
+    state->j_profile = profile;
+
+    // Execute it now.
+    return PyJit_ExecuteJittedFrame((void*)state->j_addr, frame, tstate, state->j_profile);
 }
-
-#define MAX_TRACE 5
-
-PyObject* Jit_EvalTrace(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate) {
-	// Walk our tree of argument types to find the SpecializedTreeNode which
-    // corresponds with our sets of arguments here.
-    auto trace = (PyjionJittedCode*)state;
-	SpecializedTreeNode* target = nullptr;
-
-    // record the new trace...
-    if (trace->j_optimized.size() < MAX_TRACE) {
-        int argCount = frame->f_code->co_argcount + frame->f_code->co_kwonlyargcount;
-        vector<PyTypeObject*> types;
-        for (int i = 0; i < argCount; i++) {
-            auto type = GetArgType(i, frame->f_localsplus);
-            types.push_back(type);
-        }
-		target = new SpecializedTreeNode(types);
-        trace->j_optimized.push_back(target);
-	}
-
-	if (target != nullptr && !trace->j_failed) {
-		if (target->addr != nullptr) {
-			// we have a specialized function for this, just invoke it
-			auto res = Jit_EvalHelper((void*)target->addr, frame, tstate);
-			return res;
-		}
-
-		target->hitCount++;
-		// we've recorded these types before...
-		// No specialized function yet, let's see if we should create one...
-		if (target->hitCount >= trace->j_specialization_threshold) {
-			// Compile and run the now compiled code...
-			PythonCompiler jitter((PyCodeObject*)trace->j_code);
-			AbstractInterpreter interp((PyCodeObject*)trace->j_code, &jitter);
-			int argCount = frame->f_code->co_argcount + frame->f_code->co_kwonlyargcount;
-
-			// provide the interpreter information about the specialized types
-			for (int i = 0; i < argCount; i++) {
-                interp.setLocalType(i, frame->f_localsplus[i]);
-			}
-
-			if (g_pyjionSettings.tracing){
-			    interp.enableTracing();
-			} else {
-			    interp.disableTracing();
-			}
-			if (g_pyjionSettings.profiling){
-			    interp.enableProfiling();
-			} else {
-			    interp.disableProfiling();
-			}
-
-			auto res = interp.compile(frame->f_builtins, frame->f_globals);
-
-			if (res == nullptr) {
-				static int failCount;
-				trace->j_failed = true;
-				return _PyEval_EvalFrameDefault(tstate, frame, 0);
-			}
-
-			// Update the jitted information for this tree node
-			target->addr = (Py_EvalFunc)res->get_code_addr();
-			assert(target->addr != nullptr);
-			target->jittedCode = res;
-
-			trace->j_il = res->get_il();
-			trace->j_ilLen = res->get_il_len();
-            trace->j_nativeSize = res->get_native_size();
-            trace->j_generic = target->addr;
-
-			return Jit_EvalHelper((void*)target->addr, frame, tstate);
-		}
-	}
-
-	auto res = _PyEval_EvalFrameDefault(tstate, frame, 0);
-	return res;
-}
-
 
 PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject) {
 	auto index = (ssize_t)PyThread_tss_get(g_extraSlot);
@@ -307,24 +255,17 @@ PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject) {
 PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 	auto jitted = PyJit_EnsureExtra((PyObject*)f->f_code);
 	if (jitted != nullptr && !throwflag) {
-		if (jitted->j_evalfunc != nullptr) {
+		if (jitted->j_addr != nullptr && (!g_pyjionSettings.pgc || jitted->j_pgc_status == Optimized)) {
             jitted->j_run_count++;
-			return jitted->j_evalfunc(jitted, f, ts);
+			return PyJit_ExecuteJittedFrame((void*)jitted->j_addr, f, ts, jitted->j_profile);
 		}
 		else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {
-			if (jit_compile(f->f_code)) {
-				// execute the jitted code...
-				jitPassCounter++;
-				return jitted->j_evalfunc(jitted, f, ts);
-			}
-
-			// no longer try and compile this method...
-            jitFailCounter++;
-			jitted->j_failed = true;
+			auto result = PyJit_ExecuteAndCompileFrame(jitted, f, ts, jitted->j_profile);
+            jitted->j_pgc_status = nextPgcStatus(jitted->j_pgc_status);
+			return result;
 		}
 	}
-	auto res = _PyEval_EvalFrameDefault(ts, f, throwflag);
-	return res;
+	return _PyEval_EvalFrameDefault(ts, f, throwflag);
 }
 
 void PyjionJitFree(void* obj) {
@@ -334,6 +275,7 @@ void PyjionJitFree(void* obj) {
     Py_XDECREF(code_obj->j_code);
     free(code_obj->j_il);
     code_obj->j_il = nullptr;
+    delete code_obj->j_profile;
 }
 
 static PyInterpreterState* inter(){
@@ -341,6 +283,7 @@ static PyInterpreterState* inter(){
 }
 
 static PyObject *pyjion_enable(PyObject *self, PyObject* args) {
+    setOptimizationLevel(1);
     auto prev = _PyInterpreterState_GetEvalFrameFunc(inter());
     _PyInterpreterState_SetEvalFrameFunc(inter(), PyJit_EvalFrame);
     if (prev == PyJit_EvalFrame) {
@@ -386,9 +329,11 @@ static PyObject *pyjion_info(PyObject *self, PyObject* func) {
 	PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
 
 	PyDict_SetItemString(res, "failed", jitted->j_failed ? Py_True : Py_False);
-	PyDict_SetItemString(res, "compiled", jitted->j_evalfunc != nullptr ? Py_True : Py_False);
-	
-	auto runCount = PyLong_FromLongLong(jitted->j_run_count);
+    PyDict_SetItemString(res, "compile_result", PyLong_FromLong(jitted->j_compile_result));
+    PyDict_SetItemString(res, "compiled", jitted->j_addr != nullptr ? Py_True : Py_False);
+    PyDict_SetItemString(res, "pgc", PyLong_FromLong(jitted->j_pgc_status));
+
+    auto runCount = PyLong_FromLongLong(jitted->j_run_count);
 	PyDict_SetItemString(res, "run_count", runCount);
 	Py_DECREF(runCount);
 	
@@ -409,7 +354,7 @@ static PyObject *pyjion_dump_il(PyObject *self, PyObject* func) {
     }
 
     PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
-    if (jitted->j_failed || jitted->j_evalfunc == nullptr)
+    if (jitted->j_failed || jitted->j_addr == nullptr)
          Py_RETURN_NONE;
 
     auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(jitted->j_il), jitted->j_ilLen);
@@ -433,14 +378,14 @@ static PyObject* pyjion_dump_native(PyObject *self, PyObject* func) {
     }
 
     PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
-    if (jitted->j_failed || jitted->j_evalfunc == nullptr)
+    if (jitted->j_failed || jitted->j_addr == nullptr)
         Py_RETURN_NONE;
 
     auto result_t = PyTuple_New(3);
     if (result_t == nullptr)
         return nullptr;
 
-    auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(jitted->j_evalfunc), jitted->j_nativeSize);
+    auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(jitted->j_addr), jitted->j_nativeSize);
     if (res == nullptr)
         return nullptr;
 
@@ -453,7 +398,7 @@ static PyObject* pyjion_dump_native(PyObject *self, PyObject* func) {
     PyTuple_SET_ITEM(result_t, 1, codeLen);
     Py_INCREF(codeLen);
 
-    auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&jitted->j_evalfunc));
+    auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&jitted->j_addr));
     if (codePosition == nullptr)
         return nullptr;
     PyTuple_SET_ITEM(result_t, 2, codePosition);
@@ -500,6 +445,16 @@ static PyObject* pyjion_enable_profiling(PyObject *self, PyObject* args) {
 
 static PyObject* pyjion_disable_profiling(PyObject *self, PyObject* args) {
     g_pyjionSettings.profiling = false;
+    Py_RETURN_NONE;
+}
+
+static PyObject* pyjion_enable_pgc(PyObject *self, PyObject* args) {
+    g_pyjionSettings.pgc = true;
+    Py_RETURN_NONE;
+}
+
+static PyObject* pyjion_disable_pgc(PyObject *self, PyObject* args) {
+    g_pyjionSettings.pgc = false;
     Py_RETURN_NONE;
 }
 
@@ -569,10 +524,10 @@ static PyMethodDef PyjionMethods[] = {
 		"Gets the number of times a method needs to be executed before the JIT is triggered."
 	},
     {
-            "set_optimization_level",
-            pyjion_set_optimization_level,
-            METH_O,
-            "Sets optimization level (0 = None, 1 = Common, 2 = Maximum)."
+        "set_optimization_level",
+        pyjion_set_optimization_level,
+        METH_O,
+        "Sets optimization level (0 = None, 1 = Common, 2 = Maximum)."
     },
     {
         "enable_tracing",
@@ -590,15 +545,27 @@ static PyMethodDef PyjionMethods[] = {
         "enable_profiling",
         pyjion_enable_profiling,
         METH_NOARGS,
-        "Enable profiling for generated code."
+        "Enable Python profiling for generated code."
     },
     {
     "disable_profiling",
         pyjion_disable_profiling,
         METH_NOARGS,
-        "Enable profiling for generated code."
+        "Disable Python profiling for generated code."
     },
-	{NULL, NULL, 0, NULL}        /* Sentinel */
+    {
+        "enable_pgc",
+        pyjion_enable_pgc,
+        METH_NOARGS,
+        "Enable profile-guided-compilation."
+    },
+    {
+        "disable_pgc",
+        pyjion_disable_pgc,
+        METH_NOARGS,
+        "Disable profile-guided-compilation."
+    },
+	{nullptr, nullptr, 0, nullptr}        /* Sentinel */
 };
 
 static struct PyModuleDef pyjionmodule = {

@@ -24,29 +24,14 @@
 */
 
 
-#ifndef PYJION_BLOCK_H
-#define PYJION_BLOCK_H
+#include "codemodel.h"
 
-#include <cstdio>
-#include <climits>
-
-#include "ipycomp.h"
-#include "flags.h"
-
-// forward dec exception handlers.
-struct ExceptionHandler;
-
-struct BlockInfo {
-    int EndOffset, Kind;
-    ehFlags Flags;
-    ExceptionHandler* CurrentHandler;  // the current exception handler
-
-    BlockInfo(int endOffset, int kind, ExceptionHandler* currentHandler, ehFlags flags = EhfNone) {
-        EndOffset = endOffset;
-        Kind = kind;
-        Flags = flags;
-        CurrentHandler = currentHandler;
+int BaseModule::AddMethod(CorInfoType returnType, std::vector<Parameter> params, void *addr) {
+    if (existingSlots.find(addr) == existingSlots.end()) {
+        int token = METHOD_SLOT_SPACE + ++slotCursor;
+        m_methods[token] = new JITMethod(this, returnType, params, addr);
+        return token;
+    } else {
+        return existingSlots[addr];
     }
-};
-
-#endif //PYJION_BLOCK_H
+}

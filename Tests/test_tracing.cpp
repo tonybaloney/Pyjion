@@ -53,7 +53,7 @@ private:
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
         _PyEval_SetTrace(tstate, &TestTraceFunc, nullptr);
-        auto res = m_jittedcode->j_evalfunc(m_jittedcode.get(), frame, tstate);
+        auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode.get(), frame, tstate, nullptr);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
         //Py_DECREF(frame);
         size_t collected = PyGC_Collect();
@@ -70,9 +70,6 @@ public:
             FAIL("failed to compile code");
         }
         auto jitted = PyJit_EnsureExtra((PyObject *) *m_code);
-        if (!jit_compile(m_code.get())) {
-            FAIL("failed to JIT code");
-        }
         m_jittedcode.reset(jitted);
     }
 
@@ -110,6 +107,17 @@ TEST_CASE("test simple func"){
     SECTION("test simple") {
         auto t = TracingTest(
                 "def f():\n  a = 1\n  b = 2\n  c=3\n  return a + b + c\n"
+        );
+        CHECK(t.returns() == "6");
+    };
+    SECTION("test weird function") {
+        auto t = TracingTest(
+                "def f():\n"
+                "  \n"
+                "  a = 1\n"
+                "  b = 2\n"
+                "  c=3\n"
+                "  return a + b + c\n"
         );
         CHECK(t.returns() == "6");
     };

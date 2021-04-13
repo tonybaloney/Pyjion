@@ -30,6 +30,7 @@
 #include <vector>
 #include <unordered_map>
 
+#include "pyjit.h"
 #include "absvalue.h"
 #include "cowvector.h"
 #include "ipycomp.h"
@@ -145,6 +146,8 @@ class InterpreterState {
 public:
     InterpreterStack mStack;
     CowVector<AbstractLocalInfo> mLocals;
+    bool requiresPgcProbe = false;
+    short pgcProbeSize = 0;
 
     InterpreterState() = default;
 
@@ -165,7 +168,8 @@ public:
     }
 
     AbstractValue* pop() {
-        assert(!mStack.empty());
+        if (mStack.empty())
+            throw StackUnderflowException();
         auto res = mStack.back();
         res.escapes();
         mStack.pop_back();
@@ -173,10 +177,27 @@ public:
     }
 
     AbstractValueWithSources popNoEscape() {
-        assert(!mStack.empty());
+        if (mStack.empty())
+            throw StackUnderflowException();
         auto res = mStack.back();
         mStack.pop_back();
         return res;
+    }
+
+    AbstractValueWithSources fromPgc(int stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject, AbstractSource* source) {
+        if (mStack.empty())
+            throw StackUnderflowException();
+        auto existing = mStack[mStack.size() - 1 - stackPosition];
+        if (existing.hasSource() && existing.Sources->hasConstValue())
+            return existing;
+        if (pyTypeObject == nullptr)
+            return existing;
+        else {
+            return AbstractValueWithSources(
+                    new PgcValue(pyTypeObject, pyObject),
+                    source
+            );
+        }
     }
 
     void push(AbstractValueWithSources& value) {
@@ -194,6 +215,10 @@ public:
     AbstractValueWithSources& operator[](const size_t index) {
         return mStack[index];
     }
+
+    void push_n(const size_t n, const AbstractValueWithSources& value){
+        mStack[mStack.size() - 1 - n] = value;
+    }
 };
 
 enum ComprehensionType {
@@ -201,6 +226,28 @@ enum ComprehensionType {
     COMP_LIST,
     COMP_DICT,
     COMP_SET
+};
+
+enum AbstractInterpreterResult {
+    Success = 1,
+
+    // Failure codes
+    CompilationException = 10,  // Exception within Pyjion
+    CompilationJitFailure = 11, // JIT failed
+
+    // Incompat codes.
+    IncompatibleCompilerFlags  = 100,
+    IncompatibleSize = 101,
+    IncompatibleOpcode_Yield = 102,
+    IncompatibleOpcode_WithExcept = 103,
+    IncompatibleOpcode_With = 104,
+    IncompatibleOpcode_Unknown = 110,
+    IncompatibleFrameGlobal = 120,
+};
+
+struct AbstactInterpreterCompileResult {
+    JittedCode* compiledCode = nullptr;
+    AbstractInterpreterResult result;
 };
 
 class StackImbalanceException: public std::exception {
@@ -254,13 +301,13 @@ class AbstractInterpreter {
     ExceptionHandlerManager m_exceptionHandler;
     // Labels that map from a Python byte code offset to an ilgen label.  This allows us to branch to any
     // byte code offset.
-    unordered_map<int, Label> m_offsetLabels;
+    unordered_map<size_t, Label> m_offsetLabels;
     // Tracks the current depth of the stack,  as well as if we have an object reference that needs to be freed.
     // True (STACK_KIND_OBJECT) if we have an object, false (STACK_KIND_VALUE) if we don't
     ValueStack m_stack;
     // Tracks the state of the stack when we perform a branch.  We copy the existing state to the map and
     // reload it when we begin processing at the stack.
-    unordered_map<int, ValueStack> m_offsetStack;
+    unordered_map<size_t, ValueStack> m_offsetStack;
 
     unordered_map<int, ssize_t> nameHashes;
 
@@ -275,10 +322,6 @@ class AbstractInterpreter {
     unordered_set<size_t> m_jumpsTo;
     Label m_retLabel;
     Local m_retValue;
-    // Stores information for a stack allocated local used for sequence unpacking.  We need to allocate
-    // one of these when we enter the method, and we use it if we don't have a sequence we can efficiently
-    // unpack.
-    unordered_map<int, Local> m_sequenceLocals;
     unordered_map<int, bool> m_assignmentState;
 
 #pragma warning (default:4251)
@@ -287,8 +330,8 @@ public:
     AbstractInterpreter(PyCodeObject *code, IPythonCompiler* compiler);
     ~AbstractInterpreter();
 
-    JittedCode* compile(PyObject* builtins, PyObject* globals);
-    bool interpret(PyObject* builtins, PyObject* globals);
+    AbstactInterpreterCompileResult compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status);
+    AbstractInterpreterResult interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status);
 
     void setLocalType(int index, PyObject* val);
     // Returns information about the specified local variable at a specific
@@ -299,7 +342,8 @@ public:
     InterpreterStack& getStackInfo(size_t byteCodeIndex);
 
     AbstractValue* getReturnInfo();
-
+    bool pgcProbeRequired(size_t byteCodeIndex, PgcStatus status);
+    short pgcProbeSize(size_t byteCodeIndex);
     void enableTracing();
     void disableTracing();
     void enableProfiling();
@@ -312,7 +356,7 @@ private:
     bool updateStartState(InterpreterState& newState, size_t index);
     void initStartingState();
     const char* opcodeName(int opcode);
-    bool preprocess();
+    AbstractInterpreterResult preprocess();
     AbstractSource* newSource(AbstractSource* source) {
         m_sources.push_back(source);
         return source;
@@ -322,40 +366,41 @@ private:
     AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
     AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
     AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
+    AbstractSource* addPgcSource(size_t opcodeIndex);
 
     void makeFunction(int oparg);
-    bool canSkipLastiUpdate(int opcodeIndex);
+    bool canSkipLastiUpdate(size_t opcodeIndex);
     void buildTuple(size_t argCnt);
     void buildList(size_t argCnt);
     void extendListRecursively(Local list, size_t argCnt);
     void extendList(size_t argCnt);
     void buildSet(size_t argCnt);
-    void unpackEx(size_t size, int opcode);
+    void unpackEx(size_t size, size_t opcode);
 
     void buildMap(size_t argCnt);
 
-    Label getOffsetLabel(int jumpTo);
-    void forIter(int loopIndex);
-    void forIter(int loopIndex, AbstractValueWithSources* iterator);
+    Label getOffsetLabel(size_t jumpTo);
+    void forIter(size_t loopIndex);
+    void forIter(size_t loopIndex, AbstractValueWithSources* iterator);
 
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
-    void errorCheck(const char* reason = nullptr, int curByte = -1);
-    void intErrorCheck(const char* reason = nullptr, int curByte = -1);
+    void errorCheck(const char* reason = nullptr, size_t curByte = ~0);
+    void intErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
     void ensureRaiseAndFreeLocals(size_t localCount);
 
     void ensureLabels(vector<Label>& labels, size_t count);
 
-    void branchRaise(const char* reason = nullptr, int curByte = -1);
-    void raiseOnNegativeOne(int curByte);
+    void branchRaise(const char* reason = nullptr, size_t curByte = ~0);
+    void raiseOnNegativeOne(size_t curByte);
 
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);
 
     ExceptionHandler * currentHandler();
 
-    void markOffsetLabel(int index);
+    void markOffsetLabel(size_t index);
 
     void jumpAbsolute(size_t index, size_t from);
 
@@ -363,28 +408,27 @@ private:
 
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
 
-    JittedCode* compileWorker();
+    AbstactInterpreterCompileResult compileWorker(PgcStatus status);
 
-    void periodicWork();
-    void storeFast(int local, int opcodeIndex);
+    void storeFast(int local, size_t opcodeIndex);
 
-    void loadConst(int constIndex, int opcodeIndex);
+    void loadConst(int constIndex, size_t opcodeIndex);
 
-    void returnValue(int opcodeIndex);
+    void returnValue(size_t opcodeIndex);
 
-    void loadFast(int local, int opcodeIndex);
+    void loadFast(int local, size_t opcodeIndex);
     void loadFastWorker(int local, bool checkUnbound, int curByte);
-    void unpackSequence(size_t size, int opcode);
+    void unpackSequence(size_t size, size_t opcode, AbstractValueWithSources sources);
 
     void popExcept();
 
-    void unaryPositive(int opcodeIndex);
-    void unaryNegative(int opcodeIndex);
-    void unaryNot(int opcodeIndex);
+    void unaryPositive(size_t opcodeIndex);
+    void unaryNegative(size_t opcodeIndex);
+    void unaryNot(size_t opcodeIndex);
 
-    void jumpIfOrPop(bool isTrue, int opcodeIndex, int offset);
-    void popJumpIf(bool isTrue, int opcodeIndex, int offset);
-    void jumpIfNotExact(int opcodeIndex, int jumpTo);
+    void jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t offset);
+    void popJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
+    void jumpIfNotExact(size_t opcodeIndex, size_t jumpTo);
     void testBoolAndBranch(Local value, bool isTrue, Label target);
 
     void unwindHandlers();
@@ -393,6 +437,7 @@ private:
     void popExcVars();
     void decExcVars(int count);
     void incExcVars(int count);
+
 };
 
 // TODO : Fetch the range of interned integers from the interpreter state
