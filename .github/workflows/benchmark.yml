@@ -6,11 +6,8 @@ on:
   pull_request:
     branches: [ master ]
 
-env:
-  BUILD_TYPE: Debug
-
 jobs:
-  build-linux:
+  bench-linux:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -51,7 +48,7 @@ jobs:
           python Tests/benchmarks/test_django_template.py
           python Tests/benchmarks/test_deltablue.py
 
-  build-macos-11:
+  bench-macos-11:
     runs-on: macos-11.0
     strategy:
       matrix:
@@ -87,7 +84,7 @@ jobs:
           python Tests/benchmarks/test_django_template.py
           python Tests/benchmarks/test_deltablue.py
 
-  build-windows:
+  bench-windows:
     runs-on: windows-latest
     strategy:
       matrix:
@@ -115,7 +112,7 @@ jobs:
       - name: Configure CMake
         shell: bash
         working-directory: ${{runner.workspace}}/build
-        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
