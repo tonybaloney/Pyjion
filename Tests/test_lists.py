@@ -50,6 +50,7 @@ class ListIteratorsTestCase(unittest.TestCase):
         self.assertIn("MethodTokens.METHOD_GETITER_TOKEN", f.getvalue())
         self.assertNotIn("MethodTokens.METHOD_ITERNEXT_TOKEN", f.getvalue())
 
+    @unittest.skip("Disabled for now, see TODO")
     def test_const_list_is_optimized(self):
         def test_f():
             l = [0, 1, 2, 3, 4]
@@ -60,6 +61,7 @@ class ListIteratorsTestCase(unittest.TestCase):
         self.assertEqual(test_f(), 10)
         self.assertOptimized(test_f)
 
+    @unittest.skip("Disabled for now, see TODO")
     def test_builtin_list_is_optimized(self):
         def test_f():
             l = (0, 1, 2, 3, 4)
@@ -82,6 +84,7 @@ class ListIteratorsTestCase(unittest.TestCase):
         self.assertEqual(before_a, sys.getrefcount(a))
         self.assertEqual(before_b, sys.getrefcount(b))
         self.assertEqual(before_c, sys.getrefcount(c))
+
 
 if __name__ == "__main__":
     unittest.main()
