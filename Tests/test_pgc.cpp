@@ -296,7 +296,39 @@ TEST_CASE("test STORE_SUBSCR PGC") {
         CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
         CHECK(t.profileEquals(4, 0, &PyUnicode_Type));
         CHECK(t.profileEquals(4, 1, &PyType_Type));
+        CHECK(t.profileEquals(14, 2, &PyUnicode_Type));
+        CHECK(t.profileEquals(14, 1, &PyList_Type));
+        CHECK(t.profileEquals(14, 0, &PyLong_Type));
         CHECK(t.returns() == "['H', 'e', 'l', 'l', 'o']");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+
+    SECTION("test inplace operation") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  text = [0,1,2,3,4]\n"
+                "  text[0] += 2\n"
+                "  return text"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "[2, 1, 2, 3, 4]");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.returns() == "[2, 1, 2, 3, 4]");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+
+    SECTION("test complex inplace operation") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  text = [0,1,2,3,4]\n"
+                "  n = 2\n"
+                "  text[0] += 2 ** n\n"
+                "  return text"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "[4, 1, 2, 3, 4]");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.returns() == "[4, 1, 2, 3, 4]");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
 }

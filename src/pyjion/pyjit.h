@@ -51,16 +51,16 @@
 using namespace std;
 
 class PyjionCodeProfile{
-    unordered_map<int, unordered_map<int, PyTypeObject *>> stackTypes;
-    unordered_map<int, unordered_map<int, PyObject *>> stackValues;
+    unordered_map<size_t, unordered_map<size_t, PyTypeObject *>> stackTypes;
+    unordered_map<size_t, unordered_map<size_t, PyObject *>> stackValues;
 public:
-    void record(int opcodePosition, int stackPosition, PyObject* obj);
-    PyTypeObject* getType(int opcodePosition, int stackPosition);
-    PyObject* getValue(int opcodePosition, int stackPosition);
+    void record(size_t opcodePosition, size_t stackPosition, PyObject* obj);
+    PyTypeObject* getType(size_t opcodePosition, size_t stackPosition);
+    PyObject* getValue(size_t opcodePosition, size_t stackPosition);
 };
 
 
-void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, int opcodePosition, int stackPosition);
+void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition);
 class PyjionJittedCode;
 
 bool JitInit();
