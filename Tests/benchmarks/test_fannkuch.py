@@ -55,10 +55,7 @@ def fannkuch(n=DEFAULT_ARG):
 
 if __name__ == "__main__":
     print("Fannkuch({1}) took {0} without Pyjion".format(timeit.repeat(fannkuch, repeat=5, number=1), DEFAULT_ARG))
-    try:
-        pyjion.enable()
-        pyjion.set_optimization_level(1)
-        print("Fannkuch({1}) took {0} with Pyjion".format(timeit.repeat(fannkuch, repeat=5, number=1), DEFAULT_ARG))
-        pyjion.disable()
-    except:
-        pyjion.dis.dis(fannkuch)
+    pyjion.enable()
+    pyjion.set_optimization_level(1)
+    print("Fannkuch({1}) took {0} with Pyjion".format(timeit.repeat(fannkuch, repeat=5, number=1), DEFAULT_ARG))
+    pyjion.disable()
