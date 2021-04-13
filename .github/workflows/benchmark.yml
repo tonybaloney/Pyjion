@@ -50,41 +50,6 @@ jobs:
           python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
 
-  build-macos-10:
-    runs-on: macos-10.15
-    strategy:
-      matrix:
-        python-version: [3.9]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: 'recursive'
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-          architecture: x64
-
-      - uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '5.0.103'
-
-      - name: Build Python Package
-        shell: bash
-        run: python -m pip install --upgrade pip && pip install .
-
-      - name: Run benchmark tests
-        shell: bash
-        run: |
-          python -m pip install  django==3.1.4
-          python Tests/benchmarks/test_nbody.py
-          python Tests/benchmarks/test_nqueens.py
-          python Tests/benchmarks/test_fannkuch.py
-          python Tests/benchmarks/test_chaos.py
-          python Tests/benchmarks/test_float.py
-          python Tests/benchmarks/test_django_template.py
-
-
   build-macos-11:
     runs-on: macos-11.0
     strategy:
