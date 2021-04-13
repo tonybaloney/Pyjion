@@ -187,9 +187,11 @@ public:
     AbstractValueWithSources fromPgc(int stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject, AbstractSource* source) {
         if (mStack.empty())
             throw StackUnderflowException();
-        auto res = mStack[mStack.size() - 1 - stackPosition];
+        auto existing = mStack[mStack.size() - 1 - stackPosition];
+        if (existing.hasValue() && existing.Sources->hasConstValue())
+            return existing;
         if (pyTypeObject == nullptr)
-            return res;
+            return existing;
         else {
             return AbstractValueWithSources(
                     new PgcValue(pyTypeObject, pyObject),

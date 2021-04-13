@@ -125,6 +125,8 @@ if __name__ == "__main__":
     print("N-body took {0} with Pyjion".format(timeit.repeat(main, repeat=5, number=1)))
     pyjion.disable()
     import pyjion.dis
+    import dis
+    print(dis.dis(advance))
     print(pyjion.dis.dis(advance))
     print(pyjion.info(offset_momentum))
     print(pyjion.info(advance))

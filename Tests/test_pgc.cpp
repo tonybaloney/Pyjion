@@ -282,3 +282,21 @@ TEST_CASE("test CALL_FUNCTION PGC") {
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
 }
+
+TEST_CASE("test STORE_SUBSCR PGC") {
+    SECTION("test list index") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  text = list('hello')\n"
+                "  text[0] = 'H'\n"
+                "  return text"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "['H', 'e', 'l', 'l', 'o']");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.profileEquals(4, 0, &PyUnicode_Type));
+        CHECK(t.profileEquals(4, 1, &PyType_Type));
+        CHECK(t.returns() == "['H', 'e', 'l', 'l', 'o']");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+}
