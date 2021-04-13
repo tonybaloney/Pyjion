@@ -103,6 +103,9 @@
 #define METHOD_COMPARE_EXCEPTIONS                0x00000039
 #define METHOD_UNBOUND_LOCAL                     0x0000003A
 #define METHOD_DEBUG_TRACE                       0x0000003B
+#define METHOD_DEBUG_PTR                         0x0000003C
+#define METHOD_DEBUG_TYPE                        0x0000003D
+#define METHOD_DEBUG_PYOBJECT                    0x0000003E
 #define METHOD_UNWIND_EH                         0x0000003F
 #define METHOD_PY_PUSHFRAME                      0x00000041
 #define METHOD_PY_POPFRAME                       0x00000042
@@ -144,7 +147,7 @@
 #define METHOD_DEALLOC_OBJECT                    0x00000079
 #define METHOD_LOAD_CLOSURE                      0x0000007A
 #define METHOD_TRIPLE_BINARY_OP                  0x0000007B
-#define METHOD_DEBUG_PYOBJECT                    0x0000007C
+#define METHOD_XXXXXXXXXXXXXX                    0x0000007C
 #define METHOD_LOADNAME_HASH                     0x0000007D
 #define METHOD_LOADGLOBAL_HASH                   0x0000007E
 #define METHOD_PENDING_CALLS                     0x0000007F

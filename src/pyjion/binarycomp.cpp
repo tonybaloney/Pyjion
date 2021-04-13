@@ -101,6 +101,7 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
     int nb_slot = -1;
     int sq_slot = -1;
     int fallback_token;
+
     switch (opcode) {
         case BINARY_ADD:
             nb_slot = offsetof(PyNumberMethods, nb_add);
@@ -190,9 +191,24 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
     if (emit_guard){
         emit_branch(BranchAlways, skip_fallback);
         emit_mark_label(execute_fallback);
+
+        /* Debug help for tonight */
+        emit_load_local(leftLocal);
+        LD_FIELD(PyObject, ob_type);
+        m_il.emit_call(METHOD_DEBUG_TYPE);
+        emit_ptr(left.Value->pythonType());
+        m_il.emit_call(METHOD_DEBUG_TYPE);
+        emit_debug_msg("---");
+        emit_load_local(rightLocal);
+        emit_debug_pyobject();
+        emit_ptr(right.Value->pythonType());
+        m_il.emit_call(METHOD_DEBUG_TYPE);
+        emit_debug_msg("generic guard failed on binary token");
+
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
         m_il.emit_call(fallback_token);
+        
         emit_mark_label(skip_fallback);
     }
     emit_free_local(leftLocal);

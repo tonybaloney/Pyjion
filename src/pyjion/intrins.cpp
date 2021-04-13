@@ -836,6 +836,14 @@ void PyJit_DebugTrace(char* msg) {
     puts(msg);
 }
 
+void PyJit_DebugPtr(void* ptr) {
+    printf("Pointer at %p\n", ptr);
+}
+
+void PyJit_DebugType(PyTypeObject* ty) {
+    printf("Type at %p (%s)\n", ty, ty->tp_name);
+}
+
 void PyJit_DebugPyObject(PyObject* obj) {
     printf("Object at %p -- ", obj);
     printf("%s\n", PyUnicode_AsUTF8(PyObject_Repr(obj)));
