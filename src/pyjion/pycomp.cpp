@@ -1758,10 +1758,11 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
         return emit_for_next();
     auto iterable = dynamic_cast<IteratorSource*>(iterator.Sources);
     switch (iterable->kind()) {
-        case AVK_List:
-            emit_varobject_iter_next(offsetof(_listiterobject, it_seq), offsetof(_listiterobject, it_index),
-                                         offsetof(PyListObject, ob_item));
-            break;
+        // TODO: Implement a guard-safe iterator.
+//        case AVK_List:
+//            emit_varobject_iter_next(offsetof(_listiterobject, it_seq), offsetof(_listiterobject, it_index),
+//                                         offsetof(PyListObject, ob_item));
+//            break;
         default:
             return emit_for_next();
     }
