@@ -49,6 +49,7 @@ jobs:
           python Tests/benchmarks/test_chaos.py
           python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
+          python Tests/benchmarks/test_deltablue.py
 
   build-macos-11:
     runs-on: macos-11.0
@@ -84,6 +85,7 @@ jobs:
           python Tests/benchmarks/test_chaos.py
           python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
+          python Tests/benchmarks/test_deltablue.py
 
   build-windows:
     runs-on: windows-latest
@@ -142,3 +144,4 @@ jobs:
           python Tests/benchmarks/test_chaos.py
           python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
+          python Tests/benchmarks/test_deltablue.py
