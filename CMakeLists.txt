@@ -6,12 +6,16 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(CODE_COVERAGE "Enable coverage reporting" OFF)
+
 add_definitions(-DDEFAULT_RECURSION_LIMIT=1000)
 add_definitions(-DDEFAULT_CODEOBJECT_SIZE_LIMIT=10000)
 
 option(BUILD_TESTS "Build the unit tests" OFF)
+option(GENERATE_PROFILE "Enable Profile Generation" OFF)
 
-include(CMakeOptimizations.txt)
+include(eng/CMakeOptimizations.txt)
+include(eng/CMakeProfiling.txt)
 
 if (UNIX AND NOT APPLE)
     message(STATUS "Enabling PIC")
@@ -167,6 +171,7 @@ if (APPLE)
     add_definitions(-DFEATURE_HW_INTRINSICS)
 endif()
 
+
 if(NET_SRC_LIB)  # use the libraries compiled from source
     set(DOTNETPATH ${CMAKE_SOURCE_DIR}/CoreCLR/artifacts/bin/coreclr/${CLR_OS_BUILD})
     message(STATUS "Using .NET builds " ${DOTNETPATH})
@@ -232,7 +237,6 @@ endif(BUILD_TESTS)
 # Code Coverage Configuration
 add_library(coverage_config INTERFACE)
 
-option(CODE_COVERAGE "Enable coverage reporting" OFF)
 if(CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     # Add required flags (GCC & LLVM/Clang)
     target_compile_options(coverage_config INTERFACE
