@@ -964,9 +964,29 @@ void PythonCompiler::emit_load_attr(void* name, AbstractValueWithSources obj) {
         emit_branch(BranchNotEqual, execute_guard);
     }
 
-    emit_load_local(objLocal);
-    m_il.ld_i(name);
-    m_il.emit_call(METHOD_LOADATTR_TOKEN);
+    if (obj.Value->pythonType()->tp_getattro){
+        auto getattro_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                              vector<Parameter>{
+                                                      Parameter(CORINFO_TYPE_NATIVEINT),
+                                                      Parameter(CORINFO_TYPE_NATIVEINT)},
+                                              (void *) obj.Value->pythonType()->tp_getattro);
+        emit_load_local(objLocal);
+        m_il.ld_i(name);
+        m_il.emit_call(getattro_token);
+    } else if (obj.Value->pythonType()->tp_getattr) {
+        auto getattr_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                 vector<Parameter>{
+                                                         Parameter(CORINFO_TYPE_NATIVEINT),
+                                                         Parameter(CORINFO_TYPE_NATIVEINT)},
+                                                 (void *) obj.Value->pythonType()->tp_getattr);
+        emit_load_local(objLocal);
+        m_il.ld_i((void*)PyUnicode_AsUTF8((PyObject*)name));
+        m_il.emit_call(getattr_token);
+    } else {
+        emit_load_local(objLocal);
+        m_il.ld_i(name);
+        m_il.emit_call(METHOD_LOADATTR_TOKEN);
+    }
 
     if (guard){
         emit_branch(BranchAlways, skip_guard);
