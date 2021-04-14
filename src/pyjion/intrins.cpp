@@ -2019,11 +2019,11 @@ inline PyObject* Call(PyObject *target, Args...args) {
         if (t_args == nullptr) {
             goto error;
         }
-        std::vector<PyObject*> args_v = {args...};
-        for (int i = 0; i < args_v.size() ; i ++) {
-            ASSERT_ARG(args_v[i]);
-            PyTuple_SetItem(t_args, i, args_v[i]);
-            Py_INCREF(args_v[i]);
+        PyObject* _args[sizeof...(args)] = {args...};
+        for (int i = 0; i < sizeof...(args) ; i ++) {
+            ASSERT_ARG(_args[i]);
+            PyTuple_SetItem(t_args, i, _args[i]);
+            Py_INCREF(_args[i]);
         }
 #ifdef GIL
         PyGILState_STATE gstate;
