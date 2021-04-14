@@ -160,7 +160,8 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             nb_slot = offsetof(PyNumberMethods, nb_inplace_or); fallback_token = METHOD_INPLACE_OR_TOKEN;break;
     }
 
-    bool emit_guard = ((left.hasValue() && left.Value->needsGuard()) || (right.hasValue() && right.Value->needsGuard()));
+    bool emit_guard = (right.hasValue() && left.hasValue() && left.Value->known() && right.Value->known()) &&
+                      (left.Value->needsGuard() || right.Value->needsGuard());
     Label execute_fallback = emit_define_label();
     Label skip_fallback = emit_define_label();
     Local leftLocal = emit_define_local(LK_Pointer);
@@ -191,19 +192,6 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
     if (emit_guard){
         emit_branch(BranchAlways, skip_fallback);
         emit_mark_label(execute_fallback);
-
-        /* Debug help for tonight */
-        emit_load_local(leftLocal);
-        LD_FIELD(PyObject, ob_type);
-        m_il.emit_call(METHOD_DEBUG_TYPE);
-        emit_ptr(left.Value->pythonType());
-        m_il.emit_call(METHOD_DEBUG_TYPE);
-        emit_debug_msg("---");
-        emit_load_local(rightLocal);
-        emit_debug_pyobject();
-        emit_ptr(right.Value->pythonType());
-        m_il.emit_call(METHOD_DEBUG_TYPE);
-        emit_debug_msg("generic guard failed on binary token");
 
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
