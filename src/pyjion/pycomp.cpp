@@ -967,18 +967,11 @@ void PythonCompiler::emit_load_attr(PyObject* name, AbstractValueWithSources obj
     if (obj.Value->pythonType()->tp_getattro){
         // Often its just PyObject_GenericGetAttr to instead of recycling, use that.
         if (obj.Value->pythonType()->tp_getattro == PyObject_GenericGetAttr){
-            if (obj.Value->pythonType()->tp_dictoffset != 0) {
-                emit_load_local(objLocal);
-                m_il.ld_i(name);
-                m_il.ld_i(PyObject_Hash(name));
-                m_il.emit_call(METHOD_LOADATTR_HASH);
-            } else {
-                emit_load_local(objLocal);
-                m_il.ld_i(name);
-                m_il.emit_call(METHOD_GENERIC_GETATTR);
-                emit_load_local(objLocal);
-                decref();
-            }
+            emit_load_local(objLocal);
+            m_il.ld_i(name);
+            m_il.emit_call(METHOD_GENERIC_GETATTR);
+            emit_load_local(objLocal);
+            decref();
         } else {
             auto getattro_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
                                                      vector<Parameter>{
