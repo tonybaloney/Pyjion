@@ -214,6 +214,7 @@
 #define METHOD_DELETEGLOBAL_TOKEN    0x00030005
 #define METHOD_LOAD_ASSERTION_ERROR  0x00030006
 #define METHOD_GENERIC_GETATTR       0x00030007
+#define METHOD_LOADATTR_HASH         0x00030008
 
 /* Tracing methods */
 #define METHOD_TRACE_LINE            0x00030010
@@ -286,8 +287,8 @@ public:
 
     void emit_dup_top_two() override;
 
-    void emit_load_name(void* name) override;
-    void emit_load_name_hashed(void* name, ssize_t name_hash) override;
+    void emit_load_name(PyObject* name) override;
+    void emit_load_name_hashed(PyObject* name, ssize_t name_hash) override;
 
     void emit_is_true() override;
 
@@ -300,16 +301,16 @@ public:
 
     void emit_ret(int size) override;
 
-    void emit_store_name(void* name) override;
-    void emit_delete_name(void* name) override;
-    void emit_store_attr(void* name) override;
-    void emit_delete_attr(void* name) override;
-    void emit_load_attr(void* name) override;
-    void emit_load_attr(void* name, AbstractValueWithSources obj) override;
-    void emit_store_global(void* name) override;
-    void emit_delete_global(void* name) override;
-    void emit_load_global(void* name) override;
-    void emit_load_global_hashed(void* name, ssize_t name_hash) override;
+    void emit_store_name(PyObject* name) override;
+    void emit_delete_name(PyObject* name) override;
+    void emit_store_attr(PyObject* name) override;
+    void emit_delete_attr(PyObject* name) override;
+    void emit_load_attr(PyObject* name) override;
+    void emit_load_attr(PyObject* name, AbstractValueWithSources obj) override;
+    void emit_store_global(PyObject* name) override;
+    void emit_delete_global(PyObject* name) override;
+    void emit_load_global(PyObject* name) override;
+    void emit_load_global_hashed(PyObject* name, ssize_t name_hash) override;
     void emit_delete_fast(int index) override;
 
     void emit_new_tuple(size_t size) override;

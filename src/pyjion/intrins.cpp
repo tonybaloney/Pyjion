@@ -1745,6 +1745,19 @@ PyObject* PyJit_LoadAttr(PyObject* owner, PyObject* name) {
     return res;
 }
 
+PyObject* PyJit_LoadAttrHash(PyObject* owner, PyObject* key, Py_hash_t name_hash){
+    auto obj_dict = _PyObject_GetDictPtr(owner);
+    if (obj_dict == nullptr || *obj_dict == nullptr){
+        return _PyObject_GenericGetAttrWithDict(owner, key, nullptr, 0);
+    }
+    PyObject* value = _PyDict_GetItem_KnownHash(*obj_dict, key, name_hash);
+    Py_XINCREF(value);
+    if (value == nullptr && !PyErr_Occurred())
+        _PyErr_SetKeyError(key);
+    Py_DECREF(owner);
+    return value;
+}
+
 const char * ObjInfo(PyObject *obj) {
     if (obj == nullptr) {
         return "<NULL>";
