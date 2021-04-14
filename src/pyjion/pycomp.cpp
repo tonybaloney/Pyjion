@@ -947,6 +947,38 @@ void PythonCompiler::emit_delete_attr(void* name) {
     m_il.emit_call(METHOD_DELETEATTR_TOKEN);
 }
 
+void PythonCompiler::emit_load_attr(void* name, AbstractValueWithSources obj) {
+    if (!obj.hasValue() || !obj.Value->known()) {
+        m_il.ld_i(name);
+        m_il.emit_call(METHOD_LOADATTR_TOKEN);
+        return;
+    }
+    bool guard = obj.Value->needsGuard();
+    Local objLocal = emit_define_local(LK_Pointer);
+    emit_store_local(objLocal);
+    Label skip_guard = emit_define_label(), execute_guard = emit_define_label();
+    if (guard) {
+        emit_load_local(objLocal);
+        LD_FIELD(PyObject, ob_type);
+        emit_ptr(obj.Value->pythonType());
+        emit_branch(BranchNotEqual, execute_guard);
+    }
+
+    emit_load_local(objLocal);
+    m_il.ld_i(name);
+    m_il.emit_call(METHOD_LOADATTR_TOKEN);
+
+    if (guard){
+        emit_branch(BranchAlways, skip_guard);
+        emit_mark_label(execute_guard);
+        emit_load_local(objLocal);
+        m_il.ld_i(name);
+        m_il.emit_call(METHOD_LOADATTR_TOKEN);
+        emit_mark_label(skip_guard);
+    }
+    emit_free_local(objLocal);
+}
+
 void PythonCompiler::emit_load_attr(void* name) {
     m_il.ld_i(name);
     m_il.emit_call(METHOD_LOADATTR_TOKEN);

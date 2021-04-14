@@ -304,6 +304,7 @@ public:
     void emit_store_attr(void* name) override;
     void emit_delete_attr(void* name) override;
     void emit_load_attr(void* name) override;
+    void emit_load_attr(void* name, AbstractValueWithSources obj) override;
     void emit_store_global(void* name) override;
     void emit_delete_global(void* name) override;
     void emit_load_global(void* name) override;

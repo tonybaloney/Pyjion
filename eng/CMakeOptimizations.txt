@@ -13,6 +13,7 @@ option(OPTIMIZE_BINARY_SLICE "Combine BUILD_SLICE/BINARY_SUBSCR" ON)
 option(OPTIMIZE_BUILTIN_METHODS "Optimize builtin method lookups" ON)
 option(OPTIMIZE_TYPESLOT_LOOKUPS "Precompile typeslot lookups for binary operations" ON)
 option(OPTIMIZE_FUNCTION_CALLS "Precompile method calls to builtin CFunctions" ON)
+option(OPTIMIZE_LOAD_ATTR "Optimize LOAD_ATTR for known types" ON)
 
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
 
@@ -98,6 +99,12 @@ if (OPTIMIZE_FUNCTION_CALLS)
     add_definitions(-DOPTIMIZE_FUNCTION_CALLS=1)
 else()
     add_definitions(-DOPTIMIZE_FUNCTION_CALLS=0)
+endif()
+
+if (OPTIMIZE_LOAD_ATTR)
+    add_definitions(-DOPTIMIZE_LOAD_ATTR=1)
+else()
+    add_definitions(-DOPTIMIZE_LOAD_ATTR=0)
 endif()
 
 if (EE_DEBUG_CODE)

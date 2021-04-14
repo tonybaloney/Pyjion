@@ -55,6 +55,7 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(builtinMethods, level, 1);
     SET_OPT(typeSlotLookups, level, 1);
     SET_OPT(functionCalls, level, 1);
+    SET_OPT(loadAttr, level, 1);
 }
 
 PgcStatus nextPgcStatus(PgcStatus status){

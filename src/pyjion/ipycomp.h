@@ -204,6 +204,7 @@ public:
 
     // Loads/stores/deletes an attribute on an object
     virtual void emit_load_attr(void* name) = 0;
+    virtual void emit_load_attr(void* name, AbstractValueWithSources obj) = 0;
     virtual void emit_store_attr(void* name) = 0;
     virtual void emit_delete_attr(void* name) = 0;
 
