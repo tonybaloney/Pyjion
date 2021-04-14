@@ -965,14 +965,25 @@ void PythonCompiler::emit_load_attr(void* name, AbstractValueWithSources obj) {
     }
 
     if (obj.Value->pythonType()->tp_getattro){
-        auto getattro_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
-                                              vector<Parameter>{
-                                                      Parameter(CORINFO_TYPE_NATIVEINT),
-                                                      Parameter(CORINFO_TYPE_NATIVEINT)},
-                                              (void *) obj.Value->pythonType()->tp_getattro);
-        emit_load_local(objLocal);
-        m_il.ld_i(name);
-        m_il.emit_call(getattro_token);
+        // Often its just PyObject_GenericGetAttr to instead of recycling, use that.
+        if (obj.Value->pythonType()->tp_getattro == PyObject_GenericGetAttr){
+            emit_load_local(objLocal);
+            m_il.ld_i(name);
+            m_il.emit_call(METHOD_GENERIC_GETATTR);
+            emit_load_local(objLocal);
+            decref();
+        } else {
+            auto getattro_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
+                                                     vector<Parameter>{
+                                                             Parameter(CORINFO_TYPE_NATIVEINT),
+                                                             Parameter(CORINFO_TYPE_NATIVEINT)},
+                                                     (void *) obj.Value->pythonType()->tp_getattro);
+            emit_load_local(objLocal);
+            m_il.ld_i(name);
+            m_il.emit_call(getattro_token);
+            emit_load_local(objLocal);
+            decref();
+        }
     } else if (obj.Value->pythonType()->tp_getattr) {
         auto getattr_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
                                                  vector<Parameter>{
@@ -982,6 +993,8 @@ void PythonCompiler::emit_load_attr(void* name, AbstractValueWithSources obj) {
         emit_load_local(objLocal);
         m_il.ld_i((void*)PyUnicode_AsUTF8((PyObject*)name));
         m_il.emit_call(getattr_token);
+        emit_load_local(objLocal);
+        decref();
     } else {
         emit_load_local(objLocal);
         m_il.ld_i(name);
@@ -2319,6 +2332,7 @@ GLOBAL_METHOD(METHOD_LOADGLOBAL_TOKEN, &PyJit_LoadGlobal, CORINFO_TYPE_NATIVEINT
 GLOBAL_METHOD(METHOD_LOADGLOBAL_HASH, &PyJit_LoadGlobalHash, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_LOADATTR_TOKEN, &PyJit_LoadAttr, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_GENERIC_GETATTR, &PyObject_GenericGetAttr, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_STOREATTR_TOKEN, &PyJit_StoreAttr, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DELETEATTR_TOKEN, &PyJit_DeleteAttr, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
