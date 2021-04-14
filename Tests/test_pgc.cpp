@@ -118,7 +118,7 @@ public:
     }
 };
 
-TEST_CASE("test most simple application"){
+TEST_CASE("test BINARY PGC"){
     SECTION("test simple") {
         auto t = PgcProfilingTest(
                 "def f():\n  a = 1\n  b = 2.0\n  c=3\n  return a + b + c\n"
@@ -133,6 +133,26 @@ TEST_CASE("test most simple application"){
         CHECK(t.returns() == "6.0");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
+
+    SECTION("test consistent types") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  a = 1000\n"
+                "  b = 2.0\n"
+                "  c = 2000\n"
+                "  d = 3.0\n"
+                "  def add(left,right):\n"
+                "     return left + right\n"
+                "  v = add(a, b) + add(c, d) + add(a, b)\n"
+                "  return v\n"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "4007.0");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.returns() == "4007.0");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+
     SECTION("test changing types") {
         auto t = PgcProfilingTest(
                 "def f():\n"

@@ -101,6 +101,7 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
     int nb_slot = -1;
     int sq_slot = -1;
     int fallback_token;
+
     switch (opcode) {
         case BINARY_ADD:
             nb_slot = offsetof(PyNumberMethods, nb_add);
@@ -159,7 +160,8 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
             nb_slot = offsetof(PyNumberMethods, nb_inplace_or); fallback_token = METHOD_INPLACE_OR_TOKEN;break;
     }
 
-    bool emit_guard = ((left.hasValue() && left.Value->needsGuard()) || (right.hasValue() && right.Value->needsGuard()));
+    bool emit_guard = (right.hasValue() && left.hasValue() && left.Value->known() && right.Value->known()) &&
+                      (left.Value->needsGuard() || right.Value->needsGuard());
     Label execute_fallback = emit_define_label();
     Label skip_fallback = emit_define_label();
     Local leftLocal = emit_define_local(LK_Pointer);
@@ -190,9 +192,11 @@ void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources lef
     if (emit_guard){
         emit_branch(BranchAlways, skip_fallback);
         emit_mark_label(execute_fallback);
+
         emit_load_local(leftLocal);
         emit_load_local(rightLocal);
         m_il.emit_call(fallback_token);
+        
         emit_mark_label(skip_fallback);
     }
     emit_free_local(leftLocal);

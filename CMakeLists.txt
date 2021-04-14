@@ -13,6 +13,8 @@ add_definitions(-DDEFAULT_CODEOBJECT_SIZE_LIMIT=10000)
 
 option(BUILD_TESTS "Build the unit tests" OFF)
 option(GENERATE_PROFILE "Enable Profile Generation" OFF)
+option(DUMP_JIT_TRACES "Dump .net JIT traces on compilation" OFF)
+
 
 include(eng/CMakeOptimizations.txt)
 include(eng/CMakeProfiling.txt)
