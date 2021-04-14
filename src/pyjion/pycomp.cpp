@@ -964,7 +964,7 @@ void PythonCompiler::emit_load_attr(PyObject* name, AbstractValueWithSources obj
         emit_branch(BranchNotEqual, execute_guard);
     }
 
-    if (obj.Value->pythonType()->tp_getattro){
+    if (obj.Value->pythonType() != nullptr && obj.Value->pythonType()->tp_getattro){
         // Often its just PyObject_GenericGetAttr to instead of recycling, use that.
         if (obj.Value->pythonType()->tp_getattro == PyObject_GenericGetAttr){
             emit_load_local(objLocal);
@@ -984,7 +984,7 @@ void PythonCompiler::emit_load_attr(PyObject* name, AbstractValueWithSources obj
             emit_load_local(objLocal);
             decref();
         }
-    } else if (obj.Value->pythonType()->tp_getattr) {
+    } else if (obj.Value->pythonType() != nullptr && obj.Value->pythonType()->tp_getattr) {
         auto getattr_token = g_module.AddMethod(CORINFO_TYPE_NATIVEINT,
                                                  vector<Parameter>{
                                                          Parameter(CORINFO_TYPE_NATIVEINT),
