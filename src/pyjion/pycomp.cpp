@@ -1940,7 +1940,7 @@ void PythonCompiler::emit_pending_calls(){
     m_il.add();
     m_il.dup();
     m_il.st_loc(m_instrCount);
-    m_il.ld_i4(10);
+    m_il.ld_i4(EMIT_PENDING_CALL_COUNTER);
     m_il.mod();
     emit_branch(BranchTrue, skipPending);
     m_il.emit_call(METHOD_PENDING_CALLS);
