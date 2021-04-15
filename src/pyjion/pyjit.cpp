@@ -127,7 +127,7 @@ static inline void Pyjit_LeaveRecursiveCall() {
     tstate->recursion_depth--;
 }
 
-PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile) {
+static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile) {
     if (Pyjit_EnterRecursiveCall("")) {
         return nullptr;
     }
