@@ -962,6 +962,11 @@ void PythonCompiler::emit_load_attr(PyObject* name, AbstractValueWithSources obj
         LD_FIELD(PyObject, ob_type);
         emit_ptr(obj.Value->pythonType());
         emit_branch(BranchNotEqual, execute_guard);
+        emit_load_local(objLocal);
+        LD_FIELD(PyObject, ob_type);
+        LD_FIELD(PyTypeObject, tp_getattro);
+        emit_ptr((void*)obj.Value->pythonType()->tp_getattro);
+        emit_branch(BranchNotEqual, execute_guard);
     }
 
     if (obj.Value->pythonType() != nullptr && obj.Value->pythonType()->tp_getattro){
