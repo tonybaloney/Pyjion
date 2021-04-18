@@ -144,9 +144,8 @@ private:
         auto builtins = PyEval_GetBuiltins();
         PyDict_SetItemString(globals.get(), "__builtins__", builtins);
         PyDict_SetItemString(globals.get(), "sys", sysModule.get());
-
-        auto tstate = PyThreadState_Get();
         auto profile = new PyjionCodeProfile();
+        auto tstate = PyThreadState_Get();
         // Don't DECREF as frames are recycled.
         auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
@@ -199,6 +198,128 @@ public:
         PyErr_Clear();
         return excType;
     }
+
+
+    BYTE* il (){
+        return m_jittedcode->j_il;
+    }
+
+    unsigned long native_len(){
+        return m_jittedcode->j_nativeSize;
+    }
+
+    PyObject* native(){
+        auto result_t = PyTuple_New(3);
+        if (result_t == nullptr)
+            return nullptr;
+
+        auto res = PyByteArray_FromStringAndSize(reinterpret_cast<const char *>(m_jittedcode->j_addr), m_jittedcode->j_nativeSize);
+        if (res == nullptr)
+            return nullptr;
+
+        PyTuple_SET_ITEM(result_t, 0, res);
+        Py_INCREF(res);
+
+        auto codeLen = PyLong_FromUnsignedLong(m_jittedcode->j_nativeSize);
+        if (codeLen == nullptr)
+            return nullptr;
+        PyTuple_SET_ITEM(result_t, 1, codeLen);
+        Py_INCREF(codeLen);
+
+        auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&m_jittedcode->j_addr));
+        if (codePosition == nullptr)
+            return nullptr;
+        PyTuple_SET_ITEM(result_t, 2, codePosition);
+        Py_INCREF(codePosition);
+        return result_t;
+    }
 };
 
+
+class PgcProfilingTest {
+private:
+    py_ptr <PyCodeObject> m_code;
+    py_ptr <PyjionJittedCode> m_jittedcode;
+    PyjionCodeProfile* profile;
+
+    PyObject *run() {
+        auto sysModule = PyObject_ptr(PyImport_ImportModule("sys"));
+        auto globals = PyObject_ptr(PyDict_New());
+        auto builtins = PyEval_GetBuiltins();
+        PyDict_SetItemString(globals.get(), "__builtins__", builtins);
+        PyDict_SetItemString(globals.get(), "sys", sysModule.get());
+
+        // Don't DECREF as frames are recycled.
+        auto tstate = PyThreadState_Get();
+        auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
+        auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
+        _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
+        m_jittedcode->j_profile = profile;
+        auto res = PyJit_EvalFrame(tstate, frame, 0);
+
+        _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
+        //Py_DECREF(frame);
+        size_t collected = PyGC_Collect();
+        printf("Collected %zu values\n", collected);
+        REQUIRE(!m_jittedcode->j_failed);
+        return res;
+    }
+
+public:
+    explicit PgcProfilingTest(const char *code) {
+        PyErr_Clear();
+        profile = new PyjionCodeProfile();
+        m_code.reset(CompileCode(code));
+        if (m_code.get() == nullptr) {
+            FAIL("failed to compile code");
+        }
+        auto jitted = PyJit_EnsureExtra((PyObject *) *m_code);
+        m_jittedcode.reset(jitted);
+    }
+
+    ~PgcProfilingTest(){
+        //delete profile;
+    }
+
+    std::string returns() {
+        auto res = PyObject_ptr(run());
+        if (PyErr_Occurred()) {
+            PyErr_PrintEx(-1);
+            FAIL("Error on Python execution");
+            return nullptr;
+        }
+        REQUIRE(res.get() != nullptr);
+        PyObject* v = res.get();
+        auto repr = PyUnicode_AsUTF8(PyObject_Repr(v));
+        auto tstate = PyThreadState_GET();
+        REQUIRE(tstate->curexc_value == nullptr);
+        REQUIRE(tstate->curexc_traceback == nullptr);
+        if (tstate->curexc_type != nullptr) {
+            REQUIRE(tstate->curexc_type == Py_None);
+        }
+
+        return std::string(repr);
+    }
+
+    PyObject* ret(){
+        return run();
+    }
+
+    PyObject *raises() {
+        auto res = run();
+        REQUIRE(res == nullptr);
+        auto excType = PyErr_Occurred();
+        PyErr_Print();
+        PyErr_Clear();
+        return excType;
+    }
+
+    bool profileEquals(int position, int stackPosition, PyTypeObject* pyType) {
+        return profile->getType(position, stackPosition) == pyType;
+    }
+
+    PgcStatus pgcStatus() {
+        return m_jittedcode->j_pgc_status;
+    }
+};
 #endif // !PYJION_TESTING_UTIL_H

@@ -65,7 +65,7 @@ class PyjionJittedCode;
 
 bool JitInit();
 PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate, PyjionCodeProfile* profile);
-PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile);
+static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile);
 PyObject* PyJit_EvalFrame(PyThreadState *, PyFrameObject *, int);
 PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject);
 
@@ -94,6 +94,7 @@ typedef struct PyjionSettings {
     bool opt_builtinMethods = OPTIMIZE_BUILTIN_METHODS; // OPT-12
     bool opt_typeSlotLookups = OPTIMIZE_TYPESLOT_LOOKUPS; // OPT-13
     bool opt_functionCalls = OPTIMIZE_FUNCTION_CALLS; // OPT-14
+    bool opt_loadAttr = OPTIMIZE_LOAD_ATTR; // OPT-15
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;

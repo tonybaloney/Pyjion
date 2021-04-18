@@ -1745,6 +1745,19 @@ PyObject* PyJit_LoadAttr(PyObject* owner, PyObject* name) {
     return res;
 }
 
+PyObject* PyJit_LoadAttrHash(PyObject* owner, PyObject* key, Py_hash_t name_hash){
+    auto obj_dict = _PyObject_GetDictPtr(owner);
+    if (obj_dict == nullptr || *obj_dict == nullptr){
+        return _PyObject_GenericGetAttrWithDict(owner, key, nullptr, 0);
+    }
+    PyObject* value = _PyDict_GetItem_KnownHash(*obj_dict, key, name_hash);
+    Py_XINCREF(value);
+    if (value == nullptr && !PyErr_Occurred())
+        _PyErr_SetKeyError(key);
+    Py_DECREF(owner);
+    return value;
+}
+
 const char * ObjInfo(PyObject *obj) {
     if (obj == nullptr) {
         return "<NULL>";
@@ -2006,11 +2019,11 @@ inline PyObject* Call(PyObject *target, Args...args) {
         if (t_args == nullptr) {
             goto error;
         }
-        std::vector<PyObject*> args_v = {args...};
-        for (int i = 0; i < args_v.size() ; i ++) {
-            ASSERT_ARG(args_v[i]);
-            PyTuple_SetItem(t_args, i, args_v[i]);
-            Py_INCREF(args_v[i]);
+        PyObject* _args[sizeof...(args)] = {args...};
+        for (int i = 0; i < sizeof...(args) ; i ++) {
+            ASSERT_ARG(_args[i]);
+            PyTuple_SetItem(t_args, i, _args[i]);
+            Py_INCREF(_args[i]);
         }
 #ifdef GIL
         PyGILState_STATE gstate;

@@ -55,6 +55,7 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(builtinMethods, level, 1);
     SET_OPT(typeSlotLookups, level, 1);
     SET_OPT(functionCalls, level, 1);
+    SET_OPT(loadAttr, level, 1);
 }
 
 PgcStatus nextPgcStatus(PgcStatus status){
@@ -85,8 +86,15 @@ PyObject* PyjionCodeProfile::getValue(size_t opcodePosition, size_t stackPositio
 }
 
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition){
-    if (value != nullptr && profile != nullptr)
-        profile->record(opcodePosition, stackPosition, value);
+    if (value != nullptr && profile != nullptr){
+        if (value->ob_type->tp_flags & Py_TPFLAGS_HEAPTYPE){
+#ifdef DEBUG
+            printf("Heap allocated type at %p (%s)\n", value->ob_type, value->ob_type->tp_name);
+#endif
+        } else {
+            profile->record(opcodePosition, stackPosition, value);
+        }
+    }
 }
 
 int
@@ -126,7 +134,7 @@ static inline void Pyjit_LeaveRecursiveCall() {
     tstate->recursion_depth--;
 }
 
-PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile) {
+static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile) {
     if (Pyjit_EnterRecursiveCall("")) {
         return nullptr;
     }

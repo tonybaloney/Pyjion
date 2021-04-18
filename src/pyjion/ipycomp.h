@@ -197,22 +197,23 @@ public:
     virtual void emit_unbound_local_check() = 0;
 
     // Loads/stores/deletes by name for values not known to be in fast locals
-    virtual void emit_load_name(void* name) = 0;
-    virtual void emit_load_name_hashed(void* name, ssize_t name_hash) = 0;
-    virtual void emit_store_name(void* name) = 0;
-    virtual void emit_delete_name(void* name) = 0;
+    virtual void emit_load_name(PyObject* name) = 0;
+    virtual void emit_load_name_hashed(PyObject* name, ssize_t name_hash) = 0;
+    virtual void emit_store_name(PyObject* name) = 0;
+    virtual void emit_delete_name(PyObject* name) = 0;
 
     // Loads/stores/deletes an attribute on an object
-    virtual void emit_load_attr(void* name) = 0;
-    virtual void emit_store_attr(void* name) = 0;
-    virtual void emit_delete_attr(void* name) = 0;
+    virtual void emit_load_attr(PyObject* name) = 0;
+    virtual void emit_load_attr(PyObject* name, AbstractValueWithSources obj) = 0;
+    virtual void emit_store_attr(PyObject* name) = 0;
+    virtual void emit_delete_attr(PyObject* name) = 0;
 
     // Loads/stores/deletes a global variable
-    virtual void emit_load_global(void* name) = 0;
-    virtual void emit_load_global_hashed(void* name, ssize_t name_hash) = 0;
+    virtual void emit_load_global(PyObject* name) = 0;
+    virtual void emit_load_global_hashed(PyObject* name, ssize_t name_hash) = 0;
 
-    virtual void emit_store_global(void* name) = 0;
-    virtual void emit_delete_global(void* name) = 0;
+    virtual void emit_store_global(PyObject* name) = 0;
+    virtual void emit_delete_global(PyObject* name) = 0;
 
     // Loads/stores/deletes a cell variable for closures.
     virtual void emit_load_deref(int index) = 0;

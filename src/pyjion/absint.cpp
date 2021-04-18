@@ -554,6 +554,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     lastState.pop();
                     break;
                 case LOAD_ATTR:
+                    if (PGC_READY()){
+                        PGC_PROBE(1);
+                        PGC_UPDATE_STACK(1);
+                    }
                     lastState.pop();
                     lastState.push(&Any);
                     break;
@@ -1794,7 +1798,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 intErrorCheck("delete attr failed", curByte);
                 break;
             case LOAD_ATTR:
-                m_comp->emit_load_attr(PyTuple_GetItem(mCode->co_names, oparg));
+                if (OPT_ENABLED(loadAttr) && stackInfo.size() > 0){
+                    m_comp->emit_load_attr(PyTuple_GetItem(mCode->co_names, oparg), stackInfo.top());
+                } else {
+                    m_comp->emit_load_attr(PyTuple_GetItem(mCode->co_names, oparg));
+                }
                 decStack();
                 errorCheck("load attr failed", curByte);
                 incStack();

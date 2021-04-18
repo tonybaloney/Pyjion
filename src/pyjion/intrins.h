@@ -248,6 +248,7 @@ PyObject* PyJit_PyTuple_New(ssize_t len);
 PyObject* PyJit_BuildClass(PyFrameObject *f);
 
 PyObject* PyJit_LoadAttr(PyObject* owner, PyObject* name);
+PyObject* PyJit_LoadAttrHash(PyObject* owner, PyObject* key, Py_hash_t name_hash);
 
 int PyJit_StoreAttr(PyObject* value, PyObject* owner, PyObject* name);
 
