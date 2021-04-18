@@ -2,6 +2,13 @@
 
 ## 0.14.0
 
+* LOAD_ATTR is now optimized by for types that implement the tp_getattr by prehashing the names (OPT-15)
+* JIT will emit a direct call to LOAD_ATTR tp_getattro/tp_getattr slots for builtin types
+* macOS wheels are now compiled with Clang PGO
+* PGC will only profile non heap-allocated types (ie not user specified types) as type objects could be deallocated between compilation cycles
+* Reduced stack effect during frame calls/function calls
+* Improved performance on function calls
+* Py_MakePendingCalls will be called every 100 instructions (previously 10), configurable at compile-time through the `EMIT_PENDING_CALL_COUNTER` definition
 * Updated to .NET 5.0.5 (5.0.202)
 * Fixed a bug in PGC for large functions meaning they wouldn't be optimized
 * Implemented PGC for BINARY_SUBSCR (OPT-5)
