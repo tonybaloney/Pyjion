@@ -86,8 +86,15 @@ PyObject* PyjionCodeProfile::getValue(size_t opcodePosition, size_t stackPositio
 }
 
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition){
-    if (value != nullptr && profile != nullptr)
-        profile->record(opcodePosition, stackPosition, value);
+    if (value != nullptr && profile != nullptr){
+        if (value->ob_type->tp_flags & Py_TPFLAGS_HEAPTYPE){
+#ifdef DEBUG
+            printf("Heap allocated type at %p (%s)\n", value->ob_type, value->ob_type->tp_name);
+#endif
+        } else {
+            profile->record(opcodePosition, stackPosition, value);
+        }
+    }
 }
 
 int
