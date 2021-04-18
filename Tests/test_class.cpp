@@ -58,6 +58,17 @@ TEST_CASE("test type"){
         );
         CHECK(t.returns() == "'A'");
     }
+    SECTION("test disappearing custom type") {
+        auto t = EmissionTest(
+                "def f():\n"
+                "        A = type('A', (), {})\n"
+                "        assert A.__name__ == 'A'\n"
+                "        x = A()\n"
+                "        del A\n"
+                "        return x.__class__\n"
+        );
+        CHECK(t.returns() == "<class 'A'>");
+    }
     SECTION("test PGC custom type") {
         auto t = PgcProfilingTest(
                 "def f():\n"
