@@ -72,9 +72,33 @@ PyjionJittedCode::~PyjionJittedCode() {
 	delete j_profile;
 }
 
+void PyjionCodeProfile::clean() {
+    for (auto &pos: this->stackTypes) {
+        for(auto &observed: pos.second){
+            Py_XDECREF(observed.second);
+        }
+    }
+    for (auto &pos: this->stackValues) {
+        for(auto &observed: pos.second){
+            Py_XDECREF(observed.second);
+        }
+    }
+}
+
 void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyObject* value){
-    this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
-    this->stackValues[opcodePosition][stackPosition] = value;
+    if (this->stackTypes[opcodePosition][stackPosition] == nullptr) {
+        this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
+        Py_INCREF(Py_TYPE(value));
+    }
+#ifdef DEBUG
+    else {
+        printf("Caught double capture on %ld, %ld\n", opcodePosition, stackPosition);
+    }
+#endif
+    if (this->stackValues[opcodePosition][stackPosition] == nullptr) {
+        this->stackValues[opcodePosition][stackPosition] = value;
+        Py_INCREF(value);
+    }
 }
 
 PyTypeObject* PyjionCodeProfile::getType(size_t opcodePosition, size_t stackPosition) {
@@ -89,6 +113,7 @@ void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t op
     if (value != nullptr && profile != nullptr){
         if (value->ob_type->tp_flags & Py_TPFLAGS_HEAPTYPE){
 #ifdef DEBUG
+            // TODO: Safely observe heap-allocated types?
             printf("Heap allocated type at %p (%s)\n", value->ob_type, value->ob_type->tp_name);
 #endif
         } else {
@@ -270,6 +295,10 @@ PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 		else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {
 			auto result = PyJit_ExecuteAndCompileFrame(jitted, f, ts, jitted->j_profile);
             jitted->j_pgc_status = nextPgcStatus(jitted->j_pgc_status);
+            if (jitted->j_pgc_status == Optimized){
+                // Cleanup profiles
+                jitted->j_profile->clean();
+            }
 			return result;
 		}
 	}

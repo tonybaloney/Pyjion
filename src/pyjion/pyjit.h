@@ -57,6 +57,7 @@ public:
     void record(size_t opcodePosition, size_t stackPosition, PyObject* obj);
     PyTypeObject* getType(size_t opcodePosition, size_t stackPosition);
     PyObject* getValue(size_t opcodePosition, size_t stackPosition);
+    void clean();
 };
 
 
