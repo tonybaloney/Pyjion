@@ -1,5 +1,14 @@
 # Release notes
 
+## 0.15.0
+
+* PGC now observes and optimizes heap-allocated (user-defined) types
+* Fixed a crash on certain recursive functions with PGC enabled
+
+## 0.14.1 
+
+* Fixed macOS wheel name
+
 ## 0.14.0
 
 * LOAD_ATTR is now optimized by for types that implement the tp_getattr by prehashing the names (OPT-15)
