@@ -12,6 +12,7 @@ class FloatFormattingTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.disable_pgc()
 
     def tearDown(self) -> None:
         pyjion.disable()
@@ -33,11 +34,11 @@ class FloatFormattingTestCase(unittest.TestCase):
             fmt_ref = sys.getrefcount(fmt)
 
             pfmt = '%+' + fmt[1:]
-            self.assertEqual(sys.getrefcount(fmt), fmt_ref, "format ref leak on slice")
+            self.assertEqual(sys.getrefcount(fmt), fmt_ref, "format ref leak on slice 1")
             pfmt_ref = sys.getrefcount(pfmt)
             sfmt = '% ' + fmt[1:]
             sfmt_ref = sys.getrefcount(sfmt)
-            self.assertEqual(sys.getrefcount(fmt), fmt_ref, "format ref leak on slice")
+            self.assertEqual(sys.getrefcount(fmt), fmt_ref, "format ref leak on slice 2")
             test(fmt, INF, 'inf')
             self.assertEqual(sys.getrefcount(INF), initial_ref, "INF ref leak on first call")
             self.assertEqual(sys.getrefcount(fmt), fmt_ref, "format ref leak on first call")

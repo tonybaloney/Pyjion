@@ -594,6 +594,8 @@ public:
         return true;
     }
     PyObject* lastValue() override {
+        if (_PyObject_IsFreed(_object) || _object == (PyObject*)0xFFFFFFFFFFFFFFFF)
+            return nullptr;
         return _object;
     }
 };
@@ -612,6 +614,8 @@ public:
         return true;
     }
     PyObject* lastValue() override {
+        if (_PyObject_IsFreed(_value) || _value == (PyObject*)0xFFFFFFFFFFFFFFFF)
+            return nullptr;
         return _value;
     }
 };

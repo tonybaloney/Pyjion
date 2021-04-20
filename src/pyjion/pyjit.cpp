@@ -61,7 +61,7 @@ void setOptimizationLevel(unsigned short level){
 PgcStatus nextPgcStatus(PgcStatus status){
     switch(status){
         case PgcStatus::Uncompiled: return PgcStatus::CompiledWithProbes;
-        case PgcStatus::CompiledWithProbes: return PgcStatus::Optimized;
+        case PgcStatus::CompiledWithProbes:
         case PgcStatus::Optimized:
         default:
             return PgcStatus::Optimized;
@@ -72,9 +72,28 @@ PyjionJittedCode::~PyjionJittedCode() {
 	delete j_profile;
 }
 
+PyjionCodeProfile::~PyjionCodeProfile() {
+    for (auto &pos: this->stackTypes) {
+        for(auto &observed: pos.second){
+            Py_XDECREF(observed.second);
+        }
+    }
+    for (auto &pos: this->stackValues) {
+        for(auto &observed: pos.second){
+            Py_XDECREF(observed.second);
+        }
+    }
+}
+
 void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyObject* value){
-    this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
-    this->stackValues[opcodePosition][stackPosition] = value;
+    if (this->stackTypes[opcodePosition][stackPosition] == nullptr) {
+        this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
+        Py_INCREF(Py_TYPE(value));
+    }
+    if (this->stackValues[opcodePosition][stackPosition] == nullptr) {
+        this->stackValues[opcodePosition][stackPosition] = value;
+        Py_INCREF(value);
+    }
 }
 
 PyTypeObject* PyjionCodeProfile::getType(size_t opcodePosition, size_t stackPosition) {
@@ -87,13 +106,7 @@ PyObject* PyjionCodeProfile::getValue(size_t opcodePosition, size_t stackPositio
 
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition){
     if (value != nullptr && profile != nullptr){
-        if (value->ob_type->tp_flags & Py_TPFLAGS_HEAPTYPE){
-#ifdef DEBUG
-            printf("Heap allocated type at %p (%s)\n", value->ob_type, value->ob_type->tp_name);
-#endif
-        } else {
-            profile->record(opcodePosition, stackPosition, value);
-        }
+        profile->record(opcodePosition, stackPosition, value);
     }
 }
 

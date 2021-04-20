@@ -1,4 +1,4 @@
-from pyjion.dis import print_il, dis
+from pyjion.dis import print_il, dis, dis_native
 import pyjion
 import unittest
 import io
@@ -54,6 +54,19 @@ class DisassemblerModuleTestCase(unittest.TestCase):
             print_il(test_method)
         self.assertIn("ldarg.1", f.getvalue())
 
+    def test_dis_native(self):
+        def test_f():
+            a = 1
+            b = 2
+            c = 3
+            d = 4
+            return a+b+c+d
+
+        self.assertTrue(test_f() == 10)
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            dis_native(test_f)
+        self.assertIn("PUSH RBP", f.getvalue())
 
 if __name__ == "__main__":
     unittest.main()

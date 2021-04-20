@@ -16,6 +16,7 @@ class GetAttrTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.disable_pgc()
 
     def tearDown(self) -> None:
         pyjion.disable()
@@ -25,20 +26,21 @@ class GetAttrTestCase(unittest.TestCase):
         f = F()
         before = sys.getrefcount(f)
         self.assertIsNotNone(getattr(f, "a"))
-        self.assertEqual(before, sys.getrefcount(f))
+        self.assertEqual(sys.getrefcount(f), before)
 
     def test_missing_attr(self):
         f = F()
         before = sys.getrefcount(f)
         with self.assertRaises(AttributeError):
             getattr(f, "e")
-        self.assertEqual(before, sys.getrefcount(f))
+        self.assertEqual(sys.getrefcount(f), before)
 
 
 class SetAttrTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.disable_pgc()
 
     def tearDown(self) -> None:
         pyjion.disable()

@@ -59,7 +59,9 @@ jobs:
 
       - name: Run Python tests
         shell: bash
-        run: python -m unittest discover Tests/
+        run: |
+          pip install -r Tests/requirements_test.txt
+          python -m unittest discover Tests/
 
       - name: Run smoke tests
         shell: bash
@@ -151,7 +153,9 @@ jobs:
 
       - name: Run Python tests
         shell: bash
-        run: python -m unittest discover Tests/
+        run: |
+          pip install -r Tests/requirements_test.txt
+          python -m unittest discover Tests/
 
       - name: Run smoke tests
         shell: bash
@@ -250,7 +254,9 @@ jobs:
 
       - name: Run Python tests
         shell: bash
-        run: python -m unittest discover Tests/ -v
+        run: |
+          pip install -r Tests/requirements_test.txt
+          python -m unittest discover Tests/
 
       - name: Run smoke tests
         shell: bash
