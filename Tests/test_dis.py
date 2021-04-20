@@ -4,6 +4,7 @@ import unittest
 import io
 import contextlib
 import gc
+import sys
 
 
 class DisassemblerModuleTestCase(unittest.TestCase):
@@ -54,6 +55,7 @@ class DisassemblerModuleTestCase(unittest.TestCase):
             print_il(test_method)
         self.assertIn("ldarg.1", f.getvalue())
 
+    @unittest.skipIf(sys.platform.startswith("win"), "no windows support yet")
     def test_dis_native(self):
         def test_f():
             a = 1
