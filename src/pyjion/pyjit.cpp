@@ -61,7 +61,7 @@ void setOptimizationLevel(unsigned short level){
 PgcStatus nextPgcStatus(PgcStatus status){
     switch(status){
         case PgcStatus::Uncompiled: return PgcStatus::CompiledWithProbes;
-        case PgcStatus::CompiledWithProbes: return PgcStatus::Optimized;
+        case PgcStatus::CompiledWithProbes:
         case PgcStatus::Optimized:
         default:
             return PgcStatus::Optimized;
@@ -72,7 +72,7 @@ PyjionJittedCode::~PyjionJittedCode() {
 	delete j_profile;
 }
 
-void PyjionCodeProfile::clean() {
+PyjionCodeProfile::~PyjionCodeProfile() {
     for (auto &pos: this->stackTypes) {
         for(auto &observed: pos.second){
             Py_XDECREF(observed.second);
@@ -90,11 +90,6 @@ void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyOb
         this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
         Py_INCREF(Py_TYPE(value));
     }
-#ifdef DEBUG
-    else {
-        printf("Caught double capture on %ld, %ld\n", opcodePosition, stackPosition);
-    }
-#endif
     if (this->stackValues[opcodePosition][stackPosition] == nullptr) {
         this->stackValues[opcodePosition][stackPosition] = value;
         Py_INCREF(value);
@@ -111,14 +106,7 @@ PyObject* PyjionCodeProfile::getValue(size_t opcodePosition, size_t stackPositio
 
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition){
     if (value != nullptr && profile != nullptr){
-        if (value->ob_type->tp_flags & Py_TPFLAGS_HEAPTYPE){
-#ifdef DEBUG
-            // TODO: Safely observe heap-allocated types?
-            printf("Heap allocated type at %p (%s)\n", value->ob_type, value->ob_type->tp_name);
-#endif
-        } else {
-            profile->record(opcodePosition, stackPosition, value);
-        }
+        profile->record(opcodePosition, stackPosition, value);
     }
 }
 
@@ -295,10 +283,6 @@ PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 		else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {
 			auto result = PyJit_ExecuteAndCompileFrame(jitted, f, ts, jitted->j_profile);
             jitted->j_pgc_status = nextPgcStatus(jitted->j_pgc_status);
-            if (jitted->j_pgc_status == Optimized){
-                // Cleanup profiles
-                jitted->j_profile->clean();
-            }
 			return result;
 		}
 	}

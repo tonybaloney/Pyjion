@@ -9,7 +9,8 @@ app.wsgi_app = PyjionWsgiMiddleware(app.wsgi_app)
 
 @app.route('/')
 def hello_world():
-    return 'Hello, Pycon BY!'
+    return 'Hello, Flask!'
+
 
 if __name__ == "__main__":
     pyjion.enable()

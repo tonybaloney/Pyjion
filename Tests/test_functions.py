@@ -11,6 +11,7 @@ class ScopeLeaksTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.disable_pgc()
 
     def tearDown(self) -> None:
         pyjion.disable()
@@ -39,6 +40,7 @@ class FunctionCallsTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.disable_pgc()
 
     def tearDown(self) -> None:
         pyjion.disable()
@@ -325,6 +327,7 @@ class ClassMethodCallsTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.disable_pgc()
 
     def tearDown(self) -> None:
         pyjion.disable()
@@ -612,6 +615,7 @@ class FunctionKwCallsTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.disable_pgc()
 
     def tearDown(self) -> None:
         pyjion.disable()
@@ -806,6 +810,7 @@ class ObjectMethodCallsTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.disable_pgc()
 
     def tearDown(self) -> None:
         pyjion.disable()

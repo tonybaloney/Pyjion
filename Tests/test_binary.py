@@ -9,6 +9,7 @@ class BinaryOperationTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.disable_pgc()
 
     def tearDown(self) -> None:
         pyjion.disable()
