@@ -875,6 +875,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                       We'll be passing `oparg + 1` to call_function, to
                       make it accept the `self` as a first argument.
                     */
+                    if (PGC_READY()){
+                        PGC_PROBE(1 + oparg);
+                        PGC_UPDATE_STACK(1 + oparg);
+                    }
                     auto method = lastState.popNoEscape();
                     auto self = lastState.pop();
                     for (int i = 0 ; i < oparg; i++)
@@ -2378,7 +2382,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             }
             case CALL_METHOD:
-            {
+            {Use
                 if (!m_comp->emit_method_call(oparg)) {
                     buildTuple(oparg);
                     m_comp->emit_method_call_n();

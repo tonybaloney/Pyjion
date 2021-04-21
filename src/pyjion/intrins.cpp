@@ -1983,6 +1983,51 @@ inline PyObject* Call(PyObject* target) {
 }
 
 template<typename T, typename ... Args>
+inline PyObject* VectorCall(PyObject* target, Args...args){
+    auto tstate = PyThreadState_GET();
+    PyObject* res = nullptr;
+    PyObject* _args[sizeof...(args)] = {args...};
+#ifdef GIL
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+#endif
+    if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
+        // Call the function with profiling hooks
+        trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
+        res = _PyObject_VectorcallTstate(tstate, target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+        if (res == nullptr)
+            trace(tstate, tstate->frame, PyTrace_C_EXCEPTION, target, tstate->c_profilefunc, tstate->c_profileobj);
+        else
+            trace(tstate, tstate->frame, PyTrace_C_RETURN, target, tstate->c_profilefunc, tstate->c_profileobj);
+    } else {
+        // Regular function call
+        res = _PyObject_VectorcallTstate(tstate, target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+    }
+
+#ifdef GIL
+    PyGILState_Release(gstate);
+#endif
+    return res;
+}
+
+template<typename T, typename ... Args>
+inline PyObject* MethCall(PyObject *target, Args...args) {
+    if (target == nullptr) {
+        if (!PyErr_Occurred())
+            PyErr_Format(PyExc_TypeError,
+                         "missing target in call");
+        return nullptr;
+    }
+    PyObject* res = VectorCall<PyObject*>(target, args...);
+
+    Py_DECREF(target);
+    for (auto &i: {args...})
+        Py_DECREF(i);
+
+    return res;
+}
+
+template<typename T, typename ... Args>
 inline PyObject* Call(PyObject *target, Args...args) {
     auto tstate = PyThreadState_GET();
     PyObject* res = nullptr;
@@ -1993,27 +2038,7 @@ inline PyObject* Call(PyObject *target, Args...args) {
         return nullptr;
     }
     if (PyCFunction_Check(target)) {
-        PyObject* _args[sizeof...(args)] = {args...};
-#ifdef GIL
-        PyGILState_STATE gstate;
-        gstate = PyGILState_Ensure();
-#endif
-        if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
-            // Call the function with profiling hooks
-            trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
-            res = _PyObject_VectorcallTstate(tstate, target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
-            if (res == nullptr)
-                trace(tstate, tstate->frame, PyTrace_C_EXCEPTION, target, tstate->c_profilefunc, tstate->c_profileobj);
-            else
-                trace(tstate, tstate->frame, PyTrace_C_RETURN, target, tstate->c_profilefunc, tstate->c_profileobj);
-        } else {
-            // Regular function call
-            res = _PyObject_VectorcallTstate(tstate, target, _args, sizeof...(args) | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
-        }
-
-#ifdef GIL
-        PyGILState_Release(gstate);
-#endif
+        res = VectorCall<PyObject*>(target, args...);
     } else {
         auto t_args = PyTuple_New(sizeof...(args));
         if (t_args == nullptr) {
@@ -2123,7 +2148,7 @@ PyObject* Call10(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg
 PyObject* MethCall0(PyObject* self, PyJitMethodLocation* method_info) {
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object);
+        res = MethCall<PyObject*>(method_info->method, method_info->object);
     else
         res = Call0(method_info->method);
     Py_DECREF(method_info);
@@ -2133,9 +2158,9 @@ PyObject* MethCall0(PyObject* self, PyJitMethodLocation* method_info) {
 PyObject* MethCall1(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1) {
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object, arg1);
+        res = MethCall<PyObject*>(method_info->method, method_info->object, arg1);
     else
-        res = Call<PyObject*>(method_info->method, arg1);
+        res = MethCall<PyObject*>(method_info->method, arg1);
     Py_DECREF(method_info);
     return res;
 }
@@ -2143,9 +2168,9 @@ PyObject* MethCall1(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 PyObject* MethCall2(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2) {
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2);
+        res = MethCall<PyObject*>(method_info->method, method_info->object, arg1, arg2);
     else
-        res = Call<PyObject*>(method_info->method, arg1, arg2);
+        res = MethCall<PyObject*>(method_info->method, arg1, arg2);
     Py_DECREF(method_info);
     return res;
 }
@@ -2153,9 +2178,9 @@ PyObject* MethCall2(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 PyObject* MethCall3(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3) {
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3);
+        res = MethCall<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3);
     else
-        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3);
+        res = MethCall<PyObject*>(method_info->method, arg1, arg2, arg3);
     Py_DECREF(method_info);
     return res;
 }
@@ -2163,9 +2188,9 @@ PyObject* MethCall3(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 PyObject* MethCall4(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4) {
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4);
+        res = MethCall<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4);
     else
-        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4);
+        res = MethCall<PyObject*>(method_info->method, arg1, arg2, arg3, arg4);
     Py_DECREF(method_info);
     return res;
 }
@@ -2173,9 +2198,9 @@ PyObject* MethCall4(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 PyObject* MethCall5(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5){
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5);
+        res = MethCall<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5);
     else
-        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5);
+        res = MethCall<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5);
     Py_DECREF(method_info);
     return res;
 }
@@ -2183,9 +2208,9 @@ PyObject* MethCall5(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 PyObject* MethCall6(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6){
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6);
+        res = MethCall<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6);
     else
-        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6);
+        res = MethCall<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6);
     Py_DECREF(method_info);
     return res;
 }
@@ -2193,9 +2218,9 @@ PyObject* MethCall6(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 PyObject* MethCall7(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7){
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+        res = MethCall<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
     else
-        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+        res = MethCall<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
     Py_DECREF(method_info);
     return res;
 }
@@ -2203,9 +2228,9 @@ PyObject* MethCall7(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 PyObject* MethCall8(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8){
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+        res = MethCall<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
     else
-        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+        res = MethCall<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
     Py_DECREF(method_info);
     return res;
 }
@@ -2213,9 +2238,9 @@ PyObject* MethCall8(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 PyObject* MethCall9(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9){
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+        res = MethCall<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
     else
-        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+        res = MethCall<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
     Py_DECREF(method_info);
     return res;
 }
@@ -2223,9 +2248,9 @@ PyObject* MethCall9(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 PyObject* MethCall10(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyObject* arg10){
     PyObject* res;
     if (method_info->object != nullptr)
-        res = Call<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+        res = MethCall<PyObject*>(method_info->method, method_info->object, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
     else
-        res = Call<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+        res = MethCall<PyObject*>(method_info->method, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
     Py_DECREF(method_info);
     return res;
 }
