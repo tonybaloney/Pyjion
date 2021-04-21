@@ -1,5 +1,9 @@
 # Release notes
 
+## 0.16.0
+
+* All method calls are faster by enforcing vectorcall protocol and inlining anything below 10 arguments
+
 ## 0.15.0
 
 * PGC now observes and optimizes heap-allocated (user-defined) types
