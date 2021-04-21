@@ -2382,7 +2382,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             }
             case CALL_METHOD:
-            {Use
+            {
                 if (!m_comp->emit_method_call(oparg)) {
                     buildTuple(oparg);
                     m_comp->emit_method_call_n();
