@@ -2164,22 +2164,7 @@ PyObject* MethCall0(PyObject* self, PyJitMethodLocation* method_info) {
     if (method_info->object != nullptr)
         res = MethCall<PyObject*>(method_info->method, method_info->object);
     else {
-        PyObject* target = method_info->method;
-        if (target == nullptr){
-            if (!PyErr_Occurred())
-                PyErr_Format(PyExc_TypeError,
-                             "missing target in call");
-            return nullptr;
-        }
-#ifdef GIL
-        PyGILState_STATE gstate;
-        gstate = PyGILState_Ensure();
-#endif
-        res = VectorCall0(target);
-#ifdef GIL
-        PyGILState_Release(gstate);
-#endif
-        Py_DECREF(target);
+        res = Call0(method_info->method);
     }
     Py_DECREF(method_info);
     return res;
