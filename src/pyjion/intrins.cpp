@@ -249,7 +249,7 @@ PyObject* PyJit_SubscrListSliceStepped(PyObject *o,  Py_ssize_t start,  Py_ssize
     else {
         result = PyList_New(0);
         ((PyListObject*)result)->ob_item = PyMem_New(PyObject *, slicelength);
-        if (((PyListObject*)result)->ob_item == NULL) {
+        if (((PyListObject*)result)->ob_item == nullptr) {
             goto error;
         }
         ((PyListObject*)result)->allocated = slicelength;
@@ -301,7 +301,7 @@ PyObject* PyJit_SubscrListReversed(PyObject *o){
     }
     result = PyList_New(0);
     ((PyListObject*)result)->ob_item = PyMem_New(PyObject *, slicelength);
-    if (((PyListObject*)result)->ob_item == NULL) {
+    if (((PyListObject*)result)->ob_item == nullptr) {
         goto error;
     }
     ((PyListObject*)result)->allocated = slicelength;
@@ -2010,6 +2010,32 @@ inline PyObject* VectorCall(PyObject* target, Args...args){
     return res;
 }
 
+inline PyObject* VectorCall0(PyObject* target){
+    auto tstate = PyThreadState_GET();
+    PyObject* res = nullptr;
+#ifdef GIL
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+#endif
+    if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
+        // Call the function with profiling hooks
+        trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
+        res = _PyObject_VectorcallTstate(tstate, target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+        if (res == nullptr)
+            trace(tstate, tstate->frame, PyTrace_C_EXCEPTION, target, tstate->c_profilefunc, tstate->c_profileobj);
+        else
+            trace(tstate, tstate->frame, PyTrace_C_RETURN, target, tstate->c_profilefunc, tstate->c_profileobj);
+    } else {
+        // Regular function call
+        res = _PyObject_VectorcallTstate(tstate, target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
+    }
+
+#ifdef GIL
+    PyGILState_Release(gstate);
+#endif
+    return res;
+}
+
 template<typename T, typename ... Args>
 inline PyObject* MethCall(PyObject *target, Args...args) {
     if (target == nullptr) {
@@ -2070,7 +2096,6 @@ inline PyObject* Call(PyObject *target, Args...args) {
 
 PyObject* Call0(PyObject *target) {
     PyObject* res = nullptr;
-    auto tstate = PyThreadState_GET();
     if (target == nullptr){
         if (!PyErr_Occurred())
             PyErr_Format(PyExc_TypeError,
@@ -2082,18 +2107,7 @@ PyObject* Call0(PyObject *target) {
     gstate = PyGILState_Ensure();
 #endif
     if (PyCFunction_Check(target)) {
-        if (tstate->use_tracing && tstate->c_profileobj && g_pyjionSettings.profiling) {
-            // Call the function with profiling hooks
-            trace(tstate, tstate->frame, PyTrace_C_CALL, target, tstate->c_profilefunc, tstate->c_profileobj);
-            res = _PyObject_VectorcallTstate(tstate, target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
-            if (res == nullptr)
-                trace(tstate, tstate->frame, PyTrace_C_EXCEPTION, target, tstate->c_profilefunc, tstate->c_profileobj);
-            else
-                trace(tstate, tstate->frame, PyTrace_C_RETURN, target, tstate->c_profilefunc, tstate->c_profileobj);
-        } else {
-            // Regular function call
-            res = _PyObject_VectorcallTstate(tstate, target, nullptr, 0 | PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
-        }
+        res = VectorCall0(target);
     }
     else {
         res = PyObject_CallNoArgs(target);
@@ -2146,11 +2160,27 @@ PyObject* Call10(PyObject *target, PyObject* arg0, PyObject* arg1, PyObject* arg
 }
 
 PyObject* MethCall0(PyObject* self, PyJitMethodLocation* method_info) {
-    PyObject* res;
+    PyObject* res = nullptr;
     if (method_info->object != nullptr)
         res = MethCall<PyObject*>(method_info->method, method_info->object);
-    else
-        res = Call0(method_info->method);
+    else {
+        PyObject* target = method_info->method;
+        if (target == nullptr){
+            if (!PyErr_Occurred())
+                PyErr_Format(PyExc_TypeError,
+                             "missing target in call");
+            return nullptr;
+        }
+#ifdef GIL
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
+#endif
+        res = VectorCall0(target);
+#ifdef GIL
+        PyGILState_Release(gstate);
+#endif
+        Py_DECREF(target);
+    }
     Py_DECREF(method_info);
     return res;
 }
