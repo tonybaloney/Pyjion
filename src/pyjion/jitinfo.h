@@ -208,13 +208,13 @@ public:
             *roDataBlock = PyMem_Malloc(roDataSize);
     }
 
-    BOOL logMsg(unsigned level, const char* fmt, va_list args) override {
+    bool logMsg(unsigned level, const char* fmt, va_list args) override {
 #ifdef DEBUG
         if (level <= 3)
             vprintf(fmt, args);
-        return FALSE;
+        return false;
 #else
-        return TRUE;
+        return true;
 #endif
     }
 
@@ -251,33 +251,6 @@ public:
                 BYTE * baseAddr = (BYTE *)fixupLocation + sizeof(INT32);
 
                 auto delta = (INT64)((BYTE *)target - baseAddr);
-
-                //
-                // Do we need to insert a jump stub to make the source reach the target?
-                //
-                // Note that we cannot stress insertion of jump stub by inserting it unconditionally. JIT records the relocations 
-                // for intra-module jumps and calls. It does not expect the register used by the jump stub to be trashed.
-                //
-                //if (!FitsInI4(delta))
-                //{
-                //	if (m_fAllowRel32)
-                //	{
-                //		//
-                //		// When m_fAllowRel32 == TRUE, the JIT will use REL32s for both data addresses and direct code targets.
-                //		// Since we cannot tell what the relocation is for, we have to defensively retry.
-                //		//
-                //		m_fRel32Overflow = TRUE;
-                //		delta = 0;
-                //	}
-                //	else
-                //	{
-                //		//
-                //		// When m_fAllowRel32 == FALSE, the JIT will use a REL32s for direct code targets only.
-                //		// Use jump stub.
-                //		// 
-                //		delta = rel32UsingJumpStub(fixupLocation, (PCODE)target, m_pMethodBeingCompiled);
-                //	}
-                //}
 
                 // Write the 32-bits pc-relative delta into location
                 *fixupLocation = (INT32)delta;
@@ -426,25 +399,6 @@ public:
         return nullptr;
     }
 
-    // Given a module scope (module), a method handle (context) and
-    // a metadata token (metaTOK), fetch the handle
-    // (type, field or method) associated with the token.
-    // If this is not possible at compile-time (because the current method's
-    // code is shared and the token contains generic parameters)
-    // then indicate how the handle should be looked up at run-time.
-    //
-    void embedGenericHandle(
-        CORINFO_RESOLVED_TOKEN *        pResolvedToken,
-        BOOL                            fEmbedParent, // TRUE - embeds parent type handle of the field/method handle
-        CORINFO_GENERICHANDLE_RESULT *  pResult) override {
-        if (pResolvedToken->tokenType == CORINFO_TOKENKIND_Newarr) {
-            // Emitted from ILGenerator::new_array()
-            pResult->lookup.lookupKind.needsRuntimeLookup = false;
-            pResult->lookup.constLookup.handle = pResult->compileTimeHandle;
-            pResult->lookup.constLookup.accessType = IAT_VALUE;
-        }
-    }
-
     // Generate a cookie based on the signature that would needs to be passed
     // to CORINFO_HELP_PINVOKE_CALLI
     LPVOID GetCookieForPInvokeCalliSig(
@@ -482,9 +436,9 @@ public:
     // This is the IP of a native method, or the address of the descriptor struct
     // for IL.  Always guaranteed to be unique per process, and not to move. */
     void GetProfilingHandle(
-        BOOL                      *pbHookFunction,
+        bool                      *pbHookFunction,
         void                     **pProfilerHandle,
-        BOOL                      *pbIndirectedHandles
+        bool                      *pbIndirectedHandles
         ) override {
         WARN("GetProfilingHandle not implemented\r\n");
     }
@@ -517,7 +471,7 @@ public:
         pResult->accessAllowed = CORINFO_ACCESS_ALLOWED;
     }
 
-    BOOL canAccessFamily(CORINFO_METHOD_HANDLE hCaller,
+    bool canAccessFamily(CORINFO_METHOD_HANDLE hCaller,
         CORINFO_CLASS_HANDLE hInstanceType) override {
         WARN("canAccessFamily not implemented\r\n");
         return FALSE;
@@ -525,7 +479,7 @@ public:
 
     // Returns TRUE if the Class Domain ID is the RID of the class (currently true for every class
     // except reflection emitted classes and generics)
-    BOOL isRIDClassDomainID(CORINFO_CLASS_HANDLE cls) override {
+    bool isRIDClassDomainID(CORINFO_CLASS_HANDLE cls) override {
         WARN("isRIDClassDomainID not implemented\r\n");
         return FALSE;
     }
@@ -718,17 +672,17 @@ public:
         return CORINFO_INTRINSIC_Object_GetType;
     }
 
-    // return the unmanaged calling convention for a PInvoke
-    CorInfoUnmanagedCallConv getUnmanagedCallConv(
-        CORINFO_METHOD_HANDLE       method
-        ) override {
-        WARN("getUnmanagedCallConv not implemented\r\n");
-        return CORINFO_UNMANAGED_CALLCONV_C;
-    }
+//    // return the unmanaged calling convention for a PInvoke
+//    CorInfoUnmanagedCallConv getUnmanagedCallConv(
+//        CORINFO_METHOD_HANDLE       method
+//        ) override {
+//        WARN("getUnmanagedCallConv not implemented\r\n");
+//        return CORINFO_UNMANAGED_CALLCONV_C;
+//    }
 
     // return if any marshaling is required for PInvoke methods.  Note that
     // method == 0 => calli.  The call site sig is only needed for the varargs or calli case
-    BOOL pInvokeMarshalingRequired(
+    bool pInvokeMarshalingRequired(
         CORINFO_METHOD_HANDLE       method,
         CORINFO_SIG_INFO*           callSiteSig
         ) override {
@@ -738,7 +692,7 @@ public:
 
     // Check constraints on method type arguments (only).
     // The parent class should be checked separately using satisfiesClassConstraints(parent).
-    BOOL satisfiesMethodConstraints(
+    bool satisfiesMethodConstraints(
         CORINFO_CLASS_HANDLE        parent, // the exact parent of the method
         CORINFO_METHOD_HANDLE       method
         ) override {
@@ -749,19 +703,19 @@ public:
     // Given a delegate target class, a target method parent class,  a  target method,
     // a delegate class, check if the method signature is compatible with the Invoke method of the delegate
     // (under the typical instantiation of any free type variables in the memberref signatures).
-    BOOL isCompatibleDelegate(
+    bool isCompatibleDelegate(
         CORINFO_CLASS_HANDLE        objCls,           /* type of the delegate target, if any */
         CORINFO_CLASS_HANDLE        methodParentCls,  /* exact parent of the target method, if any */
         CORINFO_METHOD_HANDLE       method,           /* (representative) target method, if any */
         CORINFO_CLASS_HANDLE        delegateCls,      /* exact type of the delegate */
-        BOOL                        *pfIsOpenDelegate /* is the delegate open */
+        bool                        *pfIsOpenDelegate /* is the delegate open */
         ) override {
         WARN("isCompatibleDelegate not implemented\r\n");
         return TRUE;
     }
 
     // Determines whether the delegate creation obeys security transparency rules
-    virtual BOOL isDelegateCreationAllowed(
+    virtual bool isDelegateCreationAllowed(
         CORINFO_CLASS_HANDLE        delegateHnd,
         CORINFO_METHOD_HANDLE       calleeHnd
         ) {
@@ -853,7 +807,7 @@ public:
     //
 
     // Checks if the given metadata token is valid
-    BOOL isValidToken(
+    bool isValidToken(
         CORINFO_MODULE_HANDLE       module,     /* IN  */
         unsigned                    metaTOK     /* IN  */
         ) override {
@@ -862,7 +816,7 @@ public:
     }
 
     // Checks if the given metadata token is valid StringRef
-    BOOL isValidStringRef(
+    bool isValidStringRef(
         CORINFO_MODULE_HANDLE       module,     /* IN  */
         unsigned                    metaTOK     /* IN  */
         ) override {
@@ -906,15 +860,15 @@ public:
         __deref_inout_ecount(*pnBufLen) WCHAR** ppBuf,
         int* pnBufLen,
         CORINFO_CLASS_HANDLE    cls,
-        BOOL fNamespace,
-        BOOL fFullInst,
-        BOOL fAssembly
+        bool fNamespace,
+        bool fFullInst,
+        bool fAssembly
         ) override {
         WARN("appendClassName not implemented\r\n"); return 0;
     }
 
     // Quick check whether the type is a value class. Returns the same value as getClassAttribs(cls) & CORINFO_FLG_VALUECLASS, except faster.
-    BOOL isValueClass(CORINFO_CLASS_HANDLE cls) override {
+    bool isValueClass(CORINFO_CLASS_HANDLE cls) override {
         if (cls == PYOBJECT_PTR_TYPE)
             return FALSE;
         return FALSE;
@@ -935,7 +889,7 @@ public:
     // an optimization: the JIT may assume that return buffer pointers for return types for which this predicate
     // returns TRUE are always stack allocated, and thus, that stores to the GC-pointer fields of such return
     // buffers do not require GC write barriers.
-    BOOL isStructRequiringStackAllocRetBuf(CORINFO_CLASS_HANDLE cls) override {
+    bool isStructRequiringStackAllocRetBuf(CORINFO_CLASS_HANDLE cls) override {
         WARN("isStructRequiringStackAllocRetBuf\r\n");
         return FALSE;
     }
@@ -995,7 +949,7 @@ public:
 
     unsigned getClassAlignmentRequirement(
         CORINFO_CLASS_HANDLE        cls,
-        BOOL                        fDoubleAlignHint
+        bool                        fDoubleAlignHint
         ) override {
         WARN("getClassAlignmentRequirement\r\n");
         return 0;
@@ -1034,10 +988,10 @@ public:
         return nullptr;
     }
 
-    BOOL checkMethodModifier(
+    bool checkMethodModifier(
         CORINFO_METHOD_HANDLE hMethod,
         LPCSTR modifier,
-        BOOL fOptional
+        bool fOptional
         ) override {
         WARN("checkMethodModifier\r\n");
         return FALSE;
@@ -1153,7 +1107,7 @@ public:
 
     // TRUE if child is a subtype of parent
     // if parent is an interface, then does child implement / extend parent
-    BOOL canCast(
+    bool canCast(
         CORINFO_CLASS_HANDLE        child,  // subtype (extends parent)
         CORINFO_CLASS_HANDLE        parent  // base type
         ) override {
@@ -1162,7 +1116,7 @@ public:
     }
 
     // TRUE if cls1 and cls2 are considered equivalent types.
-    BOOL areTypesEquivalent(
+    bool areTypesEquivalent(
         CORINFO_CLASS_HANDLE        cls1,
         CORINFO_CLASS_HANDLE        cls2
         ) override {
@@ -1202,7 +1156,7 @@ public:
     }
 
     // Check constraints on type arguments of this class and parent classes
-    BOOL satisfiesClassConstraints(
+    bool satisfiesClassConstraints(
         CORINFO_CLASS_HANDLE cls
         ) override {
         WARN("satisfiesClassConstraints\r\n");
@@ -1210,7 +1164,7 @@ public:
     }
 
     // Check if this is a single dimensional array type
-    BOOL isSDArray(
+    bool isSDArray(
         CORINFO_CLASS_HANDLE        cls
         ) override {
         WARN("isSDArray\r\n");
@@ -1578,13 +1532,6 @@ public:
         *isRelative = true;
     }
 
-    CORINFO_METHOD_HANDLE
-    resolveVirtualMethod(CORINFO_METHOD_HANDLE virtualMethod, CORINFO_CLASS_HANDLE implementingClass,
-                         CORINFO_CONTEXT_HANDLE ownerType) override {
-        WARN("resolveVirtualMethod not defined\r\n");
-        return nullptr;
-    }
-
     CORINFO_METHOD_HANDLE getUnboxedEntry(CORINFO_METHOD_HANDLE ftn, bool *requiresInstMethodTableArg) override {
         WARN("getUnboxedEntry not defined\r\n");
         return nullptr;
@@ -1636,7 +1583,7 @@ public:
         return 0;
     }
 
-    BOOL canAllocateOnStack(CORINFO_CLASS_HANDLE cls) override {
+    bool canAllocateOnStack(CORINFO_CLASS_HANDLE cls) override {
         return false;
     }
 
@@ -1672,7 +1619,7 @@ public:
         return TypeCompareState::May;
     }
 
-    BOOL isMoreSpecificType(CORINFO_CLASS_HANDLE cls1, CORINFO_CLASS_HANDLE cls2) override {
+    bool isMoreSpecificType(CORINFO_CLASS_HANDLE cls1, CORINFO_CLASS_HANDLE cls2) override {
         return false;
     }
 
@@ -1737,9 +1684,6 @@ public:
             case CORINFO_HELP_VERIFICATION:
                 helper = (void*)&verificationExceptionHelper;
                 break;
-            case CORINFO_HELP_SEC_UNMGDCODE_EXCPT:
-                helper = (void*)&securityExceptionHelper;
-                break;
             default:
                 throw UnsupportedHelperException(ftnNum);
                 break;
@@ -1772,8 +1716,6 @@ public:
                 return (void*)nullReferenceExceptionHelper;
             case CORINFO_HELP_VERIFICATION:
                 return (void*)verificationExceptionHelper;
-            case CORINFO_HELP_SEC_UNMGDCODE_EXCPT:
-                return (void*)securityExceptionHelper;
             default:
                 throw UnsupportedHelperException(ftnNum);
         }
@@ -1819,11 +1761,11 @@ public:
         return false;
     }
 
-    void notifyInstructionSetUsage(CORINFO_InstructionSet instructionSet, bool supportEnabled) override {
+    bool notifyInstructionSetUsage(CORINFO_InstructionSet instructionSet, bool supportEnabled) override {
 
     }
 
-    void reserveUnwindInfo(BOOL isFunclet, BOOL isColdCode, ULONG unwindSize) override {
+    void reserveUnwindInfo(bool isFunclet, bool isColdCode, ULONG unwindSize) override {
 
     }
 
@@ -1850,17 +1792,6 @@ public:
 
     void setEHinfo(unsigned int EHnumber, const CORINFO_EH_CLAUSE *clause) override {
         WARN("setEHinfo not implemented \r\n");
-    }
-
-    HRESULT allocMethodBlockCounts(UINT32 count, BlockCounts **pBlockCounts) override {
-        WARN("allocMethodBlockCounts not implemented \r\n");
-        return 0;
-    }
-
-    HRESULT getMethodBlockCounts(CORINFO_METHOD_HANDLE ftnHnd, UINT32 *pCount, BlockCounts **pBlockCounts,
-                                 UINT32 *pNumRuns) override {
-        WARN("getMethodBlockCounts not implemented \r\n");
-        return 0;
     }
 
     CorInfoTypeWithMod

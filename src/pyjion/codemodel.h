@@ -137,7 +137,7 @@ public:
     }
     void findSig(CORINFO_SIG_INFO  *sig) override {
         sig->retType = m_retType;
-        sig->callConv = CORINFO_CALLCONV_STDCALL;
+        sig->callConv = CORINFO_CALLCONV_DEFAULT;
         sig->retTypeClass = nullptr;
         sig->args = (CORINFO_ARG_LIST_HANDLE)(!m_params.empty() ? &m_params[0] : nullptr);
         sig->numArgs = m_params.size();
