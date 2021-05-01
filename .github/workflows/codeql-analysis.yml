@@ -29,6 +29,8 @@ jobs:
       fail-fast: false
       matrix:
         language: [ 'cpp' ]
+        dot-net-version: [ 6.0.100-preview.3.21202.5, 5.0.202 ]
+
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python' ]
         # Learn more:
         # https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#changing-the-languages-that-are-analyzed
@@ -62,7 +64,7 @@ jobs:
         libssl-dev libnuma-dev libkrb5-dev zlib1g-dev
     - uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: '5.0.202'
+        dotnet-version: ${{ matrix.dot-net-version }}
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build

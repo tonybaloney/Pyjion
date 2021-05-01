@@ -12,6 +12,8 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
+        dot-net-version: [ 6.0.100-preview.3.21202.5, 5.0.202 ]
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -30,7 +32,7 @@ jobs:
           libssl-dev libnuma-dev libkrb5-dev zlib1g-dev autofdo linux-tools-`uname -r`
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.202'
+          dotnet-version: ${{ matrix.dot-net-version }}
 
       - name: Create Build Environment
         run: cmake -E make_directory ${{runner.workspace}}/build
