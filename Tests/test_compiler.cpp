@@ -301,6 +301,12 @@ TEST_CASE("test make function") {
     }
 }
 TEST_CASE("test function calls") {
+    SECTION("test most simple function declaration") {
+        auto t = EmissionTest(
+                "def f():\n    def g(): return 1\n    return g()"
+        );
+        CHECK(t.returns() == "1");
+    }
     SECTION("test function declarations") {
         auto t = EmissionTest(
                 "def f():\n    def g(): pass\n    g.abc = {fn.lower() for fn in ['A']}\n    return g.abc"
