@@ -672,14 +672,6 @@ public:
         return CORINFO_INTRINSIC_Object_GetType;
     }
 
-//    // return the unmanaged calling convention for a PInvoke
-//    CorInfoUnmanagedCallConv getUnmanagedCallConv(
-//        CORINFO_METHOD_HANDLE       method
-//        ) override {
-//        WARN("getUnmanagedCallConv not implemented\r\n");
-//        return CORINFO_UNMANAGED_CALLCONV_C;
-//    }
-
     // return if any marshaling is required for PInvoke methods.  Note that
     // method == 0 => calli.  The call site sig is only needed for the varargs or calli case
     bool pInvokeMarshalingRequired(
@@ -1811,6 +1803,68 @@ public:
 
     void setNativeSize(ULONG i) {
         m_nativeSize = i;
+    }
+
+    /* New .NET 6 methods */
+    bool resolveVirtualMethod(CORINFO_DEVIRTUALIZATION_INFO * info) override {
+        WARN("resolveVirtualMethod not implemented \r\n");
+        return false;
+    }
+
+    CORINFO_CLASS_HANDLE getDefaultComparerClass(
+            CORINFO_CLASS_HANDLE elemType
+    ) override {
+        WARN("getDefaultComparerClass not implemented \r\n");
+        return nullptr;
+    }
+
+
+    CorInfoCallConvExtension getUnmanagedCallConv(
+            CORINFO_METHOD_HANDLE       method,
+            CORINFO_SIG_INFO*           callSiteSig,
+            bool*                       pSuppressGCTransition /* OUT */
+    ) override {
+        return CorInfoCallConvExtension::C;
+    }
+
+    void embedGenericHandle(
+            CORINFO_RESOLVED_TOKEN *        pResolvedToken,
+            bool                            fEmbedParent, // TRUE - embeds parent type handle of the field/method handle
+            CORINFO_GENERICHANDLE_RESULT *  pResult) override {
+        if (pResolvedToken->tokenType == CORINFO_TOKENKIND_Newarr) {
+            // Emitted from ILGenerator::new_array()
+            pResult->lookup.lookupKind.needsRuntimeLookup = false;
+            pResult->lookup.constLookup.handle = pResult->compileTimeHandle;
+            pResult->lookup.constLookup.accessType = IAT_VALUE;
+        }
+    }
+
+    JITINTERFACE_HRESULT getPgoInstrumentationResults(
+            CORINFO_METHOD_HANDLE      ftnHnd,
+            PgoInstrumentationSchema **pSchema,                    // OUT: pointer to the schema table (array) which describes the instrumentation results
+            // (pointer will not remain valid after jit completes).
+            uint32_t *                 pCountSchemaItems,          // OUT: pointer to the count of schema items in `pSchema` array.
+            uint8_t **                 pInstrumentationData        // OUT: `*pInstrumentationData` is set to the address of the instrumentation data
+            // (pointer will not remain valid after jit completes).
+    ) override {
+        WARN("getPgoInstrumentationResults not implemented \r\n");
+        return 0;
+    }
+
+    JITINTERFACE_HRESULT allocPgoInstrumentationBySchema(
+            CORINFO_METHOD_HANDLE     ftnHnd,
+            PgoInstrumentationSchema *pSchema,                     // IN OUT: pointer to the schema table (array) which describes the instrumentation results. `Offset` field
+            // is filled in by VM; other fields are set and passed in by caller.
+            uint32_t                  countSchemaItems,            // IN: count of schema items in `pSchema` array.
+            uint8_t **                pInstrumentationData         // OUT: `*pInstrumentationData` is set to the address of the instrumentation data.
+    ) override {
+        WARN("allocPgoInstrumentationBySchema not implemented \r\n");
+        return 0;
+    }
+
+    bool isJitIntrinsic(CORINFO_METHOD_HANDLE ftn) {
+        WARN("isJitIntrinsic not implemented \r\n");
+        return false;
     }
 };
 

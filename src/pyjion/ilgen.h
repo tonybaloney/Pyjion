@@ -719,6 +719,7 @@ public:
                 printf("out of memory.\n");
                 res.m_addr = nullptr;
                 break;
+            case CORJIT_IMPLLIMITATION:
             case CORJIT_INTERNALERROR:
 #ifdef DEBUG
                 printf("internal error code.\n");
