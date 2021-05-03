@@ -257,9 +257,8 @@ public:
             }
             break;
 #endif // _TARGET_AMD64_
-
             default:
-                printf("!!!!!!!!!!!!!! unsupported reloc type\r\n");
+                printf("Unsupported relocation type (%d)\r\n", fRelocType);
         }
     }
 
