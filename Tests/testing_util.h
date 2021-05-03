@@ -226,7 +226,7 @@ public:
         PyTuple_SET_ITEM(result_t, 1, codeLen);
         Py_INCREF(codeLen);
 
-        auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&m_jittedcode->j_addr));
+        auto codePosition = PyLong_FromUnsignedLongLong(reinterpret_cast<unsigned long long>(&m_jittedcode->j_addr));
         if (codePosition == nullptr)
             return nullptr;
         PyTuple_SET_ITEM(result_t, 2, codePosition);

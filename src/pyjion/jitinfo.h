@@ -1428,11 +1428,7 @@ public:
     // Returns name of the JIT timer log
     const char16_t * getJitTimeLogFilename() override {
 #ifdef DEBUG
-#ifndef WINDOWS
         return u"pyjion_timings.log";
-#else
-        return L"pyjion_timings.log";
-#endif
 #else
         return nullptr;
 #endif
