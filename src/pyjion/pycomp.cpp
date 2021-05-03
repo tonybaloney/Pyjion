@@ -2079,7 +2079,6 @@ void PythonCompiler::emit_compare_floats(int compareType, bool guard) {
         emit_load_local(left);
         emit_load_local(right);
         emit_compare_object(compareType);
-
         emit_mark_label(guard_pass);
     }
 
