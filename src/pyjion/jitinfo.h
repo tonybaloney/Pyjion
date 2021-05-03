@@ -475,14 +475,14 @@ public:
     bool canAccessFamily(CORINFO_METHOD_HANDLE hCaller,
         CORINFO_CLASS_HANDLE hInstanceType) override {
         WARN("canAccessFamily not implemented\r\n");
-        return FALSE;
+        return false;
     }
 
-    // Returns TRUE if the Class Domain ID is the RID of the class (currently true for every class
+    // Returns true if the Class Domain ID is the RID of the class (currently true for every class
     // except reflection emitted classes and generics)
     bool isRIDClassDomainID(CORINFO_CLASS_HANDLE cls) override {
         WARN("isRIDClassDomainID not implemented\r\n");
-        return FALSE;
+        return false;
     }
 
     // returns the class's domain ID for accessing shared statics
@@ -625,7 +625,7 @@ public:
         CORINFO_METHOD_HANDLE   exactCalleeHnd,     /* IN */
         bool fIsTailPrefix                          /* IN */
         ) override {
-        return FALSE;
+        return false;
     }
 
     // Reports whether or not a method can be tail called, and why.
@@ -663,16 +663,6 @@ public:
         return nullptr;
     }
 
-    // If a method's attributes have (getMethodAttribs) CORINFO_FLG_INTRINSIC set,
-    // getIntrinsicID() returns the intrinsic ID.
-    CorInfoIntrinsics getIntrinsicID(
-        CORINFO_METHOD_HANDLE       method,
-		bool * pMustExpand
-        ) override {
-        WARN("getIntrinsicID not implemented\r\n");
-        return CORINFO_INTRINSIC_Object_GetType;
-    }
-
     // return if any marshaling is required for PInvoke methods.  Note that
     // method == 0 => calli.  The call site sig is only needed for the varargs or calli case
     bool pInvokeMarshalingRequired(
@@ -680,7 +670,7 @@ public:
         CORINFO_SIG_INFO*           callSiteSig
         ) override {
         WARN("pInvokeMarshalingRequired not implemented\r\n");
-        return TRUE;
+        return true;
     }
 
     // Check constraints on method type arguments (only).
@@ -690,7 +680,7 @@ public:
         CORINFO_METHOD_HANDLE       method
         ) override {
         WARN("satisfiesMethodConstraints not implemented\r\n"); 
-        return TRUE;
+        return true;
     }
 
     // Given a delegate target class, a target method parent class,  a  target method,
@@ -704,7 +694,7 @@ public:
         bool                        *pfIsOpenDelegate /* is the delegate open */
         ) override {
         WARN("isCompatibleDelegate not implemented\r\n");
-        return TRUE;
+        return true;
     }
 
     // Determines whether the delegate creation obeys security transparency rules
@@ -713,7 +703,7 @@ public:
         CORINFO_METHOD_HANDLE       calleeHnd
         ) {
         WARN("isDelegateCreationAllowed not implemented\r\n");
-        return FALSE;
+        return false;
     }
 
     // load and restore the method
@@ -792,7 +782,7 @@ public:
 
     // Returns true if the module does not require verification
     //
-    // If fQuickCheckOnlyWithoutCommit=TRUE, the function only checks that the
+    // If fQuickCheckOnlyWithoutCommit=true, the function only checks that the
     // module does not currently require verification in the current AppDomain.
     // This decision could change in the future, and so should not be cached.
     // If it is cached, it should only be used as a hint.
@@ -805,7 +795,7 @@ public:
         unsigned                    metaTOK     /* IN  */
         ) override {
         WARN("isValidToken not implemented\r\n"); 
-        return TRUE;
+        return true;
     }
 
     // Checks if the given metadata token is valid StringRef
@@ -814,7 +804,7 @@ public:
         unsigned                    metaTOK     /* IN  */
         ) override {
         WARN("isValidStringRef not implemented\r\n");
-        return TRUE;
+        return true;
     }
 
     /**********************************************************************************/
@@ -845,9 +835,9 @@ public:
     }
 
     // Append a (possibly truncated) representation of the type cls to the preallocated buffer ppBuf of length pnBufLen
-    // If fNamespace=TRUE, include the namespace/enclosing classes
-    // If fFullInst=TRUE (regardless of fNamespace and fAssembly), include namespace and assembly for any type parameters
-    // If fAssembly=TRUE, suffix with a comma and the full assembly qualification
+    // If fNamespace=true, include the namespace/enclosing classes
+    // If fFullInst=true (regardless of fNamespace and fAssembly), include namespace and assembly for any type parameters
+    // If fAssembly=true, suffix with a comma and the full assembly qualification
     // return size of representation
     int appendClassName(
         __deref_inout_ecount(*pnBufLen) WCHAR** ppBuf,
@@ -863,8 +853,8 @@ public:
     // Quick check whether the type is a value class. Returns the same value as getClassAttribs(cls) & CORINFO_FLG_VALUECLASS, except faster.
     bool isValueClass(CORINFO_CLASS_HANDLE cls) override {
         if (cls == PYOBJECT_PTR_TYPE)
-            return FALSE;
-        return FALSE;
+            return false;
+        return false;
     }
 
     // return flags (defined above, CORINFO_FLG_PUBLIC ...)
@@ -876,15 +866,15 @@ public:
         return CORINFO_FLG_VALUECLASS;
     }
 
-    // Returns "TRUE" iff "cls" is a struct type such that return buffers used for returning a value
+    // Returns "true" iff "cls" is a struct type such that return buffers used for returning a value
     // of this type must be stack-allocated.  This will generally be true only if the struct 
     // contains GC pointers, and does not exceed some size limit.  Maintaining this as an invariant allows
     // an optimization: the JIT may assume that return buffer pointers for return types for which this predicate
-    // returns TRUE are always stack allocated, and thus, that stores to the GC-pointer fields of such return
+    // returns true are always stack allocated, and thus, that stores to the GC-pointer fields of such return
     // buffers do not require GC write barriers.
     bool isStructRequiringStackAllocRetBuf(CORINFO_CLASS_HANDLE cls) override {
         WARN("isStructRequiringStackAllocRetBuf\r\n");
-        return FALSE;
+        return false;
     }
 
     CORINFO_MODULE_HANDLE getClassModule(
@@ -987,7 +977,7 @@ public:
         bool fOptional
         ) override {
         WARN("checkMethodModifier\r\n");
-        return FALSE;
+        return false;
     }
 
     // returns the newArr (1-Dim array) helper optimized for "arrayCls."
@@ -1043,7 +1033,7 @@ public:
     // value it means the JIT is requesting a helper that unboxes the
     // value into a particular location and thus has the signature
     //     void unboxHelper(void* dest, CORINFO_CLASS_HANDLE cls, Object* obj)
-    // Otherwise (it is null or points at a FALSE value) it is requesting 
+    // Otherwise (it is null or points at a false value) it is requesting 
     // a helper that returns a poitner to the unboxed data 
     //     void* unboxHelper(CORINFO_CLASS_HANDLE cls, Object* obj)
     // The EE has the option of NOT returning the copy style helper
@@ -1098,23 +1088,23 @@ public:
         return CORINFO_TYPE_UNDEF;
     }
 
-    // TRUE if child is a subtype of parent
+    // true if child is a subtype of parent
     // if parent is an interface, then does child implement / extend parent
     bool canCast(
         CORINFO_CLASS_HANDLE        child,  // subtype (extends parent)
         CORINFO_CLASS_HANDLE        parent  // base type
         ) override {
         WARN("canCast\r\n");
-        return TRUE;
+        return true;
     }
 
-    // TRUE if cls1 and cls2 are considered equivalent types.
+    // true if cls1 and cls2 are considered equivalent types.
     bool areTypesEquivalent(
         CORINFO_CLASS_HANDLE        cls1,
         CORINFO_CLASS_HANDLE        cls2
         ) override {
         WARN("areTypesEquivalent\r\n");
-        return FALSE;
+        return false;
     }
 
     // returns is the intersection of cls1 and cls2.
@@ -1153,7 +1143,7 @@ public:
         CORINFO_CLASS_HANDLE cls
         ) override {
         WARN("satisfiesClassConstraints\r\n");
-        return TRUE;
+        return true;
     }
 
     // Check if this is a single dimensional array type
@@ -1161,7 +1151,7 @@ public:
         CORINFO_CLASS_HANDLE        cls
         ) override {
         WARN("isSDArray\r\n");
-        return TRUE;
+        return true;
     }
 
     // Get the numbmer of dimensions in an array 
@@ -1250,7 +1240,7 @@ public:
     // Returns true iff "fldHnd" represents a static field.
     bool isFieldStatic(CORINFO_FIELD_HANDLE fldHnd) override {
         WARN("isFieldStatic not implemented\r\n");
-        return FALSE;
+        return false;
     }
 
     /*********************************************************************************/
@@ -1305,7 +1295,7 @@ public:
         ULONG32                        *cVars,          // [OUT] size of 'vars'
         ICorDebugInfo::ILVarInfo       **vars,          // [OUT] scopes of variables of interest
         //       jit MUST free with freeArray!
-        bool                           *extendOthers    // [OUT] it TRUE, then assume the scope
+        bool                           *extendOthers    // [OUT] it true, then assume the scope
         //       of unmentioned vars is entire method
         ) override {
         WARN("getVars not implemented\r\n");
@@ -1830,7 +1820,7 @@ public:
 
     void embedGenericHandle(
             CORINFO_RESOLVED_TOKEN *        pResolvedToken,
-            bool                            fEmbedParent, // TRUE - embeds parent type handle of the field/method handle
+            bool                            fEmbedParent, // true - embeds parent type handle of the field/method handle
             CORINFO_GENERICHANDLE_RESULT *  pResult) override {
         if (pResolvedToken->tokenType == CORINFO_TOKENKIND_Newarr) {
             // Emitted from ILGenerator::new_array()
@@ -1863,8 +1853,19 @@ public:
         return 0;
     }
 
-    bool isJitIntrinsic(CORINFO_METHOD_HANDLE ftn) {
-        WARN("isJitIntrinsic not implemented \r\n");
+    // If a method's attributes have (getMethodAttribs) CORINFO_FLG_INTRINSIC set,
+    // getIntrinsicID() returns the intrinsic ID.
+    CorInfoIntrinsics getIntrinsicID(
+            CORINFO_METHOD_HANDLE       method,
+            bool * pMustExpand
+    ) override {
+        WARN("getIntrinsicID not implemented\r\n");
+        return CORINFO_INTRINSIC_Object_GetType;
+    }
+
+    // Quick check whether the method is a jit intrinsic. Returns the same value as getMethodAttribs(ftn) & CORINFO_FLG_JIT_INTRINSIC, except faster.
+    bool isJitIntrinsic(CORINFO_METHOD_HANDLE ftn) override {
+        // method attribs are CORINFO_FLG_STATIC | CORINFO_FLG_NATIVE - so always false.
         return false;
     }
 };
