@@ -2068,18 +2068,23 @@ void PythonCompiler::emit_compare_floats(int compareType, bool guard) {
         emit_incref();
 
     emit_mark_label(free_and_exit);
-    emit_load_and_free_local(left);
+    emit_load_local(left);
     decref();
-    emit_load_and_free_local(right);
+    emit_load_local(right);
     decref();
 
     if (guard){
         m_il.branch(BranchAlways, guard_pass);
         emit_mark_label(guard_fail);
+        emit_load_local(left);
+        emit_load_local(right);
         emit_compare_object(compareType);
 
         emit_mark_label(guard_pass);
     }
+
+    emit_free_local(left);
+    emit_free_local(right);
 }
 
 void PythonCompiler::emit_load_method(void* name) {
