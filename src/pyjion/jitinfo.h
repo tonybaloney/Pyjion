@@ -1501,6 +1501,12 @@ public:
 #else
         flags->Add(flags->CORJIT_FLAG_SPEED_OPT);
 #endif
+
+#ifdef DOTNET_PGO
+        flags->Add(flags->CORJIT_FLAG_BBINSTR);
+        flags->Add(flags->CORJIT_FLAG_BBOPT);
+#endif
+
 		return sizeof(CORJIT_FLAGS);
 	}
 
