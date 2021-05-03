@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
-        dot-net-version: [ 6.0.100-preview.3.21202.5, 5.0.202 ]
+        dot-net-version: [ 6.0.100-preview.3.21202.5 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -55,7 +55,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
-        dot-net-version: [ 6.0.100-preview.3.21202.5, 5.0.202 ]
+        dot-net-version: [ 6.0.100-preview.3.21202.5 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -93,7 +93,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
-        dot-net-version: [ 6.0.100-preview.3.21202.5, 5.0.202 ]
+        dot-net-version: [ 6.0.100-preview.3.21202.5 ]
 
     steps:
       - uses: actions/checkout@v2
