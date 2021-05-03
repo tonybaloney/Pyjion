@@ -467,6 +467,7 @@ public:
         pResult->nullInstanceCheck = false;
         pResult->sig.callConv = CORINFO_CALLCONV_DEFAULT;
         pResult->sig.retTypeClass = nullptr;
+        pResult->sig.flags = CORINFO_SIGFLAG_IS_LOCAL_SIG;
         pResult->verSig = pResult->sig;
         pResult->accessAllowed = CORINFO_ACCESS_ALLOWED;
     }
