@@ -68,8 +68,8 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     void* m_dataAddr;
     PyCodeObject *m_code;
     UserModule* m_module;
-    vector<BYTE> m_il;
-    ULONG m_nativeSize;
+    vector<uint8_t> m_il;
+    uint32_t m_nativeSize;
 
     volatile const GSCookie s_gsCookie = 0x1234;
 
@@ -84,7 +84,7 @@ public:
         m_codeAddr = m_dataAddr = nullptr;
         m_code = code;
         m_module = module;
-        m_il = vector<BYTE>(0);
+        m_il = vector<uint8_t>(0);
 #ifdef WINDOWS
         m_winHeap = HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, 0, 0);
         GetSystemInfo(&systemInfo);
@@ -140,7 +140,7 @@ public:
     /// \param size Requested array size
     /// \param arrayMT Array type handle
     /// \return new vector
-    static vector<PyObject*> newArrayHelperFtn(INT_PTR size, CORINFO_CLASS_HANDLE arrayMT) {
+    static vector<PyObject*> newArrayHelperFtn(int64_t size, CORINFO_CLASS_HANDLE arrayMT) {
         return std::vector<PyObject*>(size);
     }
 
@@ -170,10 +170,10 @@ public:
     }
 
     void allocMem(
-        ULONG               hotCodeSize,    /* IN */
-        ULONG               coldCodeSize,   /* IN */
-        ULONG               roDataSize,     /* IN */
-        ULONG               xcptnsCount,    /* IN */
+        uint32_t               hotCodeSize,    /* IN */
+        uint32_t               coldCodeSize,   /* IN */
+        uint32_t               roDataSize,     /* IN */
+        uint32_t               xcptnsCount,    /* IN */
         CorJitAllocMemFlag  flag,           /* IN */
         void **             hotCodeBlock,   /* OUT */
         void **             coldCodeBlock,  /* OUT */
@@ -234,26 +234,26 @@ public:
     void recordRelocation(
         void *                 location,   /* IN  */
         void *                 target,     /* IN  */
-        WORD                   fRelocType, /* IN  */
-        WORD                   slotNum,  /* IN  */
-        INT32                  addlDelta /* IN  */
+        uint16_t                   fRelocType, /* IN  */
+        uint16_t                   slotNum,  /* IN  */
+        int32_t                  addlDelta /* IN  */
         ) override {
         switch (fRelocType) {
             case IMAGE_REL_BASED_DIR64:
-                *((UINT64 *)((BYTE *)location + slotNum)) = (UINT64)target;
+                *((uint64_t *)((uint8_t *)location + slotNum)) = (uint64_t)target;
                 break;
 #ifdef _TARGET_AMD64_
             case IMAGE_REL_BASED_REL32:
             {
-                target = (BYTE *)target + addlDelta;
+                target = (uint8_t *)target + addlDelta;
 
-                auto * fixupLocation = (INT32 *)((BYTE *)location + slotNum);
-                BYTE * baseAddr = (BYTE *)fixupLocation + sizeof(INT32);
+                auto * fixupLocation = (int32_t *)((uint8_t *)location + slotNum);
+                uint8_t * baseAddr = (uint8_t *)fixupLocation + sizeof(int32_t);
 
-                auto delta = (INT64)((BYTE *)target - baseAddr);
+                auto delta = (int64_t)((uint8_t *)target - baseAddr);
 
                 // Write the 32-bits pc-relative delta into location
-                *fixupLocation = (INT32)delta;
+                *fixupLocation = (int32_t)delta;
             }
             break;
 #endif // _TARGET_AMD64_
@@ -263,7 +263,7 @@ public:
         }
     }
 
-    WORD getRelocTypeHint(void * target) override {
+    uint16_t getRelocTypeHint(void * target) override {
         return -1;
     }
 
@@ -272,7 +272,7 @@ public:
     // is cross-compiling (such as the case for crossgen), it will return a
     // different value than if it was compiling for the host architecture.
     // 
-    DWORD getExpectedTargetArchitecture() override {
+    uint32_t getExpectedTargetArchitecture() override {
         //printf("getExpectedTargetArchitecture\r\n");
 #ifdef _TARGET_AMD64_
         return IMAGE_FILE_MACHINE_AMD64;
@@ -307,7 +307,7 @@ public:
 
     // Return details about EE internal data structures
 
-    DWORD getThreadTLSIndex(
+    uint32_t getThreadTLSIndex(
         void                  **ppIndirection
         ) override {
         //printf("getThreadTLSIndex  not implemented\r\n");
@@ -321,7 +321,7 @@ public:
         return nullptr;
     }
 
-    LONG * getAddrOfCaptureThreadGlobal(
+    int32_t * getAddrOfCaptureThreadGlobal(
         void                  **ppIndirection
         ) override {
         //printf("getAddrOfCaptureThreadGlobal  not implemented\r\n");
@@ -401,7 +401,7 @@ public:
 
     // Generate a cookie based on the signature that would needs to be passed
     // to CORINFO_HELP_PINVOKE_CALLI
-    LPVOID GetCookieForPInvokeCalliSig(
+    void* GetCookieForPInvokeCalliSig(
         CORINFO_SIG_INFO* szMetaSig,
         void           ** ppIndirection
         ) override {
@@ -427,7 +427,7 @@ public:
         CORINFO_JUST_MY_CODE_HANDLE result;
         if (ppIndirection)
             *ppIndirection = nullptr;
-        DWORD * pFlagAddr = nullptr;
+        uint32_t * pFlagAddr = nullptr;
         result = (CORINFO_JUST_MY_CODE_HANDLE) pFlagAddr;
         return result;
     }
@@ -539,7 +539,7 @@ public:
     }
 
     // return flags (defined above, CORINFO_FLG_PUBLIC ...)
-    DWORD getMethodAttribs(
+    uint32_t getMethodAttribs(
         CORINFO_METHOD_HANDLE       ftn         /* IN */
         ) override {
         auto method = reinterpret_cast<BaseMethod*>(ftn);
@@ -596,7 +596,7 @@ public:
     CorInfoInline canInline(
         CORINFO_METHOD_HANDLE       callerHnd,                  /* IN  */
         CORINFO_METHOD_HANDLE       calleeHnd,                  /* IN  */
-        DWORD*                      pRestrictions               /* OUT */
+        uint32_t*                      pRestrictions               /* OUT */
         ) override {
         WARN("canInline not implemented\r\n");
         return INLINE_PASS;
@@ -858,7 +858,7 @@ public:
     }
 
     // return flags (defined above, CORINFO_FLG_PUBLIC ...)
-    DWORD getClassAttribs(
+    uint32_t getClassAttribs(
         CORINFO_CLASS_HANDLE    cls
         ) override {
         if (cls == PYOBJECT_PTR_TYPE)
@@ -942,14 +942,14 @@ public:
     // in representing of 'cls' from a GC perspective.  The class is
     // assumed to be an array of machine words
     // (of length // getClassSize(cls) / sizeof(void*)),
-    // 'gcPtrs' is a poitner to an array of BYTEs of this length.
+    // 'gcPtrs' is a poitner to an array of uint8_ts of this length.
     // getClassGClayout fills in this array so that gcPtrs[i] is set
     // to one of the CorInfoGCType values which is the GC type of
     // the i-th machine word of an object of type 'cls'
     // returns the number of GC pointers in the array
     unsigned getClassGClayout(
         CORINFO_CLASS_HANDLE        cls,        /* IN */
-        BYTE                       *gcPtrs      /* OUT */
+        uint8_t                       *gcPtrs      /* OUT */
         ) override {
         WARN("getClassGClayout\r\n");
         return 0;
@@ -965,7 +965,7 @@ public:
 
     CORINFO_FIELD_HANDLE getFieldInClass(
         CORINFO_CLASS_HANDLE clsHnd,
-        INT num
+        int32_t num
         ) override {
         WARN("getFieldInClass\r\n");
         return nullptr;
@@ -973,7 +973,7 @@ public:
 
     bool checkMethodModifier(
         CORINFO_METHOD_HANDLE hMethod,
-        LPCSTR modifier,
+        const char * modifier,
         bool fOptional
         ) override {
         WARN("checkMethodModifier\r\n");
@@ -1165,7 +1165,7 @@ public:
     // Get static field data for an array
     void * getArrayInitializationData(
         CORINFO_FIELD_HANDLE        field,
-        DWORD                       size
+        uint32_t                       size
         ) override {
         WARN("getArrayInitializationData\r\n");
         return nullptr;
@@ -1259,7 +1259,7 @@ public:
     void getBoundaries(
         CORINFO_METHOD_HANDLE   ftn,                // [IN] method of interest
         unsigned int           *cILOffsets,         // [OUT] size of pILOffsets
-        DWORD                 **pILOffsets,         // [OUT] IL offsets of interest
+        uint32_t                 **pILOffsets,         // [OUT] IL offsets of interest
         //       jit MUST free with freeArray!
         ICorDebugInfo::BoundaryTypes *implictBoundaries // [OUT] tell jit, all boundries of this type
         ) override {
@@ -1275,7 +1275,7 @@ public:
     // OffsetMapping is sorted in order of increasing native offset.
     void setBoundaries(
         CORINFO_METHOD_HANDLE   ftn,            // [IN] method of interest
-        ULONG32                 cMap,           // [IN] size of pMap
+        uint32_t                 cMap,           // [IN] size of pMap
         ICorDebugInfo::OffsetMapping *pMap      // [IN] map including all points of interest.
         //      jit allocated with allocateArray, EE frees
         ) override {
@@ -1292,7 +1292,7 @@ public:
     // code generation.
     void getVars(
         CORINFO_METHOD_HANDLE           ftn,            // [IN]  method of interest
-        ULONG32                        *cVars,          // [OUT] size of 'vars'
+        uint32_t                        *cVars,          // [OUT] size of 'vars'
         ICorDebugInfo::ILVarInfo       **vars,          // [OUT] scopes of variables of interest
         //       jit MUST free with freeArray!
         bool                           *extendOthers    // [OUT] it true, then assume the scope
@@ -1307,7 +1307,7 @@ public:
 
     void setVars(
         CORINFO_METHOD_HANDLE           ftn,            // [IN] method of interest
-        ULONG32                         cVars,          // [IN] size of 'vars'
+        uint32_t                         cVars,          // [IN] size of 'vars'
         ICorDebugInfo::NativeVarInfo   *vars            // [IN] map telling where local vars are stored at what points
         //      jit allocated with allocateArray, EE frees
         ) override {
@@ -1356,7 +1356,7 @@ public:
     *****************************************************************************/
 
     // Returns the HRESULT of the current exception
-    HRESULT GetErrorHRESULT(
+    JITINTERFACE_HRESULT GetErrorHRESULT(
     struct _EXCEPTION_POINTERS *pExceptionPointers
         ) override {
         WARN("GetErrorHRESULT\r\n");
@@ -1366,9 +1366,9 @@ public:
     // Fetches the message of the current exception
     // Returns the size of the message (including terminating null). This can be
     // greater than bufferLength if the buffer is insufficient.
-    ULONG GetErrorMessage(
-        __inout_ecount(bufferLength) LPWSTR buffer,
-        ULONG bufferLength
+    uint32_t GetErrorMessage(
+        __inout_ecount(bufferLength) char16_t * buffer,
+        uint32_t bufferLength
         ) override {
         WARN("GetErrorMessage\r\n");
         return 0;
@@ -1491,7 +1491,7 @@ public:
         WARN("getAddressOfPInvokeTarget\r\n");
 	}
 
-	DWORD getJitFlags(CORJIT_FLAGS * flags, DWORD sizeInBytes) override
+	uint32_t getJitFlags(CORJIT_FLAGS * flags, uint32_t sizeInBytes) override
 	{
 		flags->Add(flags->CORJIT_FLAG_SKIP_VERIFICATION);
 #ifdef EE_DEBUG_CODE
@@ -1718,7 +1718,7 @@ public:
         return nullptr;
     }
 
-    DWORD getFieldThreadLocalStoreID(CORINFO_FIELD_HANDLE field, void **ppIndirection) override {
+    uint32_t getFieldThreadLocalStoreID(CORINFO_FIELD_HANDLE field, void **ppIndirection) override {
         return 0;
     }
 
@@ -1754,17 +1754,17 @@ public:
 
     }
 
-    void reserveUnwindInfo(bool isFunclet, bool isColdCode, ULONG unwindSize) override {
+    void reserveUnwindInfo(bool isFunclet, bool isColdCode, uint32_t unwindSize) override {
 
     }
 
     void allocUnwindInfo (
-            BYTE *              pHotCode,              /* IN */
-            BYTE *              pColdCode,             /* IN */
-            ULONG               startOffset,           /* IN */
-            ULONG               endOffset,             /* IN */
-            ULONG               unwindSize,            /* IN */
-            BYTE *              pUnwindBlock,          /* IN */
+            uint8_t *              pHotCode,              /* IN */
+            uint8_t *              pColdCode,             /* IN */
+            uint32_t               startOffset,           /* IN */
+            uint32_t               endOffset,             /* IN */
+            uint32_t               unwindSize,            /* IN */
+            uint8_t *              pUnwindBlock,          /* IN */
             CorJitFuncKind      funcKind               /* IN */
     ) override {
         // Only used in .NET 5 for FEATURE_EH_FUNCLETS.
@@ -1789,16 +1789,16 @@ public:
         return (CorInfoTypeWithMod)(reinterpret_cast<Parameter*>(args))->m_type;
     }
 
-    void recordCallSite(ULONG instrOffset,
+    void recordCallSite(uint32_t instrOffset,
                         CORINFO_SIG_INFO *callSig,
                         CORINFO_METHOD_HANDLE methodHandle) override {
     }
 
-    void assignIL(vector<BYTE>il) {
+    void assignIL(vector<uint8_t>il) {
         m_il = il;
     }
 
-    void setNativeSize(ULONG i) {
+    void setNativeSize(uint32_t i) {
         m_nativeSize = i;
     }
 
