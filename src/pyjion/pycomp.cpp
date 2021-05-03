@@ -1984,7 +1984,102 @@ void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWit
                 return;
         }
     }
+    if (lhs.hasValue() && lhs.Value->known() && rhs.hasValue() && rhs.Value->known()){
+        // Specific comparisons.
+        switch (lhs.Value->kind()) {
+            case AVK_Float:
+                if (rhs.Value->kind() == AVK_Float) {
+                    emit_compare_floats(compareType, lhs.Value->needsGuard() || rhs.Value->needsGuard());
+                    return;
+                }
+                break;
+        }
+    }
     emit_compare_object(compareType);
+}
+
+void PythonCompiler::emit_compare_floats(int compareType, bool guard) {
+    Local left = emit_define_local(LK_Pointer);
+    Local right = emit_define_local(LK_Pointer);
+    Label guard_fail = emit_define_label();
+    Label guard_pass = emit_define_label();
+
+    emit_store_local(right);
+    emit_store_local(left);
+
+    if (guard){
+        emit_load_local(right);
+        LD_FIELD(PyObject, ob_type);
+        emit_ptr(&PyFloat_Type);
+        emit_branch(BranchNotEqual, guard_fail);
+
+        emit_load_local(left);
+        LD_FIELD(PyObject, ob_type);
+        emit_ptr(&PyFloat_Type);
+        emit_branch(BranchNotEqual, guard_fail);
+    }
+
+    emit_load_local(left);
+    LD_FIELD(PyFloatObject, ob_fval);
+    emit_load_local(right);
+    LD_FIELD(PyFloatObject, ob_fval);
+
+    Label is_true = emit_define_label();
+    Label free_and_exit = emit_define_label();
+    Label is_false = emit_define_label();
+
+    switch (compareType){
+        case Py_EQ:
+            m_il.branch(BranchEqual, is_true);
+            m_il.branch(BranchAlways, is_false);
+            break;
+        case Py_NE:
+            m_il.branch(BranchNotEqual, is_true);
+            m_il.branch(BranchAlways, is_false);
+            break;
+        case Py_GE:
+            m_il.branch(BranchGreaterThanEqual, is_true);
+            m_il.branch(BranchAlways, is_false);
+            break;
+        case Py_LE:
+            m_il.branch(BranchLessThanEqual, is_true);
+            m_il.branch(BranchAlways, is_false);
+            break;
+        case Py_LT:
+            m_il.branch(BranchLessThan, is_true);
+            m_il.branch(BranchAlways, is_false);
+            break;
+        case Py_GT:
+            m_il.branch(BranchGreaterThan, is_true);
+            m_il.branch(BranchAlways, is_false);
+        break;
+    };
+
+    emit_mark_label(is_true);
+        emit_ptr(Py_True);
+        emit_dup();
+        emit_incref();
+        m_il.branch(BranchAlways, free_and_exit);
+
+    emit_mark_label(is_false);
+
+        emit_ptr(Py_False);
+        emit_dup();
+        emit_incref();
+
+    emit_mark_label(free_and_exit);
+    emit_load_and_free_local(left);
+    decref();
+    emit_load_and_free_local(right);
+    decref();
+
+    if (guard){
+        m_il.branch(BranchAlways, guard_pass);
+        emit_mark_label(guard_fail);
+        emit_compare_object(compareType);
+
+        emit_mark_label(guard_pass);
+    }
 }
 
 void PythonCompiler::emit_load_method(void* name) {
