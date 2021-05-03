@@ -1750,8 +1750,9 @@ public:
         return false;
     }
 
+    // Notify EE about intent to use or not to use instruction set in the method. Returns true if the instruction set is supported unconditionally.
     bool notifyInstructionSetUsage(CORINFO_InstructionSet instructionSet, bool supportEnabled) override {
-
+        return true;
     }
 
     void reserveUnwindInfo(bool isFunclet, bool isColdCode, uint32_t unwindSize) override {
