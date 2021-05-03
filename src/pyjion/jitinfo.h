@@ -840,7 +840,7 @@ public:
     // If fAssembly=true, suffix with a comma and the full assembly qualification
     // return size of representation
     int appendClassName(
-        __deref_inout_ecount(*pnBufLen) WCHAR** ppBuf,
+        __deref_inout_ecount(*pnBufLen) char16_t** ppBuf,
         int* pnBufLen,
         CORINFO_CLASS_HANDLE    cls,
         bool fNamespace,
@@ -1427,7 +1427,7 @@ public:
     }
 
     // Returns name of the JIT timer log
-    LPCWSTR getJitTimeLogFilename() override {
+    const char16_t * getJitTimeLogFilename() override {
 #ifdef DEBUG
 #ifndef WINDOWS
         return u"pyjion_timings.log";
@@ -1549,7 +1549,7 @@ public:
         return false;
     }
 
-    LPCWSTR getStringLiteral(CORINFO_MODULE_HANDLE module, unsigned int metaTOK, int *length) override {
+    const char16_t * getStringLiteral(CORINFO_MODULE_HANDLE module, unsigned metaTOK, int *length) override {
         WARN("getStringLiteral not defined\r\n");
         return nullptr;
     }
