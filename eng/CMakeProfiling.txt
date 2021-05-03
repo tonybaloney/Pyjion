@@ -4,8 +4,9 @@ if(NOT GENERATE_PROFILE)
         add_link_options(-fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11.profdata)
         message(STATUS "Using profile " ${CMAKE_SOURCE_DIR}/eng/profiles/macos11.profdata)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-        add_compile_options(-fprofile-use -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles)
-        add_link_options(-fprofile-use -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles)
+        if (EXISTS ${CMAKE_SOURCE_DIR}/eng/profiles/windows.pgd)
+            add_link_options(/LTCG /USEPROFILE:PGD=${CMAKE_SOURCE_DIR}/eng/profiles/windows.pgd)
+        endif()
     else()
         add_compile_options(-fprofile-use -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles)
         add_link_options(-fprofile-use -fprofile-dir=${CMAKE_SOURCE_DIR}/eng/profiles)
@@ -28,7 +29,7 @@ if(GENERATE_PROFILE)
                 /GL
         )
         add_link_options(
-                /LTCG /GENPROFILE
+                /LTCG /GENPROFILE:PGD=${CMAKE_SOURCE_DIR}/eng/profiles/windows.pgd
         )
     else()
         add_compile_options(
