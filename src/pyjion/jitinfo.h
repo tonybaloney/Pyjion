@@ -1864,9 +1864,20 @@ public:
     }
 
     // Quick check whether the method is a jit intrinsic. Returns the same value as getMethodAttribs(ftn) & CORINFO_FLG_JIT_INTRINSIC, except faster.
-    bool isJitIntrinsic(CORINFO_METHOD_HANDLE ftn) override {
+    bool isJitIntrinsic(CORINFO_METHOD_HANDLE ftn) {
         // method attribs are CORINFO_FLG_STATIC | CORINFO_FLG_NATIVE - so always false.
         return false;
+    }
+
+    CORINFO_CLASS_HANDLE getLikelyClass(
+            CORINFO_METHOD_HANDLE ftnHnd,
+            CORINFO_CLASS_HANDLE  baseHnd,
+            uint32_t                ilOffset,
+            uint32_t *              pLikelihood,      // OUT, estimated likelihood of the class (0...100)
+            uint32_t *              pNumberOfClasses  // OUT, estimated number of possible classes
+    ) {
+        // This will be dropped in preview 4
+        return nullptr;
     }
 };
 
