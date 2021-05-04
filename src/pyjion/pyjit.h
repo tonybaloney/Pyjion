@@ -155,4 +155,9 @@ public:
 };
 
 void setOptimizationLevel(unsigned short level);
+
+#ifdef WINDOWS
+HMODULE GetClrJit();
+#endif
+
 #endif

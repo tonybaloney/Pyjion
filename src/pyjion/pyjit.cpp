@@ -171,12 +171,8 @@ static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*fram
 
 static Py_tss_t* g_extraSlot;
 
-bool JitInit() {
-    g_pyjionSettings = {false, false};
-    g_pyjionSettings.recursionLimit = Py_GetRecursionLimit();
-	g_extraSlot = PyThread_tss_alloc();
-	PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS
+HMODULE GetClrJit() {
     std::wstring envBuf;
     envBuf.resize(BUFSIZE);
     const DWORD ret = GetEnvironmentVariable(TEXT("PYJION_CLR_PATH"), &envBuf[0], BUFSIZE);
@@ -184,7 +180,17 @@ bool JitInit() {
         AddDllDirectory(envBuf.c_str());
     }
 
-	auto clrJitHandle = LoadLibrary(TEXT("clrjit.dll"));
+    return LoadLibrary(TEXT("clrjit.dll"));
+}
+#endif
+
+bool JitInit() {
+    g_pyjionSettings = {false, false};
+    g_pyjionSettings.recursionLimit = Py_GetRecursionLimit();
+	g_extraSlot = PyThread_tss_alloc();
+	PyThread_tss_create(g_extraSlot);
+#ifdef WINDOWS
+    auto clrJitHandle = GetClrJit();
 	if (clrJitHandle == nullptr) {
 	    PyErr_SetString(PyExc_RuntimeError, "Failed to load clrjit.dll, check that .NET is installed.");
         return false;

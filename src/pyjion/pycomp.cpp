@@ -44,7 +44,7 @@ CCorJitHost g_jitHost;
 
 void CeeInit() {
 #ifdef WINDOWS
-    auto clrJitHandle = LoadLibrary(TEXT("clrjit.dll"));
+    auto clrJitHandle = GetClrJit();
     if (clrJitHandle == nullptr) {
         printf("Failed to load clrjit.dll");
         exit(40);
