@@ -227,11 +227,11 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
     deque<size_t> queue;
     queue.push_back(0);
     vector<const char*> utf8_names ;
-    for (int i = 0; i < PyTuple_Size(mCode->co_names); i++)
+    for (size_t i = 0; i < PyTuple_Size(mCode->co_names); i++)
         utf8_names.push_back(PyUnicode_AsUTF8(PyTuple_GetItem(mCode->co_names, i)));
 
     do {
-        int oparg;
+        uint16_t oparg;
         auto cur = queue.front();
         queue.pop_front();
         for (size_t curByte = cur; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
@@ -239,7 +239,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
             InterpreterState lastState = mStartStates.find(curByte)->second;
 
             auto opcodeIndex = curByte;
-            auto opcode = GET_OPCODE(curByte);
+            uint16_t opcode = GET_OPCODE(curByte);
             bool pgcRequired = false;
             short pgcSize = 0;
             oparg = GET_OPARG(curByte);

@@ -185,7 +185,7 @@ public:
     // Initializes state associated with updating the frames lasti value
     virtual void emit_lasti_init() = 0;
     // Updates the current value of last
-    virtual void emit_lasti_update(int index) = 0;
+    virtual void emit_lasti_update(uint16_t index) = 0;
 
     /*****************************************************
      * Loads/Stores to/from various places */
@@ -376,11 +376,11 @@ public:
     virtual void emit_unary_negative_float() = 0;
 
     // Performans a binary operation for values on the stack which are unboxed floating points
-    virtual void emit_binary_float(int opcode) = 0;
+    virtual void emit_binary_float(uint16_t opcode) = 0;
     // Performs a binary operation for values on the stack which are boxed objects
-    virtual void emit_binary_object(int opcode) = 0;
-    virtual void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
-    virtual void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
+    virtual void emit_binary_object(uint16_t opcode) = 0;
+    virtual void emit_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
+    virtual void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) = 0;
 
@@ -394,13 +394,13 @@ public:
     virtual void emit_is(bool isNot) = 0;
 
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
-    virtual void emit_compare_object(int compareType) = 0;
+    virtual void emit_compare_object(uint16_t compareType) = 0;
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
-    virtual void emit_compare_known_object(int compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) = 0;
+    virtual void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) = 0;
     // Performs a comparison of two unboxed floating point values on the stack
-    virtual void emit_compare_float(int compareType) = 0;
+    virtual void emit_compare_float(uint16_t compareType) = 0;
     // Performs a comparison of two tagged integers
-    virtual void emit_compare_tagged_int(int compareType) = 0;
+    virtual void emit_compare_tagged_int(uint16_t compareType) = 0;
 
     /*****************************************************
      * Exception handling */
@@ -450,17 +450,17 @@ public:
     /* Compiles the generated code */
     virtual JittedCode* emit_compile() = 0;
 
-    virtual void lift_n_to_top(int pos) = 0;
-    virtual void lift_n_to_second(int pos) = 0;
-    virtual void lift_n_to_third(int pos) = 0;
-    virtual void sink_top_to_n(int pos) = 0;
+    virtual void lift_n_to_top(uint16_t pos) = 0;
+    virtual void lift_n_to_second(uint16_t pos) = 0;
+    virtual void lift_n_to_third(uint16_t pos) = 0;
+    virtual void sink_top_to_n(uint16_t pos) = 0;
     virtual void pop_top() = 0;
 
     virtual void emit_inc_local(Local local, int value) = 0;
     virtual void emit_dec_local(Local local, int value) = 0;
 
     virtual void emit_load_frame_locals() = 0;
-    virtual void emit_triple_binary_op(int firstOp, int secondOp) = 0;
+    virtual void emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) = 0;
 };
 
 #endif

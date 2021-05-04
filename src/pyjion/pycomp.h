@@ -297,7 +297,7 @@ public:
     void emit_eh_trace() override;
 
     void emit_lasti_init() override;
-    void emit_lasti_update(int index) override;
+    void emit_lasti_update(uint16_t index) override;
 
     void emit_ret(int size) override;
 
@@ -415,10 +415,10 @@ public:
     void emit_for_next() override;
     void emit_for_next(AbstractValueWithSources) override;
 
-    void emit_binary_float(int opcode) override;
-    void emit_binary_object(int opcode) override;
-    void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
-    void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
+    void emit_binary_float(uint16_t opcode) override;
+    void emit_binary_object(uint16_t opcode) override;
+    void emit_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
+    void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) override;
     void emit_tagged_int_to_float() override;
@@ -428,10 +428,10 @@ public:
 
     void emit_is(bool isNot) override;
 
-    void emit_compare_object(int compareType) override;
-    void emit_compare_float(int compareType) override;
-    void emit_compare_known_object(int compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
-    void emit_compare_tagged_int(int compareType) override;
+    void emit_compare_object(uint16_t compareType) override;
+    void emit_compare_float(uint16_t compareType) override;
+    void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
+    void emit_compare_tagged_int(uint16_t compareType) override;
 
     void emit_store_fast(int local) override;
 
@@ -493,18 +493,18 @@ public:
     void emit_pgc_probe(size_t curByte, size_t stackSize) override;
 
     void emit_load_frame_locals() override;
-    void emit_triple_binary_op(int firstOp, int secondOp) override;
+    void emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) override;
     JittedCode* emit_compile() override;
-    void lift_n_to_top(int pos) override;
-    void lift_n_to_second(int pos) override;
-    void lift_n_to_third(int pos) override;
-    void sink_top_to_n(int pos) override;
+    void lift_n_to_top(uint16_t pos) override;
+    void lift_n_to_second(uint16_t pos) override;
+    void lift_n_to_third(uint16_t pos) override;
+    void sink_top_to_n(uint16_t pos) override;
 
 
 private:
     void load_frame();
     void load_tstate();
-    void load_local(int oparg);
+    void load_local(uint16_t oparg);
     void decref(bool noopt = false);
     CorInfoType to_clr_type(LocalKind kind);
     void pop_top() override;

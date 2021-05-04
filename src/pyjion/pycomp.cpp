@@ -95,7 +95,7 @@ void PythonCompiler::load_tstate() {
 }
 
 void PythonCompiler::emit_load_frame_locals(){
-    for (int i = 0 ; i < this->m_code->co_nlocals; i++){
+    for (size_t i = 0 ; i < this->m_code->co_nlocals; i++){
         m_frameLocals[i] = m_il.define_local_no_cache(Parameter(CORINFO_TYPE_NATIVEINT));
         load_frame();
         m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + i * sizeof(size_t));
@@ -144,13 +144,13 @@ void PythonCompiler::emit_lasti_init() {
     m_il.st_loc(m_lasti);
 }
 
-void PythonCompiler::emit_lasti_update(int index) {
+void PythonCompiler::emit_lasti_update(uint16_t index) {
     m_il.ld_loc(m_lasti);
     m_il.ld_i4(index);
     m_il.st_ind_i4();
 }
 
-void PythonCompiler::load_local(int oparg) {
+void PythonCompiler::load_local(uint16_t oparg) {
     if (OPT_ENABLED(nativeLocals)) {
         m_il.ld_loc(m_frameLocals[oparg]);
     } else {
@@ -630,7 +630,7 @@ void PythonCompiler::emit_rot_four(LocalKind kind) {
     m_il.free_local(fourth);
 }
 
-void PythonCompiler::lift_n_to_second(int pos){
+void PythonCompiler::lift_n_to_second(uint16_t pos){
     if (pos == 1)
         return ; // already is second
     vector<Local> tmpLocals (pos-1);
@@ -639,7 +639,7 @@ void PythonCompiler::lift_n_to_second(int pos){
     m_il.st_loc(top);
 
     // dump stack up to n
-    for (int i = 0 ; i < pos - 1 ; i ++){
+    for (size_t i = 0 ; i < pos - 1 ; i ++){
         auto loc = m_il.define_local(Parameter(to_clr_type(LK_Pointer)));
         tmpLocals[i] = loc;
         m_il.st_loc(loc);
@@ -664,7 +664,7 @@ void PythonCompiler::lift_n_to_second(int pos){
     m_il.free_local(top);
 }
 
-void PythonCompiler::lift_n_to_third(int pos){
+void PythonCompiler::lift_n_to_third(uint16_t pos){
     if (pos == 1)
         return ; // already is third
     vector<Local> tmpLocals (pos-2);
@@ -676,7 +676,7 @@ void PythonCompiler::lift_n_to_third(int pos){
     m_il.st_loc(second);
 
     // dump stack up to n
-    for (int i = 0 ; i < pos - 2 ; i ++){
+    for (size_t i = 0 ; i < pos - 2 ; i ++){
         auto loc = m_il.define_local(Parameter(to_clr_type(LK_Pointer)));
         tmpLocals[i] = loc;
         m_il.st_loc(loc);
@@ -705,7 +705,7 @@ void PythonCompiler::lift_n_to_third(int pos){
     m_il.free_local(top);
 }
 
-void PythonCompiler::sink_top_to_n(int pos){
+void PythonCompiler::sink_top_to_n(uint16_t pos){
     if (pos == 0)
         return ; // already is at the correct position
     vector<Local> tmpLocals (pos);
@@ -714,7 +714,7 @@ void PythonCompiler::sink_top_to_n(int pos){
     m_il.st_loc(top);
 
     // dump stack up to n
-    for (int i = 0 ; i < pos ; i ++){
+    for (size_t i = 0 ; i < pos ; i ++){
         auto loc = m_il.define_local(Parameter(to_clr_type(LK_Pointer)));
         tmpLocals[i] = loc;
         m_il.st_loc(loc);
@@ -731,11 +731,11 @@ void PythonCompiler::sink_top_to_n(int pos){
     }
 }
 
-void PythonCompiler::lift_n_to_top(int pos){
+void PythonCompiler::lift_n_to_top(uint16_t pos){
     vector<Local> tmpLocals (pos);
 
     // dump stack up to n
-    for (int i = 0 ; i < pos ; i ++){
+    for (size_t i = 0 ; i < pos ; i ++){
         auto loc = m_il.define_local(Parameter(to_clr_type(LK_Pointer)));
         tmpLocals[i] = loc;
         m_il.st_loc(loc);
@@ -1849,7 +1849,7 @@ void PythonCompiler::emit_debug_pyobject() {
     m_il.emit_call(METHOD_DEBUG_PYOBJECT);
 }
 
-void PythonCompiler::emit_binary_float(int opcode) {
+void PythonCompiler::emit_binary_float(uint16_t opcode) {
     switch (opcode) {
         case BINARY_ADD:
         case INPLACE_ADD:
@@ -1883,7 +1883,7 @@ void PythonCompiler::emit_binary_float(int opcode) {
     }
 }
 
-void PythonCompiler::emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
+void PythonCompiler::emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
     if (OPT_ENABLED(knownBinarySubscr)){
         emit_binary_subscr(left, right);
     } else {
@@ -1935,7 +1935,7 @@ void PythonCompiler::emit_not_in() {
     m_il.emit_call(METHOD_NOTCONTAINS_TOKEN);
 }
 
-void PythonCompiler::emit_compare_float(int compareType) {
+void PythonCompiler::emit_compare_float(uint16_t compareType) {
     // TODO: Optimize compare and POP_JUMP
     // @body: If we know we're followed by the pop jump we could combine
     // and do a single branch comparison.
@@ -1949,7 +1949,7 @@ void PythonCompiler::emit_compare_float(int compareType) {
     }
 }
 
-void PythonCompiler::emit_compare_tagged_int(int compareType) {
+void PythonCompiler::emit_compare_tagged_int(uint16_t compareType) {
     switch (compareType) {
         case Py_EQ:
             m_il.emit_call(METHOD_EQUALS_INT_TOKEN); break;
@@ -1966,12 +1966,12 @@ void PythonCompiler::emit_compare_tagged_int(int compareType) {
     }
 }
 
-void PythonCompiler::emit_compare_object(int compareType) {
+void PythonCompiler::emit_compare_object(uint16_t compareType) {
     m_il.ld_i4(compareType);
     m_il.emit_call(METHOD_RICHCMP_TOKEN);
 }
 
-void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) {
+void PythonCompiler::emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) {
     // OPT-3 Optimize the comparison of an intern'ed const integer with an integer to an IS_OP expression.
     if ((lhs.Value->isIntern() && rhs.Value->kind() == AVK_Integer) ||
         (rhs.Value->isIntern() && lhs.Value->kind() == AVK_Integer)){
