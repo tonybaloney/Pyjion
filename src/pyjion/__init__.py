@@ -13,6 +13,7 @@ def _no_dotnet(path):
     exit(1)
 
 def _set_clr_path(path):
+    print(str(path))
     os.environ["PYJION_CLR_PATH"] = str(path)
 
 # try and locate .Net 5
