@@ -530,7 +530,7 @@ void PythonCompiler::emit_unbound_local_check() {
     m_il.emit_call(METHOD_UNBOUND_LOCAL);
 }
 
-void PythonCompiler::emit_load_fast(int local) {
+void PythonCompiler::emit_load_fast(size_t local) {
     load_local(local);
 }
 
@@ -545,8 +545,7 @@ CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
     return CORINFO_TYPE_NATIVEINT;
 }
 
-
-void PythonCompiler::emit_store_fast(int local) {
+void PythonCompiler::emit_store_fast(size_t local) {
     if (OPT_ENABLED(nativeLocals)){
         // decref old value and store new value.
         m_il.ld_loc(m_frameLocals[local]);
@@ -1048,7 +1047,7 @@ void PythonCompiler::emit_load_global_hashed(PyObject* name, ssize_t name_hash) 
     m_il.emit_call(METHOD_LOADGLOBAL_HASH);
 }
 
-void PythonCompiler::emit_delete_fast(int index) {
+void PythonCompiler::emit_delete_fast(size_t index) {
     if (OPT_ENABLED(nativeLocals)) {
         m_il.ld_loc(m_frameLocals[index]);
         decref();
@@ -1635,29 +1634,35 @@ void PythonCompiler::emit_set_defaults() {
 	m_il.st_ind_i();
 }
 
-void PythonCompiler::emit_load_deref(int index) {
+void PythonCompiler::emit_load_deref(size_t index) {
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_PYCELL_GET);
 }
 
-void PythonCompiler::emit_store_deref(int index) {
+void PythonCompiler::emit_store_deref(size_t index) {
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_PYCELL_SET_TOKEN);
 }
 
-void PythonCompiler::emit_delete_deref(int index) {
+void PythonCompiler::emit_delete_deref(size_t index) {
     m_il.load_null();
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_PYCELL_SET_TOKEN);
 }
 
-void PythonCompiler::emit_load_closure(int index) {
+void PythonCompiler::emit_load_closure(size_t index) {
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_LOAD_CLOSURE);
+}
+
+void PythonCompiler::emit_load_classderef(size_t index) {
+    load_frame();
+    m_il.ld_i(index);
+    m_il.emit_call(METHOD_LOAD_CLASSDEREF_TOKEN);
 }
 
 void PythonCompiler::emit_set_add() {
@@ -1700,12 +1705,6 @@ void PythonCompiler::emit_dict_update() {
     m_il.emit_call(METHOD_DICTUPDATE_TOKEN);
 }
 
-void PythonCompiler::emit_load_classderef(int index) {
-    load_frame();
-    m_il.ld_i(index);
-    m_il.emit_call(METHOD_LOAD_CLASSDEREF_TOKEN);
-}
-
 void PythonCompiler::emit_getiter() {
     m_il.emit_call(METHOD_GETITER_TOKEN);
 }
@@ -1714,14 +1713,14 @@ Label PythonCompiler::emit_define_label() {
     return m_il.define_label();
 }
 
-void PythonCompiler::emit_inc_local(Local local, int value) {
+void PythonCompiler::emit_inc_local(Local local, size_t value) {
     emit_int(value);
     emit_load_local(local);
     m_il.add();
     emit_store_local(local);
 }
 
-void PythonCompiler::emit_dec_local(Local local, int value) {
+void PythonCompiler::emit_dec_local(Local local, size_t value) {
     emit_load_local(local);
     emit_int(value);
     m_il.sub();

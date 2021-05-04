@@ -268,8 +268,8 @@ class PythonCompiler : public IPythonCompiler {
 public:
     explicit PythonCompiler(PyCodeObject *code);
 
-    int il_length() override {
-        return static_cast<int>(m_il.m_il.size());
+    size_t il_length() override {
+        return m_il.m_il.size();
     };
 
     void emit_rot_two(LocalKind kind) override;
@@ -308,7 +308,7 @@ public:
     void emit_delete_global(PyObject* name) override;
     void emit_load_global(PyObject* name) override;
     void emit_load_global_hashed(PyObject* name, ssize_t name_hash) override;
-    void emit_delete_fast(int index) override;
+    void emit_delete_fast(size_t index) override;
 
     void emit_new_tuple(size_t size) override;
     void emit_tuple_store(size_t size) override;
@@ -383,10 +383,11 @@ public:
     void emit_set_kw_defaults() override;
     void emit_set_defaults() override;
 
-    void emit_load_deref(int index) override;
-    void emit_store_deref(int index) override;
-    void emit_delete_deref(int index) override;
-    void emit_load_closure(int index) override;
+    void emit_load_deref(size_t index) override;
+    void emit_store_deref(size_t index) override;
+    void emit_delete_deref(size_t index) override;
+    void emit_load_closure(size_t index) override;
+    void emit_load_classderef(size_t index) override;
 
     Local emit_spill() override;
     void emit_store_local(Local local) override;
@@ -407,7 +408,6 @@ public:
     void emit_null() override;
 
     void emit_print_expr() override;
-    void emit_load_classderef(int index) override;
     void emit_getiter() override;
     void emit_for_next() override;
     void emit_for_next(AbstractValueWithSources) override;
@@ -431,10 +431,9 @@ public:
     void emit_compare_floats(uint16_t compareType, bool guard) override;
     void emit_compare_tagged_int(uint16_t compareType) override;
 
-    void emit_store_fast(int local) override;
-
+    void emit_store_fast(size_t local) override;
     void emit_unbound_local_check() override;
-    void emit_load_fast(int local) override;
+    void emit_load_fast(size_t local) override;
 
     Label emit_define_label() override;
     void emit_mark_label(Label label) override;
@@ -479,8 +478,8 @@ public:
 
     void emit_breakpoint() override;
 
-    void emit_inc_local(Local local, int value) override;
-    void emit_dec_local(Local local, int value) override;
+    void emit_inc_local(Local local, size_t value) override;
+    void emit_dec_local(Local local, size_t value) override;
 
     void emit_trace_line(Local lowerBound, Local upperBound, Local lastInstr) override;
     void emit_trace_frame_entry() override;

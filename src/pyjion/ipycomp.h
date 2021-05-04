@@ -110,7 +110,7 @@ public:
 class IPythonCompiler {
 public:
     // Current CIL queue length
-    virtual int il_length() = 0 ;
+    virtual size_t il_length() = 0 ;
 
     /*****************************************************
      * Basic Python stack manipulations */
@@ -191,9 +191,9 @@ public:
      * Loads/Stores to/from various places */
 
      // Loads/stores/deletes from the frame objects fast local variables
-    virtual void emit_load_fast(int local) = 0;
-    virtual void emit_store_fast(int local) = 0;
-    virtual void emit_delete_fast(int index) = 0;
+    virtual void emit_load_fast(size_t local) = 0;
+    virtual void emit_store_fast(size_t local) = 0;
+    virtual void emit_delete_fast(size_t index) = 0;
     virtual void emit_unbound_local_check() = 0;
 
     // Loads/stores/deletes by name for values not known to be in fast locals
@@ -216,11 +216,11 @@ public:
     virtual void emit_delete_global(PyObject* name) = 0;
 
     // Loads/stores/deletes a cell variable for closures.
-    virtual void emit_load_deref(int index) = 0;
-    virtual void emit_store_deref(int index) = 0;
-    virtual void emit_delete_deref(int index) = 0;
+    virtual void emit_load_deref(size_t index) = 0;
+    virtual void emit_store_deref(size_t index) = 0;
+    virtual void emit_delete_deref(size_t index) = 0;
     // Loads the cell object for a variable
-    virtual void emit_load_closure(int index) = 0;
+    virtual void emit_load_closure(size_t index) = 0;
 
     // Sets/deletes a subscript value
     virtual void emit_store_subscr() = 0;
@@ -349,7 +349,7 @@ public:
 
     // Prints the current value on the stack
     virtual void emit_print_expr() = 0;
-    virtual void emit_load_classderef(int index) = 0;
+    virtual void emit_load_classderef(size_t index) = 0;
 
     /*****************************************************
      * Iteration */
@@ -457,8 +457,8 @@ public:
     virtual void sink_top_to_n(uint16_t pos) = 0;
     virtual void pop_top() = 0;
 
-    virtual void emit_inc_local(Local local, int value) = 0;
-    virtual void emit_dec_local(Local local, int value) = 0;
+    virtual void emit_inc_local(Local local, size_t value) = 0;
+    virtual void emit_dec_local(Local local, size_t value) = 0;
 
     virtual void emit_load_frame_locals() = 0;
     virtual void emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) = 0;

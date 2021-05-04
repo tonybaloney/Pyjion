@@ -27,14 +27,14 @@
 #include "pyjit.h"
 #include "pycomp.h"
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "UnusedParameter"
 #ifdef WINDOWS
 #define BUFSIZE 65535
 #include <libloaderapi.h>
 #include <processenv.h>
 typedef ICorJitCompiler* (__cdecl* GETJIT)();
 #endif
-
-HINSTANCE            g_pMSCorEE;
 
 PyjionSettings g_pyjionSettings;
 
@@ -253,7 +253,7 @@ PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject) {
 			return nullptr;
 		}
 
-		PyThread_tss_set(g_extraSlot, (LPVOID)((index << 1) | 0x01));
+		PyThread_tss_set(g_extraSlot, (void*)((index << 1) | 0x01));
 	}
 	else {
 		index = index >> 1;
@@ -616,3 +616,5 @@ PyMODINIT_FUNC PyInit__pyjion(void)
 	else
 	    return nullptr;
 }
+
+#pragma clang diagnostic pop
