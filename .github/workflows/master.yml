@@ -144,7 +144,7 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         shell: bash
         run: ./unit_tests
-
+        
       - name: Run gcov
         shell: bash
         run: gcov Tests/
@@ -256,6 +256,8 @@ jobs:
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build/Release
         run: .\unit_tests.exe
+        env:
+            PYJION_CLR_PATH: "c:\\Users\\runneradmin\\AppData\\Local\\Microsoft\\dotnet\\shared\\Microsoft.NETCore.App\\${{ matrix.dot-net-version }}\\"
 
       - name: Run Python tests
         shell: bash
