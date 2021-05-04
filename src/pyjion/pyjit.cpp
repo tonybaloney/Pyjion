@@ -429,7 +429,7 @@ static PyObject* pyjion_dump_native(PyObject *self, PyObject* func) {
     PyTuple_SET_ITEM(result_t, 1, codeLen);
     Py_INCREF(codeLen);
 
-    auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&jitted->j_addr));
+    auto codePosition = PyLong_FromUnsignedLongLong(reinterpret_cast<unsigned long long>(&jitted->j_addr));
     if (codePosition == nullptr)
         return nullptr;
     PyTuple_SET_ITEM(result_t, 2, codePosition);

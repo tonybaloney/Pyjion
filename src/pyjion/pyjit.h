@@ -137,6 +137,7 @@ public:
     PgcStatus j_pgc_status;
 
 	explicit PyjionJittedCode(PyObject* code) {
+        j_compile_result = 0;
 		j_code = code;
 		j_run_count = 0;
 		j_failed = false;
