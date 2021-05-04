@@ -28,7 +28,9 @@
 #include "pycomp.h"
 
 #ifdef WINDOWS
+#define BUFSIZE 65535
 #include <libloaderapi.h>
+#include <processenv.h>
 typedef ICorJitCompiler* (__cdecl* GETJIT)();
 #endif
 
@@ -175,6 +177,13 @@ bool JitInit() {
 	g_extraSlot = PyThread_tss_alloc();
 	PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS
+    std::wstring envBuf;
+    envBuf.resize(BUFSIZE);
+    const DWORD ret = GetEnvironmentVariable(TEXT("PYJION_CLR_PATH"), &envBuf[0], BUFSIZE);
+    if (ret != 0 && ret != BUFSIZE) {
+        AddDllDirectory(envBuf.c_str());
+    }
+
 	auto clrJitHandle = LoadLibrary(TEXT("clrjit.dll"));
 	if (clrJitHandle == nullptr) {
 	    PyErr_SetString(PyExc_RuntimeError, "Failed to load clrjit.dll, check that .NET is installed.");
