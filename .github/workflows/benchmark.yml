@@ -12,6 +12,8 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
+        dot-net-version: [ 6.0.100-preview.3.21202.5 ]
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -30,7 +32,7 @@ jobs:
           libssl-dev libnuma-dev libkrb5-dev zlib1g-dev
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.202'
+          dotnet-version: ${{ matrix.dot-net-version }}
 
       - name: Build Python Package
         shell: bash
@@ -53,6 +55,8 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
+        dot-net-version: [ 6.0.100-preview.3.21202.5 ]
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -66,7 +70,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.202'
+          dotnet-version: ${{ matrix.dot-net-version }}
 
       - name: Build Python Package
         shell: bash
@@ -89,6 +93,8 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
+        dot-net-version: [ 6.0.100-preview.3.21202.5 ]
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -101,7 +107,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.202'
+          dotnet-version: ${{ matrix.dot-net-version }}
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2

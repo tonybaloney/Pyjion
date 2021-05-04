@@ -68,8 +68,8 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     void* m_dataAddr;
     PyCodeObject *m_code;
     UserModule* m_module;
-    vector<BYTE> m_il;
-    ULONG m_nativeSize;
+    vector<uint8_t> m_il;
+    uint32_t m_nativeSize;
 
     volatile const GSCookie s_gsCookie = 0x1234;
 
@@ -84,7 +84,7 @@ public:
         m_codeAddr = m_dataAddr = nullptr;
         m_code = code;
         m_module = module;
-        m_il = vector<BYTE>(0);
+        m_il = vector<uint8_t>(0);
 #ifdef WINDOWS
         m_winHeap = HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, 0, 0);
         GetSystemInfo(&systemInfo);
@@ -140,7 +140,7 @@ public:
     /// \param size Requested array size
     /// \param arrayMT Array type handle
     /// \return new vector
-    static vector<PyObject*> newArrayHelperFtn(INT_PTR size, CORINFO_CLASS_HANDLE arrayMT) {
+    static vector<PyObject*> newArrayHelperFtn(int64_t size, CORINFO_CLASS_HANDLE arrayMT) {
         return std::vector<PyObject*>(size);
     }
 
@@ -170,10 +170,10 @@ public:
     }
 
     void allocMem(
-        ULONG               hotCodeSize,    /* IN */
-        ULONG               coldCodeSize,   /* IN */
-        ULONG               roDataSize,     /* IN */
-        ULONG               xcptnsCount,    /* IN */
+        uint32_t               hotCodeSize,    /* IN */
+        uint32_t               coldCodeSize,   /* IN */
+        uint32_t               roDataSize,     /* IN */
+        uint32_t               xcptnsCount,    /* IN */
         CorJitAllocMemFlag  flag,           /* IN */
         void **             hotCodeBlock,   /* OUT */
         void **             coldCodeBlock,  /* OUT */
@@ -208,13 +208,13 @@ public:
             *roDataBlock = PyMem_Malloc(roDataSize);
     }
 
-    BOOL logMsg(unsigned level, const char* fmt, va_list args) override {
+    bool logMsg(unsigned level, const char* fmt, va_list args) override {
 #ifdef DEBUG
         if (level <= 3)
             vprintf(fmt, args);
-        return FALSE;
+        return false;
 #else
-        return TRUE;
+        return true;
 #endif
     }
 
@@ -234,63 +234,35 @@ public:
     void recordRelocation(
         void *                 location,   /* IN  */
         void *                 target,     /* IN  */
-        WORD                   fRelocType, /* IN  */
-        WORD                   slotNum,  /* IN  */
-        INT32                  addlDelta /* IN  */
+        uint16_t                   fRelocType, /* IN  */
+        uint16_t                   slotNum,  /* IN  */
+        int32_t                  addlDelta /* IN  */
         ) override {
         switch (fRelocType) {
             case IMAGE_REL_BASED_DIR64:
-                *((UINT64 *)((BYTE *)location + slotNum)) = (UINT64)target;
+                *((uint64_t *)((uint8_t *)location + slotNum)) = (uint64_t)target;
                 break;
 #ifdef _TARGET_AMD64_
             case IMAGE_REL_BASED_REL32:
             {
-                target = (BYTE *)target + addlDelta;
+                target = (uint8_t *)target + addlDelta;
 
-                auto * fixupLocation = (INT32 *)((BYTE *)location + slotNum);
-                BYTE * baseAddr = (BYTE *)fixupLocation + sizeof(INT32);
+                auto * fixupLocation = (int32_t *)((uint8_t *)location + slotNum);
+                uint8_t * baseAddr = (uint8_t *)fixupLocation + sizeof(int32_t);
 
-                auto delta = (INT64)((BYTE *)target - baseAddr);
-
-                //
-                // Do we need to insert a jump stub to make the source reach the target?
-                //
-                // Note that we cannot stress insertion of jump stub by inserting it unconditionally. JIT records the relocations 
-                // for intra-module jumps and calls. It does not expect the register used by the jump stub to be trashed.
-                //
-                //if (!FitsInI4(delta))
-                //{
-                //	if (m_fAllowRel32)
-                //	{
-                //		//
-                //		// When m_fAllowRel32 == TRUE, the JIT will use REL32s for both data addresses and direct code targets.
-                //		// Since we cannot tell what the relocation is for, we have to defensively retry.
-                //		//
-                //		m_fRel32Overflow = TRUE;
-                //		delta = 0;
-                //	}
-                //	else
-                //	{
-                //		//
-                //		// When m_fAllowRel32 == FALSE, the JIT will use a REL32s for direct code targets only.
-                //		// Use jump stub.
-                //		// 
-                //		delta = rel32UsingJumpStub(fixupLocation, (PCODE)target, m_pMethodBeingCompiled);
-                //	}
-                //}
+                auto delta = (int64_t)((uint8_t *)target - baseAddr);
 
                 // Write the 32-bits pc-relative delta into location
-                *fixupLocation = (INT32)delta;
+                *fixupLocation = (int32_t)delta;
             }
             break;
 #endif // _TARGET_AMD64_
-
             default:
-                printf("!!!!!!!!!!!!!! unsupported reloc type\r\n");
+                printf("Unsupported relocation type (%d)\r\n", fRelocType);
         }
     }
 
-    WORD getRelocTypeHint(void * target) override {
+    uint16_t getRelocTypeHint(void * target) override {
         return -1;
     }
 
@@ -299,7 +271,7 @@ public:
     // is cross-compiling (such as the case for crossgen), it will return a
     // different value than if it was compiling for the host architecture.
     // 
-    DWORD getExpectedTargetArchitecture() override {
+    uint32_t getExpectedTargetArchitecture() override {
         //printf("getExpectedTargetArchitecture\r\n");
 #ifdef _TARGET_AMD64_
         return IMAGE_FILE_MACHINE_AMD64;
@@ -334,7 +306,7 @@ public:
 
     // Return details about EE internal data structures
 
-    DWORD getThreadTLSIndex(
+    uint32_t getThreadTLSIndex(
         void                  **ppIndirection
         ) override {
         //printf("getThreadTLSIndex  not implemented\r\n");
@@ -348,7 +320,7 @@ public:
         return nullptr;
     }
 
-    LONG * getAddrOfCaptureThreadGlobal(
+    int32_t * getAddrOfCaptureThreadGlobal(
         void                  **ppIndirection
         ) override {
         //printf("getAddrOfCaptureThreadGlobal  not implemented\r\n");
@@ -426,28 +398,9 @@ public:
         return nullptr;
     }
 
-    // Given a module scope (module), a method handle (context) and
-    // a metadata token (metaTOK), fetch the handle
-    // (type, field or method) associated with the token.
-    // If this is not possible at compile-time (because the current method's
-    // code is shared and the token contains generic parameters)
-    // then indicate how the handle should be looked up at run-time.
-    //
-    void embedGenericHandle(
-        CORINFO_RESOLVED_TOKEN *        pResolvedToken,
-        BOOL                            fEmbedParent, // TRUE - embeds parent type handle of the field/method handle
-        CORINFO_GENERICHANDLE_RESULT *  pResult) override {
-        if (pResolvedToken->tokenType == CORINFO_TOKENKIND_Newarr) {
-            // Emitted from ILGenerator::new_array()
-            pResult->lookup.lookupKind.needsRuntimeLookup = false;
-            pResult->lookup.constLookup.handle = pResult->compileTimeHandle;
-            pResult->lookup.constLookup.accessType = IAT_VALUE;
-        }
-    }
-
     // Generate a cookie based on the signature that would needs to be passed
     // to CORINFO_HELP_PINVOKE_CALLI
-    LPVOID GetCookieForPInvokeCalliSig(
+    void* GetCookieForPInvokeCalliSig(
         CORINFO_SIG_INFO* szMetaSig,
         void           ** ppIndirection
         ) override {
@@ -473,7 +426,7 @@ public:
         CORINFO_JUST_MY_CODE_HANDLE result;
         if (ppIndirection)
             *ppIndirection = nullptr;
-        DWORD * pFlagAddr = nullptr;
+        uint32_t * pFlagAddr = nullptr;
         result = (CORINFO_JUST_MY_CODE_HANDLE) pFlagAddr;
         return result;
     }
@@ -482,9 +435,9 @@ public:
     // This is the IP of a native method, or the address of the descriptor struct
     // for IL.  Always guaranteed to be unique per process, and not to move. */
     void GetProfilingHandle(
-        BOOL                      *pbHookFunction,
+        bool                      *pbHookFunction,
         void                     **pProfilerHandle,
-        BOOL                      *pbIndirectedHandles
+        bool                      *pbIndirectedHandles
         ) override {
         WARN("GetProfilingHandle not implemented\r\n");
     }
@@ -513,21 +466,22 @@ public:
         pResult->nullInstanceCheck = false;
         pResult->sig.callConv = CORINFO_CALLCONV_DEFAULT;
         pResult->sig.retTypeClass = nullptr;
+        pResult->sig.flags = CORINFO_SIGFLAG_IS_LOCAL_SIG;
         pResult->verSig = pResult->sig;
         pResult->accessAllowed = CORINFO_ACCESS_ALLOWED;
     }
 
-    BOOL canAccessFamily(CORINFO_METHOD_HANDLE hCaller,
+    bool canAccessFamily(CORINFO_METHOD_HANDLE hCaller,
         CORINFO_CLASS_HANDLE hInstanceType) override {
         WARN("canAccessFamily not implemented\r\n");
-        return FALSE;
+        return false;
     }
 
-    // Returns TRUE if the Class Domain ID is the RID of the class (currently true for every class
+    // Returns true if the Class Domain ID is the RID of the class (currently true for every class
     // except reflection emitted classes and generics)
-    BOOL isRIDClassDomainID(CORINFO_CLASS_HANDLE cls) override {
+    bool isRIDClassDomainID(CORINFO_CLASS_HANDLE cls) override {
         WARN("isRIDClassDomainID not implemented\r\n");
-        return FALSE;
+        return false;
     }
 
     // returns the class's domain ID for accessing shared statics
@@ -584,7 +538,7 @@ public:
     }
 
     // return flags (defined above, CORINFO_FLG_PUBLIC ...)
-    DWORD getMethodAttribs(
+    uint32_t getMethodAttribs(
         CORINFO_METHOD_HANDLE       ftn         /* IN */
         ) override {
         auto method = reinterpret_cast<BaseMethod*>(ftn);
@@ -641,7 +595,7 @@ public:
     CorInfoInline canInline(
         CORINFO_METHOD_HANDLE       callerHnd,                  /* IN  */
         CORINFO_METHOD_HANDLE       calleeHnd,                  /* IN  */
-        DWORD*                      pRestrictions               /* OUT */
+        uint32_t*                      pRestrictions               /* OUT */
         ) override {
         WARN("canInline not implemented\r\n");
         return INLINE_PASS;
@@ -670,7 +624,7 @@ public:
         CORINFO_METHOD_HANDLE   exactCalleeHnd,     /* IN */
         bool fIsTailPrefix                          /* IN */
         ) override {
-        return FALSE;
+        return false;
     }
 
     // Reports whether or not a method can be tail called, and why.
@@ -708,65 +662,47 @@ public:
         return nullptr;
     }
 
-    // If a method's attributes have (getMethodAttribs) CORINFO_FLG_INTRINSIC set,
-    // getIntrinsicID() returns the intrinsic ID.
-    CorInfoIntrinsics getIntrinsicID(
-        CORINFO_METHOD_HANDLE       method,
-		bool * pMustExpand
-        ) override {
-        WARN("getIntrinsicID not implemented\r\n");
-        return CORINFO_INTRINSIC_Object_GetType;
-    }
-
-    // return the unmanaged calling convention for a PInvoke
-    CorInfoUnmanagedCallConv getUnmanagedCallConv(
-        CORINFO_METHOD_HANDLE       method
-        ) override {
-        WARN("getUnmanagedCallConv not implemented\r\n");
-        return CORINFO_UNMANAGED_CALLCONV_C;
-    }
-
     // return if any marshaling is required for PInvoke methods.  Note that
     // method == 0 => calli.  The call site sig is only needed for the varargs or calli case
-    BOOL pInvokeMarshalingRequired(
+    bool pInvokeMarshalingRequired(
         CORINFO_METHOD_HANDLE       method,
         CORINFO_SIG_INFO*           callSiteSig
         ) override {
         WARN("pInvokeMarshalingRequired not implemented\r\n");
-        return TRUE;
+        return true;
     }
 
     // Check constraints on method type arguments (only).
     // The parent class should be checked separately using satisfiesClassConstraints(parent).
-    BOOL satisfiesMethodConstraints(
+    bool satisfiesMethodConstraints(
         CORINFO_CLASS_HANDLE        parent, // the exact parent of the method
         CORINFO_METHOD_HANDLE       method
         ) override {
         WARN("satisfiesMethodConstraints not implemented\r\n"); 
-        return TRUE;
+        return true;
     }
 
     // Given a delegate target class, a target method parent class,  a  target method,
     // a delegate class, check if the method signature is compatible with the Invoke method of the delegate
     // (under the typical instantiation of any free type variables in the memberref signatures).
-    BOOL isCompatibleDelegate(
+    bool isCompatibleDelegate(
         CORINFO_CLASS_HANDLE        objCls,           /* type of the delegate target, if any */
         CORINFO_CLASS_HANDLE        methodParentCls,  /* exact parent of the target method, if any */
         CORINFO_METHOD_HANDLE       method,           /* (representative) target method, if any */
         CORINFO_CLASS_HANDLE        delegateCls,      /* exact type of the delegate */
-        BOOL                        *pfIsOpenDelegate /* is the delegate open */
+        bool                        *pfIsOpenDelegate /* is the delegate open */
         ) override {
         WARN("isCompatibleDelegate not implemented\r\n");
-        return TRUE;
+        return true;
     }
 
     // Determines whether the delegate creation obeys security transparency rules
-    virtual BOOL isDelegateCreationAllowed(
+    virtual bool isDelegateCreationAllowed(
         CORINFO_CLASS_HANDLE        delegateHnd,
         CORINFO_METHOD_HANDLE       calleeHnd
         ) {
         WARN("isDelegateCreationAllowed not implemented\r\n");
-        return FALSE;
+        return false;
     }
 
     // load and restore the method
@@ -845,7 +781,7 @@ public:
 
     // Returns true if the module does not require verification
     //
-    // If fQuickCheckOnlyWithoutCommit=TRUE, the function only checks that the
+    // If fQuickCheckOnlyWithoutCommit=true, the function only checks that the
     // module does not currently require verification in the current AppDomain.
     // This decision could change in the future, and so should not be cached.
     // If it is cached, it should only be used as a hint.
@@ -853,21 +789,21 @@ public:
     //
 
     // Checks if the given metadata token is valid
-    BOOL isValidToken(
+    bool isValidToken(
         CORINFO_MODULE_HANDLE       module,     /* IN  */
         unsigned                    metaTOK     /* IN  */
         ) override {
         WARN("isValidToken not implemented\r\n"); 
-        return TRUE;
+        return true;
     }
 
     // Checks if the given metadata token is valid StringRef
-    BOOL isValidStringRef(
+    bool isValidStringRef(
         CORINFO_MODULE_HANDLE       module,     /* IN  */
         unsigned                    metaTOK     /* IN  */
         ) override {
         WARN("isValidStringRef not implemented\r\n");
-        return TRUE;
+        return true;
     }
 
     /**********************************************************************************/
@@ -898,30 +834,30 @@ public:
     }
 
     // Append a (possibly truncated) representation of the type cls to the preallocated buffer ppBuf of length pnBufLen
-    // If fNamespace=TRUE, include the namespace/enclosing classes
-    // If fFullInst=TRUE (regardless of fNamespace and fAssembly), include namespace and assembly for any type parameters
-    // If fAssembly=TRUE, suffix with a comma and the full assembly qualification
+    // If fNamespace=true, include the namespace/enclosing classes
+    // If fFullInst=true (regardless of fNamespace and fAssembly), include namespace and assembly for any type parameters
+    // If fAssembly=true, suffix with a comma and the full assembly qualification
     // return size of representation
     int appendClassName(
-        __deref_inout_ecount(*pnBufLen) WCHAR** ppBuf,
+        __deref_inout_ecount(*pnBufLen) char16_t** ppBuf,
         int* pnBufLen,
         CORINFO_CLASS_HANDLE    cls,
-        BOOL fNamespace,
-        BOOL fFullInst,
-        BOOL fAssembly
+        bool fNamespace,
+        bool fFullInst,
+        bool fAssembly
         ) override {
         WARN("appendClassName not implemented\r\n"); return 0;
     }
 
     // Quick check whether the type is a value class. Returns the same value as getClassAttribs(cls) & CORINFO_FLG_VALUECLASS, except faster.
-    BOOL isValueClass(CORINFO_CLASS_HANDLE cls) override {
+    bool isValueClass(CORINFO_CLASS_HANDLE cls) override {
         if (cls == PYOBJECT_PTR_TYPE)
-            return FALSE;
-        return FALSE;
+            return false;
+        return false;
     }
 
     // return flags (defined above, CORINFO_FLG_PUBLIC ...)
-    DWORD getClassAttribs(
+    uint32_t getClassAttribs(
         CORINFO_CLASS_HANDLE    cls
         ) override {
         if (cls == PYOBJECT_PTR_TYPE)
@@ -929,15 +865,15 @@ public:
         return CORINFO_FLG_VALUECLASS;
     }
 
-    // Returns "TRUE" iff "cls" is a struct type such that return buffers used for returning a value
+    // Returns "true" iff "cls" is a struct type such that return buffers used for returning a value
     // of this type must be stack-allocated.  This will generally be true only if the struct 
     // contains GC pointers, and does not exceed some size limit.  Maintaining this as an invariant allows
     // an optimization: the JIT may assume that return buffer pointers for return types for which this predicate
-    // returns TRUE are always stack allocated, and thus, that stores to the GC-pointer fields of such return
+    // returns true are always stack allocated, and thus, that stores to the GC-pointer fields of such return
     // buffers do not require GC write barriers.
-    BOOL isStructRequiringStackAllocRetBuf(CORINFO_CLASS_HANDLE cls) override {
+    bool isStructRequiringStackAllocRetBuf(CORINFO_CLASS_HANDLE cls) override {
         WARN("isStructRequiringStackAllocRetBuf\r\n");
-        return FALSE;
+        return false;
     }
 
     CORINFO_MODULE_HANDLE getClassModule(
@@ -995,7 +931,7 @@ public:
 
     unsigned getClassAlignmentRequirement(
         CORINFO_CLASS_HANDLE        cls,
-        BOOL                        fDoubleAlignHint
+        bool                        fDoubleAlignHint
         ) override {
         WARN("getClassAlignmentRequirement\r\n");
         return 0;
@@ -1005,14 +941,14 @@ public:
     // in representing of 'cls' from a GC perspective.  The class is
     // assumed to be an array of machine words
     // (of length // getClassSize(cls) / sizeof(void*)),
-    // 'gcPtrs' is a poitner to an array of BYTEs of this length.
+    // 'gcPtrs' is a poitner to an array of uint8_ts of this length.
     // getClassGClayout fills in this array so that gcPtrs[i] is set
     // to one of the CorInfoGCType values which is the GC type of
     // the i-th machine word of an object of type 'cls'
     // returns the number of GC pointers in the array
     unsigned getClassGClayout(
         CORINFO_CLASS_HANDLE        cls,        /* IN */
-        BYTE                       *gcPtrs      /* OUT */
+        uint8_t                       *gcPtrs      /* OUT */
         ) override {
         WARN("getClassGClayout\r\n");
         return 0;
@@ -1028,19 +964,19 @@ public:
 
     CORINFO_FIELD_HANDLE getFieldInClass(
         CORINFO_CLASS_HANDLE clsHnd,
-        INT num
+        int32_t num
         ) override {
         WARN("getFieldInClass\r\n");
         return nullptr;
     }
 
-    BOOL checkMethodModifier(
+    bool checkMethodModifier(
         CORINFO_METHOD_HANDLE hMethod,
-        LPCSTR modifier,
-        BOOL fOptional
+        const char * modifier,
+        bool fOptional
         ) override {
         WARN("checkMethodModifier\r\n");
-        return FALSE;
+        return false;
     }
 
     // returns the newArr (1-Dim array) helper optimized for "arrayCls."
@@ -1096,7 +1032,7 @@ public:
     // value it means the JIT is requesting a helper that unboxes the
     // value into a particular location and thus has the signature
     //     void unboxHelper(void* dest, CORINFO_CLASS_HANDLE cls, Object* obj)
-    // Otherwise (it is null or points at a FALSE value) it is requesting 
+    // Otherwise (it is null or points at a false value) it is requesting 
     // a helper that returns a poitner to the unboxed data 
     //     void* unboxHelper(CORINFO_CLASS_HANDLE cls, Object* obj)
     // The EE has the option of NOT returning the copy style helper
@@ -1151,23 +1087,23 @@ public:
         return CORINFO_TYPE_UNDEF;
     }
 
-    // TRUE if child is a subtype of parent
+    // true if child is a subtype of parent
     // if parent is an interface, then does child implement / extend parent
-    BOOL canCast(
+    bool canCast(
         CORINFO_CLASS_HANDLE        child,  // subtype (extends parent)
         CORINFO_CLASS_HANDLE        parent  // base type
         ) override {
         WARN("canCast\r\n");
-        return TRUE;
+        return true;
     }
 
-    // TRUE if cls1 and cls2 are considered equivalent types.
-    BOOL areTypesEquivalent(
+    // true if cls1 and cls2 are considered equivalent types.
+    bool areTypesEquivalent(
         CORINFO_CLASS_HANDLE        cls1,
         CORINFO_CLASS_HANDLE        cls2
         ) override {
         WARN("areTypesEquivalent\r\n");
-        return FALSE;
+        return false;
     }
 
     // returns is the intersection of cls1 and cls2.
@@ -1202,19 +1138,19 @@ public:
     }
 
     // Check constraints on type arguments of this class and parent classes
-    BOOL satisfiesClassConstraints(
+    bool satisfiesClassConstraints(
         CORINFO_CLASS_HANDLE cls
         ) override {
         WARN("satisfiesClassConstraints\r\n");
-        return TRUE;
+        return true;
     }
 
     // Check if this is a single dimensional array type
-    BOOL isSDArray(
+    bool isSDArray(
         CORINFO_CLASS_HANDLE        cls
         ) override {
         WARN("isSDArray\r\n");
-        return TRUE;
+        return true;
     }
 
     // Get the numbmer of dimensions in an array 
@@ -1228,7 +1164,7 @@ public:
     // Get static field data for an array
     void * getArrayInitializationData(
         CORINFO_FIELD_HANDLE        field,
-        DWORD                       size
+        uint32_t                       size
         ) override {
         WARN("getArrayInitializationData\r\n");
         return nullptr;
@@ -1303,7 +1239,7 @@ public:
     // Returns true iff "fldHnd" represents a static field.
     bool isFieldStatic(CORINFO_FIELD_HANDLE fldHnd) override {
         WARN("isFieldStatic not implemented\r\n");
-        return FALSE;
+        return false;
     }
 
     /*********************************************************************************/
@@ -1322,7 +1258,7 @@ public:
     void getBoundaries(
         CORINFO_METHOD_HANDLE   ftn,                // [IN] method of interest
         unsigned int           *cILOffsets,         // [OUT] size of pILOffsets
-        DWORD                 **pILOffsets,         // [OUT] IL offsets of interest
+        uint32_t                 **pILOffsets,         // [OUT] IL offsets of interest
         //       jit MUST free with freeArray!
         ICorDebugInfo::BoundaryTypes *implictBoundaries // [OUT] tell jit, all boundries of this type
         ) override {
@@ -1338,7 +1274,7 @@ public:
     // OffsetMapping is sorted in order of increasing native offset.
     void setBoundaries(
         CORINFO_METHOD_HANDLE   ftn,            // [IN] method of interest
-        ULONG32                 cMap,           // [IN] size of pMap
+        uint32_t                 cMap,           // [IN] size of pMap
         ICorDebugInfo::OffsetMapping *pMap      // [IN] map including all points of interest.
         //      jit allocated with allocateArray, EE frees
         ) override {
@@ -1355,10 +1291,10 @@ public:
     // code generation.
     void getVars(
         CORINFO_METHOD_HANDLE           ftn,            // [IN]  method of interest
-        ULONG32                        *cVars,          // [OUT] size of 'vars'
+        uint32_t                        *cVars,          // [OUT] size of 'vars'
         ICorDebugInfo::ILVarInfo       **vars,          // [OUT] scopes of variables of interest
         //       jit MUST free with freeArray!
-        bool                           *extendOthers    // [OUT] it TRUE, then assume the scope
+        bool                           *extendOthers    // [OUT] it true, then assume the scope
         //       of unmentioned vars is entire method
         ) override {
         WARN("getVars not implemented\r\n");
@@ -1370,7 +1306,7 @@ public:
 
     void setVars(
         CORINFO_METHOD_HANDLE           ftn,            // [IN] method of interest
-        ULONG32                         cVars,          // [IN] size of 'vars'
+        uint32_t                         cVars,          // [IN] size of 'vars'
         ICorDebugInfo::NativeVarInfo   *vars            // [IN] map telling where local vars are stored at what points
         //      jit allocated with allocateArray, EE frees
         ) override {
@@ -1419,7 +1355,7 @@ public:
     *****************************************************************************/
 
     // Returns the HRESULT of the current exception
-    HRESULT GetErrorHRESULT(
+    JITINTERFACE_HRESULT GetErrorHRESULT(
     struct _EXCEPTION_POINTERS *pExceptionPointers
         ) override {
         WARN("GetErrorHRESULT\r\n");
@@ -1429,9 +1365,9 @@ public:
     // Fetches the message of the current exception
     // Returns the size of the message (including terminating null). This can be
     // greater than bufferLength if the buffer is insufficient.
-    ULONG GetErrorMessage(
-        __inout_ecount(bufferLength) LPWSTR buffer,
-        ULONG bufferLength
+    uint32_t GetErrorMessage(
+        __inout_ecount(bufferLength) char16_t * buffer,
+        uint32_t bufferLength
         ) override {
         WARN("GetErrorMessage\r\n");
         return 0;
@@ -1490,13 +1426,9 @@ public:
     }
 
     // Returns name of the JIT timer log
-    LPCWSTR getJitTimeLogFilename() override {
+    const char16_t * getJitTimeLogFilename() override {
 #ifdef DEBUG
-#ifndef WINDOWS
         return u"pyjion_timings.log";
-#else
-        return L"pyjion_timings.log";
-#endif
 #else
         return nullptr;
 #endif
@@ -1554,7 +1486,7 @@ public:
         WARN("getAddressOfPInvokeTarget\r\n");
 	}
 
-	DWORD getJitFlags(CORJIT_FLAGS * flags, DWORD sizeInBytes) override
+	uint32_t getJitFlags(CORJIT_FLAGS * flags, uint32_t sizeInBytes) override
 	{
 		flags->Add(flags->CORJIT_FLAG_SKIP_VERIFICATION);
 #ifdef EE_DEBUG_CODE
@@ -1564,6 +1496,12 @@ public:
 #else
         flags->Add(flags->CORJIT_FLAG_SPEED_OPT);
 #endif
+
+#ifdef DOTNET_PGO
+        flags->Add(flags->CORJIT_FLAG_BBINSTR);
+        flags->Add(flags->CORJIT_FLAG_BBOPT);
+#endif
+
 		return sizeof(CORJIT_FLAGS);
 	}
 
@@ -1576,13 +1514,6 @@ public:
         *offsetOfIndirection = 0x1234;
         *offsetAfterIndirection = 0x2468;
         *isRelative = true;
-    }
-
-    CORINFO_METHOD_HANDLE
-    resolveVirtualMethod(CORINFO_METHOD_HANDLE virtualMethod, CORINFO_CLASS_HANDLE implementingClass,
-                         CORINFO_CONTEXT_HANDLE ownerType) override {
-        WARN("resolveVirtualMethod not defined\r\n");
-        return nullptr;
     }
 
     CORINFO_METHOD_HANDLE getUnboxedEntry(CORINFO_METHOD_HANDLE ftn, bool *requiresInstMethodTableArg) override {
@@ -1613,7 +1544,7 @@ public:
         return false;
     }
 
-    LPCWSTR getStringLiteral(CORINFO_MODULE_HANDLE module, unsigned int metaTOK, int *length) override {
+    const char16_t * getStringLiteral(CORINFO_MODULE_HANDLE module, unsigned metaTOK, int *length) override {
         WARN("getStringLiteral not defined\r\n");
         return nullptr;
     }
@@ -1636,7 +1567,7 @@ public:
         return 0;
     }
 
-    BOOL canAllocateOnStack(CORINFO_CLASS_HANDLE cls) override {
+    bool canAllocateOnStack(CORINFO_CLASS_HANDLE cls) override {
         return false;
     }
 
@@ -1672,7 +1603,7 @@ public:
         return TypeCompareState::May;
     }
 
-    BOOL isMoreSpecificType(CORINFO_CLASS_HANDLE cls1, CORINFO_CLASS_HANDLE cls2) override {
+    bool isMoreSpecificType(CORINFO_CLASS_HANDLE cls1, CORINFO_CLASS_HANDLE cls2) override {
         return false;
     }
 
@@ -1737,9 +1668,6 @@ public:
             case CORINFO_HELP_VERIFICATION:
                 helper = (void*)&verificationExceptionHelper;
                 break;
-            case CORINFO_HELP_SEC_UNMGDCODE_EXCPT:
-                helper = (void*)&securityExceptionHelper;
-                break;
             default:
                 throw UnsupportedHelperException(ftnNum);
                 break;
@@ -1772,8 +1700,6 @@ public:
                 return (void*)nullReferenceExceptionHelper;
             case CORINFO_HELP_VERIFICATION:
                 return (void*)verificationExceptionHelper;
-            case CORINFO_HELP_SEC_UNMGDCODE_EXCPT:
-                return (void*)securityExceptionHelper;
             default:
                 throw UnsupportedHelperException(ftnNum);
         }
@@ -1787,7 +1713,7 @@ public:
         return nullptr;
     }
 
-    DWORD getFieldThreadLocalStoreID(CORINFO_FIELD_HANDLE field, void **ppIndirection) override {
+    uint32_t getFieldThreadLocalStoreID(CORINFO_FIELD_HANDLE field, void **ppIndirection) override {
         return 0;
     }
 
@@ -1819,21 +1745,22 @@ public:
         return false;
     }
 
-    void notifyInstructionSetUsage(CORINFO_InstructionSet instructionSet, bool supportEnabled) override {
-
+    // Notify EE about intent to use or not to use instruction set in the method. Returns true if the instruction set is supported unconditionally.
+    bool notifyInstructionSetUsage(CORINFO_InstructionSet instructionSet, bool supportEnabled) override {
+        return true;
     }
 
-    void reserveUnwindInfo(BOOL isFunclet, BOOL isColdCode, ULONG unwindSize) override {
+    void reserveUnwindInfo(bool isFunclet, bool isColdCode, uint32_t unwindSize) override {
 
     }
 
     void allocUnwindInfo (
-            BYTE *              pHotCode,              /* IN */
-            BYTE *              pColdCode,             /* IN */
-            ULONG               startOffset,           /* IN */
-            ULONG               endOffset,             /* IN */
-            ULONG               unwindSize,            /* IN */
-            BYTE *              pUnwindBlock,          /* IN */
+            uint8_t *              pHotCode,              /* IN */
+            uint8_t *              pColdCode,             /* IN */
+            uint32_t               startOffset,           /* IN */
+            uint32_t               endOffset,             /* IN */
+            uint32_t               unwindSize,            /* IN */
+            uint8_t *              pUnwindBlock,          /* IN */
             CorJitFuncKind      funcKind               /* IN */
     ) override {
         // Only used in .NET 5 for FEATURE_EH_FUNCLETS.
@@ -1852,34 +1779,107 @@ public:
         WARN("setEHinfo not implemented \r\n");
     }
 
-    HRESULT allocMethodBlockCounts(UINT32 count, BlockCounts **pBlockCounts) override {
-        WARN("allocMethodBlockCounts not implemented \r\n");
-        return 0;
-    }
-
-    HRESULT getMethodBlockCounts(CORINFO_METHOD_HANDLE ftnHnd, UINT32 *pCount, BlockCounts **pBlockCounts,
-                                 UINT32 *pNumRuns) override {
-        WARN("getMethodBlockCounts not implemented \r\n");
-        return 0;
-    }
-
     CorInfoTypeWithMod
     getArgType(CORINFO_SIG_INFO *sig, CORINFO_ARG_LIST_HANDLE args, CORINFO_CLASS_HANDLE *vcTypeRet) override {
         *vcTypeRet = nullptr;
         return (CorInfoTypeWithMod)(reinterpret_cast<Parameter*>(args))->m_type;
     }
 
-    void recordCallSite(ULONG instrOffset,
+    void recordCallSite(uint32_t instrOffset,
                         CORINFO_SIG_INFO *callSig,
                         CORINFO_METHOD_HANDLE methodHandle) override {
     }
 
-    void assignIL(vector<BYTE>il) {
+    void assignIL(vector<uint8_t>il) {
         m_il = il;
     }
 
-    void setNativeSize(ULONG i) {
+    void setNativeSize(uint32_t i) {
         m_nativeSize = i;
+    }
+
+    /* New .NET 6 methods */
+    bool resolveVirtualMethod(CORINFO_DEVIRTUALIZATION_INFO * info) override {
+        WARN("resolveVirtualMethod not implemented \r\n");
+        return false;
+    }
+
+    CORINFO_CLASS_HANDLE getDefaultComparerClass(
+            CORINFO_CLASS_HANDLE elemType
+    ) override {
+        WARN("getDefaultComparerClass not implemented \r\n");
+        return nullptr;
+    }
+
+
+    CorInfoCallConvExtension getUnmanagedCallConv(
+            CORINFO_METHOD_HANDLE       method,
+            CORINFO_SIG_INFO*           callSiteSig,
+            bool*                       pSuppressGCTransition /* OUT */
+    ) override {
+        return CorInfoCallConvExtension::C;
+    }
+
+    void embedGenericHandle(
+            CORINFO_RESOLVED_TOKEN *        pResolvedToken,
+            bool                            fEmbedParent, // true - embeds parent type handle of the field/method handle
+            CORINFO_GENERICHANDLE_RESULT *  pResult) override {
+        if (pResolvedToken->tokenType == CORINFO_TOKENKIND_Newarr) {
+            // Emitted from ILGenerator::new_array()
+            pResult->lookup.lookupKind.needsRuntimeLookup = false;
+            pResult->lookup.constLookup.handle = pResult->compileTimeHandle;
+            pResult->lookup.constLookup.accessType = IAT_VALUE;
+        }
+    }
+
+    JITINTERFACE_HRESULT getPgoInstrumentationResults(
+            CORINFO_METHOD_HANDLE      ftnHnd,
+            PgoInstrumentationSchema **pSchema,                    // OUT: pointer to the schema table (array) which describes the instrumentation results
+            // (pointer will not remain valid after jit completes).
+            uint32_t *                 pCountSchemaItems,          // OUT: pointer to the count of schema items in `pSchema` array.
+            uint8_t **                 pInstrumentationData        // OUT: `*pInstrumentationData` is set to the address of the instrumentation data
+            // (pointer will not remain valid after jit completes).
+    ) override {
+        WARN("getPgoInstrumentationResults not implemented \r\n");
+        return 0;
+    }
+
+    JITINTERFACE_HRESULT allocPgoInstrumentationBySchema(
+            CORINFO_METHOD_HANDLE     ftnHnd,
+            PgoInstrumentationSchema *pSchema,                     // IN OUT: pointer to the schema table (array) which describes the instrumentation results. `Offset` field
+            // is filled in by VM; other fields are set and passed in by caller.
+            uint32_t                  countSchemaItems,            // IN: count of schema items in `pSchema` array.
+            uint8_t **                pInstrumentationData         // OUT: `*pInstrumentationData` is set to the address of the instrumentation data.
+    ) override {
+        WARN("allocPgoInstrumentationBySchema not implemented \r\n");
+        return 0;
+    }
+
+    // If a method's attributes have (getMethodAttribs) CORINFO_FLG_INTRINSIC set,
+    // getIntrinsicID() returns the intrinsic ID.
+    CorInfoIntrinsics getIntrinsicID(
+            CORINFO_METHOD_HANDLE       method,
+            bool * pMustExpand
+    ) override {
+        WARN("getIntrinsicID not implemented\r\n");
+        return CORINFO_INTRINSIC_Object_GetType;
+    }
+
+    // Quick check whether the method is a jit intrinsic. Returns the same value as getMethodAttribs(ftn) & CORINFO_FLG_JIT_INTRINSIC, except faster.
+    bool isJitIntrinsic(CORINFO_METHOD_HANDLE ftn) {
+        // method attribs are CORINFO_FLG_STATIC | CORINFO_FLG_NATIVE - so always false.
+        return false;
+    }
+
+    CORINFO_CLASS_HANDLE getLikelyClass(
+            CORINFO_METHOD_HANDLE ftnHnd,
+            CORINFO_CLASS_HANDLE  baseHnd,
+            uint32_t                ilOffset,
+            uint32_t *              pLikelihood,      // OUT, estimated likelihood of the class (0...100)
+            uint32_t *              pNumberOfClasses  // OUT, estimated number of possible classes
+    ) {
+        // This will be dropped in preview 4
+        return nullptr;
     }
 };
 

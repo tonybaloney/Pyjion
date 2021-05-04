@@ -7,11 +7,10 @@ __version__ = '0.15.0'
 
 
 def _no_dotnet(path):
-    print(f"Can't find a .NET 5 installation in {path}, "
+    print(f"Can't find a .NET 6 installation in {path}, "
           "provide the DOTNET_ROOT environment variable "
           "if its installed somewhere unusual")
     exit(1)
-
 
 # try and locate .Net 5
 def _which_dotnet():
@@ -28,7 +27,7 @@ def _which_dotnet():
             _dotnet_root = pathlib.Path('/usr/local/share/dotnet/')
             if not _dotnet_root.exists():
                 _no_dotnet(_dotnet_root)
-        lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/5.0.*/libclrjit.dylib'))
+        lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/6.0.*/libclrjit.dylib'))
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
@@ -44,7 +43,7 @@ def _which_dotnet():
                     _dotnet_root = path
         if not _dotnet_root:
             _no_dotnet(_dotnet_root)
-        lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/5.0.*/libclrjit.so'))
+        lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/6.0.*/libclrjit.so'))
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
@@ -55,7 +54,7 @@ def _which_dotnet():
             _dotnet_root = pathlib.WindowsPath(os.path.expandvars(r'%ProgramFiles%\dotnet'))
             if not _dotnet_root.exists():
                 _no_dotnet(_dotnet_root)
-        lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/5.0.*/clrjit.dll'))
+        lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/6.0.*/clrjit.dll'))
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)

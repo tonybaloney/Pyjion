@@ -692,8 +692,8 @@ public:
     }
 
     JITMethod compile(CorJitInfo* jitInfo, ICorJitCompiler* jit, int stackSize) {
-        BYTE* nativeEntry;
-        ULONG nativeSizeOfCode;
+        uint8_t* nativeEntry;
+        uint32_t nativeSizeOfCode;
         jitInfo->assignIL(m_il);
         auto res = JITMethod(m_module, m_retType, m_params, nullptr);
         CORINFO_METHOD_INFO methodInfo = to_method(&res, stackSize);
@@ -719,6 +719,7 @@ public:
                 printf("out of memory.\n");
                 res.m_addr = nullptr;
                 break;
+            case CORJIT_IMPLLIMITATION:
             case CORJIT_INTERNALERROR:
 #ifdef DEBUG
                 printf("internal error code.\n");

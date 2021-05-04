@@ -28,7 +28,9 @@
 #include "pycomp.h"
 
 #ifdef WINDOWS
+#define BUFSIZE 65535
 #include <libloaderapi.h>
+#include <processenv.h>
 typedef ICorJitCompiler* (__cdecl* GETJIT)();
 #endif
 
@@ -169,13 +171,19 @@ static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*fram
 
 static Py_tss_t* g_extraSlot;
 
+#ifdef WINDOWS
+HMODULE GetClrJit() {
+    return LoadLibrary(TEXT("clrjit.dll"));
+}
+#endif
+
 bool JitInit() {
     g_pyjionSettings = {false, false};
     g_pyjionSettings.recursionLimit = Py_GetRecursionLimit();
 	g_extraSlot = PyThread_tss_alloc();
 	PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS
-	auto clrJitHandle = LoadLibrary(TEXT("clrjit.dll"));
+    auto clrJitHandle = GetClrJit();
 	if (clrJitHandle == nullptr) {
 	    PyErr_SetString(PyExc_RuntimeError, "Failed to load clrjit.dll, check that .NET is installed.");
         return false;
@@ -420,7 +428,7 @@ static PyObject* pyjion_dump_native(PyObject *self, PyObject* func) {
     PyTuple_SET_ITEM(result_t, 1, codeLen);
     Py_INCREF(codeLen);
 
-    auto codePosition = PyLong_FromUnsignedLong(reinterpret_cast<unsigned long>(&jitted->j_addr));
+    auto codePosition = PyLong_FromUnsignedLongLong(reinterpret_cast<unsigned long long>(&jitted->j_addr));
     if (codePosition == nullptr)
         return nullptr;
     PyTuple_SET_ITEM(result_t, 2, codePosition);
