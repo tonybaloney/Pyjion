@@ -2440,7 +2440,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
     m_comp->emit_pop_frame();
 
-    m_comp->emit_ret(1);
+    m_comp->emit_ret();
     auto code = m_comp->emit_compile();
     if (code != nullptr)
         return {code, Success};

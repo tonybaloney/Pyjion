@@ -42,9 +42,9 @@ public:
 
 class Local {
 public:
-    int m_index;
+    ssize_t m_index;
 
-    explicit Local(int index = -1) {
+    explicit Local(ssize_t index = -1) {
         m_index = index;
     }
 
@@ -60,9 +60,9 @@ public:
 
 class Label {
 public:
-    int m_index;
+    ssize_t m_index;
 
-    explicit Label(int index = -1) {
+    explicit Label(ssize_t index = -1) {
         m_index = index;
     }
 };
@@ -181,7 +181,7 @@ public:
     // Pops the current Python frame from the list of frames
     virtual void emit_pop_frame() = 0;
     // Returns from the current function
-    virtual void emit_ret(int size) = 0;
+    virtual void emit_ret() = 0;
     // Initializes state associated with updating the frames lasti value
     virtual void emit_lasti_init() = 0;
     // Updates the current value of last

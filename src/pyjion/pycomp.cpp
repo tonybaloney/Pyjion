@@ -1729,8 +1729,8 @@ void PythonCompiler::emit_dec_local(Local local, int value) {
     emit_store_local(local);
 }
 
-void PythonCompiler::emit_ret(int size) {
-    m_il.ret(size);
+void PythonCompiler::emit_ret() {
+    m_il.ret();
 }
 
 void PythonCompiler::emit_mark_label(Label label) {

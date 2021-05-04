@@ -299,7 +299,7 @@ public:
     void emit_lasti_init() override;
     void emit_lasti_update(uint16_t index) override;
 
-    void emit_ret(int size) override;
+    void emit_ret() override;
 
     void emit_store_name(PyObject* name) override;
     void emit_delete_name(PyObject* name) override;

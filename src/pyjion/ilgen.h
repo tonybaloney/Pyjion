@@ -55,8 +55,8 @@ using namespace std;
 
 class LabelInfo {
 public:
-    int m_location;
-    vector<int> m_branchOffsets;
+    ssize_t m_location;
+    vector<ssize_t> m_branchOffsets;
 
     LabelInfo() {
         m_location = -1;
@@ -77,7 +77,7 @@ class ILGenerator {
 
 public:
     vector<BYTE> m_il;
-    int m_localCount;
+    size_t m_localCount;
     vector<LabelInfo> m_labels;
 
 public:
@@ -128,13 +128,13 @@ public:
 
     Label define_label() {
         m_labels.emplace_back();
-        return Label((int)m_labels.size() - 1);
+        return Label((ssize_t)m_labels.size() - 1);
     }
 
     void mark_label(Label label) {
         auto info = &m_labels[label.m_index];
-        info->m_location = (int)m_il.size();
-        for (int i = 0; i < info->m_branchOffsets.size(); i++) {
+        info->m_location = (ssize_t)m_il.size();
+        for (size_t i = 0; i < info->m_branchOffsets.size(); i++) {
             auto from = info->m_branchOffsets[i];
             auto offset = info->m_location - (from + 4);		// relative to the end of the instruction
             m_il[from] = offset & 0xFF;
@@ -149,19 +149,19 @@ public:
         push_back(CEE_BREAK);
     }
 
-    void ret(int size) {
+    void ret() {
         push_back(CEE_RET); // VarPop (size)
     }
 
     void ld_r8(double i) {
         push_back(CEE_LDC_R8); // Pop0 + PushR8
         auto* value = (unsigned char*)(&i);
-        for (int j = 0; j < 8; j++) {
+        for (size_t j = 0; j < 8; j++) {
             push_back(value[j]);
         }
     }
 
-    void ld_i4(int i) {
+    void ld_i4(int32_t i) {
         switch (i) {
             case -1:push_back(CEE_LDC_I4_M1); break;
             case 0: push_back(CEE_LDC_I4_0); break;
@@ -186,12 +186,12 @@ public:
         }
     }
 
-    void ld_u4(unsigned int i) {
+    void ld_u4(uint32_t i) {
         ld_i4(i);
         push_back(CEE_CONV_U4);
     }
 
-    void ld_i8(long long i) {
+    void ld_i8(int64_t i) {
         push_back(CEE_LDC_I8); // Pop0 + PushI8
         auto* value = (unsigned char*)(&i);
         for (int j = 0; j < 8; j++) {
@@ -505,18 +505,24 @@ public:
         compare_eq();
     }
 
-    void ld_i(int i) {
-        m_il.push_back(CEE_LDC_I4); // Pop0, PushI
-        emit_int(i);
+    void ld_i(int64_t i) {
+        ld_i8(i);
         m_il.push_back(CEE_CONV_I); // Pop1, PushI
     }
 
-    void ld_i(Py_ssize_t i) {
-        ld_i((void*)i);
+    void ld_i(int32_t i) {
+        ld_i4(i);
+        m_il.push_back(CEE_CONV_I); // Pop1, PushI
     }
 
     void ld_i(size_t i) {
-        ld_i((void*)i);
+        ld_u4(i);
+        m_il.push_back(CEE_CONV_I); // Pop1, PushI
+    }
+
+    void ld_i(ssize_t i) {
+        ld_i4(i);
+        m_il.push_back(CEE_CONV_I); // Pop1, PushI
     }
 
     void ld_i(void* ptr) {
