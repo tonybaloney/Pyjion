@@ -173,13 +173,6 @@ static Py_tss_t* g_extraSlot;
 
 #ifdef WINDOWS
 HMODULE GetClrJit() {
-    std::wstring envBuf;
-    envBuf.resize(BUFSIZE);
-    const DWORD ret = GetEnvironmentVariable(TEXT("PYJION_CLR_PATH"), &envBuf[0], BUFSIZE);
-    if (ret != 0 && ret != BUFSIZE) {
-        AddDllDirectory(envBuf.c_str());
-    }
-
     return LoadLibrary(TEXT("clrjit.dll"));
 }
 #endif

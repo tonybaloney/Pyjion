@@ -12,10 +12,6 @@ def _no_dotnet(path):
           "if its installed somewhere unusual")
     exit(1)
 
-def _set_clr_path(path):
-    print(str(path))
-    os.environ["PYJION_CLR_PATH"] = str(path)
-
 # try and locate .Net 5
 def _which_dotnet():
     _dotnet_root = None
@@ -25,7 +21,6 @@ def _which_dotnet():
             _no_dotnet(_dotnet_root)
     if 'DOTNET_LIB_PATH' in os.environ:
         ctypes.cdll.LoadLibrary(os.environ['DOTNET_LIB_PATH'])
-        _set_clr_path(pathlib.Path(os.environ['DOTNET_LIB_PATH']).parent)
         return
     if platform.system() == "Darwin":
         if not _dotnet_root:
@@ -36,7 +31,6 @@ def _which_dotnet():
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
-            _set_clr_path(pathlib.Path(clrjitlib).parent)
         else:
             _no_dotnet(_dotnet_root)
     elif platform.system() == "Linux":
@@ -53,7 +47,6 @@ def _which_dotnet():
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
-            _set_clr_path(pathlib.Path(clrjitlib).parent)
         else:
             _no_dotnet(_dotnet_root)
     elif platform.system() == "Windows":
@@ -65,7 +58,6 @@ def _which_dotnet():
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
-            _set_clr_path(pathlib.Path(clrjitlib).parent)
         else:
             _no_dotnet(_dotnet_root)
     else:

@@ -255,9 +255,9 @@ jobs:
 
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build/Release
-        run: .\unit_tests.exe
-        env:
-            PYJION_CLR_PATH: "c:\\Users\\runneradmin\\AppData\\Local\\Microsoft\\dotnet\\shared\\Microsoft.NETCore.App\\6.0.0-preview.3.21201.4\\"
+        run: |
+          cp c:\Users\runneradmin\AppData\Local\Microsoft\dotnet\shared\Microsoft.NETCore.App\6.0.0-preview.3.21201.4\clrjit.dll .
+          .\unit_tests.exe
 
       - name: Run Python tests
         shell: bash
