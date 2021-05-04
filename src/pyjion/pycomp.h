@@ -50,12 +50,12 @@
 #define METHOD_FLOORDIVIDE_TOKEN                 0x00000004
 #define METHOD_POWER_TOKEN                       0x00000005
 #define METHOD_MODULO_TOKEN                      0x00000006
-#define METHOD_SUBSCR_TOKEN                      0x00000007
+// Unused                                        0x00000007
 #define METHOD_STOREMAP_TOKEN                    0x00000008
 #define METHOD_RICHCMP_TOKEN                     0x00000009
 #define METHOD_CONTAINS_TOKEN                    0x0000000A
 #define METHOD_NOTCONTAINS_TOKEN                 0x0000000B
-#define METHOD_STORESUBSCR_TOKEN                 0x0000000C
+// Unused                                        0x0000000C
 #define METHOD_DELETESUBSCR_TOKEN                0x0000000D
 #define METHOD_NEWFUNCTION_TOKEN                 0x0000000E
 #define METHOD_GETITER_TOKEN                     0x0000000F
@@ -147,7 +147,7 @@
 #define METHOD_DEALLOC_OBJECT                    0x00000079
 #define METHOD_LOAD_CLOSURE                      0x0000007A
 #define METHOD_TRIPLE_BINARY_OP                  0x0000007B
-#define METHOD_XXXXXXXXXXXXXX                    0x0000007C
+// Unused                                        0x0000007C
 #define METHOD_LOADNAME_HASH                     0x0000007D
 #define METHOD_LOADGLOBAL_HASH                   0x0000007E
 #define METHOD_PENDING_CALLS                     0x0000007F
@@ -252,11 +252,8 @@
 #define METHOD_SUBSCR_LIST_SLICE_STEPPED 0x0007000A
 #define METHOD_SUBSCR_LIST_SLICE_REVERSED 0x0007000B
 
-
-
 #define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
 #define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
-#define LD_FIELDI(type, field) m_il.ld_i(offsetof(type, field)); m_il.mul(); m_il.ld_ind_i();
 
 extern ICorJitCompiler* g_jit;
 class PythonCompiler : public IPythonCompiler {
@@ -266,7 +263,7 @@ class PythonCompiler : public IPythonCompiler {
     UserModule* m_module;
     Local m_lasti;
     Local m_instrCount;
-    unordered_map<int, Local> m_frameLocals;
+    unordered_map<size_t, Local> m_frameLocals;
 
 public:
     explicit PythonCompiler(PyCodeObject *code);
@@ -524,12 +521,6 @@ private:
 };
 
 // Copies of internal CPython structures
-
-typedef struct {
-    PyObject_HEAD
-    Py_ssize_t it_index;
-    PyListObject *it_seq; /* Set to NULL when iterator is exhausted */
-} _listiterobject;
 
 typedef struct {
     PyObject_HEAD

@@ -177,7 +177,7 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
     return Success;
 }
 
-void AbstractInterpreter::setLocalType(int index, PyObject* val) {
+void AbstractInterpreter::setLocalType(size_t index, PyObject* val) {
     auto& lastState = mStartStates[0];
     if (val != nullptr) {
         auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val));
@@ -1070,7 +1070,7 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
     return &Any;
 }
 
-const char* AbstractInterpreter::opcodeName(int opcode) {
+const char* AbstractInterpreter::opcodeName(size_t opcode) {
 #define OP_TO_STR(x)   case x: return #x;
     switch (opcode) { // NOLINT(hicpp-multiway-paths-covered)
         OP_TO_STR(POP_TOP)
@@ -1508,7 +1508,7 @@ void AbstractInterpreter::buildMap(size_t  argCnt) {
     }
 }
 
-void AbstractInterpreter::makeFunction(int oparg) {
+void AbstractInterpreter::makeFunction(size_t oparg) {
     m_comp->emit_new_function();
     decStack(2);
     errorCheck("new function failed");
@@ -1587,11 +1587,11 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
     m_comp->emit_load_local(handler->ExVars.FinallyExc);
 }
 
-void AbstractInterpreter::decExcVars(int count){
+void AbstractInterpreter::decExcVars(size_t count){
     m_comp->emit_dec_local(mExcVarsOnStack, count);
 }
 
-void AbstractInterpreter::incExcVars(int count) {
+void AbstractInterpreter::incExcVars(size_t count) {
     m_comp->emit_inc_local(mExcVarsOnStack, count);
 }
 
@@ -2519,13 +2519,13 @@ bool AbstractInterpreter::canSkipLastiUpdate(size_t opcodeIndex) {
     return false;
 }
 
-void AbstractInterpreter::storeFast(int local, size_t opcodeIndex) {
+void AbstractInterpreter::storeFast(size_t local, size_t opcodeIndex) {
     m_comp->emit_store_fast(local);
     decStack();
     m_assignmentState[local] = true;
 }
 
-void AbstractInterpreter::loadConst(int constIndex, size_t opcodeIndex) {
+void AbstractInterpreter::loadConst(ssize_t constIndex, size_t opcodeIndex) {
     auto constValue = PyTuple_GetItem(mCode->co_consts, constIndex);
     m_comp->emit_ptr(constValue);
     m_comp->emit_dup();

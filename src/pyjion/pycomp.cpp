@@ -1106,7 +1106,6 @@ void PythonCompiler::emit_list_length(){
     m_il.ld_ind_i();
 }
 
-
 void PythonCompiler::emit_tuple_store(size_t argCnt) {
     /// This function emits a tuple from the stack, only using borrowed references.
     auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
@@ -1998,7 +1997,7 @@ void PythonCompiler::emit_compare_known_object(uint16_t compareType, AbstractVal
     emit_compare_object(compareType);
 }
 
-void PythonCompiler::emit_compare_floats(int compareType, bool guard) {
+void PythonCompiler::emit_compare_floats(uint16_t compareType, bool guard) {
     Local left = emit_define_local(LK_Pointer);
     Local right = emit_define_local(LK_Pointer);
     Label guard_fail = emit_define_label();

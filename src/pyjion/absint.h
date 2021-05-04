@@ -151,7 +151,7 @@ public:
 
     InterpreterState() = default;
 
-    explicit InterpreterState(int numLocals) {
+    explicit InterpreterState(size_t numLocals) {
         mLocals = CowVector<AbstractLocalInfo>(numLocals);
     }
 
@@ -184,7 +184,7 @@ public:
         return res;
     }
 
-    AbstractValueWithSources fromPgc(int stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject, AbstractSource* source) {
+    AbstractValueWithSources fromPgc(size_t stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject, AbstractSource* source) {
         if (mStack.empty())
             throw StackUnderflowException();
         auto existing = mStack[mStack.size() - 1 - stackPosition];
@@ -322,7 +322,7 @@ class AbstractInterpreter {
     unordered_set<size_t> m_jumpsTo;
     Label m_retLabel;
     Local m_retValue;
-    unordered_map<int, bool> m_assignmentState;
+    unordered_map<size_t, bool> m_assignmentState;
 
 #pragma warning (default:4251)
 
@@ -333,7 +333,7 @@ public:
     AbstactInterpreterCompileResult compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status);
     AbstractInterpreterResult interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status);
 
-    void setLocalType(int index, PyObject* val);
+    void setLocalType(size_t index, PyObject* val);
     // Returns information about the specified local variable at a specific
     // byte code index.
     AbstractLocalInfo getLocalInfo(size_t byteCodeIndex, size_t localIndex);
@@ -355,7 +355,7 @@ private:
     static bool mergeStates(InterpreterState& newState, InterpreterState& mergeTo);
     bool updateStartState(InterpreterState& newState, size_t index);
     void initStartingState();
-    const char* opcodeName(int opcode);
+    const char* opcodeName(size_t opcode);
     AbstractInterpreterResult preprocess();
     AbstractSource* newSource(AbstractSource* source) {
         m_sources.push_back(source);
@@ -368,7 +368,7 @@ private:
     AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
     AbstractSource* addPgcSource(size_t opcodeIndex);
 
-    void makeFunction(int oparg);
+    void makeFunction(size_t oparg);
     bool canSkipLastiUpdate(size_t opcodeIndex);
     void buildTuple(size_t argCnt);
     void buildList(size_t argCnt);
@@ -410,9 +410,9 @@ private:
 
     AbstactInterpreterCompileResult compileWorker(PgcStatus status);
 
-    void storeFast(int local, size_t opcodeIndex);
+    void storeFast(size_t local, size_t opcodeIndex);
 
-    void loadConst(int constIndex, size_t opcodeIndex);
+    void loadConst(ssize_t constIndex, size_t opcodeIndex);
 
     void returnValue(size_t opcodeIndex);
 
@@ -435,8 +435,8 @@ private:
 
     void emitRaise(ExceptionHandler *handler);
     void popExcVars();
-    void decExcVars(int count);
-    void incExcVars(int count);
+    void decExcVars(size_t count);
+    void incExcVars(size_t count);
 
 };
 

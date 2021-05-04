@@ -516,12 +516,12 @@ public:
     }
 
     void ld_i(size_t i) {
-        ld_u4(i);
+        ld_i8(i);
         m_il.push_back(CEE_CONV_I); // Pop1, PushI
     }
 
     void ld_i(ssize_t i) {
-        ld_i4(i);
+        ld_i8(i);
         m_il.push_back(CEE_CONV_I); // Pop1, PushI
     }
 
@@ -569,7 +569,7 @@ public:
         ld_loca(param.m_index);
     }
 
-    void st_loc(int index) {
+    void st_loc(ssize_t index) {
         switch (index) {
             case 0: m_il.push_back(CEE_STLOC_0); break;
             case 1: m_il.push_back(CEE_STLOC_1); break;
@@ -589,7 +589,7 @@ public:
         }
     }
 
-    void ld_loc(int index) {
+    void ld_loc(ssize_t index) {
         switch (index) {
             case 0: m_il.push_back(CEE_LDLOC_0); break;
             case 1: m_il.push_back(CEE_LDLOC_1); break;
@@ -609,7 +609,7 @@ public:
         }
     }
 
-    void ld_loca(int index) {
+    void ld_loca(ssize_t index) {
         if (index < 256) {
             m_il.push_back(CEE_LDLOCA_S); // Pop0, PushI
             m_il.push_back(index);
@@ -646,7 +646,7 @@ public:
         push_back(CEE_MUL);   // Pop1+Pop1, Push1
     }
 
-    void ld_arg(int index) {
+    void ld_arg(int32_t index) {
         assert(index != -1);
         switch (index) {
             case 0:
@@ -676,7 +676,7 @@ public:
         }
     }
 
-    CORINFO_METHOD_INFO to_method(JITMethod* addr, int stackSize) {
+    CORINFO_METHOD_INFO to_method(JITMethod* addr, size_t stackSize) {
         CORINFO_METHOD_INFO methodInfo{};
         methodInfo.ftn = (CORINFO_METHOD_HANDLE)addr;
         methodInfo.scope = (CORINFO_MODULE_HANDLE)m_module;
@@ -697,7 +697,7 @@ public:
         return methodInfo;
     }
 
-    JITMethod compile(CorJitInfo* jitInfo, ICorJitCompiler* jit, int stackSize) {
+    JITMethod compile(CorJitInfo* jitInfo, ICorJitCompiler* jit, size_t stackSize) {
         uint8_t* nativeEntry;
         uint32_t nativeSizeOfCode;
         jitInfo->assignIL(m_il);
@@ -749,7 +749,7 @@ public:
     }
 
 private:
-    void emit_int(int value) {
+    void emit_int(int32_t value) {
         m_il.push_back(value & 0xff);
         m_il.push_back((value >> 8) & 0xff);
         m_il.push_back((value >> 16) & 0xff);
