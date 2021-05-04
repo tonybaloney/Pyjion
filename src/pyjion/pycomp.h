@@ -431,6 +431,7 @@ public:
     void emit_compare_object(uint16_t compareType) override;
     void emit_compare_float(uint16_t compareType) override;
     void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
+    void emit_compare_floats(uint16_t compareType, bool guard) override;
     void emit_compare_tagged_int(uint16_t compareType) override;
 
     void emit_store_fast(int local) override;

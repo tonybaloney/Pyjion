@@ -97,6 +97,7 @@ typedef struct PyjionSettings {
     bool opt_functionCalls = OPTIMIZE_FUNCTION_CALLS; // OPT-14
     bool opt_loadAttr = OPTIMIZE_LOAD_ATTR; // OPT-15
     bool opt_superMethodCalls = OPTIMIZE_METHOD_CALLS; // OPT-16
+    bool opt_compare = OPTIMIZE_COMPARE; // OPT-17
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
@@ -155,4 +156,9 @@ public:
 };
 
 void setOptimizationLevel(unsigned short level);
+
+#ifdef WINDOWS
+HMODULE GetClrJit();
+#endif
+
 #endif

@@ -589,6 +589,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     lastState.push(&Dict);
                     break;
                 case COMPARE_OP: {
+                    if (PGC_READY()){
+                        PGC_PROBE(2);
+                        PGC_UPDATE_STACK(2);
+                    }
                     lastState.pop();
                     lastState.pop();
                     lastState.push(&Any);
@@ -1748,7 +1752,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_comp->emit_dup_top_two();
                 break;
             case COMPARE_OP: {
-                if (OPT_ENABLED(internRichCompare) && stackInfo.size() >= 2){
+                if ((OPT_ENABLED(internRichCompare) || OPT_ENABLED(compare)) && stackInfo.size() >= 2){
                     m_comp->emit_compare_known_object(static_cast<int>(oparg), stackInfo.second(), stackInfo.top());
                 } else {
                     m_comp->emit_compare_object(static_cast<int>(oparg));

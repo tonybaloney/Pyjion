@@ -1175,3 +1175,12 @@ TEST_CASE("Test math operations") {
         CHECK(t.returns() == "42");
     }
 }
+
+TEST_CASE("Test rich comparisons of floats") {
+    SECTION("test greater than") {
+        auto t = EmissionTest(
+                "def f():\n    x = 1.5\n    y = 2.5\n    return x > y"
+        );
+        CHECK(t.returns() == "False");
+    };
+}
