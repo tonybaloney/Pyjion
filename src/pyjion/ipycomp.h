@@ -395,6 +395,7 @@ public:
 
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
     virtual void emit_compare_object(int compareType) = 0;
+    virtual void emit_compare_floats(int compareType, bool guard) = 0;
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
     virtual void emit_compare_known_object(int compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) = 0;
     // Performs a comparison of two unboxed floating point values on the stack
