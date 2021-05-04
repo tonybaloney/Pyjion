@@ -12,7 +12,6 @@ def _no_dotnet(path):
           "if its installed somewhere unusual")
     exit(1)
 
-
 # try and locate .Net 5
 def _which_dotnet():
     _dotnet_root = None

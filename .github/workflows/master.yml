@@ -144,7 +144,7 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         shell: bash
         run: ./unit_tests
-
+        
       - name: Run gcov
         shell: bash
         run: gcov Tests/
@@ -255,7 +255,9 @@ jobs:
 
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build/Release
-        run: .\unit_tests.exe
+        run: |
+          cp c:\Users\runneradmin\AppData\Local\Microsoft\dotnet\shared\Microsoft.NETCore.App\6.0.0-preview.3.21201.4\clrjit.dll .
+          .\unit_tests.exe
 
       - name: Run Python tests
         shell: bash

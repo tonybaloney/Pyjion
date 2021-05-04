@@ -257,9 +257,8 @@ public:
             }
             break;
 #endif // _TARGET_AMD64_
-
             default:
-                printf("!!!!!!!!!!!!!! unsupported reloc type\r\n");
+                printf("Unsupported relocation type (%d)\r\n", fRelocType);
         }
     }
 
@@ -840,7 +839,7 @@ public:
     // If fAssembly=true, suffix with a comma and the full assembly qualification
     // return size of representation
     int appendClassName(
-        __deref_inout_ecount(*pnBufLen) WCHAR** ppBuf,
+        __deref_inout_ecount(*pnBufLen) char16_t** ppBuf,
         int* pnBufLen,
         CORINFO_CLASS_HANDLE    cls,
         bool fNamespace,
@@ -1427,13 +1426,9 @@ public:
     }
 
     // Returns name of the JIT timer log
-    LPCWSTR getJitTimeLogFilename() override {
+    const char16_t * getJitTimeLogFilename() override {
 #ifdef DEBUG
-#ifndef WINDOWS
         return u"pyjion_timings.log";
-#else
-        return L"pyjion_timings.log";
-#endif
 #else
         return nullptr;
 #endif
@@ -1549,7 +1544,7 @@ public:
         return false;
     }
 
-    LPCWSTR getStringLiteral(CORINFO_MODULE_HANDLE module, unsigned int metaTOK, int *length) override {
+    const char16_t * getStringLiteral(CORINFO_MODULE_HANDLE module, unsigned metaTOK, int *length) override {
         WARN("getStringLiteral not defined\r\n");
         return nullptr;
     }
@@ -1750,8 +1745,9 @@ public:
         return false;
     }
 
+    // Notify EE about intent to use or not to use instruction set in the method. Returns true if the instruction set is supported unconditionally.
     bool notifyInstructionSetUsage(CORINFO_InstructionSet instructionSet, bool supportEnabled) override {
-
+        return true;
     }
 
     void reserveUnwindInfo(bool isFunclet, bool isColdCode, uint32_t unwindSize) override {
