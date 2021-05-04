@@ -15,6 +15,7 @@ option(OPTIMIZE_TYPESLOT_LOOKUPS "Precompile typeslot lookups for binary operati
 option(OPTIMIZE_FUNCTION_CALLS "Precompile method calls to builtin CFunctions" ON)
 option(OPTIMIZE_LOAD_ATTR "Optimize LOAD_ATTR for known types" ON)
 option(OPTIMIZE_METHOD_CALLS "Optimize LOAD_METHOD/CALL_METHOD" ON)
+option(OPTIMIZE_COMPARE "Optimize COMPARE_OP" ON)
 
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
 
@@ -112,6 +113,12 @@ if (OPTIMIZE_METHOD_CALLS)
     add_definitions(-DOPTIMIZE_METHOD_CALLS=1)
 else()
     add_definitions(-DOPTIMIZE_METHOD_CALLS=0)
+endif()
+
+if (OPTIMIZE_COMPARE)
+    add_definitions(-DOPTIMIZE_COMPARE=1)
+else()
+    add_definitions(-DOPTIMIZE_COMPARE=0)
 endif()
 
 if (EE_DEBUG_CODE)

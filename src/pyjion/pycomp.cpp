@@ -1984,7 +1984,7 @@ void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWit
                 return;
         }
     }
-    if (lhs.hasValue() && lhs.Value->known() && rhs.hasValue() && rhs.Value->known()){
+    if (OPT_ENABLED(compare) && lhs.hasValue() && lhs.Value->known() && rhs.hasValue() && rhs.Value->known()){
         // Specific comparisons.
         switch (lhs.Value->kind()) {
             case AVK_Float:
