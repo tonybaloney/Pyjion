@@ -1,8 +1,10 @@
 # Release notes
 
-## 0.16.0
+## 1.0.0 (alpha1)
 
-* All method calls are faster by enforcing vectorcall protocol and inlining anything below 10 arguments
+* Pyjion uses .NET 6 Preview 3 as the compiler, for Linux and macOS make sure you have installed it first
+* Rich comparisons (==, <, >) of floating point numbers are significantly faster (OPT-17)
+* All method calls are faster by enforcing vectorcall protocol and inlining anything below 10 arguments (OPT-16)
 
 ## 0.15.0
 
