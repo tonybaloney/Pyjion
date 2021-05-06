@@ -366,7 +366,7 @@ void PythonCompiler::emit_known_binary_op_multiply(AbstractValueWithSources &lef
             /* Support for [sequence] * value */
             if (right.hasSource() && right.Sources->hasConstValue() && right.Value->kind() == AVK_Integer){
                 // Shortcut for const numeric values.
-                m_il.ld_i(dynamic_cast<ConstSource *>(right.Sources)->getNumericValue());
+                m_il.ld_i8(dynamic_cast<ConstSource *>(right.Sources)->getNumericValue());
             } else {
                 emit_load_local(rightLocal);
                 emit_null();
@@ -391,7 +391,7 @@ void PythonCompiler::emit_known_binary_op_multiply(AbstractValueWithSources &lef
             if (right_sequence){
                 emit_load_local(rightLocal);
                 if (left.hasSource() && left.Sources->hasConstValue() && left.Value->kind() == AVK_Integer){
-                    m_il.ld_i(dynamic_cast<ConstSource *>(left.Sources)->getNumericValue());
+                    m_il.ld_i8(dynamic_cast<ConstSource *>(left.Sources)->getNumericValue());
                 } else {
                     emit_load_local(leftLocal);
                     emit_null();

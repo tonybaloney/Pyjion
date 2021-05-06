@@ -515,16 +515,6 @@ public:
         m_il.push_back(CEE_CONV_I); // Pop1, PushI
     }
 
-    void ld_i(size_t i) {
-        ld_i8(i);
-        m_il.push_back(CEE_CONV_I); // Pop1, PushI
-    }
-
-    void ld_i(ssize_t i) {
-        ld_i8(i);
-        m_il.push_back(CEE_CONV_I); // Pop1, PushI
-    }
-
     void ld_i(void* ptr) {
         auto value = (size_t)ptr;
 #ifdef _TARGET_AMD64_

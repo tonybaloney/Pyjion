@@ -98,7 +98,7 @@ void PythonCompiler::emit_load_frame_locals(){
     for (size_t i = 0 ; i < this->m_code->co_nlocals; i++){
         m_frameLocals[i] = m_il.define_local_no_cache(Parameter(CORINFO_TYPE_NATIVEINT));
         load_frame();
-        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + i * sizeof(size_t));
+        m_il.ld_i4(offsetof(PyFrameObject, f_localsplus) + i * sizeof(size_t));
         m_il.add();
         m_il.ld_ind_i();
         m_il.st_loc(m_frameLocals[i]);
@@ -139,7 +139,7 @@ void PythonCompiler::emit_eh_trace() {
 
 void PythonCompiler::emit_lasti_init() {
     load_frame();
-    m_il.ld_i(offsetof(PyFrameObject, f_lasti));
+    m_il.ld_i4(offsetof(PyFrameObject, f_lasti));
     m_il.add();
     m_il.st_loc(m_lasti);
 }
@@ -155,7 +155,7 @@ void PythonCompiler::load_local(uint16_t oparg) {
         m_il.ld_loc(m_frameLocals[oparg]);
     } else {
         load_frame();
-        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + oparg * sizeof(size_t));
+        m_il.ld_i4(offsetof(PyFrameObject, f_localsplus) + oparg * sizeof(size_t));
         m_il.add();
         m_il.ld_ind_i();
     }
@@ -561,7 +561,7 @@ void PythonCompiler::emit_store_fast(size_t local) {
         load_local(local);
 
         load_frame();
-        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + local * sizeof(size_t));
+        m_il.ld_i4(offsetof(PyFrameObject, f_localsplus) + local * sizeof(size_t));
         m_il.add();
 
         m_il.ld_loc(valueTmp);
@@ -797,7 +797,7 @@ void PythonCompiler::emit_dict_build_from_map() {
 }
 
 void PythonCompiler::emit_new_list(size_t argCnt) {
-    m_il.ld_i(argCnt);
+    m_il.ld_i4(argCnt);
     m_il.emit_call(METHOD_PYLIST_NEW);
 }
 
@@ -814,7 +814,7 @@ void PythonCompiler::emit_list_store(size_t argCnt) {
     m_il.st_loc(listTmp);
 
     // load the address of the list item...
-    m_il.ld_i(offsetof(PyListObject, ob_item));
+    m_il.ld_i4(offsetof(PyListObject, ob_item));
     m_il.add();
     m_il.ld_ind_i();
 
@@ -826,7 +826,7 @@ void PythonCompiler::emit_list_store(size_t argCnt) {
 
         // load the address of the list item...
         m_il.ld_loc(listItems);
-        m_il.ld_i(arg * sizeof(size_t));
+        m_il.ld_i4(arg * sizeof(size_t));
         m_il.add();
 
         // reload the value
@@ -839,9 +839,9 @@ void PythonCompiler::emit_list_store(size_t argCnt) {
     // update the size of the list...
     m_il.ld_loc(listTmp);
     m_il.dup();
-    m_il.ld_i(offsetof(PyVarObject, ob_size));
+    m_il.ld_i4(offsetof(PyVarObject, ob_size));
     m_il.add();
-    m_il.ld_i(argCnt);
+    m_il.ld_i4(argCnt);
     m_il.st_ind_i();
 
     m_il.free_local(valueTmp);
@@ -891,7 +891,7 @@ void PythonCompiler::emit_set_extend() {
 }
 
 void PythonCompiler::emit_new_dict(size_t size) {
-    m_il.ld_i(size);
+    m_il.ld_i4(size);
     m_il.emit_call(METHOD_PYDICT_NEWPRESIZED);
 }
 
@@ -1043,7 +1043,7 @@ void PythonCompiler::emit_load_global(PyObject* name) {
 void PythonCompiler::emit_load_global_hashed(PyObject* name, ssize_t name_hash) {
     load_frame();
     m_il.ld_i(name);
-    m_il.ld_i(name_hash);
+    m_il.ld_i8(name_hash);
     m_il.emit_call(METHOD_LOADGLOBAL_HASH);
 }
 
@@ -1056,7 +1056,7 @@ void PythonCompiler::emit_delete_fast(size_t index) {
     } else {
         load_local(index);
         load_frame();
-        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + index * sizeof(size_t));
+        m_il.ld_i4(offsetof(PyFrameObject, f_localsplus) + index * sizeof(size_t));
         m_il.add();
         m_il.load_null();
         m_il.st_ind_i();
@@ -1079,13 +1079,13 @@ void PythonCompiler::emit_new_tuple(size_t size) {
 
 // Loads the specified index from a tuple that's already on the stack
 void PythonCompiler::emit_tuple_load(size_t index) {
-	m_il.ld_i(index * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
+	m_il.ld_i4(index * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
 	m_il.add();
 	m_il.ld_ind_i();
 }
 
 void PythonCompiler::emit_tuple_length(){
-    m_il.ld_i(offsetof(PyVarObject, ob_size));
+    m_il.ld_i4(offsetof(PyVarObject, ob_size));
     m_il.add();
     m_il.ld_ind_i();
 }
@@ -1093,14 +1093,14 @@ void PythonCompiler::emit_tuple_length(){
 void PythonCompiler::emit_list_load(size_t index) {
     LD_FIELD(PyListObject, ob_item);
     if (index > 0) {
-        m_il.ld_i(index * sizeof(size_t));
+        m_il.ld_i4(index * sizeof(size_t));
         m_il.add();
     }
     m_il.ld_ind_i();
 }
 
 void PythonCompiler::emit_list_length(){
-    m_il.ld_i(offsetof(PyVarObject, ob_size));
+    m_il.ld_i4(offsetof(PyVarObject, ob_size));
     m_il.add();
     m_il.ld_ind_i();
 }
@@ -1117,7 +1117,7 @@ void PythonCompiler::emit_tuple_store(size_t argCnt) {
 
         // load the address of the tuple item...
         m_il.ld_loc(tupleTmp);
-        m_il.ld_i(arg * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
+        m_il.ld_i4(arg * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
         m_il.add();
 
         // reload the value
@@ -1604,7 +1604,7 @@ void PythonCompiler::emit_setup_annotations() {
 
 void PythonCompiler::emit_set_closure() {
 	auto func = emit_spill();
-	m_il.ld_i(offsetof(PyFunctionObject, func_closure));
+	m_il.ld_i4(offsetof(PyFunctionObject, func_closure));
 	m_il.add();
 	emit_load_and_free_local(func);
 	m_il.st_ind_i();
@@ -1612,7 +1612,7 @@ void PythonCompiler::emit_set_closure() {
 
 void PythonCompiler::emit_set_annotations() {
 	auto tmp = emit_spill();
-	m_il.ld_i(offsetof(PyFunctionObject, func_annotations));
+	m_il.ld_i4(offsetof(PyFunctionObject, func_annotations));
 	m_il.add();
 	emit_load_and_free_local(tmp);
     m_il.st_ind_i();
@@ -1620,7 +1620,7 @@ void PythonCompiler::emit_set_annotations() {
 
 void PythonCompiler::emit_set_kw_defaults() {
 	auto tmp = emit_spill();
-	m_il.ld_i(offsetof(PyFunctionObject, func_kwdefaults));
+	m_il.ld_i4(offsetof(PyFunctionObject, func_kwdefaults));
 	m_il.add();
 	emit_load_and_free_local(tmp);
 	m_il.st_ind_i();
@@ -1628,7 +1628,7 @@ void PythonCompiler::emit_set_kw_defaults() {
 
 void PythonCompiler::emit_set_defaults() {
 	auto tmp = emit_spill();
-	m_il.ld_i(offsetof(PyFunctionObject, func_defaults));
+	m_il.ld_i4(offsetof(PyFunctionObject, func_defaults));
 	m_il.add();
 	emit_load_and_free_local(tmp);
 	m_il.st_ind_i();
@@ -1661,7 +1661,7 @@ void PythonCompiler::emit_load_closure(size_t index) {
 
 void PythonCompiler::emit_load_classderef(size_t index) {
     load_frame();
-    m_il.ld_i(index);
+    m_il.ld_i4(index);
     m_il.emit_call(METHOD_LOAD_CLASSDEREF_TOKEN);
 }
 
@@ -1775,7 +1775,7 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     m_il.ld_i(index_offset);
     m_il.add();
     m_il.ld_ind_i();
-    m_il.ld_i(sizeof(PyObject*));
+    m_il.ld_i4(sizeof(PyObject*));
     m_il.mul();
     m_il.add();
     m_il.ld_ind_i();
@@ -1822,18 +1822,8 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
      *  - 0xff (StopIter/ iterator exhausted)
      *  - PyObject* (next item in iteration)
      */
-    if (iterator.Value->kind() != AVK_Iterable)
-        return emit_for_next();
-    auto iterable = dynamic_cast<IteratorSource*>(iterator.Sources);
-    switch (iterable->kind()) {
-        // TODO: Implement a guard-safe iterator.
-//        case AVK_List:
-//            emit_varobject_iter_next(offsetof(_listiterobject, it_seq), offsetof(_listiterobject, it_index),
-//                                         offsetof(PyListObject, ob_item));
-//            break;
-        default:
-            return emit_for_next();
-    }
+    // TODO : Implement a guard-safe iterator
+    return emit_for_next();
 }
 
 void PythonCompiler::emit_debug_msg(const char* msg) {
