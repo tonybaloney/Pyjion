@@ -263,3 +263,7 @@ install(TARGETS _pyjion LIBRARY DESTINATION src/pyjion)
 #        CONFIGURATIONS Debug
 #        LIBRARY DESTINATION src/pyjion
 #        RUNTIME DESTINATION Debug/bin)
+#install(TARGETS _pyjion
+#        CONFIGURATIONS Release
+#        LIBRARY DESTINATION src/pyjion
+#        RUNTIME DESTINATION Release/bin)
