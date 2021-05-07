@@ -26,6 +26,7 @@
 #include <Python.h>
 #include "pyjit.h"
 #include "pycomp.h"
+#include "pyjitallocator.h"
 
 #ifdef WINDOWS
 #define BUFSIZE 65535
@@ -62,56 +63,9 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(compare, level, 1);
 }
 
-PgcStatus nextPgcStatus(PgcStatus status){
-    switch(status){
-        case PgcStatus::Uncompiled: return PgcStatus::CompiledWithProbes;
-        case PgcStatus::CompiledWithProbes:
-        case PgcStatus::Optimized:
-        default:
-            return PgcStatus::Optimized;
-    }
-}
 
 PyjionJittedCode::~PyjionJittedCode() {
 	delete j_profile;
-}
-
-PyjionCodeProfile::~PyjionCodeProfile() {
-    for (auto &pos: this->stackTypes) {
-        for(auto &observed: pos.second){
-            Py_XDECREF(observed.second);
-        }
-    }
-    for (auto &pos: this->stackValues) {
-        for(auto &observed: pos.second){
-            Py_XDECREF(observed.second);
-        }
-    }
-}
-
-void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyObject* value){
-    if (this->stackTypes[opcodePosition][stackPosition] == nullptr) {
-        this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
-        Py_INCREF(Py_TYPE(value));
-    }
-    if (this->stackValues[opcodePosition][stackPosition] == nullptr) {
-        this->stackValues[opcodePosition][stackPosition] = value;
-        Py_INCREF(value);
-    }
-}
-
-PyTypeObject* PyjionCodeProfile::getType(size_t opcodePosition, size_t stackPosition) {
-    return this->stackTypes[opcodePosition][stackPosition];
-}
-
-PyObject* PyjionCodeProfile::getValue(size_t opcodePosition, size_t stackPosition) {
-    return this->stackValues[opcodePosition][stackPosition];
-}
-
-void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition){
-    if (value != nullptr && profile != nullptr){
-        profile->record(opcodePosition, stackPosition, value);
-    }
 }
 
 int
@@ -149,38 +103,6 @@ static inline int Pyjit_EnterRecursiveCall(const char *where) {
 static inline void Pyjit_LeaveRecursiveCall() {
     PyThreadState *tstate = PyThreadState_GET();
     tstate->recursion_depth--;
-}
-
-static PyMemAllocatorEx g_originalAllocator ; // Whichever allocator was set before JIT was enabled.
-
-static void *
-_PyJit_Malloc(void *ctx, size_t size)
-{
-    return g_originalAllocator.malloc(nullptr, size);
-}
-
-static void *
-_PyJit_Calloc(void *ctx, size_t nelem, size_t elsize)
-{
-    return g_originalAllocator.calloc(nullptr, nelem, elsize);
-}
-
-static void *
-_PyJit_Realloc(void *ctx, void *ptr, size_t size)
-{
-    return g_originalAllocator.realloc(nullptr, ptr, size);
-}
-
-static void
-_PyJit_Free(void *ctx, void *ptr)
-{
-    g_originalAllocator.free(nullptr, ptr);
-}
-
-static PyMemAllocatorEx PYJIT_ALLOC = {NULL, _PyJit_Malloc, _PyJit_Calloc, _PyJit_Realloc, _PyJit_Free};
-
-static inline void Pyjit_SetAllocatorProfile(PyjionCodeProfile* profile) {
-    PYJIT_ALLOC.ctx = profile;
 }
 
 static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile) {
@@ -235,8 +157,7 @@ bool JitInit() {
     if (PyType_Ready(&PyJitMethodLocation_Type) < 0)
         return false;
     g_emptyTuple = PyTuple_New(0);
-    PyMem_GetAllocator(PYMEM_DOMAIN_OBJ, &g_originalAllocator);
-    PyMem_SetAllocator(PYMEM_DOMAIN_OBJ, &PYJIT_ALLOC);
+    Pyjit_AllocatorInit();
     return true;
 }
 
@@ -330,6 +251,7 @@ PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
 		else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {
 			auto result = PyJit_ExecuteAndCompileFrame(jitted, f, ts, jitted->j_profile);
             jitted->j_pgc_status = nextPgcStatus(jitted->j_pgc_status);
+            jitted->j_profile->status = jitted->j_pgc_status;
 			return result;
 		}
 	}

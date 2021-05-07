@@ -48,20 +48,10 @@
 #include <frameobject.h>
 #include <Python.h>
 
+#include "pgocodeprofile.h"
+
 using namespace std;
 
-class PyjionCodeProfile{
-    unordered_map<size_t, unordered_map<size_t, PyTypeObject *>> stackTypes;
-    unordered_map<size_t, unordered_map<size_t, PyObject *>> stackValues;
-public:
-    void record(size_t opcodePosition, size_t stackPosition, PyObject* obj);
-    PyTypeObject* getType(size_t opcodePosition, size_t stackPosition);
-    PyObject* getValue(size_t opcodePosition, size_t stackPosition);
-    ~PyjionCodeProfile();
-};
-
-
-void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition);
 class PyjionJittedCode;
 
 bool JitInit();
@@ -111,17 +101,6 @@ void PyjionJitFree(void* obj);
 int Pyjit_CheckRecursiveCall(PyThreadState *tstate, const char *where);
 static int Pyjit_EnterRecursiveCall(const char *where);
 static void Pyjit_LeaveRecursiveCall();
-
-
-/* Jitted code object.  This object is returned from the JIT implementation.  The JIT can allocate
-a jitted code object and fill in the state for which is necessary for it to perform an evaluation. */
-enum PgcStatus {
-    Uncompiled = 0,
-    CompiledWithProbes = 1,
-    Optimized = 2
-};
-
-PgcStatus nextPgcStatus(PgcStatus status);
 
 class PyjionJittedCode {
 public:
