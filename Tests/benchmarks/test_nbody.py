@@ -127,8 +127,5 @@ if __name__ == "__main__":
     import pyjion.dis
     import dis
     print(dis.dis(advance))
-    # print(pyjion.dis.dis(advance))
-    print(pyjion.info(offset_momentum))
-    print(pyjion.info(advance))
-    print(pyjion.info(report_energy))
+    print(pyjion.dis.dis(advance))
     gc.collect()

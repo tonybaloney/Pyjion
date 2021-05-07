@@ -151,6 +151,38 @@ static inline void Pyjit_LeaveRecursiveCall() {
     tstate->recursion_depth--;
 }
 
+static PyMemAllocatorEx g_originalAllocator ; // Whichever allocator was set before JIT was enabled.
+
+static void *
+_PyJit_Malloc(void *ctx, size_t size)
+{
+    return g_originalAllocator.malloc(nullptr, size);
+}
+
+static void *
+_PyJit_Calloc(void *ctx, size_t nelem, size_t elsize)
+{
+    return g_originalAllocator.calloc(nullptr, nelem, elsize);
+}
+
+static void *
+_PyJit_Realloc(void *ctx, void *ptr, size_t size)
+{
+    return g_originalAllocator.realloc(nullptr, ptr, size);
+}
+
+static void
+_PyJit_Free(void *ctx, void *ptr)
+{
+    g_originalAllocator.free(nullptr, ptr);
+}
+
+static PyMemAllocatorEx PYJIT_ALLOC = {NULL, _PyJit_Malloc, _PyJit_Calloc, _PyJit_Realloc, _PyJit_Free};
+
+static inline void Pyjit_SetAllocatorProfile(PyjionCodeProfile* profile) {
+    PYJIT_ALLOC.ctx = profile;
+}
+
 static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile) {
     if (Pyjit_EnterRecursiveCall("")) {
         return nullptr;
@@ -158,7 +190,11 @@ static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*fram
 
 	frame->f_executing = 1;
     try {
+        // Set allocator
+        Pyjit_SetAllocatorProfile(profile);
+
         auto res = ((Py_EvalFunc)state)(nullptr, frame, tstate, profile);
+
         Pyjit_LeaveRecursiveCall();
         frame->f_executing = 0;
         return res;
@@ -170,8 +206,7 @@ static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*fram
     }
 }
 
-static Py_tss_t* g_extraSlot;
-
+static Py_tss_t* g_extraSlot = nullptr;
 #ifdef WINDOWS
 HMODULE GetClrJit() {
     return LoadLibrary(TEXT("clrjit.dll"));
@@ -200,6 +235,8 @@ bool JitInit() {
     if (PyType_Ready(&PyJitMethodLocation_Type) < 0)
         return false;
     g_emptyTuple = PyTuple_New(0);
+    PyMem_GetAllocator(PYMEM_DOMAIN_OBJ, &g_originalAllocator);
+    PyMem_SetAllocator(PYMEM_DOMAIN_OBJ, &PYJIT_ALLOC);
     return true;
 }
 
