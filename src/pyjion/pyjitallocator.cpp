@@ -62,6 +62,11 @@ void Pyjit_SetAllocatorProfile(PyjionCodeProfile* profile) {
     PyMem_SetAllocator(PYMEM_DOMAIN_OBJ, &PYJIT_ALLOC);
 }
 
+void Pyjit_UnsetAllocatorProfile() {
+    PYJIT_ALLOC.ctx = nullptr;
+    PyMem_SetAllocator(PYMEM_DOMAIN_OBJ, &PYJIT_ALLOC);
+}
+
 void Pyjit_AllocatorInit(){
     PyMem_GetAllocator(PYMEM_DOMAIN_OBJ, &g_originalAllocator);
     PyMem_SetAllocator(PYMEM_DOMAIN_OBJ, &PYJIT_ALLOC);

@@ -114,9 +114,8 @@ static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*fram
     try {
         // Set allocator
         Pyjit_SetAllocatorProfile(profile);
-
         auto res = ((Py_EvalFunc)state)(nullptr, frame, tstate, profile);
-
+        Pyjit_UnsetAllocatorProfile();
         Pyjit_LeaveRecursiveCall();
         frame->f_executing = 0;
         return res;

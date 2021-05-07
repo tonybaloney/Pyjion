@@ -36,6 +36,8 @@ static void * _PyJit_Realloc(void *ctx, void *ptr, size_t size);
 static void _PyJit_Free(void *ctx, void *ptr);
 
 void Pyjit_SetAllocatorProfile(PyjionCodeProfile* profile);
+void Pyjit_UnsetAllocatorProfile();
+
 void Pyjit_AllocatorInit();
 
 #endif //SRC_PYJION_PYJITALLOCATOR_H
