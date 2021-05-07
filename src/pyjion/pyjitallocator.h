@@ -29,15 +29,27 @@
 #include <Python.h>
 #include "pgocodeprofile.h"
 
+typedef struct {
+    uintptr_t address;
+    uintptr_t ceiling;
+    size_t allocated;
+} Pyjit_AllocatorPool;
+
+typedef struct {
+    PyjionCodeProfile* profile;
+    size_t executionCount;
+    unordered_map<size_t, Pyjit_AllocatorPool> pools;
+} Pyjit_AllocatorProfile;
+
 static void * _PyJit_Malloc(void *ctx, size_t size);
 static void * _PyJit_Calloc(void *ctx, size_t nelem, size_t elsize);
 static void * _PyJit_Realloc(void *ctx, void *ptr, size_t size);
 
 static void _PyJit_Free(void *ctx, void *ptr);
 
-void Pyjit_SetAllocatorProfile(PyjionCodeProfile* profile);
-void Pyjit_UnsetAllocatorProfile();
-
+void Pyjit_SetAllocatorContext(Pyjit_AllocatorProfile * profile);
+void Pyjit_ResetAllocatorContext();
+Pyjit_AllocatorProfile Pyjit_InitAllocator(PyjionCodeProfile* profile, size_t execCnt);
 void Pyjit_AllocatorInit();
 
 #endif //SRC_PYJION_PYJITALLOCATOR_H

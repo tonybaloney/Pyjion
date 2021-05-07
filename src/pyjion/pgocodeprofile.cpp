@@ -67,8 +67,12 @@ PyObject* PyjionCodeProfile::getValue(size_t opcodePosition, size_t stackPositio
     return this->stackValues[opcodePosition][stackPosition];
 }
 
-void PyjionCodeProfile::captureMalloc(size_t size) {
+void PyjionCodeProfile::captureMalloc(size_t executionCount, size_t size) {
     this->allocations[size] += 1;
+}
+
+unordered_map<size_t, size_t> PyjionCodeProfile::getAllocations() {
+    return allocations;
 }
 
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition){

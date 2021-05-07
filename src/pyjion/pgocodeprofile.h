@@ -50,7 +50,8 @@ public:
     PyTypeObject* getType(size_t opcodePosition, size_t stackPosition);
     PyObject* getValue(size_t opcodePosition, size_t stackPosition);
     PgcStatus status = Uncompiled;
-    void captureMalloc(size_t size);
+    void captureMalloc(size_t executionCount, size_t size);
+    unordered_map<size_t, size_t> getAllocations();
     ~PyjionCodeProfile();
 };
 

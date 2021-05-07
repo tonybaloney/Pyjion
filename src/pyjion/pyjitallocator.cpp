@@ -31,8 +31,20 @@ static void *
 _PyJit_Malloc(void *ctx, size_t size)
 {
     if (ctx != nullptr) {
-        PyjionCodeProfile* profile = static_cast<PyjionCodeProfile*>(ctx);
-        profile->captureMalloc(size);
+        auto allocatorProfile = static_cast<Pyjit_AllocatorProfile*>(ctx);
+        if (allocatorProfile->profile != nullptr && allocatorProfile->profile->status == PgcStatus::CompiledWithProbes) {
+            allocatorProfile->profile->captureMalloc(allocatorProfile->executionCount, size);
+        }
+        if (allocatorProfile->profile != nullptr && allocatorProfile->profile->status == Optimized) {
+            // See if allocated in profile pool
+            if (allocatorProfile->pools.find(size) != allocatorProfile->pools.end()){
+                auto addr = (allocatorProfile->pools[size].address + (size * allocatorProfile->pools[size].allocated));
+                if (addr < allocatorProfile->pools[size].ceiling) {
+                    allocatorProfile->pools[size].allocated++;
+                    return (void *) addr;
+                }
+            }
+        }
     }
     return g_originalAllocator.malloc(nullptr, size);
 }
@@ -52,17 +64,26 @@ _PyJit_Realloc(void *ctx, void *ptr, size_t size)
 static void
 _PyJit_Free(void *ctx, void *ptr)
 {
+    if (ctx != nullptr) {
+        auto allocatorProfile = static_cast<Pyjit_AllocatorProfile *>(ctx);
+        for (auto & p: allocatorProfile->pools) {
+            if (p.second.address > (uintptr_t)ptr && (uintptr_t)ptr < p.second.ceiling){
+                // TODO : Mark as freed.
+                return;
+            }
+        }
+    }
     g_originalAllocator.free(nullptr, ptr);
 }
 
 static PyMemAllocatorEx PYJIT_ALLOC = {NULL, _PyJit_Malloc, _PyJit_Calloc, _PyJit_Realloc, _PyJit_Free};
 
-void Pyjit_SetAllocatorProfile(PyjionCodeProfile* profile) {
+void Pyjit_SetAllocatorContext(Pyjit_AllocatorProfile * profile) {
     PYJIT_ALLOC.ctx = profile;
     PyMem_SetAllocator(PYMEM_DOMAIN_OBJ, &PYJIT_ALLOC);
 }
 
-void Pyjit_UnsetAllocatorProfile() {
+void Pyjit_ResetAllocatorContext() {
     PYJIT_ALLOC.ctx = nullptr;
     PyMem_SetAllocator(PYMEM_DOMAIN_OBJ, &PYJIT_ALLOC);
 }
@@ -70,4 +91,20 @@ void Pyjit_UnsetAllocatorProfile() {
 void Pyjit_AllocatorInit(){
     PyMem_GetAllocator(PYMEM_DOMAIN_OBJ, &g_originalAllocator);
     PyMem_SetAllocator(PYMEM_DOMAIN_OBJ, &PYJIT_ALLOC);
+}
+
+Pyjit_AllocatorProfile Pyjit_InitAllocator(PyjionCodeProfile* profile, size_t execCnt) {
+    if (profile != nullptr && profile->status == Optimized) {
+        // Allocate pools
+        unordered_map<size_t, Pyjit_AllocatorPool> pools;
+
+        for (auto& a: profile->getAllocations()){
+            pools[a.first] = {
+                    (uintptr_t )malloc(a.first * a.second),
+                    0
+            };
+        }
+        return {profile, execCnt, pools};
+    }
+    return {profile, execCnt};
 }
