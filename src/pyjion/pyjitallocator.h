@@ -29,6 +29,8 @@
 #include <Python.h>
 #include "pgocodeprofile.h"
 
+#define NPOOLSOPTIMIZE 10
+
 typedef struct {
     uintptr_t address;
     uintptr_t ceiling;
@@ -37,8 +39,10 @@ typedef struct {
 
 typedef struct {
     PyjionCodeProfile* profile;
-    size_t executionCount;
-    unordered_map<size_t, Pyjit_AllocatorPool> pools;
+    size_t executions;
+    size_t n_pools;
+    size_t pool_sizes[NPOOLSOPTIMIZE];
+    Pyjit_AllocatorPool pools[NPOOLSOPTIMIZE];
 } Pyjit_AllocatorProfile;
 
 static void * _PyJit_Malloc(void *ctx, size_t size);

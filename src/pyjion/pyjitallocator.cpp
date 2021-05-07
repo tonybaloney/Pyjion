@@ -33,15 +33,18 @@ _PyJit_Malloc(void *ctx, size_t size)
     if (ctx != nullptr) {
         auto allocatorProfile = static_cast<Pyjit_AllocatorProfile*>(ctx);
         if (allocatorProfile->profile != nullptr && allocatorProfile->profile->status == PgcStatus::CompiledWithProbes) {
-            allocatorProfile->profile->captureMalloc(allocatorProfile->executionCount, size);
+            allocatorProfile->profile->captureMalloc(allocatorProfile->executions, size);
         }
         if (allocatorProfile->profile != nullptr && allocatorProfile->profile->status == Optimized) {
             // See if allocated in profile pool
-            if (allocatorProfile->pools.find(size) != allocatorProfile->pools.end()){
-                auto addr = (allocatorProfile->pools[size].address + (size * allocatorProfile->pools[size].allocated));
-                if (addr < allocatorProfile->pools[size].ceiling) {
-                    allocatorProfile->pools[size].allocated++;
-                    return (void *) addr;
+            for (int i = 0 ; i < allocatorProfile->n_pools ; i ++){
+                if (allocatorProfile->pool_sizes[i] == size) {
+                    auto pool = &allocatorProfile->pools[i];
+                    auto addr = (pool->address + (size * pool->allocated));
+                    if (addr < pool->ceiling) {
+                        pool->allocated++;
+                        return (void *) addr;
+                    }
                 }
             }
         }
@@ -66,8 +69,9 @@ _PyJit_Free(void *ctx, void *ptr)
 {
     if (ctx != nullptr) {
         auto allocatorProfile = static_cast<Pyjit_AllocatorProfile *>(ctx);
-        for (auto & p: allocatorProfile->pools) {
-            if (p.second.address > (uintptr_t)ptr && (uintptr_t)ptr < p.second.ceiling){
+        for (int i = 0; i < allocatorProfile->n_pools ; i++) {
+
+            if (allocatorProfile->pools[i].address > (uintptr_t)ptr && (uintptr_t)ptr < allocatorProfile->pools[i].ceiling){
                 // TODO : Mark as freed.
                 return;
             }
@@ -95,16 +99,26 @@ void Pyjit_AllocatorInit(){
 
 Pyjit_AllocatorProfile Pyjit_InitAllocator(PyjionCodeProfile* profile, size_t execCnt) {
     if (profile != nullptr && profile->status == Optimized) {
+        Pyjit_AllocatorProfile p = {
+                .profile =  profile,
+                .executions =  execCnt,
+                .n_pools =  0,
+                .pool_sizes =  {},
+                .pools =  {}
+        };
         // Allocate pools
-        unordered_map<size_t, Pyjit_AllocatorPool> pools;
-
         for (auto& a: profile->getAllocations()){
-            pools[a.first] = {
-                    (uintptr_t )malloc(a.first * a.second),
-                    0
+            auto floor = (uintptr_t )malloc(a.first * a.second);
+            p.pools[p.n_pools] = {
+                    floor,
+                    floor + (a.first * a.second)
             };
+            p.pool_sizes[p.n_pools] = a.first;
+            p.n_pools++;
+            if (p.n_pools >= NPOOLSOPTIMIZE)
+                break;
         }
-        return {profile, execCnt, pools};
+        return p;
     }
-    return {profile, execCnt};
+    return {profile, execCnt, 0};
 }
