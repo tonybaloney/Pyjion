@@ -95,14 +95,9 @@ public:
 
 struct AbstractSources {
     unordered_set<AbstractSource*> Sources;
-    bool m_escapes;
 
     AbstractSources() {
         Sources = unordered_set<AbstractSource*>();
-        m_escapes = false;
-    }
-    void escapes() {
-        m_escapes = true;
     }
 };
 
@@ -247,7 +242,6 @@ public:
     virtual AbstractValue* unary(AbstractSource* selfSources, int op);
     virtual AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other);
     virtual AbstractValue* compare(AbstractSource* selfSources, int op, AbstractValueWithSources& other);
-    virtual void truth(AbstractSource* selfSources);
 
     virtual bool isAlwaysTrue() {
         return false;
@@ -353,7 +347,6 @@ class BoolValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
-    void truth(AbstractSource* selfSources) override;
 };
 
 class BytesValue : public AbstractValue {
@@ -377,7 +370,6 @@ class IntegerValue : public AbstractValue {
     AbstractValue* binary(AbstractSource*selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
-    void truth(AbstractSource* sources) override;
     AbstractValueKind resolveMethod(const char* name) override;
 
 };
@@ -403,7 +395,6 @@ class FloatValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
-    void truth(AbstractSource* selfSources) override;
     const char* describe() override;
 };
 

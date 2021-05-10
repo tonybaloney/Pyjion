@@ -316,7 +316,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 }
                 case RERAISE: {
-                    // Doesn't actually work this way
                     lastState.pop();
                     lastState.pop();
                     lastState.pop();
@@ -400,7 +399,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         queue.push_back(oparg);
                     }
 
-                    value.Value->truth(value.Sources);
                     if (value.Value->isAlwaysFalse()) {
                         // We're always jumping, we don't need to process the following opcodes...
                         goto next;
@@ -417,7 +415,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         queue.push_back(oparg);
                     }
 
-                    value.Value->truth(value.Sources);
                     if (value.Value->isAlwaysTrue()) {
                         // We're always jumping, we don't need to process the following opcodes...
                         goto next;
@@ -432,7 +429,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         queue.push_back(oparg);
                     }
                     auto value = lastState.pop();
-                    value.Value->truth(value.Sources);
                     if (value.Value->isAlwaysTrue()) {
                         // we always jump, no need to analyze the following instructions...
                         goto next;
@@ -445,7 +441,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         queue.push_back(oparg);
                     }
                     auto value = lastState.pop();
-                    value.Value->truth(value.Sources);
                     if (value.Value->isAlwaysFalse()) {
                         // we always jump, no need to analyze the following instructions...
                         goto next;
@@ -475,8 +470,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     // to the following opcodes before we'll process them.
                     goto next;
                 case RETURN_VALUE: {
-                    // We don't treat returning as escaping as it would just result in a single
-                    // boxing over the lifetime of the function.
                     auto retValue = lastState.pop();
                     mReturnValue = mReturnValue->mergeWith(retValue.Value);
                     }

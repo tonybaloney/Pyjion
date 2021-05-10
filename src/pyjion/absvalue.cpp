@@ -79,10 +79,6 @@ AbstractValue* AbstractValue::compare(AbstractSource* selfSources, int op, Abstr
     return &Any;
 }
 
-void AbstractValue::truth(AbstractSource* selfSources) {
-
-}
-
 AbstractValue* AbstractValue::mergeWith(AbstractValue*other) {
     if (this == other) {
         return this;
@@ -145,10 +141,6 @@ AbstractSource* AbstractSource::combine(AbstractSource* one, AbstractSource* two
 // BoolValue methods
 AbstractValueKind BoolValue::kind() {
     return AVK_Bool;
-}
-
-void BoolValue::truth(AbstractSource* selfSources) {
-    // bools aren't boxed, and don't escape on truth checks
 }
 
 AbstractValue* BoolValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
@@ -619,10 +611,6 @@ AbstractValue* IntegerValue::unary(AbstractSource* selfSources, int op) {
     return AbstractValue::unary(selfSources, op);
 }
 
-void IntegerValue::truth(AbstractSource* selfSources) {
-    // ints don't escape on truth checks...
-}
-
 const char* IntegerValue::describe() {
     return "int";
 }
@@ -701,10 +689,6 @@ AbstractValueKind StringValue::resolveMethod(const char *name) {
 // FloatValue methods
 AbstractValueKind FloatValue::kind() {
     return AVK_Float;
-}
-
-void FloatValue::truth(AbstractSource* selfSources) {
-    // floats don't escape on truth checks...
 }
 
 AbstractValue* FloatValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
