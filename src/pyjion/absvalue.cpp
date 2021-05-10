@@ -60,18 +60,10 @@ AbstractSource::AbstractSource() {
 }
 
 AbstractValue* AbstractValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
-    if (selfSources != nullptr) {
-        selfSources->escapes();
-    }
-    other.escapes();
-
     return &Any;
 }
 
 AbstractValue* AbstractValue::unary(AbstractSource* selfSources, int op) {
-    if (selfSources != nullptr) {
-        selfSources->escapes();
-    }
     return &Any;
 }
 
@@ -84,17 +76,11 @@ AbstractValue* AbstractValue::compare(AbstractSource* selfSources, int op, Abstr
         return &Bool;
     }
 
-    if (selfSources != nullptr) {
-        selfSources->escapes();
-    }
-    other.escapes();
     return &Any;
 }
 
 void AbstractValue::truth(AbstractSource* selfSources) {
-    if (selfSources != nullptr) {
-        selfSources->escapes();
-    }
+
 }
 
 AbstractValue* AbstractValue::mergeWith(AbstractValue*other) {
@@ -110,19 +96,6 @@ PyTypeObject *AbstractValue::pythonType() {
 
 bool AbstractValue::known() {
     return isKnownType(this->kind());
-}
-
-void AbstractSource::escapes() const {
-    if (Sources) {
-        Sources->m_escapes = true;
-    }
-}
-
-bool AbstractSource::needsBoxing() const {
-    if (Sources) {
-        return Sources->m_escapes;
-    }
-    return true;
 }
 
 AbstractSource* AbstractSource::combine(AbstractSource* one, AbstractSource* two) {
@@ -143,9 +116,6 @@ AbstractSource* AbstractSource::combine(AbstractSource* one, AbstractSource* two
                         source->Sources = one->Sources;
                     }
                 }
-                if (two->needsBoxing() && !one->needsBoxing()) {
-                    one->escapes();
-                }
                 two->Sources = one->Sources;
                 return one;
             }
@@ -156,34 +126,21 @@ AbstractSource* AbstractSource::combine(AbstractSource* one, AbstractSource* two
                         source->Sources = two->Sources;
                     }
                 }
-                if (one->needsBoxing() && !two->needsBoxing()) {
-                    two->escapes();
-                }
                 one->Sources = two->Sources;
                 return two;
             }
         }
         else {
             // merging with an unknown source...
-            one->escapes();
             return one;
         }
     }
     else if (two != nullptr) {
         // merging with an unknown source...
-        two->escapes();
         return two;
     }
     return nullptr;
 }
-
-/*
-void TupleSource::escapes() {
-    for (auto cur = m_sources.begin(); cur != m_sources.end(); cur++) {
-        (*cur).escapes();
-    }
-    m_escapes = true;
-}*/
 
 // BoolValue methods
 AbstractValueKind BoolValue::kind() {
@@ -208,10 +165,6 @@ AbstractValue* BoolValue::binary(AbstractSource* selfSources, int op, AbstractVa
             case BINARY_TRUE_DIVIDE:
             case INPLACE_TRUE_DIVIDE:
             {
-                if (selfSources != nullptr) {
-                    selfSources->escapes();
-                }
-                other.escapes();
                 return &Float;
             }
             case BINARY_ADD:
@@ -272,10 +225,6 @@ AbstractValue* BoolValue::binary(AbstractSource* selfSources, int op, AbstractVa
             case INPLACE_SUBTRACT:
             case INPLACE_TRUE_DIVIDE:
             {
-                if (selfSources != nullptr) {
-                    selfSources->escapes();
-                }
-                other.escapes();
                 return &Float;
             }
         }
@@ -288,10 +237,6 @@ AbstractValue* BoolValue::binary(AbstractSource* selfSources, int op, AbstractVa
             case BINARY_TRUE_DIVIDE:
             case INPLACE_TRUE_DIVIDE:
             {
-                if (selfSources != nullptr) {
-                    selfSources->escapes();
-                }
-                other.escapes();
                 return &Float;
             }
             case BINARY_ADD:
@@ -368,7 +313,6 @@ AbstractValue* BytesValue::binary(AbstractSource* selfSources, int op, AbstractV
         switch (op) {
             case BINARY_MULTIPLY:
             case INPLACE_MULTIPLY:
-                other.escapes();
                 return this;
         }
     }
@@ -392,10 +336,8 @@ AbstractValue* BytesValue::binary(AbstractSource* selfSources, int op, AbstractV
         switch (op) {
             case BINARY_MULTIPLY:
             case INPLACE_MULTIPLY:
-                other.escapes();
                 return this;
             case BINARY_SUBSCR:
-                other.escapes();
                 return &Integer;
         }
     }
@@ -539,10 +481,6 @@ AbstractValue* IntegerValue::binary(AbstractSource* selfSources, int op, Abstrac
             case BINARY_TRUE_DIVIDE:
             case INPLACE_TRUE_DIVIDE:
             {
-                if (selfSources != nullptr) {
-                    selfSources->escapes();
-                }
-                other.escapes();
                 return &Float;
             }
             case BINARY_ADD:
@@ -567,10 +505,6 @@ AbstractValue* IntegerValue::binary(AbstractSource* selfSources, int op, Abstrac
             case INPLACE_RSHIFT:
             case INPLACE_SUBTRACT:
             case INPLACE_XOR:
-				if (selfSources != nullptr) {
-					selfSources->escapes();
-				}
-				other.escapes();
 				return this;
         }
     }
@@ -613,10 +547,6 @@ AbstractValue* IntegerValue::binary(AbstractSource* selfSources, int op, Abstrac
             case INPLACE_SUBTRACT:
             case INPLACE_TRUE_DIVIDE:
             {
-                if (selfSources != nullptr) {
-                    selfSources->escapes();
-                }
-                other.escapes();
                 return &Float;
             }
         }
@@ -626,10 +556,6 @@ AbstractValue* IntegerValue::binary(AbstractSource* selfSources, int op, Abstrac
             case BINARY_TRUE_DIVIDE:
             case INPLACE_TRUE_DIVIDE:
             {
-                if (selfSources != nullptr) {
-                    selfSources->escapes();
-                }
-                other.escapes();
                 return &Float;
             }
             case BINARY_ADD:
@@ -717,7 +643,6 @@ AbstractValueKind StringValue::kind() {
 AbstractValue* StringValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
     // String interpolation always returns a `str` (when successful).
     if (op == BINARY_MODULO || op == INPLACE_MODULO) {
-		other.escapes();
         return this;
     }
 
@@ -726,7 +651,6 @@ AbstractValue* StringValue::binary(AbstractSource* selfSources, int op, Abstract
         switch (op) {
             case BINARY_MULTIPLY:
             case INPLACE_MULTIPLY:
-                other.escapes();
                 return this;
         }
     }
@@ -735,14 +659,12 @@ AbstractValue* StringValue::binary(AbstractSource* selfSources, int op, Abstract
             case BINARY_MULTIPLY:
             case BINARY_SUBSCR:
             case INPLACE_MULTIPLY:
-                other.escapes();
                 return this;
         }
     }
     else if (other_kind == AVK_Slice) {
         switch (op) {
             case BINARY_SUBSCR:
-                other.escapes();
                 return this;
         }
     }
@@ -750,7 +672,6 @@ AbstractValue* StringValue::binary(AbstractSource* selfSources, int op, Abstract
         switch (op) {
             case BINARY_ADD:
             case INPLACE_ADD:
-                other.escapes();
                 return this;
         }
     }
@@ -804,10 +725,6 @@ AbstractValue* FloatValue::binary(AbstractSource* selfSources, int op, AbstractV
             case INPLACE_POWER:
             case INPLACE_SUBTRACT:
             case INPLACE_TRUE_DIVIDE:
-                if (selfSources != nullptr) {
-                    selfSources->escapes();
-                }
-                other.escapes();
                 return this;
         }
     }
@@ -823,10 +740,6 @@ AbstractValue* FloatValue::binary(AbstractSource* selfSources, int op, AbstractV
             case INPLACE_POWER:
             case INPLACE_SUBTRACT:
             case INPLACE_TRUE_DIVIDE:
-                if (selfSources != nullptr) {
-                    selfSources->escapes();
-                }
-                other.escapes();
                 return &Complex;
         }
     }

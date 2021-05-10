@@ -265,11 +265,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     auto sources = AbstractSource::combine(top.Sources, second.Sources);
                     m_opcodeSources[opcodeIndex] = sources;
 
-                    if (top.Value->kind() != second.Value->kind()) {
-                        top.escapes();
-                        second.escapes();
-                    }
-
                     lastState.push(top);
                     lastState.push(second);
                     break;
@@ -283,13 +278,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                             top.Sources,
                             AbstractSource::combine(second.Sources, third.Sources));
                     m_opcodeSources[opcodeIndex] = sources;
-
-                    if (top.Value->kind() != second.Value->kind()
-                        || top.Value->kind() != third.Value->kind()) {
-                        top.escapes();
-                        second.escapes();
-                        third.escapes();
-                    }
 
                     lastState.push(top);
                     lastState.push(third);
@@ -307,15 +295,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                             AbstractSource::combine(second.Sources,
                                                     AbstractSource::combine(third.Sources, fourth.Sources)));
                     m_opcodeSources[opcodeIndex] = sources;
-
-                    if (top.Value->kind() != second.Value->kind()
-                        || top.Value->kind() != third.Value->kind()
-                        || top.Value->kind() != fourth.Value->kind()) {
-                        top.escapes();
-                        second.escapes();
-                        third.escapes();
-                        fourth.escapes();
-                    }
 
                     lastState.push(top);
                     lastState.push(fourth);
@@ -371,7 +350,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case DELETE_FAST:
                     // We need to box any previous stores so we can delete them...  Otherwise
                     // we won't know if we should raise an unbound local error
-                    lastState.getLocal(oparg).ValueInfo.escapes();
                     lastState.replaceLocal(oparg, AbstractLocalInfo(&Undefined, true));
                     break;
                 case BINARY_SUBSCR:
@@ -995,9 +973,6 @@ bool AbstractInterpreter::mergeStates(InterpreterState& newState, InterpreterSta
             auto oldType = mergeTo.getLocal(i);
             auto newType = oldType.mergeWith(newState.getLocal(i));
             if (newType != oldType) {
-                if (oldType.ValueInfo.needsBoxing()) {
-                    newType.ValueInfo.escapes();
-                }
                 mergeTo.replaceLocal(i, newType);
                 changed = true;
             }

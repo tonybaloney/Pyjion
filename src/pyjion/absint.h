@@ -171,7 +171,6 @@ public:
         if (mStack.empty())
             throw StackUnderflowException();
         auto res = mStack.back();
-        res.escapes();
         mStack.pop_back();
         return res.Value;
     }
