@@ -1,0 +1,92 @@
+/*
+* The MIT License (MIT)
+*
+* Copyright (c) Microsoft Corporation
+*
+* Permission is hereby granted, free of charge, to any person obtaining a
+* copy of this software and associated documentation files (the "Software"),
+* to deal in the Software without restriction, including without limitation
+* the rights to use, copy, modify, merge, publish, distribute, sublicense,
+* and/or sell copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included
+* in all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+* OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+* ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+* OTHER DEALINGS IN THE SOFTWARE.
+*
+*/
+
+#include "bytecodeoperation.h"
+
+
+AbstractSource* BytecodeOperation::addLocalSource(size_t localIndex) {
+    if (!hasSource) {
+        hasSource = true;
+        return source = new LocalSource();
+    }
+
+    return source;
+}
+
+AbstractSource* BytecodeOperation::addGlobalSource(size_t constIndex, const char * name, PyObject* value) {
+    if (!hasSource) {
+        hasSource = true;
+        return source = new GlobalSource(name, value);
+    }
+
+    return source;
+}
+
+AbstractSource* BytecodeOperation::addBuiltinSource(size_t constIndex, const char * name, PyObject* value) {
+    if (!hasSource) {
+        hasSource = true;
+        return source = new BuiltinSource(name, value);
+    }
+
+    return source;
+}
+
+AbstractSource* BytecodeOperation::addConstSource(size_t constIndex, PyObject* value) {
+    if (!hasSource) {
+        hasSource = true;
+        return source = new ConstSource(value);
+    }
+
+    return source;
+}
+
+AbstractSource* BytecodeOperation::addPgcSource() {
+    if (!hasSource) {
+        hasSource = true;
+        return source = new PgcSource();
+    }
+    return source;
+}
+
+// Returns information about the specified local variable at a specific
+// byte code index.
+AbstractLocalInfo BytecodeOperation::getLocalInfo(size_t localIndex) {
+    return state.getLocal(localIndex);
+}
+
+// Returns information about the stack at the specific byte code index.
+InterpreterStack& BytecodeOperation::getStackInfo() {
+    return state.mStack;
+}
+
+short BytecodeOperation::pgcProbeSize() {
+    return state.pgcProbeSize;
+}
+
+bool BytecodeOperation::pgcProbeRequired(PgcStatus status) {
+    if (status == PgcStatus::Uncompiled)
+        return state.requiresPgcProbe;
+    return false;
+}

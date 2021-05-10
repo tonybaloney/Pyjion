@@ -590,5 +590,83 @@ extern FileValue File;
 AbstractValue* avkToAbstractValue(AbstractValueKind);
 AbstractValueKind GetAbstractType(PyTypeObject* type);
 PyTypeObject* GetPyType(AbstractValueKind type);
+
+// The abstract interpreter implementation.  The abstract interpreter performs
+// static analysis of the Python byte code to determine what types are known.
+// Ultimately this information will feedback into code generation allowing
+// more efficient code to be produced.
+//
+// The abstract interpreter ultimately produces a set of states for each opcode
+// before it has been executed.  It also produces an abstract value for the type
+// that the function returns.
+//
+// The abstract interpreter walks the byte code updating the stack of the stack
+// and locals based upon the opcode being performed and the existing state of the
+// stack.  When it encounters a branch it will merge the current state in with the
+// state for where we're branching to.  If the merge results in a new starting state
+// that we haven't analyzed it will then queue the target opcode as the next starting
+// point to be analyzed.
+//
+// If the branch is unconditional, or definitively taken based upon analysis, then
+// we'll go onto the next starting opcode to be analyzed.
+//
+// Once we've processed all of the blocks of code in this manner the analysis
+// is complete.
+
+// Tracks the state of a local variable at each location in the function.
+// Each local has a known type associated with it as well as whether or not
+// the value is potentially undefined.  When a variable is definitely assigned
+// IsMaybeUndefined is false.
+//
+// Initially all locals start out as being marked as IsMaybeUndefined and a special
+// typeof Undefined.  The special type is really just for convenience to avoid
+// having null types.  Merging with the undefined type will produce the other type.
+// Assigning to a variable will cause the undefined marker to be removed, and the
+// new type to be specified.
+//
+// When we merge locals if the undefined flag is specified from either side we will
+// propagate it to the new state.  This could result in:
+//
+// State 1: Type != Undefined, IsMaybeUndefined = false
+//      The value is definitely assigned and we have valid type information
+//
+// State 2: Type != Undefined, IsMaybeUndefined = true
+//      The value is assigned in one code path, but not in another.
+//
+// State 3: Type == Undefined, IsMaybeUndefined = true
+//      The value is definitely unassigned.
+//
+// State 4: Type == Undefined, IsMaybeUndefined = false
+//      This should never happen as it means the Undefined
+//      type has leaked out in an odd way
+struct AbstractLocalInfo {
+    AbstractLocalInfo() = default;
+
+    AbstractValueWithSources ValueInfo;
+    bool IsMaybeUndefined;
+
+    AbstractLocalInfo(AbstractValueWithSources valueInfo, bool isUndefined = false) : ValueInfo(valueInfo) {
+        IsMaybeUndefined = true;
+        assert(valueInfo.Value != nullptr);
+        assert(!(valueInfo.Value == &Undefined && !isUndefined));
+        IsMaybeUndefined = isUndefined;
+    }
+
+    AbstractLocalInfo mergeWith(AbstractLocalInfo other) const {
+        return {
+                ValueInfo.mergeWith(other.ValueInfo),
+                IsMaybeUndefined || other.IsMaybeUndefined
+        };
+    }
+
+    bool operator== (AbstractLocalInfo other) {
+        return other.ValueInfo == ValueInfo &&
+               other.IsMaybeUndefined == IsMaybeUndefined;
+    }
+    bool operator!= (AbstractLocalInfo other) {
+        return other.ValueInfo != ValueInfo ||
+               other.IsMaybeUndefined != IsMaybeUndefined;
+    }
+};
 #endif
 
