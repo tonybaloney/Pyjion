@@ -24,6 +24,9 @@ setup(
     author='Anthony Shaw and Microsoft',
     author_email='anthonyshaw@apache.org',
     url='https://github.com/tonybaloney/Pyjion',
+    project_urls={
+        'Documentation': 'https://pyjion.readthedocs.io/',
+    },
     license='MIT',
     packages=['pyjion'],
     package_dir={'': 'src'},
