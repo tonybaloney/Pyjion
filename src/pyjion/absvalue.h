@@ -80,10 +80,6 @@ public:
 
     AbstractSource();
 
-    void escapes() const;
-
-    bool needsBoxing() const;
-
     virtual bool hasConstValue() { return false; }
 
     virtual bool isBuiltin() {
@@ -147,12 +143,7 @@ public:
     }
 
     const char* describe() override {
-        if (needsBoxing()) {
-            return "Source: Const (escapes)";
-        }
-        else {
-            return "Source: Const";
-        }
+        return "Source: Const";
     }
 };
 
@@ -166,12 +157,7 @@ public:
     }
 
     const char* describe() override {
-        if (needsBoxing()) {
-            return "Source: Global (escapes)";
-        }
-        else {
-            return "Source: Global";
-        }
+        return "Source: Global";
     }
 
     const char* getName() {
@@ -189,12 +175,7 @@ public:
     };
 
     const char* describe() override {
-        if (needsBoxing()) {
-            return "Source: Builtin (escapes)";
-        }
-        else {
-            return "Source: Builtin";
-        }
+        return "Source: Builtin";
     }
 
     bool isBuiltin() override {
@@ -213,24 +194,14 @@ public:
 class LocalSource : public AbstractSource {
 public:
     const char* describe() override {
-        if (needsBoxing()) {
-            return "Source: Local (escapes)";
-        }
-        else {
-            return "Source: Local";
-        }
+        return "Source: Local";
     }
 };
 
 class IntermediateSource : public AbstractSource {
 public:
     const char* describe() override {
-        if (needsBoxing()) {
-            return "Source: Intermediate (escapes)";
-        }
-        else {
-            return "Source: Intermediate";
-        }
+        return "Source: Intermediate";
     }
 };
 
@@ -320,19 +291,6 @@ struct AbstractValueWithSources {
         Sources = source;
     }
 
-    void escapes() const {
-        if (Sources != nullptr) {
-            Sources->escapes();
-        }
-    }
-
-    bool needsBoxing() const {
-        if (Sources != nullptr) {
-            return Sources->needsBoxing();
-        }
-        return true;
-    }
-
     bool hasValue() const {
         return Value != nullptr;
     }
@@ -343,24 +301,13 @@ struct AbstractValueWithSources {
 
     AbstractValueWithSources mergeWith(AbstractValueWithSources other) const {
         // TODO: Is defining a new source at the merge point better?
-
-        auto newValue = Value->mergeWith(other.Value);
-        if ((newValue->kind() != Value->kind() && Value->kind() != AVK_Undefined) ||
-            (newValue->kind() != other.Value->kind() && other.Value->kind() != AVK_Undefined)) {
-            if (Sources != nullptr) {
-                Sources->escapes();
-            }
-            if (other.Sources != nullptr) {
-                other.Sources->escapes();
-            }
-        }
         return {
                 Value->mergeWith(other.Value),
             AbstractSource::combine(Sources, other.Sources)
             };
     }
 
-    bool operator== (AbstractValueWithSources& other) const {
+    bool operator== (AbstractValueWithSources const & other) const {
         if (Value != other.Value) {
             return false;
         }
@@ -375,7 +322,7 @@ struct AbstractValueWithSources {
         return Sources->Sources.get() == other.Sources->Sources.get();
     }
 
-    bool operator!= (AbstractValueWithSources& other) const {
+    bool operator!= (AbstractValueWithSources const & other) const {
         return !(*this == other);
     }
 };
