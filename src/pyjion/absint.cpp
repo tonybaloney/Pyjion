@@ -259,8 +259,8 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case NOP:
                     break;
                 case ROT_TWO: {
-                    auto top = lastState.popNoEscape();
-                    auto second = lastState.popNoEscape();
+                    auto top = lastState.pop();
+                    auto second = lastState.pop();
 
                     auto sources = AbstractSource::combine(top.Sources, second.Sources);
                     m_opcodeSources[opcodeIndex] = sources;
@@ -270,9 +270,9 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 }
                 case ROT_THREE: {
-                    auto top = lastState.popNoEscape();
-                    auto second = lastState.popNoEscape();
-                    auto third = lastState.popNoEscape();
+                    auto top = lastState.pop();
+                    auto second = lastState.pop();
+                    auto third = lastState.pop();
 
                     auto sources = AbstractSource::combine(
                             top.Sources,
@@ -285,10 +285,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 }
                 case ROT_FOUR: {
-                    auto top = lastState.popNoEscape();
-                    auto second = lastState.popNoEscape();
-                    auto third = lastState.popNoEscape();
-                    auto fourth = lastState.popNoEscape();
+                    auto top = lastState.pop();
+                    auto second = lastState.pop();
+                    auto third = lastState.pop();
+                    auto fourth = lastState.pop();
 
                     auto sources = AbstractSource::combine(
                             top.Sources,
@@ -342,7 +342,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 }
                 case STORE_FAST: {
-                    auto valueInfo = lastState.popNoEscape();
+                    auto valueInfo = lastState.pop();
                     m_opcodeSources[opcodeIndex] = valueInfo.Sources;
                     lastState.replaceLocal(oparg, AbstractLocalInfo(valueInfo, valueInfo.Value == &Undefined));
                 }
@@ -385,15 +385,15 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         PGC_PROBE(2);
                         PGC_UPDATE_STACK(2);
                     }
-                    two = lastState.popNoEscape();
-                    one = lastState.popNoEscape();
+                    two = lastState.pop();
+                    one = lastState.pop();
 
                     auto out = one.Value->binary(one.Sources, opcode, two);
                     lastState.push(out);
                 }
                 break;
                 case POP_JUMP_IF_FALSE: {
-                    auto value = lastState.popNoEscape();
+                    auto value = lastState.pop();
 
                     // merge our current state into the branched to location...
                     if (updateStartState(lastState, oparg)) {
@@ -410,7 +410,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 }
                 case POP_JUMP_IF_TRUE: {
-                    auto value = lastState.popNoEscape();
+                    auto value = lastState.pop();
 
                     // merge our current state into the branched to location...
                     if (updateStartState(lastState, oparg)) {
@@ -431,7 +431,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
                     }
-                    auto value = lastState.popNoEscape();
+                    auto value = lastState.pop();
                     value.Value->truth(value.Sources);
                     if (value.Value->isAlwaysTrue()) {
                         // we always jump, no need to analyze the following instructions...
@@ -444,7 +444,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
                     }
-                    auto value = lastState.popNoEscape();
+                    auto value = lastState.pop();
                     value.Value->truth(value.Sources);
                     if (value.Value->isAlwaysFalse()) {
                         // we always jump, no need to analyze the following instructions...
@@ -477,7 +477,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case RETURN_VALUE: {
                     // We don't treat returning as escaping as it would just result in a single
                     // boxing over the lifetime of the function.
-                    auto retValue = lastState.popNoEscape();
+                    auto retValue = lastState.pop();
                     mReturnValue = mReturnValue->mergeWith(retValue.Value);
                     }
                     goto next;
@@ -602,7 +602,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     }
 
                     // pop the function...
-                    auto func = lastState.popNoEscape();
+                    auto func = lastState.pop();
                     auto source = AbstractValueWithSources(
                         avkToAbstractValue(knownFunctionReturnType(func)),
                         newSource(new LocalSource()));
@@ -613,7 +613,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     int na = oparg;
 
                     // Pop the names tuple
-                    auto names = lastState.popNoEscape();
+                    auto names = lastState.pop();
                     assert(names.Value->kind() == AVK_Tuple);
 
                     for (int i = 0; i < na; i++) {
@@ -673,7 +673,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case UNARY_NEGATIVE:
                 case UNARY_INVERT:
                 case UNARY_NOT: {
-                    auto in = lastState.popNoEscape();
+                    auto in = lastState.pop();
                     auto out = in.Value->unary(in.Sources, opcode);
                     lastState.push(out);
                     break;
@@ -735,7 +735,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     // about their deletion.
                     break;
                 case GET_ITER: {
-                    auto iteratorType = lastState.popNoEscape();
+                    auto iteratorType = lastState.pop();
                     // TODO : Allow guarded/PGC sources to be optimized.
                     auto source = AbstractValueWithSources(
                             &Iterable,
@@ -861,13 +861,13 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         PGC_PROBE(1 + oparg);
                         PGC_UPDATE_STACK(1 + oparg);
                     }
-                    auto method = lastState.popNoEscape();
+                    auto method = lastState.pop();
                     auto self = lastState.pop();
                     for (int i = 0 ; i < oparg; i++)
                         lastState.pop();
-                    if (method.hasValue() && method.Value->kind() == AVK_Method && self->known()){
+                    if (method.hasValue() && method.Value->kind() == AVK_Method && self.Value->known()){
                         auto meth_source = dynamic_cast<MethodSource*>(method.Sources);
-                        lastState.push(avkToAbstractValue(avkToAbstractValue(self->kind())->resolveMethod(meth_source->name())));
+                        lastState.push(avkToAbstractValue(avkToAbstractValue(self.Value->kind())->resolveMethod(meth_source->name())));
                     } else {
                         lastState.push(&Any); // push result.
                     }
@@ -890,13 +890,13 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                        return value.
                     */
                     return IncompatibleOpcode_WithExcept; // not implemented
-                    auto top = lastState.pop(); // exc
-                    auto second = lastState.pop(); // val
-                    auto third = lastState.pop(); // tb
-                    auto seventh = lastState[lastState.stackSize() - 7]; // exit_func
-                    // TODO : Vectorcall (exit_func, stack+1, 3, ..)
-                    lastState.push(&Any); // res
-                    break;
+//                    auto top = lastState.pop(); // exc
+//                    auto second = lastState.pop(); // val
+//                    auto third = lastState.pop(); // tb
+//                    auto seventh = lastState[lastState.stackSize() - 7]; // exit_func
+//                    // TODO : Vectorcall (exit_func, stack+1, 3, ..)
+//                    lastState.push(&Any); // res
+//                    break;
                 }
                 case LIST_EXTEND:
                 {

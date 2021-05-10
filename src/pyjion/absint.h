@@ -167,15 +167,7 @@ public:
         mLocals.replace(index, value);
     }
 
-    AbstractValue* pop() {
-        if (mStack.empty())
-            throw StackUnderflowException();
-        auto res = mStack.back();
-        mStack.pop_back();
-        return res.Value;
-    }
-
-    AbstractValueWithSources popNoEscape() {
+    AbstractValueWithSources pop() {
         if (mStack.empty())
             throw StackUnderflowException();
         auto res = mStack.back();
