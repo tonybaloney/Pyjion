@@ -1770,7 +1770,7 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     emit_load_local(it_seq);
     m_il.ld_i(ob_item_offset);
     m_il.add();
-    m_il.ld_ind_i();Re
+    m_il.ld_ind_i();
     emit_load_local(it);
     m_il.ld_i(index_offset);
     m_il.add();
