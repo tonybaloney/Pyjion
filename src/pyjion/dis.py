@@ -677,7 +677,7 @@ def print_il(il, offsets=None, bytecodes=None):
         pass
 
 
-def dis(f):
+def dis(f, include_offsets=False):
     """
     Disassemble a code object into IL
     """
@@ -685,12 +685,15 @@ def dis(f):
     if not il:
         print("No IL for this function, it may not have compiled correctly.")
         return
-    python_instructions = {i.offset: i for i in get_instructions(f)}
-    offsets = get_offsets(f)
-    print_il(il, offsets, python_instructions)
+    if include_offsets:
+        python_instructions = {i.offset: i for i in get_instructions(f)}
+        offsets = get_offsets(f)
+        print_il(il, offsets, python_instructions)
+    else:
+        print_il(il)
 
 
-def dis_native(f):
+def dis_native(f, include_offsets=False):
 
     try:
         import distorm3
@@ -703,6 +706,11 @@ def dis_native(f):
     if not native:
         print("No native code for this function, it may not have compiled correctly")
         return
+
+    if include_offsets:
+        python_instructions = {i.offset: i for i in get_instructions(f)}
+        jit_offsets = get_offsets(f)
+
     code, code_length, position = native
     iterable = distorm3.DecodeGenerator(position, bytes(code), distorm3.Decode64Bits)
 
@@ -717,5 +725,14 @@ def dis_native(f):
     highlighted_lines = syntax.highlight("\n".join(instructions)).split("\n")
 
     for (offset, line) in zip(offsets, highlighted_lines):
+        # See if this is the offset of a matching Python instruction
+        if include_offsets:
+            for py_offset, il_offset, native_offset in jit_offsets:
+                if native_offset == (position - offset):
+                    try:
+                        print(python_instructions[py_offset])
+                    except KeyError:
+                        warn("Invalid offset {0}".format(offsets))
+
         console.print("[grey]%s" % offset, style="dim", end=" ")
         console.print(line)
