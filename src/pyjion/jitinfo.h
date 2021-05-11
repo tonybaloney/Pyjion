@@ -159,11 +159,11 @@ public:
         return (unsigned char *)m_il.data();
     }
 
-    unsigned int get_il_len() override {
+    size_t get_il_len() override {
         return m_il.size();
     }
 
-    unsigned long get_native_size() override {
+    size_t get_native_size() override {
         return m_nativeSize;
     }
 
