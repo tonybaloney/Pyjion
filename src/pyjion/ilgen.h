@@ -505,7 +505,7 @@ public:
         compare_eq();
     }
 
-    void ld_i(int i) {
+    void ld_i(int32_t i) {
         m_il.push_back(CEE_LDC_I4);
         emit_int(i);
         m_il.push_back(CEE_CONV_I); // Pop1, PushI
