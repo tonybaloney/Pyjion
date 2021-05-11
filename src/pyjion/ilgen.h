@@ -74,7 +74,7 @@ class ILGenerator {
     CorInfoType m_retType;
     BaseModule* m_module;
     unordered_map<CorInfoType, vector<Local>, CorInfoTypeHash> m_freedLocals;
-
+    vector<pair<size_t, uint32_t>> m_sequencePoints;
 public:
     vector<BYTE> m_il;
     size_t m_localCount;
@@ -666,6 +666,10 @@ public:
         }
     }
 
+    void mark_sequence_point(size_t idx) {
+        m_sequencePoints.push_back(make_pair(m_il.size(), idx));
+    }
+
     CORINFO_METHOD_INFO to_method(JITMethod* addr, size_t stackSize) {
         CORINFO_METHOD_INFO methodInfo{};
         methodInfo.ftn = (CORINFO_METHOD_HANDLE)addr;
@@ -691,7 +695,7 @@ public:
         uint8_t* nativeEntry;
         uint32_t nativeSizeOfCode;
         jitInfo->assignIL(m_il);
-        auto res = JITMethod(m_module, m_retType, m_params, nullptr);
+        auto res = JITMethod(m_module, m_retType, m_params, nullptr, m_sequencePoints);
         CORINFO_METHOD_INFO methodInfo = to_method(&res, stackSize);
         CorJitResult result = jit->compileMethod(
                 jitInfo,
@@ -737,6 +741,8 @@ public:
         }
         return res;
     }
+
+
 
 private:
     void emit_int(int32_t value) {

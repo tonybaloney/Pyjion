@@ -240,6 +240,20 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_ilLen = res.compiledCode->get_il_len();
     state->j_nativeSize = res.compiledCode->get_native_size();
     state->j_profile = profile;
+    state->j_sequencePoints = res.compiledCode->get_sequence_points();
+    state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
+
+#ifdef DUMP_JIT_TRACES
+    printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
+    auto code = (_Py_CODEUNIT *)PyBytes_AS_STRING(frame->f_code->co_code);
+    for (size_t i = 0; i < state->j_sequencePointsLen; i ++){
+        printf(" %016llX : %s %d\n",
+               ((uint64_t)state->j_addr + (uint64_t)state->j_sequencePoints[i].nativeOffset),
+               opcodeName(_Py_OPCODE(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])),
+               _Py_OPARG(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])
+        );
+    }
+#endif
 
     // Execute it now.
     return PyJit_ExecuteJittedFrame((void*)state->j_addr, frame, tstate, state->j_profile);

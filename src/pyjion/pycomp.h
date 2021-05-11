@@ -268,10 +268,6 @@ class PythonCompiler : public IPythonCompiler {
 public:
     explicit PythonCompiler(PyCodeObject *code);
 
-    size_t il_length() override {
-        return m_il.m_il.size();
-    };
-
     void emit_rot_two(LocalKind kind) override;
 
     void emit_rot_three(LocalKind kind) override;
@@ -496,7 +492,7 @@ public:
     void lift_n_to_second(uint16_t pos) override;
     void lift_n_to_third(uint16_t pos) override;
     void sink_top_to_n(uint16_t pos) override;
-
+    void mark_sequence_point(size_t idx) override;
 
 private:
     void load_frame();
@@ -526,5 +522,9 @@ typedef struct {
     Py_ssize_t it_index;
     PyTupleObject *it_seq; /* Set to NULL when iterator is exhausted */
 } _tupleiterobject;
+
+
+
+const char* opcodeName(size_t opcode) ;
 
 #endif

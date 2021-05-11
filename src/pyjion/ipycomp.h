@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <exception>
 #include "absvalue.h"
+#include "codemodel.h"
 
 class InvalidLocalException: public std::exception {
 public:
@@ -99,6 +100,8 @@ public:
     virtual unsigned char* get_il() = 0;
     virtual unsigned int get_il_len() = 0;
     virtual unsigned long get_native_size() = 0;
+    virtual SequencePoint* get_sequence_points() = 0;
+    virtual unsigned long get_sequence_points_length() = 0;
 };
 
 // Defines the interface between the abstract compiler and code generator
@@ -109,9 +112,6 @@ public:
 // operations.
 class IPythonCompiler {
 public:
-    // Current CIL queue length
-    virtual size_t il_length() = 0 ;
-
     /*****************************************************
      * Basic Python stack manipulations */
     virtual void emit_rot_two(LocalKind kind = LK_Pointer) = 0;
@@ -462,6 +462,8 @@ public:
 
     virtual void emit_load_frame_locals() = 0;
     virtual void emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) = 0;
+
+    virtual void mark_sequence_point(size_t idx) = 0;
 };
 
 #endif

@@ -355,7 +355,6 @@ private:
     static bool mergeStates(InterpreterState& newState, InterpreterState& mergeTo);
     bool updateStartState(InterpreterState& newState, size_t index);
     void initStartingState();
-    const char* opcodeName(size_t opcode);
     AbstractInterpreterResult preprocess();
     AbstractSource* newSource(AbstractSource* source) {
         m_sources.push_back(source);
@@ -375,7 +374,6 @@ private:
     void extendListRecursively(Local list, size_t argCnt);
     void extendList(size_t argCnt);
     void buildSet(size_t argCnt);
-    void unpackEx(size_t size, size_t opcode);
 
     void buildMap(size_t argCnt);
 
@@ -416,9 +414,8 @@ private:
 
     void returnValue(size_t opcodeIndex);
 
-    void loadFast(int local, size_t opcodeIndex);
-    void loadFastWorker(int local, bool checkUnbound, int curByte);
-    void unpackSequence(size_t size, size_t opcode, AbstractValueWithSources sources);
+    void loadFast(size_t local, size_t opcodeIndex);
+    void loadFastWorker(size_t local, bool checkUnbound, int curByte);
 
     void popExcept();
 

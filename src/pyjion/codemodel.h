@@ -29,7 +29,6 @@
 #define FEATURE_NO_HOST
 
 #include <stdint.h>
-#include <windows.h>
 #include <wchar.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -45,6 +44,10 @@
 #include <unordered_map>
 
 #include <corjit.h>
+
+#include <Python.h>
+
+#include "exceptions.h"
 
 #define METHOD_SLOT_SPACE 0x00100000
 
@@ -93,18 +96,26 @@ public:
     }
 };
 
-
+struct SequencePoint {
+    uint32_t ilOffset;
+    uint32_t nativeOffset;
+    uint32_t pythonOpcodeIndex;
+};
 
 class BaseMethod {
 public:
 
-    virtual void get_call_info(CORINFO_CALL_INFO *pResult) = 0;
-    virtual DWORD get_method_attrs() {
+    virtual void getCallInfo(CORINFO_CALL_INFO *pResult) = 0;
+    virtual uint32_t getMethodAttrs() {
         return CORINFO_FLG_STATIC | CORINFO_FLG_NATIVE ;
     }
     virtual void findSig(CORINFO_SIG_INFO  *sig) = 0;
-    virtual void* get_addr() = 0;
+    virtual void* getAddr() = 0;
     virtual void getFunctionEntryPoint(CORINFO_CONST_LOOKUP *  pResult) = 0;
+    virtual unsigned int getSequencePointCount() = 0;
+    virtual uint32_t* getSequencePointOffsets() = 0;
+    virtual void recordSequencePointOffsetPosition(uint32_t ilOffset, uint32_t nativeOffset) = 0;
+    virtual vector<SequencePoint> getSequencePoints() = 0;
 };
 
 class JITMethod : public BaseMethod {
@@ -113,6 +124,7 @@ public:
     vector<Parameter> m_params;
     CorInfoType m_retType;
     void* m_addr;
+    vector<SequencePoint> m_sequencePoints;
 
     JITMethod(BaseModule* module, CorInfoType returnType, std::vector<Parameter> params, void* addr) {
         m_retType = returnType;
@@ -121,11 +133,23 @@ public:
         m_addr = addr;
     }
 
-    void* get_addr() override {
+    JITMethod(BaseModule *module, CorInfoType returnType, vector<struct Parameter> params, void* addr,
+              vector<pair<size_t, uint32_t>> sequencePoints) :
+            JITMethod(module, returnType, params, addr){
+        for (auto & point: sequencePoints){
+            m_sequencePoints.push_back({
+                static_cast<uint32_t>(point.first),
+                0,
+                point.second
+            });
+        }
+    }
+
+    void* getAddr() override {
         return m_addr;
     }
 
-    void get_call_info(CORINFO_CALL_INFO *pResult) override {
+    void getCallInfo(CORINFO_CALL_INFO *pResult) override {
         pResult->codePointerLookup.lookupKind.needsRuntimeLookup = false;
         pResult->codePointerLookup.constLookup.accessType = IAT_PVALUE;
         pResult->codePointerLookup.constLookup.addr = &m_addr;
@@ -145,6 +169,35 @@ public:
     void getFunctionEntryPoint(CORINFO_CONST_LOOKUP *  pResult) override {
         pResult->accessType = IAT_PVALUE;
         pResult->addr = &m_addr;
+    }
+
+    unsigned int getSequencePointCount() override {
+        return m_sequencePoints.size();
+    }
+
+    uint32_t * getSequencePointOffsets() override {
+        uint32_t * pts = static_cast<uint32_t *>(PyMem_RawMalloc(sizeof(uint32_t) * m_sequencePoints.size()));
+        if (pts == nullptr){
+            throw OutOfMemoryException();
+        }
+        size_t i = 0;
+        for (auto & p: m_sequencePoints){
+            pts[i] = p.ilOffset;
+            i++;
+        }
+        return pts;
+    }
+
+    void recordSequencePointOffsetPosition(uint32_t ilOffset, uint32_t nativeOffset) override {
+        for (auto & pt: m_sequencePoints){
+            if (pt.ilOffset == ilOffset){
+                pt.nativeOffset = nativeOffset;
+            }
+        }
+    }
+
+    vector<SequencePoint> getSequencePoints() override {
+        return m_sequencePoints;
     }
 };
 
