@@ -252,8 +252,8 @@
 #define METHOD_SUBSCR_LIST_SLICE_STEPPED 0x0007000A
 #define METHOD_SUBSCR_LIST_SLICE_REVERSED 0x0007000B
 
-#define LD_FIELDA(type, field) m_il.ld_i4(offsetof(type, field)); m_il.add();
-#define LD_FIELD(type, field) m_il.ld_i4(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
+#define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
+#define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
 
 extern ICorJitCompiler* g_jit;
 class PythonCompiler : public IPythonCompiler {
