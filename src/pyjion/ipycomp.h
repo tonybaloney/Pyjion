@@ -98,10 +98,10 @@ public:
     virtual ~JittedCode() = default;
     virtual void* get_code_addr() = 0;
     virtual unsigned char* get_il() = 0;
-    virtual unsigned int get_il_len() = 0;
-    virtual unsigned long get_native_size() = 0;
+    virtual size_t get_il_len() = 0;
+    virtual size_t get_native_size() = 0;
     virtual SequencePoint* get_sequence_points() = 0;
-    virtual unsigned long get_sequence_points_length() = 0;
+    virtual size_t get_sequence_points_length() = 0;
 };
 
 // Defines the interface between the abstract compiler and code generator
