@@ -71,6 +71,7 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     vector<uint8_t> m_il;
     uint32_t m_nativeSize;
     vector<SequencePoint> m_sequencePoints;
+    bool m_compileDebug;
 
     volatile const GSCookie s_gsCookie = 0x1234;
 
@@ -81,11 +82,12 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
 
 public:
 
-    CorJitInfo(PyCodeObject* code, UserModule* module) {
+    CorJitInfo(PyCodeObject* code, UserModule* module, bool compileDebug) {
         m_codeAddr = m_dataAddr = nullptr;
         m_code = code;
         m_module = module;
         m_il = vector<uint8_t>(0);
+        m_compileDebug = compileDebug;
 #ifdef WINDOWS
         m_winHeap = HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, 0, 0);
         GetSystemInfo(&systemInfo);
@@ -1499,14 +1501,14 @@ public:
 	uint32_t getJitFlags(CORJIT_FLAGS * flags, uint32_t sizeInBytes) override
 	{
 		flags->Add(flags->CORJIT_FLAG_SKIP_VERIFICATION);
-#ifdef DEBUG
-        flags->Add(flags->CORJIT_FLAG_DEBUG_INFO);
-        flags->Add(flags->CORJIT_FLAG_DEBUG_CODE);
-        flags->Add(flags->CORJIT_FLAG_NO_INLINING);
-        flags->Add(flags->CORJIT_FLAG_MIN_OPT);
-#else
-        flags->Add(flags->CORJIT_FLAG_SPEED_OPT);
-#endif
+        if (m_compileDebug) {
+            flags->Add(flags->CORJIT_FLAG_DEBUG_INFO);
+            flags->Add(flags->CORJIT_FLAG_DEBUG_CODE);
+            flags->Add(flags->CORJIT_FLAG_NO_INLINING);
+            flags->Add(flags->CORJIT_FLAG_MIN_OPT);
+        } else {
+            flags->Add(flags->CORJIT_FLAG_SPEED_OPT);
+        }
 
 #ifdef DOTNET_PGO
         flags->Add(flags->CORJIT_FLAG_BBINSTR);

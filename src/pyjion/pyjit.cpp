@@ -515,6 +515,16 @@ static PyObject* pyjion_disable_tracing(PyObject *self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* pyjion_enable_debug(PyObject *self, PyObject* args) {
+    g_pyjionSettings.debug = true;
+    Py_RETURN_NONE;
+}
+
+static PyObject* pyjion_disable_debug(PyObject *self, PyObject* args) {
+    g_pyjionSettings.debug = false;
+    Py_RETURN_NONE;
+}
+
 static PyObject* pyjion_enable_profiling(PyObject *self, PyObject* args) {
     g_pyjionSettings.profiling = true;
     Py_RETURN_NONE;
@@ -589,10 +599,10 @@ static PyMethodDef PyjionMethods[] = {
         "Outputs the machine code for the compiled code object."
     },
     {
-            "get_offsets",
-            pyjion_get_offsets,
-            METH_O,
-            "Get the sequence of offsets for IL and machine code for given python bytecodes."
+        "get_offsets",
+        pyjion_get_offsets,
+        METH_O,
+        "Get the sequence of offsets for IL and machine code for given python bytecodes."
     },
 	{
 		"set_threshold",
@@ -623,6 +633,18 @@ static PyMethodDef PyjionMethods[] = {
         pyjion_disable_tracing,
         METH_NOARGS,
         "Enable tracing for generated code."
+    },
+    {
+            "enable_debug",
+            pyjion_enable_debug,
+            METH_NOARGS,
+            "Enable debug symbols for generated code."
+    },
+    {
+            "disable_debug",
+            pyjion_disable_debug,
+            METH_NOARGS,
+            "Enable debug symbols for generated code."
     },
     {
         "enable_profiling",

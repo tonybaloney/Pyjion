@@ -80,6 +80,11 @@ typedef struct PyjionSettings {
     unsigned short optimizationLevel = 1;
     int recursionLimit = DEFAULT_RECURSION_LIMIT;
     size_t codeObjectSizeLimit = DEFAULT_CODEOBJECT_SIZE_LIMIT;
+#ifdef DEBUG
+    bool debug = true;
+#else
+    bool debug = false;
+#endif
 
     // Optimizations
     bool opt_inlineIs = OPTIMIZE_IS; // OPT-1

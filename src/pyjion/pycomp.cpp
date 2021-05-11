@@ -84,6 +84,7 @@ PythonCompiler::PythonCompiler(PyCodeObject *code) :
 {
     this->m_code = code;
     m_lasti = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+    m_compileDebug = g_pyjionSettings.debug;
 }
 
 void PythonCompiler::load_frame() {
@@ -2251,7 +2252,7 @@ void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithS
 }
 
 JittedCode* PythonCompiler::emit_compile() {
-    auto* jitInfo = new CorJitInfo(m_code, m_module);
+    auto* jitInfo = new CorJitInfo(m_code, m_module, m_compileDebug);
     auto addr = m_il.compile(jitInfo, g_jit, m_code->co_stacksize + 100).m_addr;
     if (addr == nullptr) {
 #ifdef DEBUG

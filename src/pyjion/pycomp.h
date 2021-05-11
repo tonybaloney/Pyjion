@@ -264,6 +264,7 @@ class PythonCompiler : public IPythonCompiler {
     Local m_lasti;
     Local m_instrCount;
     unordered_map<size_t, Local> m_frameLocals;
+    bool m_compileDebug;
 
 public:
     explicit PythonCompiler(PyCodeObject *code);

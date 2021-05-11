@@ -12,6 +12,7 @@ class DisassemblerModuleTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.enable_debug()
 
     def tearDown(self) -> None:
         pyjion.disable()
@@ -24,7 +25,7 @@ class DisassemblerModuleTestCase(unittest.TestCase):
         self.assertTrue(test_f(4) == 2.0)
 
         offsets = pyjion.get_offsets(test_f)
-        self.assertEqual(len(offsets), 4)
+        self.assertEqual(len(offsets), 4)  # TODO : Test this under debug conditions
 
     def test_fat(self):
         def test_f():
