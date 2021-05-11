@@ -826,7 +826,7 @@ void PythonCompiler::emit_list_store(size_t argCnt) {
 
         // load the address of the list item...
         m_il.ld_loc(listItems);
-        m_il.ld_i4(arg * sizeof(size_t));
+        m_il.ld_i(arg * sizeof(size_t));
         m_il.add();
 
         // reload the value
@@ -841,7 +841,7 @@ void PythonCompiler::emit_list_store(size_t argCnt) {
     m_il.dup();
     m_il.ld_i(offsetof(PyVarObject, ob_size));
     m_il.add();
-    m_il.ld_i4(argCnt);
+    m_il.ld_i(argCnt);
     m_il.st_ind_i();
 
     m_il.free_local(valueTmp);
@@ -1079,7 +1079,7 @@ void PythonCompiler::emit_new_tuple(size_t size) {
 
 // Loads the specified index from a tuple that's already on the stack
 void PythonCompiler::emit_tuple_load(size_t index) {
-	m_il.ld_i4(index * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
+	m_il.ld_i(index * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
 	m_il.add();
 	m_il.ld_ind_i();
 }
@@ -1093,7 +1093,7 @@ void PythonCompiler::emit_tuple_length(){
 void PythonCompiler::emit_list_load(size_t index) {
     LD_FIELD(PyListObject, ob_item);
     if (index > 0) {
-        m_il.ld_i4(index * sizeof(size_t));
+        m_il.ld_i(index * sizeof(size_t));
         m_il.add();
     }
     m_il.ld_ind_i();
@@ -1117,7 +1117,7 @@ void PythonCompiler::emit_tuple_store(size_t argCnt) {
 
         // load the address of the tuple item...
         m_il.ld_loc(tupleTmp);
-        m_il.ld_i4(arg * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
+        m_il.ld_i(arg * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
         m_il.add();
 
         // reload the value
@@ -1770,12 +1770,12 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     emit_load_local(it_seq);
     m_il.ld_i(ob_item_offset);
     m_il.add();
-    m_il.ld_ind_i();
+    m_il.ld_ind_i();Re
     emit_load_local(it);
     m_il.ld_i(index_offset);
     m_il.add();
     m_il.ld_ind_i();
-    m_il.ld_i4(sizeof(PyObject*));
+    m_il.ld_i(sizeof(PyObject*));
     m_il.mul();
     m_il.add();
     m_il.ld_ind_i();

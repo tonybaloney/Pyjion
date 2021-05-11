@@ -585,12 +585,13 @@ def print_il(il, offsets=None, bytecodes=None):
 
         while True:
             # See if this is the offset of a matching Python instruction
-            for py_offset, il_offset, native_offset in offsets:
-                if il_offset == pc:
-                    try:
-                        print(bytecodes[py_offset])
-                    except KeyError:
-                        warn("Invalid offset {0}".format(offsets))
+            if offsets and bytecodes:
+                for py_offset, il_offset, native_offset in offsets:
+                    if il_offset == pc:
+                        try:
+                            print(bytecodes[py_offset])
+                        except KeyError:
+                            warn("Invalid offset {0}".format(offsets))
             first = next(i)
             if first == 0 and pc == 0:
                 raise NotImplementedError(f"CorILMethod_FatFormat not yet supported")
