@@ -452,6 +452,38 @@ static PyObject* pyjion_dump_native(PyObject *self, PyObject* func) {
     return result_t;
 }
 
+static PyObject* pyjion_get_offsets(PyObject* self, PyObject* func ){
+    PyObject* code;
+    if (PyFunction_Check(func)) {
+        code = ((PyFunctionObject*)func)->func_code;
+    }
+    else if (PyCode_Check(func)) {
+        code = func;
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Expected function or code");
+        return nullptr;
+    }
+
+    PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
+    if (jitted->j_failed || jitted->j_addr == nullptr)
+        Py_RETURN_NONE;
+
+    auto offsets = PyTuple_New(jitted->j_sequencePointsLen);
+    if (offsets == nullptr)
+        return nullptr;
+    for (size_t i = 0; i < jitted->j_sequencePointsLen; i++){
+        auto offset = PyTuple_New(3);
+        PyTuple_SET_ITEM(offset, 0, PyLong_FromSize_t(jitted->j_sequencePoints[i].pythonOpcodeIndex));
+        PyTuple_SET_ITEM(offset, 1, PyLong_FromSize_t(jitted->j_sequencePoints[i].ilOffset));
+        PyTuple_SET_ITEM(offset, 2, PyLong_FromSize_t(jitted->j_sequencePoints[i].nativeOffset));
+        PyTuple_SET_ITEM(offsets, i, offset);
+        Py_INCREF(offset);
+    }
+
+    return offsets;
+}
+
 static PyObject* pyjion_set_threshold(PyObject *self, PyObject* args) {
 	if (!PyLong_Check(args)) {
 		PyErr_SetString(PyExc_TypeError, "Expected int for new threshold");
@@ -555,6 +587,12 @@ static PyMethodDef PyjionMethods[] = {
         pyjion_dump_native,
         METH_O,
         "Outputs the machine code for the compiled code object."
+    },
+    {
+            "get_offsets",
+            pyjion_get_offsets,
+            METH_O,
+            "Get the sequence of offsets for IL and machine code for given python bytecodes."
     },
 	{
 		"set_threshold",

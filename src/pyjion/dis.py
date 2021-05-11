@@ -1,8 +1,8 @@
 from enum import Enum
-
-from pyjion import dump_il, dump_native
+from dis import get_instructions
+from pyjion import dump_il, dump_native, get_offsets
 from collections import namedtuple
-
+from warnings import warn
 # Pre stack effect
 Pop0 = 0
 Pop1 = 1
@@ -578,11 +578,19 @@ for opcode in opcodes:
         opcode_map[opcode.first_byte + opcode.second_byte] = opcode
 
 
-def print_il(il):
+def print_il(il, offsets=None, bytecodes=None):
     i = iter(il)
     try:
         pc = 0
+
         while True:
+            # See if this is the offset of a matching Python instruction
+            for py_offset, il_offset, native_offset in offsets:
+                if il_offset == pc:
+                    try:
+                        print(bytecodes[py_offset])
+                    except KeyError:
+                        warn("Invalid offset {0}".format(offsets))
             first = next(i)
             if first == 0 and pc == 0:
                 raise NotImplementedError(f"CorILMethod_FatFormat not yet supported")
@@ -676,7 +684,9 @@ def dis(f):
     if not il:
         print("No IL for this function, it may not have compiled correctly.")
         return
-    print_il(il)
+    python_instructions = {i.offset: i for i in get_instructions(f)}
+    offsets = get_offsets(f)
+    print_il(il, offsets, python_instructions)
 
 
 def dis_native(f):

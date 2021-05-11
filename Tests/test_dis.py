@@ -5,6 +5,7 @@ import io
 import contextlib
 import gc
 import sys
+import dis as pydis
 
 
 class DisassemblerModuleTestCase(unittest.TestCase):
@@ -15,6 +16,15 @@ class DisassemblerModuleTestCase(unittest.TestCase):
     def tearDown(self) -> None:
         pyjion.disable()
         gc.collect()
+
+    def test_offsets(self):
+        def test_f(x):
+            return x/2
+
+        self.assertTrue(test_f(4) == 2.0)
+
+        offsets = pyjion.get_offsets(test_f)
+        self.assertEqual(len(offsets), 4)
 
     def test_fat(self):
         def test_f():
