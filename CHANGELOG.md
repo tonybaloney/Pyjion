@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.0.0 (alpha2)
+
+* Debuggable JIT methods can be toggled at runtime using `pyjion.enable_debug()`/`pyjion.disable_debug()`
+* Added option for including Python bytecode disassembly in Pyjion disassemble printouts on `pyjion.dis.dis()` and `pyjion.dis.dis_native()`
+* Added API `pyjion.get_offsets(callable)` to get the offsets of Python Opcode <> IL offset <> native offset.
+* Moved internal representations to fixed width standard types.
+
 ## 1.0.0 (alpha1)
 
 * Pyjion uses .NET 6 Preview 3 as the compiler, for Linux and macOS make sure you have installed it first
