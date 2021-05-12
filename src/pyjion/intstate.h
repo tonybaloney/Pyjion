@@ -46,11 +46,11 @@ public:
     InterpreterStack mStack;
     CowVector<AbstractLocalInfo> mLocals;
     bool requiresPgcProbe = false;
-    short pgcProbeSize = 0;
+    uint8_t pgcProbeSize = 0;
 
     InterpreterState() = default;
 
-    explicit InterpreterState(int numLocals) {
+    explicit InterpreterState(size_t numLocals) {
         mLocals = CowVector<AbstractLocalInfo>(numLocals);
     }
 
@@ -74,7 +74,7 @@ public:
         return res;
     }
 
-    AbstractValueWithSources fromPgc(int stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject, AbstractSource* source) {
+    AbstractValueWithSources fromPgc(uint8_t stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject, AbstractSource* source) {
         if (mStack.empty())
             throw StackUnderflowException();
         auto existing = mStack[mStack.size() - 1 - stackPosition];

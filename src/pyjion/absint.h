@@ -151,7 +151,8 @@ class AbstractInterpreter {
     unordered_set<size_t> m_jumpsTo;
     Label m_retLabel;
     Local m_retValue;
-    unordered_map<int, bool> m_assignmentState;
+    unordered_map<int, bool> m_assignmentState;\
+    BytecodeOperationSequence mByteCodeSequence;
 
 #pragma warning (default:4251)
 
@@ -162,7 +163,7 @@ public:
     AbstactInterpreterCompileResult compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status);
     AbstractInterpreterResult interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status);
 
-    void setLocalType(int index, PyObject* val);
+    void setLocalType(size_t index, PyObject* val);
     // Returns information about the specified local variable at a specific
     // byte code index.
     AbstractLocalInfo getLocalInfo(size_t byteCodeIndex, size_t localIndex);
@@ -181,7 +182,8 @@ private:
     AbstractValue* toAbstract(PyObject* obj);
 
     static bool mergeStates(InterpreterState& newState, InterpreterState& mergeTo);
-    bool updateStartState(InterpreterState& newState, size_t index);
+    bool updateStartState(InterpreterState& newState, BytecodeOperation op);
+    bool updateStartState(InterpreterState& newState, size_t op_idx);
     void initStartingState();
     AbstractInterpreterResult preprocess();
     AbstractSource* newSource(AbstractSource* source) {
@@ -189,22 +191,14 @@ private:
         return source;
     }
 
-    AbstractSource* addLocalSource(size_t opcodeIndex, size_t localIndex);
-    AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
-    AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
-    AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
-    AbstractSource* addPgcSource(size_t opcodeIndex);
-
-    void makeFunction(int oparg);
+    void makeFunction(size_t oparg);
     bool canSkipLastiUpdate(size_t opcodeIndex);
     void buildTuple(size_t argCnt);
     void buildList(size_t argCnt);
     void extendListRecursively(Local list, size_t argCnt);
     void extendList(size_t argCnt);
     void buildSet(size_t argCnt);
-
     void buildMap(size_t argCnt);
-
     Label getOffsetLabel(size_t jumpTo);
     void forIter(size_t loopIndex);
     void forIter(size_t loopIndex, AbstractValueWithSources* iterator);
@@ -213,42 +207,26 @@ private:
     // indicating an error, and if so, branches to our current error handler.
     void errorCheck(const char* reason = nullptr, size_t curByte = ~0);
     void intErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
-
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
     void ensureRaiseAndFreeLocals(size_t localCount);
-
     void ensureLabels(vector<Label>& labels, size_t count);
-
     void branchRaise(const char* reason = nullptr, size_t curByte = ~0);
     void raiseOnNegativeOne(size_t curByte);
-
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);
-
     ExceptionHandler * currentHandler();
-
     void jumpAbsolute(size_t index, size_t from);
-
     void decStack(size_t size = 1);
-
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
-
     AbstactInterpreterCompileResult compileWorker(PgcStatus status);
-
     void storeFast(size_t local, size_t opcodeIndex);
-
     void loadConst(ssize_t constIndex, size_t opcodeIndex);
-
     void returnValue(size_t opcodeIndex);
-
     void loadFast(size_t local, size_t opcodeIndex);
     void loadFastWorker(size_t local, bool checkUnbound, int curByte);
-
     void popExcept();
-
     void unaryPositive(size_t opcodeIndex);
     void unaryNegative(size_t opcodeIndex);
     void unaryNot(size_t opcodeIndex);
-
     void jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t offset);
     void popJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
     void jumpIfNotExact(size_t opcodeIndex, size_t jumpTo);
@@ -260,7 +238,8 @@ private:
     void popExcVars();
     void decExcVars(size_t count);
     void incExcVars(size_t count);
-
+    uint8_t pgcProbeSize(size_t byteCodeIndex);
+    bool pgcProbeRequired(size_t byteCodeIndex, PgcStatus status);
 };
 
 // TODO : Fetch the range of interned integers from the interpreter state
