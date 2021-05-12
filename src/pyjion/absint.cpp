@@ -174,7 +174,7 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
     return Success;
 }
 
-void AbstractInterpreter::setLocalType(int index, PyObject* val) {
+void AbstractInterpreter::setLocalType(size_t index, PyObject* val) {
     if (val != nullptr) {
         auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val));
         localInfo.ValueInfo.Sources = newSource(new LocalSource());
@@ -223,7 +223,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
     deque<size_t> queue;
     queue.push_back(0);
     vector<const char*> utf8_names ;
-    for (int i = 0; i < PyTuple_Size(mCode->co_names); i++)
+    for (size_t i = 0; i < PyTuple_Size(mCode->co_names); i++)
         utf8_names.push_back(PyUnicode_AsUTF8(PyTuple_GetItem(mCode->co_names, i)));
 
     do {
@@ -1021,6 +1021,27 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
     return &Any;
 }
 
+// Returns information about the specified local variable at a specific
+// byte code index.
+AbstractLocalInfo AbstractInterpreter::getLocalInfo(size_t byteCodeIndex, size_t localIndex) {
+    return mStartStates[byteCodeIndex].getLocal(localIndex);
+}
+
+// Returns information about the stack at the specific byte code index.
+InterpreterStack& AbstractInterpreter::getStackInfo(size_t byteCodeIndex) {
+    return mStartStates[byteCodeIndex].mStack;
+}
+
+short AbstractInterpreter::pgcProbeSize(size_t byteCodeIndex) {
+    return mStartStates[byteCodeIndex].pgcProbeSize;
+}
+
+bool AbstractInterpreter::pgcProbeRequired(size_t byteCodeIndex, PgcStatus status) {
+    if (status == PgcStatus::Uncompiled)
+        return mStartStates[byteCodeIndex].requiresPgcProbe;
+    return false;
+}
+
 const char* AbstractInterpreter::opcodeName(int opcode) {
 #define OP_TO_STR(x)   case x: return #x;
     switch (opcode) { // NOLINT(hicpp-multiway-paths-covered)
@@ -1394,7 +1415,7 @@ void AbstractInterpreter::buildMap(size_t  argCnt) {
     }
 }
 
-void AbstractInterpreter::makeFunction(int oparg) {
+void AbstractInterpreter::makeFunction(size_t oparg) {
     m_comp->emit_new_function();
     decStack(2);
     errorCheck("new function failed");
@@ -1473,11 +1494,11 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
     m_comp->emit_load_local(handler->ExVars.FinallyExc);
 }
 
-void AbstractInterpreter::decExcVars(int count){
+void AbstractInterpreter::decExcVars(size_t count){
     m_comp->emit_dec_local(mExcVarsOnStack, count);
 }
 
-void AbstractInterpreter::incExcVars(int count) {
+void AbstractInterpreter::incExcVars(size_t count) {
     m_comp->emit_inc_local(mExcVarsOnStack, count);
 }
 
@@ -1551,6 +1572,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
     processOpCode:
         markOffsetLabel(curByte);
+        m_comp->mark_sequence_point(curByte);
 
         // See if current index is part of offset stack, used for jump operations
         auto curStackDepth = m_offsetStack.find(curByte);
@@ -1564,9 +1586,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             emitRaise(handler);
         }
 
-#ifdef DEBUG
-        int ilLen = m_comp->il_length();
-#endif
         if (!canSkipLastiUpdate(curByte)) {
             if (mTracingEnabled){
                 m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
@@ -1948,7 +1967,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             {
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
-                auto jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
+                size_t jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
                 if (OPT_ENABLED(inlineIterators) && !stackInfo.empty()){
                     auto iterator = stackInfo.top();
                     forIter(
@@ -2326,7 +2345,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
     m_comp->emit_pop_frame();
 
-    m_comp->emit_ret(1);
+    m_comp->emit_ret();
     auto code = m_comp->emit_compile();
     if (code != nullptr)
         return {code, Success};
@@ -2405,13 +2424,13 @@ bool AbstractInterpreter::canSkipLastiUpdate(size_t opcodeIndex) {
     return false;
 }
 
-void AbstractInterpreter::storeFast(int local, size_t opcodeIndex) {
+void AbstractInterpreter::storeFast(size_t local, size_t opcodeIndex) {
     m_comp->emit_store_fast(local);
     decStack();
     m_assignmentState[local] = true;
 }
 
-void AbstractInterpreter::loadConst(int constIndex, size_t opcodeIndex) {
+void AbstractInterpreter::loadConst(ssize_t constIndex, size_t opcodeIndex) {
     auto constValue = PyTuple_GetItem(mCode->co_consts, constIndex);
     m_comp->emit_ptr(constValue);
     m_comp->emit_dup();
@@ -2495,13 +2514,13 @@ void AbstractInterpreter::forIter(size_t loopIndex) {
     forIter(loopIndex, nullptr);
 }
 
-void AbstractInterpreter::loadFast(int local, size_t opcodeIndex) {
+void AbstractInterpreter::loadFast(size_t local, size_t opcodeIndex) {
     bool checkUnbound = m_assignmentState.find(local) == m_assignmentState.end() || !m_assignmentState.find(local)->second;
     loadFastWorker(local, checkUnbound, opcodeIndex);
     incStack();
 }
 
-void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound, int curByte) {
+void AbstractInterpreter::loadFastWorker(size_t local, bool checkUnbound, int curByte) {
     m_comp->emit_load_fast(local);
 
     // Check if arg is unbound, raises UnboundLocalError

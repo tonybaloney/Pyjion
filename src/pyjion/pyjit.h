@@ -47,6 +47,7 @@
 
 #include <frameobject.h>
 #include <Python.h>
+#include "codemodel.h"
 
 using namespace std;
 
@@ -79,6 +80,11 @@ typedef struct PyjionSettings {
     unsigned short optimizationLevel = 1;
     int recursionLimit = DEFAULT_RECURSION_LIMIT;
     size_t codeObjectSizeLimit = DEFAULT_CODEOBJECT_SIZE_LIMIT;
+#ifdef DEBUG
+    bool debug = true;
+#else
+    bool debug = false;
+#endif
 
     // Optimizations
     bool opt_inlineIs = OPTIMIZE_IS; // OPT-1
@@ -136,6 +142,8 @@ public:
     unsigned int j_ilLen;
     unsigned long j_nativeSize;
     PgcStatus j_pgc_status;
+    SequencePoint* j_sequencePoints;
+    unsigned int j_sequencePointsLen;
 
 	explicit PyjionJittedCode(PyObject* code) {
         j_compile_result = 0;
@@ -149,6 +157,8 @@ public:
 		j_nativeSize = 0;
 		j_profile = new PyjionCodeProfile();
 		j_pgc_status = Uncompiled;
+		j_sequencePoints = nullptr;
+		j_sequencePointsLen = 0;
 		Py_INCREF(code);
 	}
 

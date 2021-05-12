@@ -151,8 +151,7 @@ class AbstractInterpreter {
     unordered_set<size_t> m_jumpsTo;
     Label m_retLabel;
     Local m_retValue;
-    unordered_map<int, bool> m_assignmentState; // local , assigned
-    BytecodeOperationSequence mByteCodeOperationSequence;
+    unordered_map<int, bool> m_assignmentState;
 
 #pragma warning (default:4251)
 
@@ -164,6 +163,12 @@ public:
     AbstractInterpreterResult interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status);
 
     void setLocalType(int index, PyObject* val);
+    // Returns information about the specified local variable at a specific
+    // byte code index.
+    AbstractLocalInfo getLocalInfo(size_t byteCodeIndex, size_t localIndex);
+
+    // Returns information about the stack at the specific byte code index.
+    InterpreterStack& getStackInfo(size_t byteCodeIndex);
 
     AbstractValue* getReturnInfo();
 
@@ -178,12 +183,17 @@ private:
     static bool mergeStates(InterpreterState& newState, InterpreterState& mergeTo);
     bool updateStartState(InterpreterState& newState, size_t index);
     void initStartingState();
-    const char* opcodeName(int opcode);
     AbstractInterpreterResult preprocess();
     AbstractSource* newSource(AbstractSource* source) {
         m_sources.push_back(source);
         return source;
     }
+
+    AbstractSource* addLocalSource(size_t opcodeIndex, size_t localIndex);
+    AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
+    AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
+    AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
+    AbstractSource* addPgcSource(size_t opcodeIndex);
 
     void makeFunction(int oparg);
     bool canSkipLastiUpdate(size_t opcodeIndex);
@@ -224,14 +234,14 @@ private:
 
     AbstactInterpreterCompileResult compileWorker(PgcStatus status);
 
-    void storeFast(int local, size_t opcodeIndex);
+    void storeFast(size_t local, size_t opcodeIndex);
 
-    void loadConst(int constIndex, size_t opcodeIndex);
+    void loadConst(ssize_t constIndex, size_t opcodeIndex);
 
     void returnValue(size_t opcodeIndex);
 
-    void loadFast(int local, size_t opcodeIndex);
-    void loadFastWorker(int local, bool checkUnbound, int curByte);
+    void loadFast(size_t local, size_t opcodeIndex);
+    void loadFastWorker(size_t local, bool checkUnbound, int curByte);
 
     void popExcept();
 
@@ -248,8 +258,8 @@ private:
 
     void emitRaise(ExceptionHandler *handler);
     void popExcVars();
-    void decExcVars(int count);
-    void incExcVars(int count);
+    void decExcVars(size_t count);
+    void incExcVars(size_t count);
 
 };
 

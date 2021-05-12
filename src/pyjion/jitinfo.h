@@ -70,6 +70,8 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     UserModule* m_module;
     vector<uint8_t> m_il;
     uint32_t m_nativeSize;
+    vector<SequencePoint> m_sequencePoints;
+    bool m_compileDebug;
 
     volatile const GSCookie s_gsCookie = 0x1234;
 
@@ -80,11 +82,12 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
 
 public:
 
-    CorJitInfo(PyCodeObject* code, UserModule* module) {
+    CorJitInfo(PyCodeObject* code, UserModule* module, bool compileDebug) {
         m_codeAddr = m_dataAddr = nullptr;
         m_code = code;
         m_module = module;
         m_il = vector<uint8_t>(0);
+        m_compileDebug = compileDebug;
 #ifdef WINDOWS
         m_winHeap = HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, 0, 0);
         GetSystemInfo(&systemInfo);
@@ -156,12 +159,20 @@ public:
         return (unsigned char *)m_il.data();
     }
 
-    unsigned int get_il_len() override {
+    size_t get_il_len() override {
         return m_il.size();
     }
 
-    unsigned long get_native_size() override {
+    size_t get_native_size() override {
         return m_nativeSize;
+    }
+
+    SequencePoint* get_sequence_points() override {
+        return &m_sequencePoints[0];
+    }
+
+    size_t get_sequence_points_length() override {
+        return m_sequencePoints.size();
     }
 
     void freeMem(PVOID code) {
@@ -462,7 +473,7 @@ public:
         auto method = reinterpret_cast<BaseMethod*>(pResolvedToken->hMethod);
         pResult->hMethod = (CORINFO_METHOD_HANDLE)method;
 
-        method->get_call_info(pResult);
+        method->getCallInfo(pResult);
         pResult->nullInstanceCheck = false;
         pResult->sig.callConv = CORINFO_CALLCONV_DEFAULT;
         pResult->sig.retTypeClass = nullptr;
@@ -542,7 +553,7 @@ public:
         CORINFO_METHOD_HANDLE       ftn         /* IN */
         ) override {
         auto method = reinterpret_cast<BaseMethod*>(ftn);
-        return method->get_method_attrs();
+        return method->getMethodAttrs();
     }
 
     // sets private JIT flags, which can be, retrieved using getAttrib.
@@ -1259,10 +1270,12 @@ public:
         CORINFO_METHOD_HANDLE   ftn,                // [IN] method of interest
         unsigned int           *cILOffsets,         // [OUT] size of pILOffsets
         uint32_t                 **pILOffsets,         // [OUT] IL offsets of interest
-        //       jit MUST free with freeArray!
-        ICorDebugInfo::BoundaryTypes *implictBoundaries // [OUT] tell jit, all boundries of this type
+        ICorDebugInfo::BoundaryTypes *implicitBoundaries // [OUT] tell jit, all boundaries of this type
         ) override {
-        WARN("getBoundaries not implemented\r\n");
+        BaseMethod* meth = reinterpret_cast<BaseMethod *>(ftn);
+        *cILOffsets = meth->getSequencePointCount();
+        *pILOffsets = meth->getSequencePointOffsets();
+        *implicitBoundaries = ICorDebugInfo::BoundaryTypes::DEFAULT_BOUNDARIES;
     }
 
     // Report back the mapping from IL to native code,
@@ -1278,7 +1291,13 @@ public:
         ICorDebugInfo::OffsetMapping *pMap      // [IN] map including all points of interest.
         //      jit allocated with allocateArray, EE frees
         ) override {
-        WARN("setBoundaries not implemented\r\n");
+        BaseMethod* meth = reinterpret_cast<BaseMethod*>(ftn);
+        for (size_t i = 0; i< cMap; i++){
+            if (pMap[i].source == ICorDebugInfo::SOURCE_TYPE_INVALID) {
+                meth->recordSequencePointOffsetPosition(pMap[i].ilOffset, pMap[i].nativeOffset);
+            }
+        }
+        m_sequencePoints = meth->getSequencePoints();
     }
 
     // Query the EE to find out the scope of local varables.
@@ -1297,7 +1316,9 @@ public:
         bool                           *extendOthers    // [OUT] it true, then assume the scope
         //       of unmentioned vars is entire method
         ) override {
-        WARN("getVars not implemented\r\n");
+        *cVars = 0;
+        *vars = {}; // Explore how/where these could be used?
+        *extendOthers = false;
     }
 
     // Report back to the EE the location of every variable.
@@ -1310,20 +1331,11 @@ public:
         ICorDebugInfo::NativeVarInfo   *vars            // [IN] map telling where local vars are stored at what points
         //      jit allocated with allocateArray, EE frees
         ) override {
-        WARN("setVars not implemented\r\n");
+        if (cVars != 0) {
+            WARN("setVars not implemented\r\n");
+        }
     }
 
-    /*-------------------------- Misc ---------------------------------------*/
-
-    // JitCompiler will free arrays passed by the EE using this
-    // For eg, The EE returns memory in getVars() and getBoundaries()
-    // to the JitCompiler, which the JitCompiler should release using
-    // freeArray()
-    void freeArray(
-        void               *array
-        ) override {
-        WARN("freeArray not implemented\r\n");
-    }
 
     /*********************************************************************************/
     //
@@ -1489,13 +1501,14 @@ public:
 	uint32_t getJitFlags(CORJIT_FLAGS * flags, uint32_t sizeInBytes) override
 	{
 		flags->Add(flags->CORJIT_FLAG_SKIP_VERIFICATION);
-#ifdef EE_DEBUG_CODE
-        flags->Add(flags->CORJIT_FLAG_DEBUG_CODE);
-        flags->Add(flags->CORJIT_FLAG_NO_INLINING);
-        flags->Add(flags->CORJIT_FLAG_MIN_OPT);
-#else
-        flags->Add(flags->CORJIT_FLAG_SPEED_OPT);
-#endif
+        if (m_compileDebug) {
+            flags->Add(flags->CORJIT_FLAG_DEBUG_INFO);
+            flags->Add(flags->CORJIT_FLAG_DEBUG_CODE);
+            flags->Add(flags->CORJIT_FLAG_NO_INLINING);
+            flags->Add(flags->CORJIT_FLAG_MIN_OPT);
+        } else {
+            flags->Add(flags->CORJIT_FLAG_SPEED_OPT);
+        }
 
 #ifdef DOTNET_PGO
         flags->Add(flags->CORJIT_FLAG_BBINSTR);
@@ -1608,8 +1621,13 @@ public:
     }
 
     void *allocateArray(size_t cBytes) override {
-        printf("allocateArray not defined\r\n");
-        return nullptr;
+        return PyMem_RawMalloc(cBytes);
+    }
+    // Allocate/Free will be called by the JIT for debug boundaries.
+    void freeArray(
+            void               *array
+    ) override {
+        PyMem_RawFree(array);
     }
 
     CorInfoHFAElemType getHFAType(CORINFO_CLASS_HANDLE hClass) override {
@@ -1840,8 +1858,7 @@ public:
             uint8_t **                 pInstrumentationData        // OUT: `*pInstrumentationData` is set to the address of the instrumentation data
             // (pointer will not remain valid after jit completes).
     ) override {
-        WARN("getPgoInstrumentationResults not implemented \r\n");
-        return 0;
+        return E_NOTIMPL;
     }
 
     JITINTERFACE_HRESULT allocPgoInstrumentationBySchema(
@@ -1851,8 +1868,7 @@ public:
             uint32_t                  countSchemaItems,            // IN: count of schema items in `pSchema` array.
             uint8_t **                pInstrumentationData         // OUT: `*pInstrumentationData` is set to the address of the instrumentation data.
     ) override {
-        WARN("allocPgoInstrumentationBySchema not implemented \r\n");
-        return 0;
+        return E_NOTIMPL;
     }
 
     // If a method's attributes have (getMethodAttribs) CORINFO_FLG_INTRINSIC set,

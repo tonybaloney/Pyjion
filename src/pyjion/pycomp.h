@@ -50,12 +50,12 @@
 #define METHOD_FLOORDIVIDE_TOKEN                 0x00000004
 #define METHOD_POWER_TOKEN                       0x00000005
 #define METHOD_MODULO_TOKEN                      0x00000006
-#define METHOD_SUBSCR_TOKEN                      0x00000007
+// Unused                                        0x00000007
 #define METHOD_STOREMAP_TOKEN                    0x00000008
 #define METHOD_RICHCMP_TOKEN                     0x00000009
 #define METHOD_CONTAINS_TOKEN                    0x0000000A
 #define METHOD_NOTCONTAINS_TOKEN                 0x0000000B
-#define METHOD_STORESUBSCR_TOKEN                 0x0000000C
+// Unused                                        0x0000000C
 #define METHOD_DELETESUBSCR_TOKEN                0x0000000D
 #define METHOD_NEWFUNCTION_TOKEN                 0x0000000E
 #define METHOD_GETITER_TOKEN                     0x0000000F
@@ -147,7 +147,7 @@
 #define METHOD_DEALLOC_OBJECT                    0x00000079
 #define METHOD_LOAD_CLOSURE                      0x0000007A
 #define METHOD_TRIPLE_BINARY_OP                  0x0000007B
-#define METHOD_XXXXXXXXXXXXXX                    0x0000007C
+// Unused                                        0x0000007C
 #define METHOD_LOADNAME_HASH                     0x0000007D
 #define METHOD_LOADGLOBAL_HASH                   0x0000007E
 #define METHOD_PENDING_CALLS                     0x0000007F
@@ -252,11 +252,8 @@
 #define METHOD_SUBSCR_LIST_SLICE_STEPPED 0x0007000A
 #define METHOD_SUBSCR_LIST_SLICE_REVERSED 0x0007000B
 
-
-
-#define LD_FIELDA(type, field) m_il.ld_i(offsetof(type, field)); m_il.add();
-#define LD_FIELD(type, field) m_il.ld_i(offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
-#define LD_FIELDI(type, field) m_il.ld_i(offsetof(type, field)); m_il.mul(); m_il.ld_ind_i();
+#define LD_FIELDA(type, field) m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();
+#define LD_FIELD(type, field) m_il.ld_i((int32_t)offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
 
 extern ICorJitCompiler* g_jit;
 class PythonCompiler : public IPythonCompiler {
@@ -266,14 +263,11 @@ class PythonCompiler : public IPythonCompiler {
     UserModule* m_module;
     Local m_lasti;
     Local m_instrCount;
-    unordered_map<int, Local> m_frameLocals;
+    unordered_map<size_t, Local> m_frameLocals;
+    bool m_compileDebug;
 
 public:
     explicit PythonCompiler(PyCodeObject *code);
-
-    int il_length() override {
-        return static_cast<int>(m_il.m_il.size());
-    };
 
     void emit_rot_two(LocalKind kind) override;
 
@@ -297,9 +291,9 @@ public:
     void emit_eh_trace() override;
 
     void emit_lasti_init() override;
-    void emit_lasti_update(int index) override;
+    void emit_lasti_update(uint16_t index) override;
 
-    void emit_ret(int size) override;
+    void emit_ret() override;
 
     void emit_store_name(PyObject* name) override;
     void emit_delete_name(PyObject* name) override;
@@ -311,7 +305,7 @@ public:
     void emit_delete_global(PyObject* name) override;
     void emit_load_global(PyObject* name) override;
     void emit_load_global_hashed(PyObject* name, ssize_t name_hash) override;
-    void emit_delete_fast(int index) override;
+    void emit_delete_fast(size_t index) override;
 
     void emit_new_tuple(size_t size) override;
     void emit_tuple_store(size_t size) override;
@@ -386,10 +380,11 @@ public:
     void emit_set_kw_defaults() override;
     void emit_set_defaults() override;
 
-    void emit_load_deref(int index) override;
-    void emit_store_deref(int index) override;
-    void emit_delete_deref(int index) override;
-    void emit_load_closure(int index) override;
+    void emit_load_deref(size_t index) override;
+    void emit_store_deref(size_t index) override;
+    void emit_delete_deref(size_t index) override;
+    void emit_load_closure(size_t index) override;
+    void emit_load_classderef(size_t index) override;
 
     Local emit_spill() override;
     void emit_store_local(Local local) override;
@@ -410,15 +405,14 @@ public:
     void emit_null() override;
 
     void emit_print_expr() override;
-    void emit_load_classderef(int index) override;
     void emit_getiter() override;
     void emit_for_next() override;
     void emit_for_next(AbstractValueWithSources) override;
 
-    void emit_binary_float(int opcode) override;
-    void emit_binary_object(int opcode) override;
-    void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
-    void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
+    void emit_binary_float(uint16_t opcode) override;
+    void emit_binary_object(uint16_t opcode) override;
+    void emit_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
+    void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) override;
     void emit_tagged_int_to_float() override;
@@ -428,16 +422,15 @@ public:
 
     void emit_is(bool isNot) override;
 
-    void emit_compare_object(int compareType) override;
-    void emit_compare_float(int compareType) override;
-    void emit_compare_known_object(int compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
-    void emit_compare_floats(int compareType, bool guard) override;
-    void emit_compare_tagged_int(int compareType) override;
+    void emit_compare_object(uint16_t compareType) override;
+    void emit_compare_float(uint16_t compareType) override;
+    void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
+    void emit_compare_floats(uint16_t compareType, bool guard) override;
+    void emit_compare_tagged_int(uint16_t compareType) override;
 
-    void emit_store_fast(int local) override;
-
+    void emit_store_fast(size_t local) override;
     void emit_unbound_local_check() override;
-    void emit_load_fast(int local) override;
+    void emit_load_fast(size_t local) override;
 
     Label emit_define_label() override;
     void emit_mark_label(Label label) override;
@@ -482,8 +475,8 @@ public:
 
     void emit_breakpoint() override;
 
-    void emit_inc_local(Local local, int value) override;
-    void emit_dec_local(Local local, int value) override;
+    void emit_inc_local(Local local, size_t value) override;
+    void emit_dec_local(Local local, size_t value) override;
 
     void emit_trace_line(Local lowerBound, Local upperBound, Local lastInstr) override;
     void emit_trace_frame_entry() override;
@@ -494,18 +487,18 @@ public:
     void emit_pgc_probe(size_t curByte, size_t stackSize) override;
 
     void emit_load_frame_locals() override;
-    void emit_triple_binary_op(int firstOp, int secondOp) override;
+    void emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) override;
     JittedCode* emit_compile() override;
-    void lift_n_to_top(int pos) override;
-    void lift_n_to_second(int pos) override;
-    void lift_n_to_third(int pos) override;
-    void sink_top_to_n(int pos) override;
-
+    void lift_n_to_top(uint16_t pos) override;
+    void lift_n_to_second(uint16_t pos) override;
+    void lift_n_to_third(uint16_t pos) override;
+    void sink_top_to_n(uint16_t pos) override;
+    void mark_sequence_point(size_t idx) override;
 
 private:
     void load_frame();
     void load_tstate();
-    void load_local(int oparg);
+    void load_local(uint16_t oparg);
     void decref(bool noopt = false);
     CorInfoType to_clr_type(LocalKind kind);
     void pop_top() override;
@@ -528,13 +521,11 @@ private:
 typedef struct {
     PyObject_HEAD
     Py_ssize_t it_index;
-    PyListObject *it_seq; /* Set to NULL when iterator is exhausted */
-} _listiterobject;
-
-typedef struct {
-    PyObject_HEAD
-    Py_ssize_t it_index;
     PyTupleObject *it_seq; /* Set to NULL when iterator is exhausted */
 } _tupleiterobject;
+
+
+
+const char* opcodeName(size_t opcode) ;
 
 #endif

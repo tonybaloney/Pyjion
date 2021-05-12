@@ -27,14 +27,14 @@
 #include "pyjit.h"
 #include "pycomp.h"
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "UnusedParameter"
 #ifdef WINDOWS
 #define BUFSIZE 65535
 #include <libloaderapi.h>
 #include <processenv.h>
 typedef ICorJitCompiler* (__cdecl* GETJIT)();
 #endif
-
-HINSTANCE            g_pMSCorEE;
 
 PyjionSettings g_pyjionSettings;
 
@@ -240,6 +240,20 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_ilLen = res.compiledCode->get_il_len();
     state->j_nativeSize = res.compiledCode->get_native_size();
     state->j_profile = profile;
+    state->j_sequencePoints = res.compiledCode->get_sequence_points();
+    state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
+
+#ifdef DUMP_JIT_TRACES
+    printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
+    auto code = (_Py_CODEUNIT *)PyBytes_AS_STRING(frame->f_code->co_code);
+    for (size_t i = 0; i < state->j_sequencePointsLen; i ++){
+        printf(" %016llX : %s %d\n",
+               ((uint64_t)state->j_addr + (uint64_t)state->j_sequencePoints[i].nativeOffset),
+               opcodeName(_Py_OPCODE(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])),
+               _Py_OPARG(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])
+        );
+    }
+#endif
 
     // Execute it now.
     return PyJit_ExecuteJittedFrame((void*)state->j_addr, frame, tstate, state->j_profile);
@@ -253,7 +267,7 @@ PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject) {
 			return nullptr;
 		}
 
-		PyThread_tss_set(g_extraSlot, (LPVOID)((index << 1) | 0x01));
+		PyThread_tss_set(g_extraSlot, (void*)((index << 1) | 0x01));
 	}
 	else {
 		index = index >> 1;
@@ -438,6 +452,38 @@ static PyObject* pyjion_dump_native(PyObject *self, PyObject* func) {
     return result_t;
 }
 
+static PyObject* pyjion_get_offsets(PyObject* self, PyObject* func ){
+    PyObject* code;
+    if (PyFunction_Check(func)) {
+        code = ((PyFunctionObject*)func)->func_code;
+    }
+    else if (PyCode_Check(func)) {
+        code = func;
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Expected function or code");
+        return nullptr;
+    }
+
+    PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
+    if (jitted->j_failed || jitted->j_addr == nullptr)
+        Py_RETURN_NONE;
+
+    auto offsets = PyTuple_New(jitted->j_sequencePointsLen);
+    if (offsets == nullptr)
+        return nullptr;
+    for (size_t i = 0; i < jitted->j_sequencePointsLen; i++){
+        auto offset = PyTuple_New(3);
+        PyTuple_SET_ITEM(offset, 0, PyLong_FromSize_t(jitted->j_sequencePoints[i].pythonOpcodeIndex));
+        PyTuple_SET_ITEM(offset, 1, PyLong_FromSize_t(jitted->j_sequencePoints[i].ilOffset));
+        PyTuple_SET_ITEM(offset, 2, PyLong_FromSize_t(jitted->j_sequencePoints[i].nativeOffset));
+        PyTuple_SET_ITEM(offsets, i, offset);
+        Py_INCREF(offset);
+    }
+
+    return offsets;
+}
+
 static PyObject* pyjion_set_threshold(PyObject *self, PyObject* args) {
 	if (!PyLong_Check(args)) {
 		PyErr_SetString(PyExc_TypeError, "Expected int for new threshold");
@@ -466,6 +512,16 @@ static PyObject* pyjion_enable_tracing(PyObject *self, PyObject* args) {
 
 static PyObject* pyjion_disable_tracing(PyObject *self, PyObject* args) {
     g_pyjionSettings.tracing = false;
+    Py_RETURN_NONE;
+}
+
+static PyObject* pyjion_enable_debug(PyObject *self, PyObject* args) {
+    g_pyjionSettings.debug = true;
+    Py_RETURN_NONE;
+}
+
+static PyObject* pyjion_disable_debug(PyObject *self, PyObject* args) {
+    g_pyjionSettings.debug = false;
     Py_RETURN_NONE;
 }
 
@@ -542,6 +598,12 @@ static PyMethodDef PyjionMethods[] = {
         METH_O,
         "Outputs the machine code for the compiled code object."
     },
+    {
+        "get_offsets",
+        pyjion_get_offsets,
+        METH_O,
+        "Get the sequence of offsets for IL and machine code for given python bytecodes."
+    },
 	{
 		"set_threshold",
 		pyjion_set_threshold,
@@ -571,6 +633,18 @@ static PyMethodDef PyjionMethods[] = {
         pyjion_disable_tracing,
         METH_NOARGS,
         "Enable tracing for generated code."
+    },
+    {
+            "enable_debug",
+            pyjion_enable_debug,
+            METH_NOARGS,
+            "Enable debug symbols for generated code."
+    },
+    {
+            "disable_debug",
+            pyjion_disable_debug,
+            METH_NOARGS,
+            "Enable debug symbols for generated code."
     },
     {
         "enable_profiling",
@@ -616,3 +690,5 @@ PyMODINIT_FUNC PyInit__pyjion(void)
 	else
 	    return nullptr;
 }
+
+#pragma clang diagnostic pop
