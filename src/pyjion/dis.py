@@ -724,6 +724,10 @@ def dis_native(f, include_offsets=False):
     syntax = Syntax("", lexer_name="nasm", theme="ansi_dark")
     highlighted_lines = syntax.highlight("\n".join(instructions)).split("\n")
 
+    if include_offsets:
+        for py_offset, il_offset, native_offset in jit_offsets:
+            print("[grey]%.8x" % (position + native_offset))
+
     for (offset, line) in zip(offsets, highlighted_lines):
         # See if this is the offset of a matching Python instruction
         if include_offsets:
