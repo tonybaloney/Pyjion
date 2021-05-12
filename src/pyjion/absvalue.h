@@ -194,7 +194,12 @@ public:
 };
 
 class IntermediateSource : public AbstractSource {
+    size_t _opcode;
 public:
+    explicit IntermediateSource(size_t opcode) {
+        _opcode = opcode;
+    }
+
     const char* describe() override {
         return "Source: Intermediate";
     }

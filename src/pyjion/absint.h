@@ -191,12 +191,8 @@ public:
         }
     }
 
-    void push(AbstractValueWithSources& value) {
+    void push(AbstractValueWithSources value) {
         mStack.push_back(value);
-    }
-
-    void push(AbstractValue* value) {
-        mStack.emplace_back(value);
     }
 
     size_t stackSize() const {

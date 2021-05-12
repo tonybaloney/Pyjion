@@ -49,6 +49,11 @@
         mStartStates[curByte] = lastState; \
     }
 
+#define PUSH_INTERMEDIATE(ty) \
+    lastState.push(AbstractValueWithSources((ty), newSource(new IntermediateSource(curByte))));
+#define PUSH_INTERMEDIATE_TO(ty, to) \
+    (to).push(AbstractValueWithSources((ty), newSource(new IntermediateSource(curByte))));
+
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
     mSize = PyBytes_Size(code->co_code);
@@ -388,7 +393,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     one = lastState.pop();
 
                     auto out = one.Value->binary(one.Sources, opcode, two);
-                    lastState.push(out);
+                    PUSH_INTERMEDIATE(out)
                 }
                 break;
                 case POP_JUMP_IF_FALSE: {
@@ -474,19 +479,21 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     mReturnValue = mReturnValue->mergeWith(retValue.Value);
                     }
                     goto next;
-                case LOAD_NAME:
+                case LOAD_NAME: {
                     // Used to load __name__ for a class def
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case STORE_NAME:
                     // Stores __module__, __doc__, __qualname__, as well as class/function defs sometimes
                     lastState.pop();
                     break;
                 case DELETE_NAME:
                     break;
-                case LOAD_CLASSDEREF:
-                    lastState.push(&Any);
+                case LOAD_CLASSDEREF: {
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case LOAD_GLOBAL: {
                     auto name = PyTuple_GetItem(mCode->co_names, oparg);
 
@@ -497,7 +504,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         if (v == nullptr) {
                             PyErr_Clear();
                             // Neither. Maybe it'll appear at runtime!!
-                            lastState.push(&Any);
+                            PUSH_INTERMEDIATE(&Any);
                         }
                         else {
                             // Builtin source
@@ -524,14 +531,15 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case STORE_GLOBAL:
                     lastState.pop();
                     break;
-                case LOAD_ATTR:
-                    if (PGC_READY()){
+                case LOAD_ATTR: {
+                    if (PGC_READY()) {
                         PGC_PROBE(1);
                         PGC_UPDATE_STACK(1);
                     }
                     lastState.pop();
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case STORE_ATTR:
                     lastState.pop();
                     lastState.pop();
@@ -539,26 +547,28 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case DELETE_ATTR:
                     lastState.pop();
                     break;
-                case BUILD_LIST:
+                case BUILD_LIST: {
                     for (int i = 0; i < oparg; i++) {
                         lastState.pop();
                     }
-                    lastState.push(&List);
+                    PUSH_INTERMEDIATE(&List);
                     break;
+                }
                 case BUILD_TUPLE: {
                     for (int i = 0; i < oparg; i++) {
                         lastState.pop();
                     }
-                    lastState.push(&Tuple);
+                    PUSH_INTERMEDIATE(&Tuple);
                     break;
                 }
-                case BUILD_MAP:
+                case BUILD_MAP: {
                     for (int i = 0; i < oparg; i++) {
                         lastState.pop();
                         lastState.pop();
                     }
-                    lastState.push(&Dict);
+                    PUSH_INTERMEDIATE(&Dict);
                     break;
+                }
                 case COMPARE_OP: {
                     if (PGC_READY()){
                         PGC_PROBE(2);
@@ -566,18 +576,20 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     }
                     lastState.pop();
                     lastState.pop();
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                 }
                 break;
-                case IMPORT_NAME:
+                case IMPORT_NAME: {
                     lastState.pop();
                     lastState.pop();
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case IMPORT_FROM:
-                case LOAD_CLOSURE:
-                    lastState.push(&Any);
+                case LOAD_CLOSURE: {
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case CALL_FUNCTION: {
                     if (PGC_READY()){
                         PGC_PROBE(oparg + 1);
@@ -616,10 +628,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     // pop the function
                     lastState.pop();
 
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
                 }
-                case CALL_FUNCTION_EX:
+                case CALL_FUNCTION_EX: {
                     if (oparg & 0x01) {
                         // kwargs
                         lastState.pop();
@@ -630,8 +642,9 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     // function
                     lastState.pop();
 
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case MAKE_FUNCTION: {
                     lastState.pop(); // qual name
                     lastState.pop(); // code
@@ -653,44 +666,47 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         lastState.pop();
                     }
 
-                    lastState.push(&Function);
+                    PUSH_INTERMEDIATE(&Function);
                     break;
                 }
-                case BUILD_SLICE:
+                case BUILD_SLICE: {
                     for (int i = 0; i < oparg; i++) {
                         lastState.pop();
                     }
-                    lastState.push(&Slice);
+                    PUSH_INTERMEDIATE(&Slice);
                     break;
+                }
                 case UNARY_POSITIVE:
                 case UNARY_NEGATIVE:
                 case UNARY_INVERT:
                 case UNARY_NOT: {
                     auto in = lastState.pop();
                     auto out = in.Value->unary(in.Sources, opcode);
-                    lastState.push(out);
+                    PUSH_INTERMEDIATE(out);
                     break;
                 }
-                case UNPACK_EX:
+                case UNPACK_EX: {
                     lastState.pop();
                     for (int i = 0; i < oparg >> 8; i++) {
-                        lastState.push(&Any);
+                        PUSH_INTERMEDIATE(&Any);
                     }
-                    lastState.push(&List);
+                    PUSH_INTERMEDIATE(&List);
                     for (int i = 0; i < (oparg & 0xff); i++) {
-                        lastState.push(&Any);
+                        PUSH_INTERMEDIATE(&Any);
                     }
                     break;
-                case UNPACK_SEQUENCE:
-                    if (PGC_READY()){
+                }
+                case UNPACK_SEQUENCE: {
+                    if (PGC_READY()) {
                         PGC_PROBE(1);
                         PGC_UPDATE_STACK(1);
                     }
                     lastState.pop();
                     for (int i = 0; i < oparg; i++) {
-                        lastState.push(&Any);
+                        PUSH_INTERMEDIATE(&Any);
                     }
                     break;
+                }
                 case RAISE_VARARGS:
                     for (int i = 0; i < oparg; i++) {
                         lastState.pop();
@@ -709,20 +725,22 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     lastState.pop();
                     lastState.pop();
                     break;
-                case BUILD_SET:
+                case BUILD_SET: {
                     for (int i = 0; i < oparg; i++) {
                         lastState.pop();
                     }
-                    lastState.push(&Set);
+                    PUSH_INTERMEDIATE(&Set);
                     break;
+                }
                 case STORE_DEREF:
                     // There is no tracking of cell variables.
                     lastState.pop();
                     break;
-                case LOAD_DEREF:
+                case LOAD_DEREF: {
                     // There is no tracking of cell variables.
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case DELETE_DEREF:
                     // Since cell variables are not tracked, no need to worry
                     // about their deletion.
@@ -747,73 +765,79 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     // When we compile this we don't actually leave the value on the stack,
                     // but the sequence of opcodes assumes that happens.  to keep our stack
                     // properly balanced we match what's really going on.
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
                 }
-                case POP_BLOCK:
+                case POP_BLOCK: {
                     lastState.mStack = mStartStates[m_blockStarts[opcodeIndex]].mStack;
-                    lastState.push(&Any);
-                    lastState.push(&Any);
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
+                    PUSH_INTERMEDIATE(&Any);
+                    PUSH_INTERMEDIATE(&Any);
+                }
                 case POP_EXCEPT:
                     skipEffect = true;
                     break;
-                case LOAD_BUILD_CLASS:
+                case LOAD_BUILD_CLASS: {
                     // TODO: if we know this is __builtins__.__build_class__ we can push a special value
                     // to optimize the call.f
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case SET_ADD:
                     lastState.pop();
                     break;
-                case LIST_APPEND:
+                case LIST_APPEND: {
                     // pop the value being stored off, leave list on stack
                     lastState.pop();
                     lastState.pop();
-                    lastState.push(&List);
+                    PUSH_INTERMEDIATE(&List);
                     break;
-                case MAP_ADD:
+                }
+                case MAP_ADD: {
                     // pop the value and key being stored off, leave list on stack
                     lastState.pop();
                     lastState.pop();
                     lastState.pop();
-                    lastState.push(&Dict);
+                    PUSH_INTERMEDIATE(&Dict);
+                }
                     break;
-                case FORMAT_VALUE:
+                case FORMAT_VALUE: {
                     if ((oparg & FVS_MASK) == FVS_HAVE_SPEC) {
                         // format spec
                         lastState.pop();
                     }
                     lastState.pop();
-                    lastState.push(&String);
+                    PUSH_INTERMEDIATE(&String);
                     break;
-                case BUILD_STRING:
+                }
+                case BUILD_STRING: {
                     for (auto i = 0; i < oparg; i++) {
                         lastState.pop();
                     }
-                    lastState.push(&String);
+                    PUSH_INTERMEDIATE(&String);
                     break;
+                }
                 case SETUP_ASYNC_WITH:
                 case SETUP_WITH: {
                     auto finallyState = lastState;
-                    finallyState.push(&Any);
+                    PUSH_INTERMEDIATE_TO(&Any, finallyState);
                     if (updateStartState(finallyState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
                         jump = 1;
                         queue.push_back((size_t) oparg + curByte + SIZEOF_CODEUNIT);
                     }
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     goto next;
                 }
                 case SETUP_FINALLY: {
                     auto ehState = lastState;
                     // Except is entered with the exception object, traceback, and exception
                     // type.  TODO: We could type these stronger then they currently are typed
-                    ehState.push(&Any);
-                    ehState.push(&Any);
-                    ehState.push(&Any);
-                    ehState.push(&Any);
-                    ehState.push(&Any);
-                    ehState.push(&Any);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
                     if (updateStartState(ehState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
                         queue.push_back((size_t)oparg + curByte + SIZEOF_CODEUNIT);
                     }
@@ -824,7 +848,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     for (auto i = 0; i < oparg; i++) {
                         lastState.pop(); // values
                     }
-                    lastState.push(&Dict);
+                    PUSH_INTERMEDIATE(&Dict);
                     break;
                 case LOAD_METHOD: {
                     auto method = AbstractValueWithSources(
@@ -860,9 +884,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         lastState.pop();
                     if (method.hasValue() && method.Value->kind() == AVK_Method && self.Value->known()){
                         auto meth_source = dynamic_cast<MethodSource*>(method.Sources);
-                        lastState.push(avkToAbstractValue(avkToAbstractValue(self.Value->kind())->resolveMethod(meth_source->name())));
+                        lastState.push(AbstractValueWithSources(avkToAbstractValue(avkToAbstractValue(self.Value->kind())->resolveMethod(meth_source->name())),
+                                                                newSource(new IntermediateSource(curByte))));
                     } else {
-                        lastState.push(&Any); // push result.
+                        PUSH_INTERMEDIATE(&Any);
                     }
                     break;
                 }
@@ -870,7 +895,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case CONTAINS_OP:
                     lastState.pop();
                     lastState.pop();
-                    lastState.push(&Bool);
+                    PUSH_INTERMEDIATE(&Bool);
                     break;
                 case WITH_EXCEPT_START: {
                     // TODO: Implement WITH_EXCEPT_START
@@ -895,7 +920,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 {
                     lastState.pop();
                     lastState.pop();
-                    lastState.push(&List);
+                    PUSH_INTERMEDIATE(&List);
                     break;
                 }
                 case DICT_UPDATE:
@@ -909,12 +934,12 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case LIST_TO_TUPLE:
                 {
                     lastState.pop(); // list
-                    lastState.push(&Tuple); // tuple
+                    PUSH_INTERMEDIATE(&Tuple);
                     break;
                 }
                 case LOAD_ASSERTION_ERROR:
                 {
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
                 }
                 case IMPORT_STAR:

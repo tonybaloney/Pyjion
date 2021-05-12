@@ -1758,21 +1758,6 @@ PyObject* PyJit_LoadAttrHash(PyObject* owner, PyObject* key, Py_hash_t name_hash
     return value;
 }
 
-const char * ObjInfo(PyObject *obj) {
-    if (obj == nullptr) {
-        return "<NULL>";
-    }
-    if (PyUnicode_Check(obj)) {
-        return PyUnicode_AsUTF8(obj);
-    }
-    else if (obj->ob_type != nullptr) {
-        return obj->ob_type->tp_name;
-    }
-    else {
-        return "<null type>";
-    }
-}
-
 int PyJit_StoreAttr(PyObject* value, PyObject* owner, PyObject* name) {
     int res = PyObject_SetAttr(owner, name, value);
     Py_DECREF(owner);
