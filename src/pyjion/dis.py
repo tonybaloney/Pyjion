@@ -728,7 +728,7 @@ def dis_native(f, include_offsets=False):
         # See if this is the offset of a matching Python instruction
         if include_offsets:
             for py_offset, il_offset, native_offset in jit_offsets:
-                if native_offset == (position - offset):
+                if (position + native_offset) == offset:
                     try:
                         print(python_instructions[py_offset])
                     except KeyError:

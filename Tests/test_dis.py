@@ -24,7 +24,7 @@ class DisassemblerModuleTestCase(unittest.TestCase):
         self.assertTrue(test_f(4) == 2.0)
 
         offsets = pyjion.get_offsets(test_f)
-        self.assertEqual(len(offsets), 4)  # TODO : Test this under debug conditions
+        self.assertEqual(len(offsets), 4)
 
     def test_dis(self):
         def test_f():
