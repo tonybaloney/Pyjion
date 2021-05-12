@@ -177,7 +177,7 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
     return Success;
 }
 
-void AbstractInterpreter::setLocalType(int index, PyObject* val) {
+void AbstractInterpreter::setLocalType(size_t index, PyObject* val) {
     auto& lastState = mStartStates[0];
     if (val != nullptr) {
         auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val));
@@ -227,11 +227,11 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
     deque<size_t> queue;
     queue.push_back(0);
     vector<const char*> utf8_names ;
-    for (int i = 0; i < PyTuple_Size(mCode->co_names); i++)
+    for (size_t i = 0; i < PyTuple_Size(mCode->co_names); i++)
         utf8_names.push_back(PyUnicode_AsUTF8(PyTuple_GetItem(mCode->co_names, i)));
 
     do {
-        int oparg;
+        uint16_t oparg;
         auto cur = queue.front();
         queue.pop_front();
         for (size_t curByte = cur; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
@@ -239,7 +239,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
             InterpreterState lastState = mStartStates.find(curByte)->second;
 
             auto opcodeIndex = curByte;
-            auto opcode = GET_OPCODE(curByte);
+            uint16_t opcode = GET_OPCODE(curByte);
             bool pgcRequired = false;
             short pgcSize = 0;
             oparg = GET_OPARG(curByte);
@@ -932,7 +932,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;  // No stack effect
                 default:
                     PyErr_Format(PyExc_ValueError,
-                                 "Unknown unsupported opcode: %s", opcodeName(opcode));
+                                 "Unknown unsupported opcode: %d", opcode);
                     return IncompatibleOpcode_Unknown;
                     break;
             }
@@ -1044,133 +1044,6 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
     }
     return &Any;
 }
-
-const char* AbstractInterpreter::opcodeName(int opcode) {
-#define OP_TO_STR(x)   case x: return #x;
-    switch (opcode) { // NOLINT(hicpp-multiway-paths-covered)
-        OP_TO_STR(POP_TOP)
-        OP_TO_STR(ROT_TWO)
-        OP_TO_STR(ROT_THREE)
-        OP_TO_STR(DUP_TOP)
-        OP_TO_STR(DUP_TOP_TWO)
-        OP_TO_STR(ROT_FOUR)
-        OP_TO_STR(NOP)
-        OP_TO_STR(UNARY_POSITIVE)
-        OP_TO_STR(UNARY_NEGATIVE)
-        OP_TO_STR(UNARY_NOT)
-        OP_TO_STR(UNARY_INVERT)
-        OP_TO_STR(BINARY_MATRIX_MULTIPLY)
-        OP_TO_STR(INPLACE_MATRIX_MULTIPLY)
-        OP_TO_STR(BINARY_POWER)
-        OP_TO_STR(BINARY_MULTIPLY)
-        OP_TO_STR(BINARY_MODULO)
-        OP_TO_STR(BINARY_ADD)
-        OP_TO_STR(BINARY_SUBTRACT)
-        OP_TO_STR(BINARY_SUBSCR)
-        OP_TO_STR(BINARY_FLOOR_DIVIDE)
-        OP_TO_STR(BINARY_TRUE_DIVIDE)
-        OP_TO_STR(INPLACE_FLOOR_DIVIDE)
-        OP_TO_STR(INPLACE_TRUE_DIVIDE)
-        OP_TO_STR(RERAISE)
-        OP_TO_STR(WITH_EXCEPT_START)
-        OP_TO_STR(GET_AITER)
-        OP_TO_STR(GET_ANEXT)
-        OP_TO_STR(BEFORE_ASYNC_WITH)
-        OP_TO_STR(END_ASYNC_FOR)
-        OP_TO_STR(INPLACE_ADD)
-        OP_TO_STR(INPLACE_SUBTRACT)
-        OP_TO_STR(INPLACE_MULTIPLY)
-        OP_TO_STR(INPLACE_MODULO)
-        OP_TO_STR(STORE_SUBSCR)
-        OP_TO_STR(DELETE_SUBSCR)
-        OP_TO_STR(BINARY_LSHIFT)
-        OP_TO_STR(BINARY_RSHIFT)
-        OP_TO_STR(BINARY_AND)
-        OP_TO_STR(BINARY_XOR)
-        OP_TO_STR(BINARY_OR)
-        OP_TO_STR(INPLACE_POWER)
-        OP_TO_STR(GET_ITER)
-        OP_TO_STR(GET_YIELD_FROM_ITER)
-        OP_TO_STR(PRINT_EXPR)
-        OP_TO_STR(LOAD_BUILD_CLASS)
-        OP_TO_STR(YIELD_FROM)
-        OP_TO_STR(GET_AWAITABLE)
-        OP_TO_STR(LOAD_ASSERTION_ERROR)
-        OP_TO_STR(INPLACE_LSHIFT)
-        OP_TO_STR(INPLACE_RSHIFT)
-        OP_TO_STR(INPLACE_AND)
-        OP_TO_STR(INPLACE_XOR)
-        OP_TO_STR(INPLACE_OR)
-        OP_TO_STR(LIST_TO_TUPLE)
-        OP_TO_STR(RETURN_VALUE)
-        OP_TO_STR(IMPORT_STAR)
-        OP_TO_STR(SETUP_ANNOTATIONS)
-        OP_TO_STR(YIELD_VALUE)
-        OP_TO_STR(POP_BLOCK)
-        OP_TO_STR(POP_EXCEPT)
-        OP_TO_STR(STORE_NAME)
-        OP_TO_STR(DELETE_NAME)
-        OP_TO_STR(UNPACK_SEQUENCE)
-        OP_TO_STR(FOR_ITER)
-        OP_TO_STR(UNPACK_EX)
-        OP_TO_STR(STORE_ATTR)
-        OP_TO_STR(DELETE_ATTR)
-        OP_TO_STR(STORE_GLOBAL)
-        OP_TO_STR(DELETE_GLOBAL)
-        OP_TO_STR(LOAD_CONST)
-        OP_TO_STR(LOAD_NAME)
-        OP_TO_STR(BUILD_TUPLE)
-        OP_TO_STR(BUILD_LIST)
-        OP_TO_STR(BUILD_SET)
-        OP_TO_STR(BUILD_MAP)
-        OP_TO_STR(LOAD_ATTR)
-        OP_TO_STR(COMPARE_OP)
-        OP_TO_STR(IMPORT_NAME)
-        OP_TO_STR(IMPORT_FROM)
-        OP_TO_STR(JUMP_FORWARD)
-        OP_TO_STR(JUMP_IF_FALSE_OR_POP)
-        OP_TO_STR(JUMP_IF_TRUE_OR_POP)
-        OP_TO_STR(JUMP_ABSOLUTE)
-        OP_TO_STR(POP_JUMP_IF_FALSE)
-        OP_TO_STR(POP_JUMP_IF_TRUE)
-        OP_TO_STR(LOAD_GLOBAL)
-        OP_TO_STR(IS_OP)
-        OP_TO_STR(CONTAINS_OP)
-        OP_TO_STR(JUMP_IF_NOT_EXC_MATCH)
-        OP_TO_STR(SETUP_FINALLY)
-        OP_TO_STR(LOAD_FAST)
-        OP_TO_STR(STORE_FAST)
-        OP_TO_STR(DELETE_FAST)
-        OP_TO_STR(RAISE_VARARGS)
-        OP_TO_STR(CALL_FUNCTION)
-        OP_TO_STR(MAKE_FUNCTION)
-        OP_TO_STR(BUILD_SLICE)
-        OP_TO_STR(LOAD_CLOSURE)
-        OP_TO_STR(LOAD_DEREF)
-        OP_TO_STR(STORE_DEREF)
-        OP_TO_STR(DELETE_DEREF)
-        OP_TO_STR(CALL_FUNCTION_EX)
-        OP_TO_STR(CALL_FUNCTION_KW)
-        OP_TO_STR(SETUP_WITH)
-        OP_TO_STR(EXTENDED_ARG)
-        OP_TO_STR(LIST_APPEND)
-        OP_TO_STR(SET_ADD)
-        OP_TO_STR(MAP_ADD)
-        OP_TO_STR(LOAD_CLASSDEREF)
-        OP_TO_STR(SETUP_ASYNC_WITH)
-        OP_TO_STR(FORMAT_VALUE)
-        OP_TO_STR(BUILD_CONST_KEY_MAP)
-        OP_TO_STR(BUILD_STRING)
-        OP_TO_STR(LOAD_METHOD)
-        OP_TO_STR(CALL_METHOD)
-        OP_TO_STR(LIST_EXTEND)
-        OP_TO_STR(SET_UPDATE)
-        OP_TO_STR(DICT_MERGE)
-        OP_TO_STR(DICT_UPDATE)
-    }
-    return "unknown";
-}
-
 
 // Returns information about the specified local variable at a specific
 // byte code index.
@@ -1483,7 +1356,7 @@ void AbstractInterpreter::buildMap(size_t  argCnt) {
     }
 }
 
-void AbstractInterpreter::makeFunction(int oparg) {
+void AbstractInterpreter::makeFunction(size_t oparg) {
     m_comp->emit_new_function();
     decStack(2);
     errorCheck("new function failed");
@@ -1562,11 +1435,11 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
     m_comp->emit_load_local(handler->ExVars.FinallyExc);
 }
 
-void AbstractInterpreter::decExcVars(int count){
+void AbstractInterpreter::decExcVars(size_t count){
     m_comp->emit_dec_local(mExcVarsOnStack, count);
 }
 
-void AbstractInterpreter::incExcVars(int count) {
+void AbstractInterpreter::incExcVars(size_t count) {
     m_comp->emit_inc_local(mExcVarsOnStack, count);
 }
 
@@ -1640,6 +1513,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
     processOpCode:
         markOffsetLabel(curByte);
+        m_comp->mark_sequence_point(curByte);
 
         // See if current index is part of offset stack, used for jump operations
         auto curStackDepth = m_offsetStack.find(curByte);
@@ -1653,9 +1527,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             emitRaise(handler);
         }
 
-#ifdef DEBUG
-        int ilLen = m_comp->il_length();
-#endif
         if (!canSkipLastiUpdate(curByte)) {
             if (mTracingEnabled){
                 m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
@@ -2037,7 +1908,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             {
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
-                auto jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
+                size_t jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
                 if (OPT_ENABLED(inlineIterators) && !stackInfo.empty()){
                     auto iterator = stackInfo.top();
                     forIter(
@@ -2415,7 +2286,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
     m_comp->emit_pop_frame();
 
-    m_comp->emit_ret(1);
+    m_comp->emit_ret();
     auto code = m_comp->emit_compile();
     if (code != nullptr)
         return {code, Success};
@@ -2494,13 +2365,13 @@ bool AbstractInterpreter::canSkipLastiUpdate(size_t opcodeIndex) {
     return false;
 }
 
-void AbstractInterpreter::storeFast(int local, size_t opcodeIndex) {
+void AbstractInterpreter::storeFast(size_t local, size_t opcodeIndex) {
     m_comp->emit_store_fast(local);
     decStack();
     m_assignmentState[local] = true;
 }
 
-void AbstractInterpreter::loadConst(int constIndex, size_t opcodeIndex) {
+void AbstractInterpreter::loadConst(ssize_t constIndex, size_t opcodeIndex) {
     auto constValue = PyTuple_GetItem(mCode->co_consts, constIndex);
     m_comp->emit_ptr(constValue);
     m_comp->emit_dup();
@@ -2584,13 +2455,13 @@ void AbstractInterpreter::forIter(size_t loopIndex) {
     forIter(loopIndex, nullptr);
 }
 
-void AbstractInterpreter::loadFast(int local, size_t opcodeIndex) {
+void AbstractInterpreter::loadFast(size_t local, size_t opcodeIndex) {
     bool checkUnbound = m_assignmentState.find(local) == m_assignmentState.end() || !m_assignmentState.find(local)->second;
     loadFastWorker(local, checkUnbound, opcodeIndex);
     incStack();
 }
 
-void AbstractInterpreter::loadFastWorker(int local, bool checkUnbound, int curByte) {
+void AbstractInterpreter::loadFastWorker(size_t local, bool checkUnbound, int curByte) {
     m_comp->emit_load_fast(local);
 
     // Check if arg is unbound, raises UnboundLocalError

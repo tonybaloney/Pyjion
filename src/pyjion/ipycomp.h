@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <exception>
 #include "absvalue.h"
+#include "codemodel.h"
 
 class InvalidLocalException: public std::exception {
 public:
@@ -42,9 +43,9 @@ public:
 
 class Local {
 public:
-    int m_index;
+    ssize_t m_index;
 
-    explicit Local(int index = -1) {
+    explicit Local(ssize_t index = -1) {
         m_index = index;
     }
 
@@ -60,9 +61,9 @@ public:
 
 class Label {
 public:
-    int m_index;
+    ssize_t m_index;
 
-    explicit Label(int index = -1) {
+    explicit Label(ssize_t index = -1) {
         m_index = index;
     }
 };
@@ -97,8 +98,10 @@ public:
     virtual ~JittedCode() = default;
     virtual void* get_code_addr() = 0;
     virtual unsigned char* get_il() = 0;
-    virtual unsigned int get_il_len() = 0;
-    virtual unsigned long get_native_size() = 0;
+    virtual size_t get_il_len() = 0;
+    virtual size_t get_native_size() = 0;
+    virtual SequencePoint* get_sequence_points() = 0;
+    virtual size_t get_sequence_points_length() = 0;
 };
 
 // Defines the interface between the abstract compiler and code generator
@@ -109,9 +112,6 @@ public:
 // operations.
 class IPythonCompiler {
 public:
-    // Current CIL queue length
-    virtual int il_length() = 0 ;
-
     /*****************************************************
      * Basic Python stack manipulations */
     virtual void emit_rot_two(LocalKind kind = LK_Pointer) = 0;
@@ -181,19 +181,19 @@ public:
     // Pops the current Python frame from the list of frames
     virtual void emit_pop_frame() = 0;
     // Returns from the current function
-    virtual void emit_ret(int size) = 0;
+    virtual void emit_ret() = 0;
     // Initializes state associated with updating the frames lasti value
     virtual void emit_lasti_init() = 0;
     // Updates the current value of last
-    virtual void emit_lasti_update(int index) = 0;
+    virtual void emit_lasti_update(uint16_t index) = 0;
 
     /*****************************************************
      * Loads/Stores to/from various places */
 
      // Loads/stores/deletes from the frame objects fast local variables
-    virtual void emit_load_fast(int local) = 0;
-    virtual void emit_store_fast(int local) = 0;
-    virtual void emit_delete_fast(int index) = 0;
+    virtual void emit_load_fast(size_t local) = 0;
+    virtual void emit_store_fast(size_t local) = 0;
+    virtual void emit_delete_fast(size_t index) = 0;
     virtual void emit_unbound_local_check() = 0;
 
     // Loads/stores/deletes by name for values not known to be in fast locals
@@ -216,11 +216,11 @@ public:
     virtual void emit_delete_global(PyObject* name) = 0;
 
     // Loads/stores/deletes a cell variable for closures.
-    virtual void emit_load_deref(int index) = 0;
-    virtual void emit_store_deref(int index) = 0;
-    virtual void emit_delete_deref(int index) = 0;
+    virtual void emit_load_deref(size_t index) = 0;
+    virtual void emit_store_deref(size_t index) = 0;
+    virtual void emit_delete_deref(size_t index) = 0;
     // Loads the cell object for a variable
-    virtual void emit_load_closure(int index) = 0;
+    virtual void emit_load_closure(size_t index) = 0;
 
     // Sets/deletes a subscript value
     virtual void emit_store_subscr() = 0;
@@ -349,7 +349,7 @@ public:
 
     // Prints the current value on the stack
     virtual void emit_print_expr() = 0;
-    virtual void emit_load_classderef(int index) = 0;
+    virtual void emit_load_classderef(size_t index) = 0;
 
     /*****************************************************
      * Iteration */
@@ -376,11 +376,11 @@ public:
     virtual void emit_unary_negative_float() = 0;
 
     // Performans a binary operation for values on the stack which are unboxed floating points
-    virtual void emit_binary_float(int opcode) = 0;
+    virtual void emit_binary_float(uint16_t opcode) = 0;
     // Performs a binary operation for values on the stack which are boxed objects
-    virtual void emit_binary_object(int opcode) = 0;
-    virtual void emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
-    virtual void emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
+    virtual void emit_binary_object(uint16_t opcode) = 0;
+    virtual void emit_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
+    virtual void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) = 0;
 
@@ -394,14 +394,14 @@ public:
     virtual void emit_is(bool isNot) = 0;
 
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
-    virtual void emit_compare_object(int compareType) = 0;
-    virtual void emit_compare_floats(int compareType, bool guard) = 0;
+    virtual void emit_compare_object(uint16_t compareType) = 0;
+    virtual void emit_compare_floats(uint16_t compareType, bool guard) = 0;
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
-    virtual void emit_compare_known_object(int compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) = 0;
+    virtual void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) = 0;
     // Performs a comparison of two unboxed floating point values on the stack
-    virtual void emit_compare_float(int compareType) = 0;
+    virtual void emit_compare_float(uint16_t compareType) = 0;
     // Performs a comparison of two tagged integers
-    virtual void emit_compare_tagged_int(int compareType) = 0;
+    virtual void emit_compare_tagged_int(uint16_t compareType) = 0;
 
     /*****************************************************
      * Exception handling */
@@ -451,17 +451,19 @@ public:
     /* Compiles the generated code */
     virtual JittedCode* emit_compile() = 0;
 
-    virtual void lift_n_to_top(int pos) = 0;
-    virtual void lift_n_to_second(int pos) = 0;
-    virtual void lift_n_to_third(int pos) = 0;
-    virtual void sink_top_to_n(int pos) = 0;
+    virtual void lift_n_to_top(uint16_t pos) = 0;
+    virtual void lift_n_to_second(uint16_t pos) = 0;
+    virtual void lift_n_to_third(uint16_t pos) = 0;
+    virtual void sink_top_to_n(uint16_t pos) = 0;
     virtual void pop_top() = 0;
 
-    virtual void emit_inc_local(Local local, int value) = 0;
-    virtual void emit_dec_local(Local local, int value) = 0;
+    virtual void emit_inc_local(Local local, size_t value) = 0;
+    virtual void emit_dec_local(Local local, size_t value) = 0;
 
     virtual void emit_load_frame_locals() = 0;
-    virtual void emit_triple_binary_op(int firstOp, int secondOp) = 0;
+    virtual void emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) = 0;
+
+    virtual void mark_sequence_point(size_t idx) = 0;
 };
 
 #endif

@@ -84,6 +84,7 @@ PythonCompiler::PythonCompiler(PyCodeObject *code) :
 {
     this->m_code = code;
     m_lasti = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+    m_compileDebug = g_pyjionSettings.debug;
 }
 
 void PythonCompiler::load_frame() {
@@ -95,7 +96,7 @@ void PythonCompiler::load_tstate() {
 }
 
 void PythonCompiler::emit_load_frame_locals(){
-    for (int i = 0 ; i < this->m_code->co_nlocals; i++){
+    for (size_t i = 0 ; i < this->m_code->co_nlocals; i++){
         m_frameLocals[i] = m_il.define_local_no_cache(Parameter(CORINFO_TYPE_NATIVEINT));
         load_frame();
         m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + i * sizeof(size_t));
@@ -144,13 +145,13 @@ void PythonCompiler::emit_lasti_init() {
     m_il.st_loc(m_lasti);
 }
 
-void PythonCompiler::emit_lasti_update(int index) {
+void PythonCompiler::emit_lasti_update(uint16_t index) {
     m_il.ld_loc(m_lasti);
     m_il.ld_i4(index);
     m_il.st_ind_i4();
 }
 
-void PythonCompiler::load_local(int oparg) {
+void PythonCompiler::load_local(uint16_t oparg) {
     if (OPT_ENABLED(nativeLocals)) {
         m_il.ld_loc(m_frameLocals[oparg]);
     } else {
@@ -530,7 +531,7 @@ void PythonCompiler::emit_unbound_local_check() {
     m_il.emit_call(METHOD_UNBOUND_LOCAL);
 }
 
-void PythonCompiler::emit_load_fast(int local) {
+void PythonCompiler::emit_load_fast(size_t local) {
     load_local(local);
 }
 
@@ -545,8 +546,7 @@ CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
     return CORINFO_TYPE_NATIVEINT;
 }
 
-
-void PythonCompiler::emit_store_fast(int local) {
+void PythonCompiler::emit_store_fast(size_t local) {
     if (OPT_ENABLED(nativeLocals)){
         // decref old value and store new value.
         m_il.ld_loc(m_frameLocals[local]);
@@ -630,7 +630,7 @@ void PythonCompiler::emit_rot_four(LocalKind kind) {
     m_il.free_local(fourth);
 }
 
-void PythonCompiler::lift_n_to_second(int pos){
+void PythonCompiler::lift_n_to_second(uint16_t pos){
     if (pos == 1)
         return ; // already is second
     vector<Local> tmpLocals (pos-1);
@@ -639,7 +639,7 @@ void PythonCompiler::lift_n_to_second(int pos){
     m_il.st_loc(top);
 
     // dump stack up to n
-    for (int i = 0 ; i < pos - 1 ; i ++){
+    for (size_t i = 0 ; i < pos - 1 ; i ++){
         auto loc = m_il.define_local(Parameter(to_clr_type(LK_Pointer)));
         tmpLocals[i] = loc;
         m_il.st_loc(loc);
@@ -664,7 +664,7 @@ void PythonCompiler::lift_n_to_second(int pos){
     m_il.free_local(top);
 }
 
-void PythonCompiler::lift_n_to_third(int pos){
+void PythonCompiler::lift_n_to_third(uint16_t pos){
     if (pos == 1)
         return ; // already is third
     vector<Local> tmpLocals (pos-2);
@@ -676,7 +676,7 @@ void PythonCompiler::lift_n_to_third(int pos){
     m_il.st_loc(second);
 
     // dump stack up to n
-    for (int i = 0 ; i < pos - 2 ; i ++){
+    for (size_t i = 0 ; i < pos - 2 ; i ++){
         auto loc = m_il.define_local(Parameter(to_clr_type(LK_Pointer)));
         tmpLocals[i] = loc;
         m_il.st_loc(loc);
@@ -705,7 +705,7 @@ void PythonCompiler::lift_n_to_third(int pos){
     m_il.free_local(top);
 }
 
-void PythonCompiler::sink_top_to_n(int pos){
+void PythonCompiler::sink_top_to_n(uint16_t pos){
     if (pos == 0)
         return ; // already is at the correct position
     vector<Local> tmpLocals (pos);
@@ -714,7 +714,7 @@ void PythonCompiler::sink_top_to_n(int pos){
     m_il.st_loc(top);
 
     // dump stack up to n
-    for (int i = 0 ; i < pos ; i ++){
+    for (size_t i = 0 ; i < pos ; i ++){
         auto loc = m_il.define_local(Parameter(to_clr_type(LK_Pointer)));
         tmpLocals[i] = loc;
         m_il.st_loc(loc);
@@ -731,11 +731,11 @@ void PythonCompiler::sink_top_to_n(int pos){
     }
 }
 
-void PythonCompiler::lift_n_to_top(int pos){
+void PythonCompiler::lift_n_to_top(uint16_t pos){
     vector<Local> tmpLocals (pos);
 
     // dump stack up to n
-    for (int i = 0 ; i < pos ; i ++){
+    for (size_t i = 0 ; i < pos ; i ++){
         auto loc = m_il.define_local(Parameter(to_clr_type(LK_Pointer)));
         tmpLocals[i] = loc;
         m_il.st_loc(loc);
@@ -798,7 +798,7 @@ void PythonCompiler::emit_dict_build_from_map() {
 }
 
 void PythonCompiler::emit_new_list(size_t argCnt) {
-    m_il.ld_i(argCnt);
+    m_il.ld_i4(argCnt);
     m_il.emit_call(METHOD_PYLIST_NEW);
 }
 
@@ -892,7 +892,7 @@ void PythonCompiler::emit_set_extend() {
 }
 
 void PythonCompiler::emit_new_dict(size_t size) {
-    m_il.ld_i(size);
+    m_il.ld_i4(size);
     m_il.emit_call(METHOD_PYDICT_NEWPRESIZED);
 }
 
@@ -1044,11 +1044,11 @@ void PythonCompiler::emit_load_global(PyObject* name) {
 void PythonCompiler::emit_load_global_hashed(PyObject* name, ssize_t name_hash) {
     load_frame();
     m_il.ld_i(name);
-    m_il.ld_i(name_hash);
+    m_il.ld_i8(name_hash);
     m_il.emit_call(METHOD_LOADGLOBAL_HASH);
 }
 
-void PythonCompiler::emit_delete_fast(int index) {
+void PythonCompiler::emit_delete_fast(size_t index) {
     if (OPT_ENABLED(nativeLocals)) {
         m_il.ld_loc(m_frameLocals[index]);
         decref();
@@ -1105,7 +1105,6 @@ void PythonCompiler::emit_list_length(){
     m_il.add();
     m_il.ld_ind_i();
 }
-
 
 void PythonCompiler::emit_tuple_store(size_t argCnt) {
     /// This function emits a tuple from the stack, only using borrowed references.
@@ -1636,29 +1635,35 @@ void PythonCompiler::emit_set_defaults() {
 	m_il.st_ind_i();
 }
 
-void PythonCompiler::emit_load_deref(int index) {
+void PythonCompiler::emit_load_deref(size_t index) {
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_PYCELL_GET);
 }
 
-void PythonCompiler::emit_store_deref(int index) {
+void PythonCompiler::emit_store_deref(size_t index) {
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_PYCELL_SET_TOKEN);
 }
 
-void PythonCompiler::emit_delete_deref(int index) {
+void PythonCompiler::emit_delete_deref(size_t index) {
     m_il.load_null();
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_PYCELL_SET_TOKEN);
 }
 
-void PythonCompiler::emit_load_closure(int index) {
+void PythonCompiler::emit_load_closure(size_t index) {
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_LOAD_CLOSURE);
+}
+
+void PythonCompiler::emit_load_classderef(size_t index) {
+    load_frame();
+    m_il.ld_i4(index);
+    m_il.emit_call(METHOD_LOAD_CLASSDEREF_TOKEN);
 }
 
 void PythonCompiler::emit_set_add() {
@@ -1701,12 +1706,6 @@ void PythonCompiler::emit_dict_update() {
     m_il.emit_call(METHOD_DICTUPDATE_TOKEN);
 }
 
-void PythonCompiler::emit_load_classderef(int index) {
-    load_frame();
-    m_il.ld_i(index);
-    m_il.emit_call(METHOD_LOAD_CLASSDEREF_TOKEN);
-}
-
 void PythonCompiler::emit_getiter() {
     m_il.emit_call(METHOD_GETITER_TOKEN);
 }
@@ -1715,22 +1714,22 @@ Label PythonCompiler::emit_define_label() {
     return m_il.define_label();
 }
 
-void PythonCompiler::emit_inc_local(Local local, int value) {
+void PythonCompiler::emit_inc_local(Local local, size_t value) {
     emit_int(value);
     emit_load_local(local);
     m_il.add();
     emit_store_local(local);
 }
 
-void PythonCompiler::emit_dec_local(Local local, int value) {
+void PythonCompiler::emit_dec_local(Local local, size_t value) {
     emit_load_local(local);
     emit_int(value);
     m_il.sub();
     emit_store_local(local);
 }
 
-void PythonCompiler::emit_ret(int size) {
-    m_il.ret(size);
+void PythonCompiler::emit_ret() {
+    m_il.ret();
 }
 
 void PythonCompiler::emit_mark_label(Label label) {
@@ -1824,18 +1823,8 @@ void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
      *  - 0xff (StopIter/ iterator exhausted)
      *  - PyObject* (next item in iteration)
      */
-    if (iterator.Value->kind() != AVK_Iterable)
-        return emit_for_next();
-    auto iterable = dynamic_cast<IteratorSource*>(iterator.Sources);
-    switch (iterable->kind()) {
-        // TODO: Implement a guard-safe iterator.
-//        case AVK_List:
-//            emit_varobject_iter_next(offsetof(_listiterobject, it_seq), offsetof(_listiterobject, it_index),
-//                                         offsetof(PyListObject, ob_item));
-//            break;
-        default:
-            return emit_for_next();
-    }
+    // TODO : Implement a guard-safe iterator
+    return emit_for_next();
 }
 
 void PythonCompiler::emit_debug_msg(const char* msg) {
@@ -1849,7 +1838,7 @@ void PythonCompiler::emit_debug_pyobject() {
     m_il.emit_call(METHOD_DEBUG_PYOBJECT);
 }
 
-void PythonCompiler::emit_binary_float(int opcode) {
+void PythonCompiler::emit_binary_float(uint16_t opcode) {
     switch (opcode) {
         case BINARY_ADD:
         case INPLACE_ADD:
@@ -1883,7 +1872,7 @@ void PythonCompiler::emit_binary_float(int opcode) {
     }
 }
 
-void PythonCompiler::emit_binary_subscr(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
+void PythonCompiler::emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
     if (OPT_ENABLED(knownBinarySubscr)){
         emit_binary_subscr(left, right);
     } else {
@@ -1935,7 +1924,7 @@ void PythonCompiler::emit_not_in() {
     m_il.emit_call(METHOD_NOTCONTAINS_TOKEN);
 }
 
-void PythonCompiler::emit_compare_float(int compareType) {
+void PythonCompiler::emit_compare_float(uint16_t compareType) {
     // TODO: Optimize compare and POP_JUMP
     // @body: If we know we're followed by the pop jump we could combine
     // and do a single branch comparison.
@@ -1949,7 +1938,7 @@ void PythonCompiler::emit_compare_float(int compareType) {
     }
 }
 
-void PythonCompiler::emit_compare_tagged_int(int compareType) {
+void PythonCompiler::emit_compare_tagged_int(uint16_t compareType) {
     switch (compareType) {
         case Py_EQ:
             m_il.emit_call(METHOD_EQUALS_INT_TOKEN); break;
@@ -1966,12 +1955,12 @@ void PythonCompiler::emit_compare_tagged_int(int compareType) {
     }
 }
 
-void PythonCompiler::emit_compare_object(int compareType) {
+void PythonCompiler::emit_compare_object(uint16_t compareType) {
     m_il.ld_i4(compareType);
     m_il.emit_call(METHOD_RICHCMP_TOKEN);
 }
 
-void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) {
+void PythonCompiler::emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) {
     // OPT-3 Optimize the comparison of an intern'ed const integer with an integer to an IS_OP expression.
     if ((lhs.Value->isIntern() && rhs.Value->kind() == AVK_Integer) ||
         (rhs.Value->isIntern() && lhs.Value->kind() == AVK_Integer)){
@@ -1998,7 +1987,7 @@ void PythonCompiler::emit_compare_known_object(int compareType, AbstractValueWit
     emit_compare_object(compareType);
 }
 
-void PythonCompiler::emit_compare_floats(int compareType, bool guard) {
+void PythonCompiler::emit_compare_floats(uint16_t compareType, bool guard) {
     Local left = emit_define_local(LK_Pointer);
     Local right = emit_define_local(LK_Pointer);
     Label guard_fail = emit_define_label();
@@ -2263,7 +2252,7 @@ void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithS
 }
 
 JittedCode* PythonCompiler::emit_compile() {
-    auto* jitInfo = new CorJitInfo(m_code, m_module);
+    auto* jitInfo = new CorJitInfo(m_code, m_module, m_compileDebug);
     auto addr = m_il.compile(jitInfo, g_jit, m_code->co_stacksize + 100).m_addr;
     if (addr == nullptr) {
 #ifdef DEBUG
@@ -2321,6 +2310,9 @@ void PythonCompiler::emit_pgc_probe(size_t curByte, size_t stackSize) {
     emit_mark_label(hasProbed);
 }
 
+void PythonCompiler::mark_sequence_point(size_t idx) {
+    m_il.mark_sequence_point(idx);
+}
 
 
 /************************************************************************
@@ -2574,3 +2566,130 @@ GLOBAL_METHOD(METHOD_LIST_ITEM_FROM_BACK, &PyJit_GetListItemReversed, CORINFO_TY
 
 GLOBAL_METHOD(METHOD_GIL_ENSURE, &PyGILState_Ensure, CORINFO_TYPE_NATIVEINT);
 GLOBAL_METHOD(METHOD_GIL_RELEASE, &PyGILState_Release, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
+
+
+const char* opcodeName(size_t opcode) {
+#define OP_TO_STR(x)   case x: return #x;
+    switch (opcode) { // NOLINT(hicpp-multiway-paths-covered)
+        OP_TO_STR(POP_TOP)
+        OP_TO_STR(ROT_TWO)
+        OP_TO_STR(ROT_THREE)
+        OP_TO_STR(DUP_TOP)
+        OP_TO_STR(DUP_TOP_TWO)
+        OP_TO_STR(ROT_FOUR)
+        OP_TO_STR(NOP)
+        OP_TO_STR(UNARY_POSITIVE)
+        OP_TO_STR(UNARY_NEGATIVE)
+        OP_TO_STR(UNARY_NOT)
+        OP_TO_STR(UNARY_INVERT)
+        OP_TO_STR(BINARY_MATRIX_MULTIPLY)
+        OP_TO_STR(INPLACE_MATRIX_MULTIPLY)
+        OP_TO_STR(BINARY_POWER)
+        OP_TO_STR(BINARY_MULTIPLY)
+        OP_TO_STR(BINARY_MODULO)
+        OP_TO_STR(BINARY_ADD)
+        OP_TO_STR(BINARY_SUBTRACT)
+        OP_TO_STR(BINARY_SUBSCR)
+        OP_TO_STR(BINARY_FLOOR_DIVIDE)
+        OP_TO_STR(BINARY_TRUE_DIVIDE)
+        OP_TO_STR(INPLACE_FLOOR_DIVIDE)
+        OP_TO_STR(INPLACE_TRUE_DIVIDE)
+        OP_TO_STR(RERAISE)
+        OP_TO_STR(WITH_EXCEPT_START)
+        OP_TO_STR(GET_AITER)
+        OP_TO_STR(GET_ANEXT)
+        OP_TO_STR(BEFORE_ASYNC_WITH)
+        OP_TO_STR(END_ASYNC_FOR)
+        OP_TO_STR(INPLACE_ADD)
+        OP_TO_STR(INPLACE_SUBTRACT)
+        OP_TO_STR(INPLACE_MULTIPLY)
+        OP_TO_STR(INPLACE_MODULO)
+        OP_TO_STR(STORE_SUBSCR)
+        OP_TO_STR(DELETE_SUBSCR)
+        OP_TO_STR(BINARY_LSHIFT)
+        OP_TO_STR(BINARY_RSHIFT)
+        OP_TO_STR(BINARY_AND)
+        OP_TO_STR(BINARY_XOR)
+        OP_TO_STR(BINARY_OR)
+        OP_TO_STR(INPLACE_POWER)
+        OP_TO_STR(GET_ITER)
+        OP_TO_STR(GET_YIELD_FROM_ITER)
+        OP_TO_STR(PRINT_EXPR)
+        OP_TO_STR(LOAD_BUILD_CLASS)
+        OP_TO_STR(YIELD_FROM)
+        OP_TO_STR(GET_AWAITABLE)
+        OP_TO_STR(LOAD_ASSERTION_ERROR)
+        OP_TO_STR(INPLACE_LSHIFT)
+        OP_TO_STR(INPLACE_RSHIFT)
+        OP_TO_STR(INPLACE_AND)
+        OP_TO_STR(INPLACE_XOR)
+        OP_TO_STR(INPLACE_OR)
+        OP_TO_STR(LIST_TO_TUPLE)
+        OP_TO_STR(RETURN_VALUE)
+        OP_TO_STR(IMPORT_STAR)
+        OP_TO_STR(SETUP_ANNOTATIONS)
+        OP_TO_STR(YIELD_VALUE)
+        OP_TO_STR(POP_BLOCK)
+        OP_TO_STR(POP_EXCEPT)
+        OP_TO_STR(STORE_NAME)
+        OP_TO_STR(DELETE_NAME)
+        OP_TO_STR(UNPACK_SEQUENCE)
+        OP_TO_STR(FOR_ITER)
+        OP_TO_STR(UNPACK_EX)
+        OP_TO_STR(STORE_ATTR)
+        OP_TO_STR(DELETE_ATTR)
+        OP_TO_STR(STORE_GLOBAL)
+        OP_TO_STR(DELETE_GLOBAL)
+        OP_TO_STR(LOAD_CONST)
+        OP_TO_STR(LOAD_NAME)
+        OP_TO_STR(BUILD_TUPLE)
+        OP_TO_STR(BUILD_LIST)
+        OP_TO_STR(BUILD_SET)
+        OP_TO_STR(BUILD_MAP)
+        OP_TO_STR(LOAD_ATTR)
+        OP_TO_STR(COMPARE_OP)
+        OP_TO_STR(IMPORT_NAME)
+        OP_TO_STR(IMPORT_FROM)
+        OP_TO_STR(JUMP_FORWARD)
+        OP_TO_STR(JUMP_IF_FALSE_OR_POP)
+        OP_TO_STR(JUMP_IF_TRUE_OR_POP)
+        OP_TO_STR(JUMP_ABSOLUTE)
+        OP_TO_STR(POP_JUMP_IF_FALSE)
+        OP_TO_STR(POP_JUMP_IF_TRUE)
+        OP_TO_STR(LOAD_GLOBAL)
+        OP_TO_STR(IS_OP)
+        OP_TO_STR(CONTAINS_OP)
+        OP_TO_STR(JUMP_IF_NOT_EXC_MATCH)
+        OP_TO_STR(SETUP_FINALLY)
+        OP_TO_STR(LOAD_FAST)
+        OP_TO_STR(STORE_FAST)
+        OP_TO_STR(DELETE_FAST)
+        OP_TO_STR(RAISE_VARARGS)
+        OP_TO_STR(CALL_FUNCTION)
+        OP_TO_STR(MAKE_FUNCTION)
+        OP_TO_STR(BUILD_SLICE)
+        OP_TO_STR(LOAD_CLOSURE)
+        OP_TO_STR(LOAD_DEREF)
+        OP_TO_STR(STORE_DEREF)
+        OP_TO_STR(DELETE_DEREF)
+        OP_TO_STR(CALL_FUNCTION_EX)
+        OP_TO_STR(CALL_FUNCTION_KW)
+        OP_TO_STR(SETUP_WITH)
+        OP_TO_STR(EXTENDED_ARG)
+        OP_TO_STR(LIST_APPEND)
+        OP_TO_STR(SET_ADD)
+        OP_TO_STR(MAP_ADD)
+        OP_TO_STR(LOAD_CLASSDEREF)
+        OP_TO_STR(SETUP_ASYNC_WITH)
+        OP_TO_STR(FORMAT_VALUE)
+        OP_TO_STR(BUILD_CONST_KEY_MAP)
+        OP_TO_STR(BUILD_STRING)
+        OP_TO_STR(LOAD_METHOD)
+        OP_TO_STR(CALL_METHOD)
+        OP_TO_STR(LIST_EXTEND)
+        OP_TO_STR(SET_UPDATE)
+        OP_TO_STR(DICT_MERGE)
+        OP_TO_STR(DICT_UPDATE)
+    }
+    return "unknown";
+}
