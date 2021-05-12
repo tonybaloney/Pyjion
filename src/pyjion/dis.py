@@ -718,7 +718,7 @@ def dis_native(f, include_offsets=False):
 
     console = Console()
 
-    offsets = ["%.8x" % offset for (offset, instruction) in disassembled]
+    offsets = [offset for (offset, instruction) in disassembled]
     instructions = [instruction for (offset, instruction) in disassembled]
 
     syntax = Syntax("", lexer_name="nasm", theme="ansi_dark")
@@ -734,5 +734,5 @@ def dis_native(f, include_offsets=False):
                     except KeyError:
                         warn("Invalid offset {0}".format(offsets))
 
-        console.print("[grey]%s" % offset, style="dim", end=" ")
+        console.print("[grey]%.8x" % offset, style="dim", end=" ")
         console.print(line)
