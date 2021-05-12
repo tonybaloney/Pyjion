@@ -85,7 +85,9 @@ public:
     virtual bool isBuiltin() {
         return false;
     }
-
+    virtual bool isIntermediate() {
+        return false;
+    }
     virtual const char* describe() {
         return "unknown source";
     }
@@ -195,6 +197,8 @@ public:
 
 class IntermediateSource : public AbstractSource {
     size_t _opcode;
+    vector<size_t> consumers;
+    bool single_use = false;
 public:
     explicit IntermediateSource(size_t opcode) {
         _opcode = opcode;
@@ -202,6 +206,29 @@ public:
 
     const char* describe() override {
         return "Source: Intermediate";
+    }
+
+    bool isIntermediate() override {
+        return true;
+    }
+
+    void addConsumer(size_t opcode){
+        consumers.push_back(opcode);
+    }
+
+    bool markForSingleUse(){
+        if (consumers.size() == 1 || consumers.size() == 0){
+            single_use = true;
+        }
+        return single_use;
+    }
+
+    bool singleUse() {
+        return single_use;
+    }
+
+    size_t producer(){
+        return _opcode;
     }
 };
 

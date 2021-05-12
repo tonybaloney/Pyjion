@@ -167,11 +167,14 @@ public:
         mLocals.replace(index, value);
     }
 
-    AbstractValueWithSources pop() {
+    AbstractValueWithSources pop(size_t idx) {
         if (mStack.empty())
             throw StackUnderflowException();
         auto res = mStack.back();
         mStack.pop_back();
+        if (res.hasSource() && res.Sources->isIntermediate()){
+            reinterpret_cast<IntermediateSource*>(res.Sources)->addConsumer(idx);
+        }
         return res;
     }
 
@@ -310,6 +313,7 @@ class AbstractInterpreter {
     Label m_retLabel;
     Local m_retValue;
     unordered_map<size_t, bool> m_assignmentState;
+    unordered_map<size_t, bool> m_unboxableProducers;
 
 #pragma warning (default:4251)
 
@@ -319,6 +323,7 @@ public:
 
     AbstactInterpreterCompileResult compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status);
     AbstractInterpreterResult interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status);
+    void updateIntermediateSources(PgcStatus status);
 
     void setLocalType(size_t index, PyObject* val);
     // Returns information about the specified local variable at a specific
