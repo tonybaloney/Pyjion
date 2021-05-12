@@ -1,8 +1,8 @@
 from enum import Enum
-
-from pyjion import dump_il, dump_native
+from dis import get_instructions
+from pyjion import dump_il, dump_native, get_offsets
 from collections import namedtuple
-
+from warnings import warn
 # Pre stack effect
 Pop0 = 0
 Pop1 = 1
@@ -578,11 +578,20 @@ for opcode in opcodes:
         opcode_map[opcode.first_byte + opcode.second_byte] = opcode
 
 
-def print_il(il):
+def print_il(il, offsets=None, bytecodes=None):
     i = iter(il)
     try:
         pc = 0
+
         while True:
+            # See if this is the offset of a matching Python instruction
+            if offsets and bytecodes:
+                for py_offset, il_offset, native_offset in offsets:
+                    if il_offset == pc:
+                        try:
+                            print(bytecodes[py_offset])
+                        except KeyError:
+                            warn("Invalid offset {0}".format(offsets))
             first = next(i)
             if first == 0 and pc == 0:
                 raise NotImplementedError(f"CorILMethod_FatFormat not yet supported")
@@ -668,7 +677,7 @@ def print_il(il):
         pass
 
 
-def dis(f):
+def dis(f, include_offsets=False):
     """
     Disassemble a code object into IL
     """
@@ -676,10 +685,15 @@ def dis(f):
     if not il:
         print("No IL for this function, it may not have compiled correctly.")
         return
-    print_il(il)
+    if include_offsets:
+        python_instructions = {i.offset: i for i in get_instructions(f)}
+        offsets = get_offsets(f)
+        print_il(il, offsets, python_instructions)
+    else:
+        print_il(il)
 
 
-def dis_native(f):
+def dis_native(f, include_offsets=False):
 
     try:
         import distorm3
@@ -692,6 +706,11 @@ def dis_native(f):
     if not native:
         print("No native code for this function, it may not have compiled correctly")
         return
+
+    if include_offsets:
+        python_instructions = {i.offset: i for i in get_instructions(f)}
+        jit_offsets = get_offsets(f)
+
     code, code_length, position = native
     iterable = distorm3.DecodeGenerator(position, bytes(code), distorm3.Decode64Bits)
 
@@ -699,12 +718,21 @@ def dis_native(f):
 
     console = Console()
 
-    offsets = ["%.8x" % offset for (offset, instruction) in disassembled]
+    offsets = [offset for (offset, instruction) in disassembled]
     instructions = [instruction for (offset, instruction) in disassembled]
 
     syntax = Syntax("", lexer_name="nasm", theme="ansi_dark")
     highlighted_lines = syntax.highlight("\n".join(instructions)).split("\n")
 
     for (offset, line) in zip(offsets, highlighted_lines):
-        console.print("[grey]%s" % offset, style="dim", end=" ")
+        # See if this is the offset of a matching Python instruction
+        if include_offsets:
+            for py_offset, il_offset, native_offset in jit_offsets:
+                if (position + native_offset) == offset:
+                    try:
+                        print(python_instructions[py_offset])
+                    except KeyError:
+                        warn("Invalid offset {0}".format(offsets))
+
+        console.print("[grey]%.8x" % offset, style="dim", end=" ")
         console.print(line)

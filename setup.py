@@ -19,11 +19,14 @@ with open("CHANGELOG.md", "r") as fh:
 
 setup(
     name='pyjion',
-    version='1.0.0a1',
+    version='1.0.0a2',
     description='A JIT compiler wrapper for CPython',
     author='Anthony Shaw and Microsoft',
     author_email='anthonyshaw@apache.org',
     url='https://github.com/tonybaloney/Pyjion',
+    project_urls={
+        'Documentation': 'https://pyjion.readthedocs.io/',
+    },
     license='MIT',
     packages=['pyjion'],
     package_dir={'': 'src'},

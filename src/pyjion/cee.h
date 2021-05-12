@@ -26,8 +26,6 @@
 #ifndef PYJION_CEE_H
 #define PYJION_CEE_H
 
-#define FEATURE_NO_HOST
-
 #include <Python.h>
 #include <stdint.h>
 #include <windows.h>

@@ -105,4 +105,13 @@ public:
     }
 };
 
+class OutOfMemoryException: public PyjionJitRuntimeException {
+public:
+    OutOfMemoryException() : PyjionJitRuntimeException() {};
+    const char * what () const noexcept override
+    {
+        return "Out of memory exception.";
+    }
+};
+
 #endif // PYJION_EXCEPTIONS_H

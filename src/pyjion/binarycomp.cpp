@@ -40,7 +40,7 @@ typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 using namespace std;
 extern BaseModule g_module;
 
-void PythonCompiler::emit_binary_object(int opcode) {
+void PythonCompiler::emit_binary_object(uint16_t opcode) {
     switch (opcode) {
         case BINARY_ADD:
             m_il.emit_call(METHOD_ADD_TOKEN); break;
@@ -97,7 +97,7 @@ void PythonCompiler::emit_binary_object(int opcode) {
     }
 }
 
-void PythonCompiler::emit_binary_object(int opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
+void PythonCompiler::emit_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
     int nb_slot = -1;
     int sq_slot = -1;
     int fallback_token;
@@ -366,7 +366,7 @@ void PythonCompiler::emit_known_binary_op_multiply(AbstractValueWithSources &lef
             /* Support for [sequence] * value */
             if (right.hasSource() && right.Sources->hasConstValue() && right.Value->kind() == AVK_Integer){
                 // Shortcut for const numeric values.
-                m_il.ld_i(dynamic_cast<ConstSource *>(right.Sources)->getNumericValue());
+                m_il.ld_i8(dynamic_cast<ConstSource *>(right.Sources)->getNumericValue());
             } else {
                 emit_load_local(rightLocal);
                 emit_null();
@@ -391,7 +391,7 @@ void PythonCompiler::emit_known_binary_op_multiply(AbstractValueWithSources &lef
             if (right_sequence){
                 emit_load_local(rightLocal);
                 if (left.hasSource() && left.Sources->hasConstValue() && left.Value->kind() == AVK_Integer){
-                    m_il.ld_i(dynamic_cast<ConstSource *>(left.Sources)->getNumericValue());
+                    m_il.ld_i8(dynamic_cast<ConstSource *>(left.Sources)->getNumericValue());
                 } else {
                     emit_load_local(leftLocal);
                     emit_null();
@@ -679,7 +679,7 @@ void PythonCompiler::emit_known_binary_op_power(AbstractValueWithSources &left, 
     }
 }
 
-void PythonCompiler::emit_triple_binary_op(int firstOp, int secondOp) {
+void PythonCompiler::emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) {
     m_il.ld_i4(firstOp);
     m_il.ld_i4(secondOp);
     m_il.emit_call(METHOD_TRIPLE_BINARY_OP);

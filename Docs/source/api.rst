@@ -26,7 +26,19 @@ Core module
 
    Enable profiling hooks (e.g. used by performance profilers) to be emitted in the compiled CIL.
 
-.. function:: disable()
+.. function:: disable_profiling()
+
+   Disable profiling hooks.
+
+.. function:: enable_debug()
+
+   Enable compilation of JIT as debuggable methods. I.e., to include debug data (useful for pyjion.dis.dis_native(f, include_offsets=True)
+
+.. function:: disable_debug()
+
+   Disable emitting debuggable JIT methods.
+
+.. function:: disable_profiling()
 
    Disable profiling hooks.
 
@@ -47,13 +59,15 @@ Disassembly module
 
 .. module:: pyjion.dis
 
-.. function:: dis(f)
+.. function:: dis(f, include_offsets=False)
 
-   Print the ECMA CIL bytecode in a disassembly table
+   Print the ECMA CIL bytecode in a disassembly table.
+   Set ``include_offsets=True`` to print the Python opcodes inline with the IL.
 
-.. function:: dis_native(f)
+.. function:: dis_native(f, include_offsets=False)
 
    Print the x86 assembly instructions in a disassembly table (requires distorm3 and rich)
+   Set ``include_offsets=True`` to print the Python opcodes inline with the assembly.
 
 WSGI middleware
 ---------------
