@@ -34,10 +34,6 @@
 #include "pyjit.h"
 #include "pyjitmath.h"
 
-#define SIZEOF_CODEUNIT sizeof(_Py_CODEUNIT)
-#define GET_OPARG(index)  _Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
-#define GET_OPCODE(index) _Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
-
 #define PGC_READY() g_pyjionSettings.pgc && profile != nullptr
 
 #define PGC_PROBE(count) pgcRequired = true; pgcSize = count;
@@ -188,7 +184,7 @@ void AbstractInterpreter::setLocalType(size_t index, PyObject* val) {
     auto& lastState = mStartStates[0];
     if (val != nullptr) {
         auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val));
-        localInfo.ValueInfo.Sources = newSource(new LocalSource());
+        localInfo.ValueInfo.Sources = newSource(new LocalSource(index));
         lastState.replaceLocal(index, localInfo);
     }
 }
@@ -612,7 +608,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     auto func = POP_VALUE();
                     auto source = AbstractValueWithSources(
                         avkToAbstractValue(knownFunctionReturnType(func)),
-                        newSource(new LocalSource()));
+                        newSource(new LocalSource(curByte)));
                     lastState.push(source);
                     break;
                 }
@@ -752,7 +748,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     // TODO : Allow guarded/PGC sources to be optimized.
                     auto source = AbstractValueWithSources(
                             &Iterable,
-                            newSource(new IteratorSource(iteratorType.Value->needsGuard() ? AVK_Any: iteratorType.Value->kind())));
+                            newSource(new IteratorSource(iteratorType.Value->needsGuard() ? AVK_Any: iteratorType.Value->kind(), curByte)));
                     lastState.push(source);
                 }
                     break;
@@ -855,7 +851,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case LOAD_METHOD: {
                     auto method = AbstractValueWithSources(
                             &Method,
-                            newSource(new MethodSource(utf8_names[oparg])));
+                            newSource(new MethodSource(utf8_names[oparg], curByte)));
                     lastState.push(method);
                     break;
                 }
@@ -1093,7 +1089,7 @@ AbstractValue* AbstractInterpreter::getReturnInfo() {
 AbstractSource* AbstractInterpreter::addLocalSource(size_t opcodeIndex, size_t localIndex) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new LocalSource());
+        return m_opcodeSources[opcodeIndex] = newSource(new LocalSource(opcodeIndex));
     }
 
     return store->second;
@@ -1102,7 +1098,7 @@ AbstractSource* AbstractInterpreter::addLocalSource(size_t opcodeIndex, size_t l
 AbstractSource* AbstractInterpreter::addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new GlobalSource(name, value));
+        return m_opcodeSources[opcodeIndex] = newSource(new GlobalSource(name, value, opcodeIndex));
     }
 
     return store->second;
@@ -1111,7 +1107,7 @@ AbstractSource* AbstractInterpreter::addGlobalSource(size_t opcodeIndex, size_t 
 AbstractSource* AbstractInterpreter::addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new BuiltinSource(name, value));
+        return m_opcodeSources[opcodeIndex] = newSource(new BuiltinSource(name, value, opcodeIndex));
     }
 
     return store->second;
@@ -1120,7 +1116,7 @@ AbstractSource* AbstractInterpreter::addBuiltinSource(size_t opcodeIndex, size_t
 AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new ConstSource(value));
+        return m_opcodeSources[opcodeIndex] = newSource(new ConstSource(value, opcodeIndex));
     }
 
     return store->second;
@@ -1129,7 +1125,7 @@ AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t c
 AbstractSource* AbstractInterpreter::addPgcSource(size_t opcodeIndex) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new PgcSource());
+        return m_opcodeSources[opcodeIndex] = newSource(new PgcSource(opcodeIndex));
     }
     return store->second;
 }
@@ -1521,15 +1517,16 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
     // Loop through all opcodes in this frame
     for (size_t curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
         assert(curByte % SIZEOF_CODEUNIT == 0);
+        auto op = graph->operator[](curByte);
 
         // opcodeIndex is the opcode position (matches the dis.dis() output)
         auto opcodeIndex = curByte;
 
         // Get the opcode identifier (see opcode.h)
-        auto byte = GET_OPCODE(curByte);
+        auto byte = op.opcode;
 
         // Get an additional oparg, see dis help for information on what each means
-        size_t oparg = GET_OPARG(curByte);
+        size_t oparg = op.oparg;
 
     processOpCode:
         markOffsetLabel(curByte);
@@ -1827,11 +1824,23 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 buildSet(oparg);
                 break;
             case UNARY_POSITIVE:
-                unaryPositive(opcodeIndex); break;
+                m_comp->emit_unary_positive();
+                decStack();
+                errorCheck("unary positive failed", opcodeIndex);
+                incStack();
+                break;
             case UNARY_NEGATIVE:
-                unaryNegative(opcodeIndex); break;
+                m_comp->emit_unary_negative();
+                decStack();
+                errorCheck("unary negative failed", opcodeIndex);
+                incStack();
+                break;
             case UNARY_NOT:
-                unaryNot(opcodeIndex); break;
+                m_comp->emit_unary_not();
+                decStack(1);
+                errorCheck("unary not failed", opcodeIndex);
+                incStack();
+                break;
             case UNARY_INVERT:
                 m_comp->emit_unary_invert();
                 decStack(1);
@@ -2320,27 +2329,6 @@ void AbstractInterpreter::testBoolAndBranch(Local value, bool isTrue, Label targ
     m_comp->emit_branch(BranchEqual, target);
 }
 
-void AbstractInterpreter::unaryPositive(size_t opcodeIndex) {
-    m_comp->emit_unary_positive();
-    decStack();
-    errorCheck("unary positive failed", opcodeIndex);
-    incStack();
-}
-
-void AbstractInterpreter::unaryNegative(size_t opcodeIndex) {
-    m_comp->emit_unary_negative();
-    decStack();
-    errorCheck("unary negative failed", opcodeIndex);
-    incStack();
-}
-
-void AbstractInterpreter::unaryNot(size_t opcodeIndex) {
-    m_comp->emit_unary_not();
-    decStack(1);
-    errorCheck("unary not failed", opcodeIndex);
-    incStack();
-}
-
 void AbstractInterpreter::updateIntermediateSources(){
     for (auto & s : m_sources){
         if (s->isIntermediate()){
@@ -2353,7 +2341,11 @@ void AbstractInterpreter::updateIntermediateSources(){
 }
 
 InstructionGraph* AbstractInterpreter::buildInstructionGraph() {
-    InstructionGraph* graph = new InstructionGraph(mCode);
+    unordered_map<size_t, const InterpreterStack*> stacks;
+    for (const auto &state: mStartStates){
+        stacks[state.first] = &state.second.mStack;
+    }
+    InstructionGraph* graph = new InstructionGraph(mCode, stacks);
     updateIntermediateSources();
     return graph;
 }
@@ -2365,6 +2357,9 @@ AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins,
     }
     try {
         auto instructionGraph = buildInstructionGraph();
+#ifdef DEBUG
+        instructionGraph->printGraph(PyUnicode_AsUTF8(mCode->co_name));
+#endif
         auto result = compileWorker(pgc_status, instructionGraph);
         delete instructionGraph;
         return result;

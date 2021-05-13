@@ -27,20 +27,43 @@
 
 #include <vector>
 #include <Python.h>
+#include <unordered_map>
+#include "stack.h"
 
 using namespace std;
 
-struct PyjionInstruction {
+#define SIZEOF_CODEUNIT sizeof(_Py_CODEUNIT)
+#define GET_OPARG(index)  _Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
+#define GET_OPCODE(index) _Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
 
+struct PyjionInstruction {
+    size_t index;
+    int16_t opcode;
+    int16_t oparg;
+};
+
+struct Node {
+    size_t index;
+    int16_t opcode;
+};
+
+struct Edge {
+    ssize_t from;
+    size_t to;
+    const char* label;
+    const char* value;
 };
 
 class InstructionGraph {
 private:
-    vector<PyjionInstruction> m_instructions;
+    unordered_map<size_t, PyjionInstruction> m_instructions;
+    vector<Node> nodes;
+    vector<Edge> edges;
 public:
-    explicit InstructionGraph(PyCodeObject* code) {
-
-    }
+    InstructionGraph(PyCodeObject* code, unordered_map<size_t, const InterpreterStack*> stacks) ;
+    PyjionInstruction & operator [](size_t i) {return m_instructions[i];}
+    size_t size() {return m_instructions.size();}
+    void printGraph(const char* name) ;
 };
 
 #endif //PYJION_INSTRUCTIONS_H

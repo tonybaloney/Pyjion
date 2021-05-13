@@ -1721,6 +1721,7 @@ public:
             default:
                 throw UnsupportedHelperException(ftnNum);
         }
+        return nullptr;
     }
 #endif
     void getLocationOfThisType(CORINFO_METHOD_HANDLE context, CORINFO_LOOKUP_KIND *pLookupKind) override {

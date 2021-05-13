@@ -75,10 +75,13 @@ static bool isKnownType(AbstractValueKind kind) {
 }
 
 class AbstractSource {
+    vector<size_t> _consumers;
+    bool single_use = false;
+    size_t _producer;
 public:
     shared_ptr<AbstractSources> Sources;
 
-    AbstractSource();
+    explicit AbstractSource(size_t producer);
 
     virtual bool hasConstValue() { return false; }
 
@@ -90,6 +93,32 @@ public:
     }
     virtual const char* describe() {
         return "unknown source";
+    }
+
+    void addConsumer(size_t opcode){
+        _consumers.push_back(opcode);
+    }
+
+    bool isConsumedBy(size_t idx){
+        return std::any_of(
+                _consumers.cbegin(),
+                _consumers.cend(),
+                [idx](size_t i){ return i == idx; });
+    }
+
+    bool markForSingleUse(){
+        if (_consumers.size() == 1 || _consumers.size() == 0){
+            single_use = true;
+        }
+        return single_use;
+    }
+
+    bool singleUse() {
+        return single_use;
+    }
+
+    size_t producer(){
+        return _producer;
     }
 
     static AbstractSource* combine(AbstractSource* one, AbstractSource*two);
@@ -109,7 +138,7 @@ class ConstSource : public AbstractSource {
     bool hasNumericValueSet = false;
     Py_ssize_t numericValue = -1;
 public:
-    explicit ConstSource(PyObject* value) {
+    explicit ConstSource(PyObject* value, size_t producer): AbstractSource(producer) {
         this->hash = PyObject_Hash(value);
         if (PyErr_Occurred()){
             PyErr_Clear();
@@ -148,7 +177,7 @@ class GlobalSource : public AbstractSource {
     const char* _name;
     PyObject* _value;
 public:
-    explicit GlobalSource(const char* name, PyObject* value) {
+    explicit GlobalSource(const char* name, PyObject* value, size_t producer) : AbstractSource(producer) {
         _name = name;
         _value = value;
     }
@@ -166,7 +195,7 @@ class BuiltinSource : public AbstractSource {
     const char* _name;
     PyObject* _value;
 public:
-    explicit BuiltinSource(const char* name, PyObject* value)  {
+    explicit BuiltinSource(const char* name, PyObject* value, size_t producer) : AbstractSource(producer)  {
         _name = name;
         _value = value;
     };
@@ -190,19 +219,16 @@ public:
 
 class LocalSource : public AbstractSource {
 public:
+    explicit LocalSource(size_t producer): AbstractSource(producer) { } ;
+
     const char* describe() override {
         return "Source: Local";
     }
 };
 
 class IntermediateSource : public AbstractSource {
-    size_t _opcode;
-    vector<size_t> consumers;
-    bool single_use = false;
 public:
-    explicit IntermediateSource(size_t opcode) {
-        _opcode = opcode;
-    }
+    explicit IntermediateSource(size_t producer): AbstractSource(producer) { } ;
 
     const char* describe() override {
         return "Source: Intermediate";
@@ -211,29 +237,11 @@ public:
     bool isIntermediate() override {
         return true;
     }
-
-    void addConsumer(size_t opcode){
-        consumers.push_back(opcode);
-    }
-
-    bool markForSingleUse(){
-        if (consumers.size() == 1 || consumers.size() == 0){
-            single_use = true;
-        }
-        return single_use;
-    }
-
-    bool singleUse() {
-        return single_use;
-    }
-
-    size_t producer(){
-        return _opcode;
-    }
 };
 
 class PgcSource : public AbstractSource {
 public:
+    explicit PgcSource(size_t producer): AbstractSource(producer) { } ;
     const char* describe() override {
         return "Source: PGC";
     }
@@ -242,7 +250,7 @@ public:
 class IteratorSource : public AbstractSource {
     AbstractValueKind _kind;
 public:
-    explicit IteratorSource(AbstractValueKind iterableKind){
+    IteratorSource(AbstractValueKind iterableKind, size_t producer) : AbstractSource(producer){
         _kind = iterableKind;
     }
 
@@ -256,7 +264,7 @@ public:
 class MethodSource : public AbstractSource {
     const char* _name = "";
 public:
-    explicit MethodSource(const char* name){
+    explicit MethodSource(const char* name, size_t producer) : AbstractSource(producer){
         _name = name;
     }
 

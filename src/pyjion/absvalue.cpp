@@ -54,9 +54,10 @@ EnumeratorValue Enumerator;
 FileValue File;
 
 
-AbstractSource::AbstractSource() {
+AbstractSource::AbstractSource(size_t producer) {
     Sources = shared_ptr<AbstractSources>(new AbstractSources());
     Sources->Sources.insert(this);
+    _producer = producer;
 }
 
 AbstractValue* AbstractValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {

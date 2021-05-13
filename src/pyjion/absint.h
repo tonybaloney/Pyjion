@@ -173,8 +173,8 @@ public:
             throw StackUnderflowException();
         auto res = mStack.back();
         mStack.pop_back();
-        if (res.hasSource() && res.Sources->isIntermediate()){
-            reinterpret_cast<IntermediateSource*>(res.Sources)->addConsumer(idx);
+        if (res.hasSource()){
+            res.Sources->addConsumer(idx);
         }
         return res;
     }
@@ -410,10 +410,6 @@ private:
     void loadFastWorker(size_t local, bool checkUnbound, int curByte);
 
     void popExcept();
-
-    void unaryPositive(size_t opcodeIndex);
-    void unaryNegative(size_t opcodeIndex);
-    void unaryNot(size_t opcodeIndex);
 
     void jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t offset);
     void popJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
