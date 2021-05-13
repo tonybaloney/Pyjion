@@ -52,7 +52,8 @@ struct Edge {
     ssize_t from;
     size_t to;
     const char* label;
-    const char* value;
+    AbstractValue* value;
+    AbstractSource* source;
 };
 
 class InstructionGraph {

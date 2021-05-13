@@ -40,8 +40,13 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
             for (const auto & si: *stacks[index]){
                 if (si.hasSource()){
                     if (si.Sources->isConsumedBy(index)) {
-                        edges.push_back({static_cast<ssize_t>(si.Sources->producer()), index, si.Sources->describe(),
-                                         si.Value->describe()});
+                        edges.push_back({
+                            .from = static_cast<ssize_t>(si.Sources->producer()),
+                            .to = index,
+                            .label = si.Sources->describe(),
+                            .value = si.Value,
+                            .source = si.Sources
+                        });
                     }
                 }
             }
@@ -65,9 +70,9 @@ void InstructionGraph::printGraph(const char* name) {
 
     for (const auto & edge: edges){
         if (edge.from == -1) {
-            printf("\tFRAME -> OP%zu [label=\"%s (%s)\"];\n", edge.to, edge.label, edge.value);
+            printf("\tFRAME -> OP%zu [label=\"%s (%s)\"];\n", edge.to, edge.label, edge.value->describe());
         } else {
-            printf("\tOP%zd -> OP%zu [label=\"%s (%s)\"];\n", edge.from, edge.to, edge.label, edge.value);
+            printf("\tOP%zd -> OP%zu [label=\"%s (%s)\"];\n", edge.from, edge.to, edge.label, edge.value->describe());
         }
     }
     printf("}\n");
