@@ -45,6 +45,7 @@ struct PyjionInstruction {
 struct Node {
     size_t index;
     int16_t opcode;
+    int16_t oparg;
 };
 
 struct Edge {

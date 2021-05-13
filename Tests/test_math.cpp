@@ -60,7 +60,16 @@ TEST_CASE("Test inplace") {
                               "  return c");
         CHECK(t.returns() == "10.0");
     }
-
+    SECTION("complex nested calculation") {
+        auto t = EmissionTest("def f():\n"
+                              "  dt = 2.0\n"
+                              "  dx = 3.0\n"
+                              "  dy = 4.0\n"
+                              "  dz = 5.0\n"
+                              "  mag = dt * ((dx * dx + dy * dy + dz * dz) ** (-1.5))\n"
+                              "  return mag");
+        CHECK(t.returns() == "0.00565685424949238");
+    }
     SECTION("inplace addition of multiple ints") {
         auto t = EmissionTest("def f():\n"
                               "  a = 2\n"

@@ -34,7 +34,7 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
         auto opcode = GET_OPCODE(curByte);
         auto oparg = GET_OPARG(curByte);
 
-        nodes.push_back({index, static_cast<int16_t>(opcode)});
+        nodes.push_back({index, static_cast<int16_t>(opcode), static_cast<int16_t>(oparg)});
 
         if (stacks[index] != nullptr){
             for (const auto & si: *stacks[index]){
@@ -60,7 +60,7 @@ void InstructionGraph::printGraph(const char* name) {
     printf("\tnode [shape=box];\n");
     printf("\tFRAME [label=FRAME];\n");
     for (const auto & node: nodes){
-        printf("  OP%zu [label=\"%s\"];\n", node.index, opcodeName(node.opcode));
+        printf("  OP%zu [label=\"%s (%d)\"];\n", node.index, opcodeName(node.opcode), node.oparg);
     }
 
     for (const auto & edge: edges){

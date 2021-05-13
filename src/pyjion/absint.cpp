@@ -337,9 +337,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case LOAD_FAST: {
                     auto localSource = addLocalSource(opcodeIndex, oparg);
                     auto local = lastState.getLocal(oparg);
-
-                    local.ValueInfo.Sources = AbstractSource::combine(localSource, local.ValueInfo.Sources);
-
+                    local.ValueInfo.Sources = localSource;
                     lastState.push(local.ValueInfo);
                     break;
                 }

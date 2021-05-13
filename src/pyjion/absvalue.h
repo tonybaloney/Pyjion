@@ -100,10 +100,11 @@ public:
     }
 
     bool isConsumedBy(size_t idx){
-        return std::any_of(
-                _consumers.cbegin(),
-                _consumers.cend(),
-                [idx](size_t i){ return i == idx; });
+        for (const size_t & i : _consumers){
+            if (i == idx)
+                return true;
+        };
+        return false;
     }
 
     bool markForSingleUse(){
@@ -119,6 +120,10 @@ public:
 
     size_t producer(){
         return _producer;
+    }
+
+    void setProducer(size_t i){
+        _producer = i;
     }
 
     static AbstractSource* combine(AbstractSource* one, AbstractSource*two);
