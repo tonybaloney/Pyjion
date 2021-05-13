@@ -179,7 +179,7 @@ public:
         return res;
     }
 
-    AbstractValueWithSources fromPgc(size_t stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject, AbstractSource* source) {
+    AbstractValueWithSources fromPgc(size_t stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject) {
         if (mStack.empty())
             throw StackUnderflowException();
         auto existing = mStack[mStack.size() - 1 - stackPosition];
@@ -190,7 +190,7 @@ public:
         else {
             return AbstractValueWithSources(
                     new PgcValue(pyTypeObject, pyObject),
-                    source
+                    existing.Sources
             );
         }
     }
@@ -357,7 +357,6 @@ private:
     AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
     AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
     AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
-    AbstractSource* addPgcSource(size_t opcodeIndex);
 
     void makeFunction(size_t oparg);
     bool canSkipLastiUpdate(size_t opcodeIndex);

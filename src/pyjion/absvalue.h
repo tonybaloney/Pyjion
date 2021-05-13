@@ -244,14 +244,6 @@ public:
     }
 };
 
-class PgcSource : public AbstractSource {
-public:
-    explicit PgcSource(size_t producer): AbstractSource(producer) { } ;
-    const char* describe() override {
-        return "Source: PGC";
-    }
-};
-
 class IteratorSource : public AbstractSource {
     AbstractValueKind _kind;
 public:
@@ -561,6 +553,10 @@ public:
     virtual PyObject* lastValue() {
         Py_RETURN_NONE;
     }
+
+    const char* describe() override {
+        return "volatile";
+    }
 };
 
 class PgcValue : public VolatileValue {
@@ -581,6 +577,10 @@ public:
             return nullptr;
         return _object;
     }
+
+    const char* describe() override {
+        return _type->tp_name;
+    }
 };
 
 class ArgumentValue: public VolatileValue {
@@ -600,6 +600,9 @@ public:
         if (_PyObject_IsFreed(_value) || _value == (PyObject*)0xFFFFFFFFFFFFFFFF)
             return nullptr;
         return _value;
+    }
+    const char* describe() override {
+        return _type->tp_name;
     }
 };
 

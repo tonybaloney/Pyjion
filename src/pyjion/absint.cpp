@@ -41,7 +41,11 @@
 #define PGC_UPDATE_STACK(count) \
     if (pgc_status == PgcStatus::CompiledWithProbes) {                      \
         for (int pos = 0; pos < (count) ; pos++) \
-            lastState.push_n(pos, lastState.fromPgc(pos, profile->getType(curByte, pos), profile->getValue(curByte, pos), addPgcSource(opcodeIndex))); \
+            lastState.push_n(pos,                                           \
+                             lastState.fromPgc(                             \
+                                pos,                                        \
+                                profile->getType(curByte, pos),             \
+                                profile->getValue(curByte, pos)));          \
         mStartStates[curByte] = lastState; \
     }
 #define POP_VALUE() \
@@ -1120,16 +1124,8 @@ AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t c
     return store->second;
 }
 
-AbstractSource* AbstractInterpreter::addPgcSource(size_t opcodeIndex) {
-    auto store = m_opcodeSources.find(opcodeIndex);
-    if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new PgcSource(opcodeIndex));
-    }
-    return store->second;
-}
-
- // Checks to see if we have a non-zero error code on the stack, and if so,
- // branches to the current error handler.  Consumes the error code in the process
+// Checks to see if we have a non-zero error code on the stack, and if so,
+// branches to the current error handler.  Consumes the error code in the process
 void AbstractInterpreter::intErrorCheck(const char* reason, size_t curByte) {
     auto noErr = m_comp->emit_define_label();
     m_comp->emit_branch(BranchFalse, noErr);
