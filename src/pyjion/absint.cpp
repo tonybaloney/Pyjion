@@ -1477,7 +1477,7 @@ void AbstractInterpreter::popExcVars(){
     m_comp->emit_mark_label(nothing_to_pop);
 }
 
-AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status) {
+AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status, InstructionGraph* graph) {
     Label ok;
 
     m_comp->emit_lasti_init();
@@ -2341,7 +2341,7 @@ void AbstractInterpreter::unaryNot(size_t opcodeIndex) {
     incStack();
 }
 
-void AbstractInterpreter::updateIntermediateSources(PgcStatus status){
+void AbstractInterpreter::updateIntermediateSources(){
     for (auto & s : m_sources){
         if (s->isIntermediate()){
             auto interSource = reinterpret_cast<IntermediateSource*>(s);
@@ -2352,14 +2352,22 @@ void AbstractInterpreter::updateIntermediateSources(PgcStatus status){
     }
 }
 
+InstructionGraph* AbstractInterpreter::buildInstructionGraph() {
+    InstructionGraph* graph = new InstructionGraph(mCode);
+    updateIntermediateSources();
+    return graph;
+}
+
 AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status) {
     AbstractInterpreterResult interpreted = interpret(builtins, globals, profile, pgc_status);
     if (interpreted != Success) {
         return {nullptr, interpreted};
     }
     try {
-        updateIntermediateSources(pgc_status);
-        return compileWorker(pgc_status);
+        auto instructionGraph = buildInstructionGraph();
+        auto result = compileWorker(pgc_status, instructionGraph);
+        delete instructionGraph;
+        return result;
     } catch (const exception& e){
 #ifdef DEBUG
         printf("Error whilst compiling : %s\n", e.what());

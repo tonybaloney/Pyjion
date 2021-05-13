@@ -37,6 +37,7 @@
 #include "block.h"
 #include "stack.h"
 #include "exceptionhandling.h"
+#include "instructions.h"
 
 using namespace std;
 
@@ -323,7 +324,6 @@ public:
 
     AbstactInterpreterCompileResult compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status);
     AbstractInterpreterResult interpret(PyObject *builtins, PyObject *globals, PyjionCodeProfile *profile, PgcStatus status);
-    void updateIntermediateSources(PgcStatus status);
 
     void setLocalType(size_t index, PyObject* val);
     // Returns information about the specified local variable at a specific
@@ -398,7 +398,7 @@ private:
 
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
 
-    AbstactInterpreterCompileResult compileWorker(PgcStatus status);
+    AbstactInterpreterCompileResult compileWorker(PgcStatus status, InstructionGraph* graph);
 
     void storeFast(size_t local, size_t opcodeIndex);
 
@@ -426,7 +426,8 @@ private:
     void popExcVars();
     void decExcVars(size_t count);
     void incExcVars(size_t count);
-
+    void updateIntermediateSources();
+    InstructionGraph* buildInstructionGraph();
 };
 
 // TODO : Fetch the range of interned integers from the interpreter state
