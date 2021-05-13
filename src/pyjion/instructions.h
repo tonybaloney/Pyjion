@@ -37,16 +37,11 @@ using namespace std;
 #define GET_OPARG(index)  (py_oparg)_Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
 #define GET_OPCODE(index) (py_opcode)_Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
 
-struct PyjionInstruction {
+struct Instruction {
     size_t index;
     py_opcode opcode;
     py_oparg oparg;
-};
-
-struct Node {
-    size_t index;
-    py_opcode opcode;
-    py_oparg oparg;
+    bool canEscape;
 };
 
 struct Edge {
@@ -60,13 +55,12 @@ struct Edge {
 
 class InstructionGraph {
 private:
-    unordered_map<size_t, PyjionInstruction> m_instructions;
-    vector<Node> nodes;
+    unordered_map<size_t, Instruction> instructions;
     vector<Edge> edges;
 public:
     InstructionGraph(PyCodeObject* code, unordered_map<size_t, const InterpreterStack*> stacks) ;
-    PyjionInstruction & operator [](size_t i) {return m_instructions[i];}
-    size_t size() {return m_instructions.size();}
+    Instruction & operator [](size_t i) {return instructions[i];}
+    size_t size() {return instructions.size();}
     void printGraph(const char* name) ;
 };
 

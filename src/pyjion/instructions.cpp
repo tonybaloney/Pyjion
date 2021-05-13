@@ -36,8 +36,6 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
         auto opcode = GET_OPCODE(curByte);
         auto oparg = GET_OPARG(curByte);
 
-        nodes.push_back({index, static_cast<py_opcode>(opcode), static_cast<py_oparg>(oparg)});
-
         if (stacks[index] != nullptr){
             for (const auto & si: *stacks[index]){
                 if (si.hasSource()){
@@ -48,17 +46,20 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
                             .label = si.Sources->describe(),
                             .value = si.Value,
                             .source = si.Sources,
-                            .escaped = (supportsEscaping(si.Value->kind()) && supportsUnboxing(GET_OPCODE(si.Sources->producer())))
+                            .escaped = (supportsEscaping(si.Value->kind()) &&
+                                        supportsUnboxing(GET_OPCODE(si.Sources->producer())) &&
+                                        supportsUnboxing(opcode))
                         });
                     }
                 }
             }
         }
 
-        m_instructions[index] = {
+        instructions[index] = {
             .index = index,
-            .opcode = static_cast<int16_t>(opcode),
-            .oparg = static_cast<int16_t>(oparg)
+            .opcode = opcode,
+            .oparg = oparg,
+            .canEscape = supportsUnboxing(opcode)
         };
     }
 }
@@ -67,8 +68,8 @@ void InstructionGraph::printGraph(const char* name) {
     printf("digraph %s { \n", name);
     printf("\tnode [shape=box];\n");
     printf("\tFRAME [label=FRAME];\n");
-    for (const auto & node: nodes){
-        printf("  OP%zu [label=\"%s (%d)\"];\n", node.index, opcodeName(node.opcode), node.oparg);
+    for (const auto & node: instructions){
+        printf("  OP%zu [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
     }
 
     for (const auto & edge: edges){

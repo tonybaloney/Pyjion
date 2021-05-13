@@ -1193,3 +1193,15 @@ TEST_CASE("Test rich comparisons of floats") {
         CHECK(t.returns() == "False");
     };
 }
+
+TEST_CASE("Test unboxing of floats") {
+    SECTION("complex nested calculation") {
+        auto t = EmissionTest("def f():\n"
+                              "  dx = 3.0\n"
+                              "  dy = 4.0\n"
+                              "  dz = 5.0\n"
+                              "  mag = dz * (dx * dy)\n"
+                              "  return mag");
+        CHECK(t.returns() == "60.0");
+    }
+}
