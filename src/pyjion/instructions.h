@@ -29,23 +29,24 @@
 #include <Python.h>
 #include <unordered_map>
 #include "stack.h"
+#include "types.h"
 
 using namespace std;
 
 #define SIZEOF_CODEUNIT sizeof(_Py_CODEUNIT)
-#define GET_OPARG(index)  _Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
-#define GET_OPCODE(index) _Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
+#define GET_OPARG(index)  (py_oparg)_Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
+#define GET_OPCODE(index) (py_opcode)_Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
 
 struct PyjionInstruction {
     size_t index;
-    int16_t opcode;
-    int16_t oparg;
+    py_opcode opcode;
+    py_oparg oparg;
 };
 
 struct Node {
     size_t index;
-    int16_t opcode;
-    int16_t oparg;
+    py_opcode opcode;
+    py_oparg oparg;
 };
 
 struct Edge {
@@ -54,6 +55,7 @@ struct Edge {
     const char* label;
     AbstractValue* value;
     AbstractSource* source;
+    bool escaped;
 };
 
 class InstructionGraph {

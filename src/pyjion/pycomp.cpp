@@ -2568,7 +2568,7 @@ GLOBAL_METHOD(METHOD_GIL_ENSURE, &PyGILState_Ensure, CORINFO_TYPE_NATIVEINT);
 GLOBAL_METHOD(METHOD_GIL_RELEASE, &PyGILState_Release, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
 
 
-const char* opcodeName(size_t opcode) {
+const char* opcodeName(py_opcode opcode) {
 #define OP_TO_STR(x)   case x: return #x;
     switch (opcode) { // NOLINT(hicpp-multiway-paths-covered)
         OP_TO_STR(POP_TOP)

@@ -25,6 +25,8 @@
 
 #include "instructions.h"
 #include "pycomp.h"
+#include "unboxing.h"
+
 
 InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, const InterpreterStack*> stacks) {
     auto mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
@@ -34,7 +36,7 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
         auto opcode = GET_OPCODE(curByte);
         auto oparg = GET_OPARG(curByte);
 
-        nodes.push_back({index, static_cast<int16_t>(opcode), static_cast<int16_t>(oparg)});
+        nodes.push_back({index, static_cast<py_opcode>(opcode), static_cast<py_oparg>(oparg)});
 
         if (stacks[index] != nullptr){
             for (const auto & si: *stacks[index]){
@@ -45,7 +47,8 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
                             .to = index,
                             .label = si.Sources->describe(),
                             .value = si.Value,
-                            .source = si.Sources
+                            .source = si.Sources,
+                            .escaped = (supportsEscaping(si.Value->kind()) && supportsUnboxing(GET_OPCODE(si.Sources->producer())))
                         });
                     }
                 }
@@ -53,9 +56,9 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
         }
 
         m_instructions[index] = {
-                .index = index,
-                .opcode = static_cast<int16_t>(opcode),
-                .oparg = static_cast<int16_t>(oparg)
+            .index = index,
+            .opcode = static_cast<int16_t>(opcode),
+            .oparg = static_cast<int16_t>(oparg)
         };
     }
 }
@@ -72,7 +75,10 @@ void InstructionGraph::printGraph(const char* name) {
         if (edge.from == -1) {
             printf("\tFRAME -> OP%zu [label=\"%s (%s)\"];\n", edge.to, edge.label, edge.value->describe());
         } else {
-            printf("\tOP%zd -> OP%zu [label=\"%s (%s)\"];\n", edge.from, edge.to, edge.label, edge.value->describe());
+            if (edge.escaped)
+                printf("\tOP%zd -> OP%zu [label=\"%s (%s)\" color=blue];\n", edge.from, edge.to, edge.label, edge.value->describe());
+            else
+                printf("\tOP%zd -> OP%zu [label=\"%s (%s)\"];\n", edge.from, edge.to, edge.label, edge.value->describe());
         }
     }
     printf("}\n");

@@ -525,6 +525,6 @@ typedef struct {
 } _tupleiterobject;
 
 
-const char* opcodeName(size_t opcode) ;
+const char* opcodeName(py_opcode opcode) ;
 
 #endif
