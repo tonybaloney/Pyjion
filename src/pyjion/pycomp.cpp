@@ -2309,14 +2309,14 @@ void PythonCompiler::emit_pgc_probe(size_t curByte, size_t stackSize, EdgeMap ed
     emit_load_local(hasProbedFlag);
     emit_branch(BranchTrue, hasProbed);
     for (size_t i = 0; i < stackSize; i++){
-        if (edges[i].escaped == Unboxed)
+        if (edges[i].escaped == Unboxed || edges[i].escaped == Box)
             stack[i] = emit_define_local(edges[i].kind);
         else
         {
             stack[i] = emit_define_local(LK_Pointer);
         }
         emit_store_local(stack[i]);
-        if (edges[i].escaped == Box || edges[i].escaped == NoEscape) {
+        if (edges[i].escaped == Unbox || edges[i].escaped == NoEscape) {
             m_il.ld_arg(3);
             emit_load_local(stack[i]);
             m_il.ld_i8(curByte);

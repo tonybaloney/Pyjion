@@ -71,6 +71,8 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
                 }
             }
         }
+        // Go back through the edges to this operation and inspect those that make no
+        // sense to escape because the inputs are unknown.
         bool allEscaped = true;
         auto edgesForOperation = getEdges(index);
         for (auto & e: edgesForOperation){
@@ -83,6 +85,16 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
             .oparg = oparg,
             .escape = supportsUnboxing(opcode) && allEscaped
         };
+    }
+    for (auto & edge: this->edges){
+        // If the instruction is no longer escaped, dont box the output
+        if (!this->instructions[edge.from].escape && edge.escaped == Box){
+            edge.escaped = NoEscape;
+        }
+        // If the instruction is no longer escaped, box the input
+        if (!this->instructions[edge.to].escape && edge.escaped == Unboxed){
+            edge.escaped = Box;
+        }
     }
 }
 

@@ -28,9 +28,18 @@
 bool supportsUnboxing(py_opcode opcode){
     switch (opcode){
         case BINARY_POWER:
+        case INPLACE_POWER:
+        case INPLACE_MULTIPLY:
         case BINARY_MULTIPLY:
+        case INPLACE_MODULO:
         case BINARY_MODULO:
+        case INPLACE_ADD:
         case BINARY_ADD:
+        case BINARY_FLOOR_DIVIDE:
+        case INPLACE_FLOOR_DIVIDE:
+        case INPLACE_TRUE_DIVIDE:
+        case BINARY_TRUE_DIVIDE:
+        case INPLACE_SUBTRACT:
         case BINARY_SUBTRACT:
             return true;
         default:
