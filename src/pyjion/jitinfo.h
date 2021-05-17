@@ -139,6 +139,20 @@ public:
         throw GuardStackException();
     };
 
+    static double dblRemHelper(double dividend, double divisor) {
+        if (divisor==0 || !finite(dividend))
+        {
+            UINT64 NaN = 0xFFF8000000000000; // TODO : Raise native DBZ
+            return *(double *)(&NaN);
+        }
+        else if (!finite(divisor) && !isnan(divisor))
+        {
+            return dividend;
+        }
+        // else...
+        return(fmod(dividend,divisor));
+    };
+
     /// Override the default .NET CIL_NEWARR with a custom array allocator. See getHelperFtn
     /// \param size Requested array size
     /// \param arrayMT Array type handle
@@ -1686,6 +1700,9 @@ public:
             case CORINFO_HELP_VERIFICATION:
                 helper = (void*)&verificationExceptionHelper;
                 break;
+            case CORINFO_HELP_DBLREM:
+                helper = (void*)&dblRemHelper;
+                break;
             default:
                 throw UnsupportedHelperException(ftnNum);
                 break;
@@ -1718,6 +1735,8 @@ public:
                 return (void*)nullReferenceExceptionHelper;
             case CORINFO_HELP_VERIFICATION:
                 return (void*)verificationExceptionHelper;
+            case CORINFO_HELP_DBLREM:
+                return (void*)dblRemHelper;
             default:
                 throw UnsupportedHelperException(ftnNum);
         }
