@@ -37,6 +37,17 @@ using namespace std;
 #define GET_OPARG(index)  (py_oparg)_Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
 #define GET_OPCODE(index) (py_opcode)_Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
 
+enum EscapeTransition {
+    // Boxed -> Boxed = NoEscape
+    // Boxed -> Unboxed = Unbox
+    // Unboxed -> Boxed = Box
+    // Unboxed -> Unboxed = Unboxed
+    NoEscape = 1,
+    Box = 2,
+    Unbox = 3,
+    Unboxed = 4
+};
+
 struct Instruction {
     size_t index;
     py_opcode opcode;
@@ -50,7 +61,7 @@ struct Edge {
     const char* label;
     AbstractValue* value;
     AbstractSource* source;
-    bool escaped;
+    EscapeTransition escaped;
 };
 
 class InstructionGraph {

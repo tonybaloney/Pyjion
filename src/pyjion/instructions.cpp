@@ -40,15 +40,30 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
             for (const auto & si: *stacks[index]){
                 if (si.hasSource()){
                     if (si.Sources->isConsumedBy(index)) {
+                        EscapeTransition transition;
+                        if (!supportsEscaping(si.Value->kind())){
+                            transition = NoEscape;
+                        } else {
+                            if (supportsUnboxing(GET_OPCODE(si.Sources->producer())) &&
+                                supportsUnboxing(opcode))
+                                transition = Unboxed;
+                            else if (!supportsUnboxing(GET_OPCODE(si.Sources->producer())) &&
+                                supportsUnboxing(opcode))
+                                transition = Unbox;
+                            else if (supportsUnboxing(GET_OPCODE(si.Sources->producer())) &&
+                                !supportsUnboxing(opcode))
+                                transition = Box;
+                            else
+                                transition = NoEscape;
+                        }
+
                         edges.push_back({
                             .from = static_cast<ssize_t>(si.Sources->producer()),
                             .to = index,
                             .label = si.Sources->describe(),
                             .value = si.Value,
                             .source = si.Sources,
-                            .escaped = (supportsEscaping(si.Value->kind()) &&
-                                        supportsUnboxing(GET_OPCODE(si.Sources->producer())) &&
-                                        supportsUnboxing(opcode))
+                            .escaped = transition
                         });
                     }
                 }
@@ -69,17 +84,31 @@ void InstructionGraph::printGraph(const char* name) {
     printf("\tnode [shape=box];\n");
     printf("\tFRAME [label=FRAME];\n");
     for (const auto & node: instructions){
-        printf("  OP%zu [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+        if (supportsUnboxing(node.second.opcode))
+            printf("  OP%zu [label=\"%s (%d)\" color=blue];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+        else
+            printf("  OP%zu [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
     }
 
     for (const auto & edge: edges){
         if (edge.from == -1) {
             printf("\tFRAME -> OP%zu [label=\"%s (%s)\"];\n", edge.to, edge.label, edge.value->describe());
         } else {
-            if (edge.escaped)
-                printf("\tOP%zd -> OP%zu [label=\"%s (%s)\" color=blue];\n", edge.from, edge.to, edge.label, edge.value->describe());
-            else
-                printf("\tOP%zd -> OP%zu [label=\"%s (%s)\"];\n", edge.from, edge.to, edge.label, edge.value->describe());
+            switch (edge.escaped) {
+                case NoEscape:
+                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) -\" color=black];\n", edge.from, edge.to, edge.label, edge.value->describe());
+                    break;
+                case Unbox:
+                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) U\" color=red];\n", edge.from, edge.to, edge.label, edge.value->describe());
+                    break;
+                case Box:
+                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) B\" color=green];\n", edge.from, edge.to, edge.label, edge.value->describe());
+                    break;
+                case Unboxed:
+                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) UN\" color=purple];\n", edge.from, edge.to, edge.label, edge.value->describe());
+                    break;
+            }
+
         }
     }
     printf("}\n");
