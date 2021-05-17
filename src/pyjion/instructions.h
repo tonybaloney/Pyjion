@@ -54,8 +54,7 @@ struct Instruction {
     size_t index;
     py_opcode opcode;
     py_oparg oparg;
-    bool canEscape;
-    bool allEscaped;
+    bool escape;
 };
 
 struct Edge {

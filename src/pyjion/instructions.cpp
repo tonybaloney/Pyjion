@@ -71,13 +71,17 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
                 }
             }
         }
-
+        bool allEscaped = true;
+        auto edgesForOperation = getEdges(index);
+        for (auto & e: edgesForOperation){
+            if (e.second.escaped == NoEscape)
+                allEscaped = false;
+        }
         instructions[index] = {
             .index = index,
             .opcode = opcode,
             .oparg = oparg,
-            .canEscape = supportsUnboxing(opcode),
-            .allEscaped = supportsUnboxing(opcode) // TODO : Inspect edges to assert this.
+            .escape = supportsUnboxing(opcode) && allEscaped
         };
     }
 }
@@ -87,7 +91,7 @@ void InstructionGraph::printGraph(const char* name) {
     printf("\tnode [shape=box];\n");
     printf("\tFRAME [label=FRAME];\n");
     for (const auto & node: instructions){
-        if (supportsUnboxing(node.second.opcode))
+        if (node.second.escape)
             printf("  OP%zu [label=\"%s (%d)\" color=blue];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
         else
             printf("  OP%zu [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);

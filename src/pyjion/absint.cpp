@@ -1877,7 +1877,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case INPLACE_XOR:
             case INPLACE_OR:
                 if (stackInfo.size() >= 2) {
-                    if (op.allEscaped) {
+                    if (op.escape) {
                         m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
                     } else {
