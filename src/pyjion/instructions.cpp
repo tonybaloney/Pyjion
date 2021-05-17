@@ -88,26 +88,19 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
     }
     for (auto & edge: this->edges){
         // If the instruction is no longer escaped, dont box the output
-        if (!this->instructions[edge.from].escape){
-            switch(edge.escaped){
-                case Box:
-                    edge.escaped = NoEscape;
-                    break;
-                case Unboxed:
-                    edge.escaped = Box;
-                    break;
+        if (!this->instructions[edge.from].escape) {
+            // From non-escaped operation
+            if (this->instructions[edge.to].escape){
+                edge.escaped = Unbox;
+            } else {
+                edge.escaped = NoEscape;
             }
-        }
-
-        // If the instruction is no longer escaped, box the input
-        if (!this->instructions[edge.to].escape){
-            switch(edge.escaped) {
-                case Unboxed:
-                    edge.escaped = Box;
-                    break;
-                case Unbox:
-                    edge.escaped = NoEscape;
-                    break;
+        } else {
+            // From escaped operation
+            if (this->instructions[edge.to].escape){
+                edge.escaped = Unboxed;
+            } else {
+                edge.escaped = Box;
             }
         }
     }

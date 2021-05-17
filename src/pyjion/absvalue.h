@@ -408,7 +408,8 @@ class IntegerValue : public AbstractValue {
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
     AbstractValueKind resolveMethod(const char* name) override;
-
+public:
+    static AbstractValue* binary(int op, AbstractValueWithSources& other);
 };
 
 class InternIntegerValue : public IntegerValue {
@@ -433,6 +434,8 @@ class FloatValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
+public:
+    static AbstractValue* binary(int op, AbstractValueWithSources& other);
 };
 
 class TupleValue : public AbstractValue {
@@ -546,33 +549,22 @@ class FileValue : public AbstractValue {
 };
 
 class VolatileValue: public AbstractValue{
-public:
-    bool needsGuard() override {
-        return true;
-    }
-    virtual PyObject* lastValue() {
-        Py_RETURN_NONE;
-    }
-
-    const char* describe() override {
-        return "volatile";
-    }
-};
-
-class PgcValue : public VolatileValue {
     PyTypeObject* _type;
     PyObject* _object;
 public:
-    explicit PgcValue(PyTypeObject* type, PyObject* object){
+    VolatileValue(PyTypeObject* type, PyObject* object){
         _type = type;
         _object = object;
     }
+
     AbstractValueKind kind() override;
+
     PyTypeObject* pythonType() override;
+
     bool known() override {
         return true;
     }
-    PyObject* lastValue() override {
+    PyObject* lastValue() {
         if (_PyObject_IsFreed(_object) || _object == (PyObject*)0xFFFFFFFFFFFFFFFF)
             return nullptr;
         return _object;
@@ -581,29 +573,21 @@ public:
     const char* describe() override {
         return _type->tp_name;
     }
+
+    bool needsGuard() override {
+        return true;
+    }
+    AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
+};
+
+class PgcValue : public VolatileValue {
+public:
+    PgcValue(PyTypeObject* type, PyObject* object) : VolatileValue(type, object){}
 };
 
 class ArgumentValue: public VolatileValue {
-    PyTypeObject* _type;
-    PyObject* _value;
 public:
-    explicit ArgumentValue(PyTypeObject* type, PyObject* value){
-        _type = type;
-        _value = value;
-    }
-    AbstractValueKind kind() override;
-    PyTypeObject* pythonType() override;
-    bool known() override {
-        return true;
-    }
-    PyObject* lastValue() override {
-        if (_PyObject_IsFreed(_value) || _value == (PyObject*)0xFFFFFFFFFFFFFFFF)
-            return nullptr;
-        return _value;
-    }
-    const char* describe() override {
-        return _type->tp_name;
-    }
+    ArgumentValue(PyTypeObject* type, PyObject* object) : VolatileValue(type, object){}
 };
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);

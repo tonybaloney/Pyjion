@@ -468,6 +468,10 @@ AbstractValueKind IntegerValue::kind() {
 }
 
 AbstractValue* IntegerValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
+    return IntegerValue::binary(op, other);
+}
+
+AbstractValue* IntegerValue::binary(int op, AbstractValueWithSources& other) {
     auto other_kind = other.Value->kind();
     if (other_kind == AVK_Bool) {
         switch (op) {
@@ -498,7 +502,7 @@ AbstractValue* IntegerValue::binary(AbstractSource* selfSources, int op, Abstrac
             case INPLACE_RSHIFT:
             case INPLACE_SUBTRACT:
             case INPLACE_XOR:
-				return this;
+				return &Integer;
         }
     }
     else if (other_kind == AVK_Bytes) {
@@ -573,7 +577,7 @@ AbstractValue* IntegerValue::binary(AbstractSource* selfSources, int op, Abstrac
             case INPLACE_RSHIFT:
             case INPLACE_SUBTRACT:
             case INPLACE_XOR:
-                return this;
+                return &Integer;
         }
     }
     else if (other_kind == AVK_List) {
@@ -597,7 +601,7 @@ AbstractValue* IntegerValue::binary(AbstractSource* selfSources, int op, Abstrac
                 return &Tuple;
         }
     }
-    return AbstractValue::binary(selfSources, op, other);
+    return &Any;
 }
 
 AbstractValue* IntegerValue::unary(AbstractSource* selfSources, int op) {
@@ -693,6 +697,10 @@ AbstractValueKind FloatValue::kind() {
 }
 
 AbstractValue* FloatValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
+    return FloatValue::binary(op, other);
+}
+
+AbstractValue* FloatValue::binary(int op, AbstractValueWithSources& other) {
     auto other_kind = other.Value->kind();
     if (other_kind == AVK_Bool) {
         switch (op) {
@@ -710,7 +718,7 @@ AbstractValue* FloatValue::binary(AbstractSource* selfSources, int op, AbstractV
             case INPLACE_POWER:
             case INPLACE_SUBTRACT:
             case INPLACE_TRUE_DIVIDE:
-                return this;
+                return &Float;
         }
     }
     else if (other_kind == AVK_Complex) {
@@ -744,7 +752,7 @@ AbstractValue* FloatValue::binary(AbstractSource* selfSources, int op, AbstractV
             case INPLACE_POWER:
             case INPLACE_SUBTRACT:
             case INPLACE_TRUE_DIVIDE:
-                return this;
+                return &Float;
         }
     }
     else if (other_kind == AVK_Integer) {
@@ -763,10 +771,10 @@ AbstractValue* FloatValue::binary(AbstractSource* selfSources, int op, AbstractV
             case INPLACE_POWER:
             case INPLACE_SUBTRACT:
             case INPLACE_TRUE_DIVIDE:
-                return this;
+                return &Float;
         }
     }
-    return AbstractValue::binary(selfSources, op, other);
+    return &Any;
 }
 
 AbstractValue* FloatValue::unary(AbstractSource* selfSources, int op) {
@@ -1338,18 +1346,22 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
     }
 }
 
-PyTypeObject* PgcValue::pythonType() {
+PyTypeObject* VolatileValue::pythonType() {
     return this->_type;
 }
 
-AbstractValueKind PgcValue::kind() {
+AbstractValueKind VolatileValue::kind() {
     return GetAbstractType(this->_type);
 }
 
-PyTypeObject* ArgumentValue::pythonType() {
-    return this->_type;
-}
+AbstractValue* VolatileValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
+    auto my_kind = GetAbstractType(_type);
 
-AbstractValueKind ArgumentValue::kind() {
-    return GetAbstractType(this->_type);
+    switch(my_kind){
+        case AVK_Float:
+            return FloatValue::binary(op, other);
+        case AVK_Integer:
+            return IntegerValue::binary(op, other);
+    }
+    return AbstractValue::binary(selfSources, op, other);
 }
