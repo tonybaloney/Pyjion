@@ -35,11 +35,11 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
         auto index = curByte;
         auto opcode = GET_OPCODE(curByte);
         auto oparg = GET_OPARG(curByte);
-
         if (stacks[index] != nullptr){
             for (const auto & si: *stacks[index]){
                 if (si.hasSource()){
-                    if (si.Sources->isConsumedBy(index)) {
+                    ssize_t stackPosition = si.Sources->isConsumedBy(index);
+                    if (stackPosition != -1) {
                         EscapeTransition transition;
                         if (!supportsEscaping(si.Value->kind())){
                             transition = NoEscape;
@@ -63,7 +63,9 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
                             .label = si.Sources->describe(),
                             .value = si.Value,
                             .source = si.Sources,
-                            .escaped = transition
+                            .escaped = transition,
+                            .kind = si.Value->kind(),
+                            .position = static_cast<size_t>(stackPosition)
                         });
                     }
                 }
@@ -74,7 +76,8 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
             .index = index,
             .opcode = opcode,
             .oparg = oparg,
-            .canEscape = supportsUnboxing(opcode)
+            .canEscape = supportsUnboxing(opcode),
+            .allEscaped = supportsUnboxing(opcode) // TODO : Inspect edges to assert this.
         };
     }
 }
@@ -96,20 +99,29 @@ void InstructionGraph::printGraph(const char* name) {
         } else {
             switch (edge.escaped) {
                 case NoEscape:
-                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) -\" color=black];\n", edge.from, edge.to, edge.label, edge.value->describe());
+                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) -%d\" color=black];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
                 case Unbox:
-                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) U\" color=red];\n", edge.from, edge.to, edge.label, edge.value->describe());
+                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) U%d\" color=red];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
                 case Box:
-                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) B\" color=green];\n", edge.from, edge.to, edge.label, edge.value->describe());
+                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) B%d\" color=green];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
                 case Unboxed:
-                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) UN\" color=purple];\n", edge.from, edge.to, edge.label, edge.value->describe());
+                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) UN%d\" color=purple];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
             }
 
         }
     }
     printf("}\n");
+}
+
+EdgeMap InstructionGraph::getEdges(size_t i){
+    unordered_map<size_t, Edge> filteredEdges;
+    for (auto & edge: this->edges){
+        if (edge.to == i)
+            filteredEdges[edge.position] = edge;
+    }
+    return filteredEdges;
 }

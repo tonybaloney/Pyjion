@@ -28,7 +28,7 @@
 #include <vector>
 #include <Python.h>
 #include <unordered_map>
-#include "stack.h"
+#include "absvalue.h"
 #include "types.h"
 
 using namespace std;
@@ -36,6 +36,8 @@ using namespace std;
 #define SIZEOF_CODEUNIT sizeof(_Py_CODEUNIT)
 #define GET_OPARG(index)  (py_oparg)_Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
 #define GET_OPCODE(index) (py_opcode)_Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
+
+struct InterpreterStack; // forward decl
 
 enum EscapeTransition {
     // Boxed -> Boxed = NoEscape
@@ -53,6 +55,7 @@ struct Instruction {
     py_opcode opcode;
     py_oparg oparg;
     bool canEscape;
+    bool allEscaped;
 };
 
 struct Edge {
@@ -62,7 +65,11 @@ struct Edge {
     AbstractValue* value;
     AbstractSource* source;
     EscapeTransition escaped;
+    AbstractValueKind kind;
+    size_t position;
 };
+
+typedef unordered_map<size_t, Edge> EdgeMap;
 
 class InstructionGraph {
 private:
@@ -73,6 +80,7 @@ public:
     Instruction & operator [](size_t i) {return instructions[i];}
     size_t size() {return instructions.size();}
     void printGraph(const char* name) ;
+    EdgeMap getEdges(size_t i);
 };
 
 #endif //PYJION_INSTRUCTIONS_H

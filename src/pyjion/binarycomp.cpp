@@ -684,3 +684,11 @@ void PythonCompiler::emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) 
     m_il.ld_i4(secondOp);
     m_il.emit_call(METHOD_TRIPLE_BINARY_OP);
 }
+
+void PythonCompiler::emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
+    if (left.hasValue() && left.Value->kind() == AVK_Float){
+        emit_binary_float(opcode);
+    } else {
+        assert("Not supported");
+    }
+}

@@ -168,13 +168,13 @@ public:
         mLocals.replace(index, value);
     }
 
-    AbstractValueWithSources pop(size_t idx) {
+    AbstractValueWithSources pop(size_t idx, size_t position) {
         if (mStack.empty())
             throw StackUnderflowException();
         auto res = mStack.back();
         mStack.pop_back();
         if (res.hasSource()){
-            res.Sources->addConsumer(idx);
+            res.Sources->addConsumer(idx, position);
         }
         return res;
     }

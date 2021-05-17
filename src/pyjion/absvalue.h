@@ -75,7 +75,7 @@ static bool isKnownType(AbstractValueKind kind) {
 }
 
 class AbstractSource {
-    vector<size_t> _consumers;
+    vector<pair<size_t, size_t>> _consumers;
     bool single_use = false;
     size_t _producer;
 public:
@@ -95,16 +95,16 @@ public:
         return "unknown source";
     }
 
-    void addConsumer(size_t opcode){
-        _consumers.push_back(opcode);
+    void addConsumer(size_t opcode, size_t position){
+        _consumers.push_back({opcode, position});
     }
 
-    bool isConsumedBy(size_t idx){
-        for (const size_t & i : _consumers){
-            if (i == idx)
-                return true;
+    ssize_t isConsumedBy(size_t idx){
+        for (size_t i = 0 ; i < _consumers.size(); i++){
+            if (_consumers[i].first == idx)
+                return _consumers[i].second;
         };
-        return false;
+        return -1;
     }
 
     bool markForSingleUse(){

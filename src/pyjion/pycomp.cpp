@@ -36,6 +36,7 @@ typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #include "pycomp.h"
 #include "pyjit.h"
 #include "pyjitmath.h"
+#include "unboxing.h"
 
 using namespace std;
 
@@ -1414,6 +1415,15 @@ void PythonCompiler::emit_load_build_class() {
     m_il.emit_call(METHOD_GETBUILDCLASS_TOKEN);
 }
 
+Local PythonCompiler::emit_define_local(AbstractValueKind kind) {
+    switch(kind){
+        case AVK_Float:
+            return m_il.define_local(Parameter(CORINFO_TYPE_DOUBLE));
+        default:
+            return m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+    }
+}
+
 Local PythonCompiler::emit_define_local(LocalKind kind) {
     return m_il.define_local(Parameter(to_clr_type(kind)));
 }
@@ -2281,7 +2291,16 @@ void PythonCompiler::emit_tagged_int_to_float() {
     m_il.emit_call(METHOD_INT_TO_FLOAT);
 }
 
-void PythonCompiler::emit_pgc_probe(size_t curByte, size_t stackSize) {
+void PythonCompiler::emit_pgc_probe(size_t curByte, size_t stackSize, EdgeMap edges) {
+    // If all edges are escaped, skip
+    bool skipProfile = true;
+    for (size_t i = 0; i < edges.size(); i++){
+        if (edges[i].escaped != Unboxed)
+            skipProfile = false;
+    }
+    if (skipProfile)
+        return;
+
     vector<Local> stack;
     stack.resize(stackSize);
     Local hasProbedFlag = emit_define_local(LK_Bool);
@@ -2290,15 +2309,21 @@ void PythonCompiler::emit_pgc_probe(size_t curByte, size_t stackSize) {
     emit_load_local(hasProbedFlag);
     emit_branch(BranchTrue, hasProbed);
     for (size_t i = 0; i < stackSize; i++){
-        stack[i] = emit_define_local(LK_Pointer);
+        if (edges[i].escaped == Unboxed)
+            stack[i] = emit_define_local(edges[i].kind);
+        else
+        {
+            stack[i] = emit_define_local(LK_Pointer);
+        }
         emit_store_local(stack[i]);
+        if (edges[i].escaped == Box || edges[i].escaped == NoEscape) {
+            m_il.ld_arg(3);
+            emit_load_local(stack[i]);
+            m_il.ld_i8(curByte);
+            emit_int(i);
 
-        m_il.ld_arg(3);
-        emit_load_local(stack[i]);
-        m_il.ld_i8(curByte);
-        emit_int(i);
-
-        m_il.emit_call(METHOD_PGC_PROBE);
+            m_il.emit_call(METHOD_PGC_PROBE);
+        }
     }
     m_il.ld_i4(1);
     emit_store_local(hasProbedFlag);
@@ -2314,7 +2339,65 @@ void PythonCompiler::mark_sequence_point(size_t idx) {
     m_il.mark_sequence_point(idx);
 }
 
+void PythonCompiler::emit_box(AbstractValue* value) {
+    assert(supportsEscaping(value->kind()));
+    switch(value->kind()){
+        case AVK_Float:
+            m_il.emit_call(METHOD_FLOAT_FROM_DOUBLE);
+            break;
+    }
+};
 
+void PythonCompiler::emit_unbox(AbstractValue* value) {
+    assert(supportsEscaping(value->kind()));
+    switch(value->kind()){
+        case AVK_Float:
+            emit_dup();
+            decref();
+            m_il.ld_i(offsetof(PyFloatObject, ob_fval));
+            m_il.add();
+            m_il.ld_ind_r8();
+            break;
+    }
+};
+
+void PythonCompiler::emit_escape_edges(EdgeMap edges){
+    // If none of the edges need escaping, skip
+    bool needsEscapes = false;
+    for (size_t i = 0; i < edges.size(); i++){
+        if (edges[i].escaped == Unbox || edges[i].escaped == Box)
+            needsEscapes = true;
+    }
+    if (!needsEscapes)
+        return;
+
+    // Push the values onto temporary locals, box/unbox them then push
+    // them back onto the stack in the same order
+    vector<Local> stack = vector<Local>(edges.size());
+    for (size_t i = 0; i < stack.size(); i++){
+        if (edges[i].escaped == Unboxed || edges[i].escaped == Box){
+            // IF
+            stack[i] = emit_define_local(edges[i].value->kind());
+        } else {
+            stack[i] = emit_define_local(LK_Pointer);
+        }
+        emit_store_local(stack[i]);
+    }
+    // Recover the stack in the right order
+    for (size_t i = edges.size(); i > 0; --i){
+        emit_load_and_free_local(stack[i-1]);
+        switch(edges[i-1].escaped){
+            case Unbox:
+                emit_unbox(edges[i-1].value);
+                break;
+            case Box:
+                emit_box(edges[i-1].value);
+                break;
+            default:
+                break;
+        }
+    }
+}
 /************************************************************************
 * End Compiler interface implementation
 */

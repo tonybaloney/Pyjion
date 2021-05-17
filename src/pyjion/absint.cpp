@@ -33,6 +33,7 @@
 #include "absint.h"
 #include "pyjit.h"
 #include "pyjitmath.h"
+#include "pycomp.h"
 
 #define PGC_READY() g_pyjionSettings.pgc && profile != nullptr
 
@@ -49,7 +50,7 @@
         mStartStates[curByte] = lastState; \
     }
 #define POP_VALUE() \
-    lastState.pop(curByte);
+    lastState.pop(curByte, stackPosition); stackPosition++;
 
 #define PUSH_INTERMEDIATE(ty) \
     lastState.push(AbstractValueWithSources((ty), newSource(new IntermediateSource(curByte))));
@@ -255,6 +256,8 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
             size_t curStackLen = lastState.stackSize();
             int jump = 0;
             bool skipEffect = false;
+            size_t stackPosition = 0;
+
             switch (opcode) {
                 case EXTENDED_ARG: {
                     curByte += SIZEOF_CODEUNIT;
@@ -597,7 +600,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     }
                     int argCnt = oparg & 0xff;
                     int kwArgCnt = (oparg >> 8) & 0xff;
-
                     for (int i = 0; i < argCnt; i++) {
                         POP_VALUE();
                     }
@@ -757,7 +759,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case FOR_ITER: {
                     // For branches out with the value consumed
                     auto leaveState = lastState;
-                    leaveState.pop(curByte); // Iterator
+                    leaveState.pop(curByte, 0); // Iterator
                     if (updateStartState(leaveState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
                         queue.push_back((size_t) oparg + curByte + SIZEOF_CODEUNIT);
                     }
@@ -1551,18 +1553,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         size_t curStackSize = m_stack.size();
         bool skipEffect = false;
 
+        auto edges = graph->getEdges(curByte);
         if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status)){
-            m_comp->emit_pgc_probe(curByte, pgcProbeSize(curByte));
+            m_comp->emit_pgc_probe(curByte, pgcProbeSize(curByte), edges);
         }
 
-        if (OPT_ENABLED(tripleBinaryFunctions) && stackInfo.size() >= 2 && nextStackInfo.size() >= 1 && canBeOptimized(byte, next_byte, stackInfo.top().Value->kind(), stackInfo.second().Value->kind(), nextStackInfo.top().Value->kind())){
-            m_comp->emit_triple_binary_op(byte, next_byte);
-            decStack(3);
-            errorCheck("binary math op failed", curByte);
-            incStack();
-            curByte += SIZEOF_CODEUNIT;
-            continue;
-        }
         if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() >= (1 + oparg)){
             bool optimized ;
             if (oparg == 3) {
@@ -1578,6 +1573,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 continue;
             } // Else, use normal compilation path.
         }
+        m_comp->emit_escape_edges(edges);
 
         switch (byte) {
             case NOP: break;
@@ -1881,9 +1877,14 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case INPLACE_XOR:
             case INPLACE_OR:
                 if (stackInfo.size() >= 2) {
-                    m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
-                    decStack(2);
-                    errorCheck("optimized binary op failed", curByte);
+                    if (op.allEscaped) {
+                        m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
+                        decStack(2);
+                    } else {
+                        m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
+                        decStack(2);
+                        errorCheck("optimized binary op failed", curByte);
+                    }
                 }
                 else {
                     m_comp->emit_binary_object(byte);

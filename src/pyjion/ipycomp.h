@@ -30,6 +30,7 @@
 #include <exception>
 #include "absvalue.h"
 #include "codemodel.h"
+#include "instructions.h"
 
 class InvalidLocalException: public std::exception {
 public:
@@ -169,6 +170,8 @@ public:
     virtual Local emit_define_local(bool cache) = 0;
     // Defines a local of a specific type
     virtual Local emit_define_local(LocalKind kind = LK_Pointer) = 0;
+
+    virtual Local emit_define_local(AbstractValueKind kind) = 0;
     // Frees a local making it available for re-use
     virtual void emit_free_local(Local local) = 0;
 
@@ -380,6 +383,7 @@ public:
     // Performs a binary operation for values on the stack which are boxed objects
     virtual void emit_binary_object(uint16_t opcode) = 0;
     virtual void emit_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
+    virtual void emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) = 0;
@@ -446,7 +450,7 @@ public:
     virtual void emit_trace_exception() = 0;
     virtual void emit_profile_frame_entry() = 0;
     virtual void emit_profile_frame_exit() = 0;
-    virtual void emit_pgc_probe(size_t curByte, size_t stackSize) = 0;
+    virtual void emit_pgc_probe(size_t curByte, size_t stackSize, EdgeMap edges) = 0;
 
     /* Compiles the generated code */
     virtual JittedCode* emit_compile() = 0;
@@ -464,6 +468,11 @@ public:
     virtual void emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) = 0;
 
     virtual void mark_sequence_point(size_t idx) = 0;
+
+    // New boxing operations
+    virtual void emit_box(AbstractValue* value) = 0;
+    virtual void emit_unbox(AbstractValue* value) = 0;
+    virtual void emit_escape_edges(EdgeMap edges) = 0;
 };
 
 #endif
