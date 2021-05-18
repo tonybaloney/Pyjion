@@ -26,9 +26,6 @@
 #ifndef PYJION_JITINFO_H
 #define PYJION_JITINFO_H
 
-
-#define FEATURE_NO_HOST
-
 #include <Python.h>
 #include <frameobject.h>
 #include <opcode.h>
@@ -38,6 +35,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <cmath>
 #include <corjit.h>
 
 #include <openum.h>
@@ -140,11 +138,11 @@ public:
     };
 
     static double dblRemHelper(double dividend, double divisor) {
-        if (divisor==0 || !finite(dividend))
+        if (divisor==0 || !isfinite(dividend))
         {
             return INFINITY;
         }
-        else if (!finite(divisor) && !isnan(divisor))
+        else if (!isfinite(divisor) && !isnan(divisor))
         {
             return dividend;
         }
