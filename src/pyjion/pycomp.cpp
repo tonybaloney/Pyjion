@@ -2365,6 +2365,10 @@ void PythonCompiler::emit_infinity() {
     m_il.ld_r8(INFINITY);
 }
 
+void PythonCompiler::emit_nan() {
+    m_il.ld_r8(NAN);
+}
+
 void PythonCompiler::emit_escape_edges(EdgeMap edges){
     // If none of the edges need escaping, skip
     bool needsEscapes = false;

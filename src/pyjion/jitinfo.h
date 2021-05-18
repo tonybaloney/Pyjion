@@ -142,8 +142,7 @@ public:
     static double dblRemHelper(double dividend, double divisor) {
         if (divisor==0 || !finite(dividend))
         {
-            UINT64 NaN = 0xFFF8000000000000; // TODO : Raise native DBZ
-            return *(double *)(&NaN);
+            return INFINITY;
         }
         else if (!finite(divisor) && !isnan(divisor))
         {

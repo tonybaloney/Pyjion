@@ -499,6 +499,7 @@ public:
     void emit_unbox(AbstractValue* value) override;
     void emit_escape_edges(EdgeMap edges) override;
     void emit_infinity() override;
+    void emit_nan() override;
 private:
     void load_frame();
     void load_tstate();

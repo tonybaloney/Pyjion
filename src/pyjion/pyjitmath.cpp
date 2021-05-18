@@ -50,9 +50,9 @@ bool canReturnInfinity(int opcode){
     switch(opcode){
         case BINARY_TRUE_DIVIDE:
         case BINARY_FLOOR_DIVIDE:
-        case BINARY_MODULO:
         case INPLACE_TRUE_DIVIDE:
         case INPLACE_FLOOR_DIVIDE:
+        case BINARY_MODULO:
         case INPLACE_MODULO:
             return true;
     }
