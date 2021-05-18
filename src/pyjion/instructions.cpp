@@ -41,7 +41,7 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
                     ssize_t stackPosition = si.Sources->isConsumedBy(index);
                     if (stackPosition != -1) {
                         EscapeTransition transition;
-                        if (!supportsEscaping(si.Value->kind())){
+                        if (!si.hasValue() || !supportsEscaping(si.Value->kind())){
                             transition = NoEscape;
                         } else {
                             if (supportsUnboxing(GET_OPCODE(si.Sources->producer())) &&
@@ -64,7 +64,7 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
                             .value = si.Value,
                             .source = si.Sources,
                             .escaped = transition,
-                            .kind = si.Value->kind(),
+                            .kind = si.hasValue() ? si.Value->kind() : AVK_Any,
                             .position = static_cast<size_t>(stackPosition)
                         });
                     }

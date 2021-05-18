@@ -2352,6 +2352,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
     assert(supportsEscaping(value->kind()));
     switch(value->kind()){
         case AVK_Float:
+            // TODO : Add a guard to this emit sequence
             emit_dup();
             decref();
             m_il.ld_i(offsetof(PyFloatObject, ob_fval));
