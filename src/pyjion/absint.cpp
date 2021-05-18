@@ -1897,18 +1897,20 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                         decStack(2);
                         if (canReturnInfinity(byte))
                             floatErrorCheck("unboxed binary op failed", curByte, byte);
+                        incStack(1, STACK_KIND_VALUE);
                     } else {
                         m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
                         errorCheck("optimized binary op failed", curByte);
+                        incStack();
                     }
                 }
                 else {
                     m_comp->emit_binary_object(byte);
                     decStack(2);
                     errorCheck("binary op failed", curByte);
+                    incStack();
                 }
-                incStack();
                 break;
             case RETURN_VALUE:
                 returnValue(opcodeIndex); break;

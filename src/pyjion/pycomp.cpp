@@ -1868,7 +1868,7 @@ void PythonCompiler::emit_binary_float(uint16_t opcode) {
             break;
         case INPLACE_SUBTRACT:
         case BINARY_SUBTRACT:
-            m_il.sub_with_overflow();
+            m_il.sub();
             break;
         case BINARY_POWER:
         case INPLACE_POWER:

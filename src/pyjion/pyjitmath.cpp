@@ -27,8 +27,6 @@
 #include <opcode.h>
 #include <longobject.h>
 
-#define UNSUPPORTED_MATH_OP(opcode) PyErr_SetString(PyExc_NotImplementedError, "Operation not supported")
-
 using namespace std;
 
 bool isBinaryMathOp(int opcode){
