@@ -375,6 +375,7 @@ private:
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
     void errorCheck(const char* reason = nullptr, size_t curByte = ~0);
+    void nanErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
     void intErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);

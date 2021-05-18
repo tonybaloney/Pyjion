@@ -46,16 +46,15 @@ bool isBinaryMathOp(int opcode){
     return false;
 }
 
-double dmod(double left, double right){
-    double mod = fmod(left, right);
-    if (mod) {
-        /* ensure the remainder has the same sign as the denominator */
-        if ((right < 0) != (mod < 0)) {
-            mod += right;
-        }
+bool canReturnInfinity(int opcode){
+    switch(opcode){
+        case BINARY_TRUE_DIVIDE:
+        case BINARY_FLOOR_DIVIDE:
+        case BINARY_MODULO:
+        case INPLACE_TRUE_DIVIDE:
+        case INPLACE_FLOOR_DIVIDE:
+        case INPLACE_MODULO:
+            return true;
     }
-    else {
-        mod = copysign(0.0, right);
-    }
-    return mod;
+    return false;
 }

@@ -1081,7 +1081,7 @@ TEST_CASE("Test math operations") {
     }
     SECTION("test divide by zero") {
         auto t = EmissionTest(
-                "def f():\n    5.0 / 0.0"
+                "def f():\n    return 5.0 / 0.0"
         );
         CHECK(t.raises() == PyExc_ZeroDivisionError);
     }

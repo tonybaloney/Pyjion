@@ -30,4 +30,5 @@
 #define SRC_PYJION_PYJITMATH_H
 
 bool isBinaryMathOp(int opcode);
+bool canReturnInfinity(int opcode);
 #endif //SRC_PYJION_PYJITMATH_H

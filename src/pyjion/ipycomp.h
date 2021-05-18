@@ -465,7 +465,6 @@ public:
     virtual void emit_dec_local(Local local, size_t value) = 0;
 
     virtual void emit_load_frame_locals() = 0;
-    virtual void emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) = 0;
 
     virtual void mark_sequence_point(size_t idx) = 0;
 
@@ -473,6 +472,7 @@ public:
     virtual void emit_box(AbstractValue* value) = 0;
     virtual void emit_unbox(AbstractValue* value) = 0;
     virtual void emit_escape_edges(EdgeMap edges) = 0;
+    virtual void emit_infinity() = 0;
 };
 
 #endif

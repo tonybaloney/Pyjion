@@ -1149,6 +1149,21 @@ void AbstractInterpreter::errorCheck(const char *reason, size_t curByte) {
     m_comp->emit_load_local(mErrorCheckLocal);
 }
 
+// Checks to see if we have a null value as the last value on our stack
+// indicating an error, and if so, branches to our current error handler.
+void AbstractInterpreter::nanErrorCheck(const char *reason, size_t curByte) {
+    auto noErr = m_comp->emit_define_label();
+    m_comp->emit_dup();
+    Local errorCheckLocal = m_comp->emit_define_local(LK_Float); // TODO : Work out actual type.
+    m_comp->emit_store_local(errorCheckLocal);
+    m_comp->emit_infinity();
+    m_comp->emit_branch(BranchNotEqual, noErr);
+    m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero");
+    branchRaise(reason, curByte);
+    m_comp->emit_mark_label(noErr);
+    m_comp->emit_load_and_free_local(errorCheckLocal);
+}
+
 Label AbstractInterpreter::getOffsetLabel(size_t jumpTo) {
     auto jumpToLabelIter = m_offsetLabels.find(jumpTo);
     Label jumpToLabel;
@@ -1880,6 +1895,8 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                     if (op.escape) {
                         m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
+                        if (canReturnInfinity(byte))
+                            nanErrorCheck("unboxed binary op failed", curByte);
                     } else {
                         m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);

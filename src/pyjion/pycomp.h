@@ -146,7 +146,7 @@
 #define METHOD_SETUP_ANNOTATIONS                 0x00000078
 #define METHOD_DEALLOC_OBJECT                    0x00000079
 #define METHOD_LOAD_CLOSURE                      0x0000007A
-#define METHOD_TRIPLE_BINARY_OP                  0x0000007B
+// Unused                                        0x0000007B
 // Unused                                        0x0000007C
 #define METHOD_LOADNAME_HASH                     0x0000007D
 #define METHOD_LOADGLOBAL_HASH                   0x0000007E
@@ -489,7 +489,6 @@ public:
     void emit_pgc_probe(size_t curByte, size_t stackSize, EdgeMap edges) override;
 
     void emit_load_frame_locals() override;
-    void emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) override;
     JittedCode* emit_compile() override;
     void lift_n_to_top(uint16_t pos) override;
     void lift_n_to_second(uint16_t pos) override;
@@ -499,6 +498,7 @@ public:
     void emit_box(AbstractValue* value) override;
     void emit_unbox(AbstractValue* value) override;
     void emit_escape_edges(EdgeMap edges) override;
+    void emit_infinity() override;
 private:
     void load_frame();
     void load_tstate();
