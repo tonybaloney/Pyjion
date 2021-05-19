@@ -138,18 +138,28 @@ class InterpreterStack : public std::vector<AbstractValueWithSources> {
 
 public:
     AbstractValueWithSources top() {
+        if (size() < 1)
+            throw StackUnderflowException();
         return std::vector<AbstractValueWithSources>::at(size() - 1);
     }
     AbstractValueWithSources second() {
+        if (size() < 2)
+            throw StackUnderflowException();
         return std::vector<AbstractValueWithSources>::at(size() - 2);
     }
     AbstractValueWithSources third() {
+        if (size() < 3)
+            throw StackUnderflowException();
         return std::vector<AbstractValueWithSources>::at(size() - 3);
     }
     AbstractValueWithSources fourth() {
+        if (size() < 4)
+            throw StackUnderflowException();
         return std::vector<AbstractValueWithSources>::at(size() - 4);
     }
     AbstractValueWithSources nth(unsigned long n) {
+        if (size() < n)
+            throw StackUnderflowException();
         return std::vector<AbstractValueWithSources>::at(size() - n);
     }
 };
