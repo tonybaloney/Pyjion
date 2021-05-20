@@ -1588,7 +1588,9 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 continue;
             } // Else, use normal compilation path.
         }
-        m_comp->emit_escape_edges(edges);
+        if (OPT_ENABLED(unboxing)) {
+            m_comp->emit_escape_edges(edges);
+        }
 
         switch (byte) {
             case NOP: break;
@@ -1892,7 +1894,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case INPLACE_XOR:
             case INPLACE_OR:
                 if (stackInfo.size() >= 2) {
-                    if (op.escape) {
+                    if (OPT_ENABLED(unboxing) && op.escape) {
                         m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
                         if (canReturnInfinity(byte))
