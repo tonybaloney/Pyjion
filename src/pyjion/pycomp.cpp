@@ -2291,52 +2291,16 @@ void PythonCompiler::emit_tagged_int_to_float() {
     m_il.emit_call(METHOD_INT_TO_FLOAT);
 }
 
-void PythonCompiler::emit_pgc_probe(size_t curByte, size_t stackSize, EdgeMap edges) {
-    // If all edges are escaped, skip
-    bool skipProfile = true;
-    for (size_t i = 0; i < edges.size(); i++){
-        if (edges[i].escaped != Unboxed)
-            skipProfile = false;
-    }
-    if (skipProfile)
-        return;
-
-    vector<Local> stack;
-    stack.resize(stackSize);
-    Local hasProbedFlag = emit_define_local(LK_Bool);
-    auto hasProbed = emit_define_label();
-
-    emit_load_local(hasProbedFlag);
-    emit_branch(BranchTrue, hasProbed);
-    for (size_t i = 0; i < stackSize; i++){
-        if (edges[i].escaped == Unboxed || edges[i].escaped == Box)
-            stack[i] = emit_define_local(edges[i].kind);
-        else
-        {
-            stack[i] = emit_define_local(LK_Pointer);
-        }
-        emit_store_local(stack[i]);
-        if (edges[i].escaped == Unbox || edges[i].escaped == NoEscape) {
-            m_il.ld_arg(3);
-            emit_load_local(stack[i]);
-            m_il.ld_i8(curByte);
-            emit_int(i);
-
-            m_il.emit_call(METHOD_PGC_PROBE);
-        }
-    }
-    m_il.ld_i4(1);
-    emit_store_local(hasProbedFlag);
-    // Recover the stack in the right order
-    for (size_t i = stackSize; i > 0; --i){
-        emit_load_and_free_local(stack[i-1]);
-    }
-
-    emit_mark_label(hasProbed);
-}
-
 void PythonCompiler::mark_sequence_point(size_t idx) {
     m_il.mark_sequence_point(idx);
+}
+
+void PythonCompiler::emit_pgc_profile_capture(Local value, size_t ipos, size_t istack) {
+    m_il.ld_arg(3);
+    emit_load_local(value);
+    m_il.ld_i8(ipos);
+    emit_int(istack);
+    m_il.emit_call(METHOD_PGC_PROBE);
 }
 
 void PythonCompiler::emit_box(AbstractValue* value) {

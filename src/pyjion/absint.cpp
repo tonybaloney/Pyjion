@@ -1484,6 +1484,35 @@ void AbstractInterpreter::popExcVars(){
     m_comp->emit_mark_label(nothing_to_pop);
 }
 
+void AbstractInterpreter::emitPgcProbes(size_t curByte, size_t stackSize) {
+    vector<Local> stack;
+    stack.resize(stackSize);
+    Local hasProbedFlag = m_comp->emit_define_local(LK_Bool);
+    auto hasProbed = m_comp->emit_define_label();
+
+    m_comp->emit_load_local(hasProbedFlag);
+    m_comp->emit_branch(BranchTrue, hasProbed);
+    
+    for (size_t i = 0; i < stackSize; i++){
+        if (m_stack.peek(i) == STACK_KIND_VALUE)
+            stack[i] = m_comp->emit_define_local(LK_Float); // TODO : Speculate type.
+        else
+            stack[i] = m_comp->emit_define_local(LK_Pointer);
+        m_comp->emit_store_local(stack[i]);
+        if (m_stack.peek(i) == STACK_KIND_OBJECT) {
+            m_comp->emit_pgc_profile_capture(stack[i], curByte, i);
+        }
+    }
+    m_comp->emit_int(1);
+    m_comp->emit_store_local(hasProbedFlag);
+    // Recover the stack in the right order
+    for (size_t i = stackSize; i > 0; --i){
+        m_comp->emit_load_and_free_local(stack[i-1]);
+    }
+
+    m_comp->emit_mark_label(hasProbed);
+}
+
 AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status, InstructionGraph* graph) {
     Label ok;
 
@@ -1570,7 +1599,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
         auto edges = graph->getEdges(curByte);
         if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status)){
-            m_comp->emit_pgc_probe(curByte, pgcProbeSize(curByte), edges);
+            emitPgcProbes(curByte, pgcProbeSize(curByte));
         }
 
         if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() >= (1 + oparg)){

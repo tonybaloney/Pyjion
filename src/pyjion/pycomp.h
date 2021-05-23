@@ -486,8 +486,7 @@ public:
     void emit_trace_exception() override;
     void emit_profile_frame_entry() override;
     void emit_profile_frame_exit() override;
-    void emit_pgc_probe(size_t curByte, size_t stackSize, EdgeMap edges) override;
-
+    void emit_pgc_profile_capture(Local value, size_t ipos, size_t istack) override;
     void emit_load_frame_locals() override;
     JittedCode* emit_compile() override;
     void lift_n_to_top(uint16_t pos) override;

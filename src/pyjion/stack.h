@@ -77,6 +77,10 @@ public:
     reverse_iterator rend(){
      return std::vector<StackEntryKind>::rend();
     }
+
+    StackEntryKind peek(size_t n){
+        return std::vector<StackEntryKind>::at(n);
+    }
 };
 
  class BlockStack : std::vector<BlockInfo> {

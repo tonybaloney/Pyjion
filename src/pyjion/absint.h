@@ -365,8 +365,8 @@ private:
     void extendListRecursively(Local list, size_t argCnt);
     void extendList(size_t argCnt);
     void buildSet(size_t argCnt);
-
     void buildMap(size_t argCnt);
+    void emitPgcProbes(size_t pos, size_t size);
 
     Label getOffsetLabel(size_t jumpTo);
     void forIter(size_t loopIndex);
