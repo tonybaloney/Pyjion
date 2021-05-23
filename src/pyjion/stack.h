@@ -79,7 +79,7 @@ public:
     }
 
     StackEntryKind peek(size_t n){
-        return std::vector<StackEntryKind>::at(n);
+        return std::vector<StackEntryKind>::at(size() - 1 - n);
     }
 };
 
