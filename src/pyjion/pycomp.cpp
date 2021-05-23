@@ -1045,7 +1045,7 @@ void PythonCompiler::emit_load_global(PyObject* name) {
 void PythonCompiler::emit_load_global_hashed(PyObject* name, ssize_t name_hash) {
     load_frame();
     m_il.ld_i(name);
-    m_il.ld_i8(name_hash);
+    m_il.ld_i(name_hash);
     m_il.emit_call(METHOD_LOADGLOBAL_HASH);
 }
 
@@ -2352,9 +2352,23 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
     assert(supportsEscaping(value->kind()));
     switch(value->kind()){
         case AVK_Float:
-            // TODO : Add a guard to this emit sequence
-            emit_dup();
+            Local lcl = emit_define_local(LK_Pointer);
+            Label guard_pass = emit_define_label();
+            emit_store_local(lcl);
+            // if (value->needsGuard()){
+                emit_load_local(lcl);
+                LD_FIELD(PyObject, ob_type);
+                emit_ptr(&PyFloat_Type);
+                emit_branch(BranchEqual, guard_pass);
+                emit_debug_msg("Guard failed");
+                emit_load_local(lcl);
+                emit_debug_pyobject();
+                emit_mark_label(guard_pass);
+            // }
+
+            emit_load_local(lcl);
             decref();
+            emit_load_and_free_local(lcl);
             m_il.ld_i(offsetof(PyFloatObject, ob_fval));
             m_il.add();
             m_il.ld_ind_r8();

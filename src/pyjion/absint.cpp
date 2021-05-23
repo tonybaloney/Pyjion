@@ -2372,7 +2372,9 @@ AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins,
     try {
         auto instructionGraph = buildInstructionGraph();
 #ifdef DEBUG
+        if (strcmp(PyUnicode_AsUTF8(mCode->co_name), "compile") == 0){
         instructionGraph->printGraph(PyUnicode_AsUTF8(mCode->co_name));
+        }
 #endif
         auto result = compileWorker(pgc_status, instructionGraph);
         delete instructionGraph;

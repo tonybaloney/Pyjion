@@ -1630,30 +1630,27 @@ PyObject* PyJit_LoadGlobalHash(PyFrameObject* f, PyObject* name, Py_hash_t name_
         if (v == nullptr) {
             v = _PyDict_GetItem_KnownHash((PyObject*)f->f_builtins, name, name_hash);
         }
+        if (v != nullptr){
+            Py_INCREF(v);   
+            return v;
+        }
+    }
+    /* Slow-path if globals or builtins is not a dict */
+    v = PyObject_GetItem(f->f_globals, name);
+    if (v == nullptr) {
+        v = PyObject_GetItem(f->f_builtins, name);
         if (v == nullptr) {
-            if (!_PyErr_OCCURRED())
-                format_exc_check_arg(PyExc_NameError, NAME_ERROR_MSG, name);
+            if (PyErr_ExceptionMatches(PyExc_KeyError))
+                format_exc_check_arg(
+                        PyExc_NameError,
+                        NAME_ERROR_MSG, name);
             return nullptr;
         }
-        Py_INCREF(v);
-    }
-    else {
-        /* Slow-path if globals or builtins is not a dict */
-        v = PyObject_GetItem(f->f_globals, name);
-        if (v == nullptr) {
-            v = PyObject_GetItem(f->f_builtins, name);
-            if (v == nullptr) {
-                if (PyErr_ExceptionMatches(PyExc_KeyError))
-                    format_exc_check_arg(
-                            PyExc_NameError,
-                            NAME_ERROR_MSG, name);
-                return nullptr;
-            }
-            else {
-                PyErr_Clear();
-            }
+        else {
+            PyErr_Clear();
         }
     }
+
     return v;
 }
 

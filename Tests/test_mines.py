@@ -1,4 +1,5 @@
 import pyjion
+import pyjion.dis
 import unittest
 import gc
 import re
@@ -17,6 +18,9 @@ class ProblemTestCase(unittest.TestCase):
         gc.collect()
 
     def test_regexps(self):
+        print(pyjion.dis.dis(re.sre_compile.compile, True))
+        #print(pyjion.dis.dis_native(re.sre_compile.compile))
+
         def by(s):
             return bytearray(map(ord, s))
         b = by("Hello, world")
