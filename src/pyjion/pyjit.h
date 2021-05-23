@@ -26,8 +26,6 @@
 #ifndef PYJION_PYJIT_H
 #define PYJION_PYJIT_H
 
-#define FEATURE_NO_HOST
-
 #include <cstdint>
 #include <windows.h>
 #include <cwchar>
@@ -60,7 +58,6 @@ public:
     PyObject* getValue(size_t opcodePosition, size_t stackPosition);
     ~PyjionCodeProfile();
 };
-
 
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition);
 class PyjionJittedCode;
@@ -103,6 +100,7 @@ typedef struct PyjionSettings {
     bool opt_loadAttr = OPTIMIZE_LOAD_ATTR; // OPT-15
     bool opt_superMethodCalls = OPTIMIZE_METHOD_CALLS; // OPT-16
     bool opt_compare = OPTIMIZE_COMPARE; // OPT-17
+    bool opt_unboxing = OPTIMIZE_UNBOXING; // OPT-18
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
