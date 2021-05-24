@@ -2318,16 +2318,13 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
         case AVK_Float:
             Local lcl = emit_define_local(LK_Pointer);
             Label guard_pass = emit_define_label();
+            Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard()){
+            if (value->needsGuard() || true){
                 emit_load_local(lcl);
                 LD_FIELD(PyObject, ob_type);
                 emit_ptr(&PyFloat_Type);
-                emit_branch(BranchEqual, guard_pass);
-                emit_debug_msg("Guard failed");
-                emit_load_local(lcl);
-                emit_debug_pyobject();
-                emit_mark_label(guard_pass);
+                emit_branch(BranchNotEqual, guard_fail);
             }
 
             emit_load_local(lcl);
@@ -2336,6 +2333,13 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
             m_il.ld_i(offsetof(PyFloatObject, ob_fval));
             m_il.add();
             m_il.ld_ind_r8();
+
+            if (value->needsGuard() || true){
+                emit_branch(BranchAlways, guard_pass);
+                    emit_mark_label(guard_fail);
+                    emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
+                emit_mark_label(guard_pass);
+            }
             break;
     }
 };

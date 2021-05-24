@@ -8,6 +8,61 @@ INF = float("inf")
 NAN = float("nan")
 
 
+class FloatArithmeticTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        pyjion.enable()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+        gc.collect()
+
+    def test_binary_add(self):
+        a = 4.0
+        b = 2.5
+        c = -33.0099
+
+        # TEST BINARY_ADD
+        self.assertEqual(a + b, 6.5)
+        self.assertEqual(a + b, b + a)
+
+    def test_binary_mul(self):
+        a = 4.0
+        b = 2.5
+        c = -33.0099
+        d = 10.000000000001
+        e = 1.099999922
+        self.assertEqual(d * e, 10.9999992200011)
+        self.assertEqual(d * e * d * e, 120.99998284002483)
+        self.assertEqual(a * b, 10.0)
+
+    def test_binary_floor_divide(self):
+        a = 4.0
+        b = 2.5
+        c = -33.0099
+        self.assertEqual(a // b, 1.0)
+
+    def test_binary_true_divide(self):
+        a = 4.0
+        b = 2.5
+        c = -33.0099
+        self.assertEqual(a / b, 1.6)
+
+    def test_binary_subtract(self):
+        a = 4.0
+        b = 2.5
+        c = -33.0099
+        self.assertEqual(a - b, 1.5)
+        self.assertEqual(a - b, -(b - a))
+
+    def test_binary_mod(self):
+        a = 4.0
+        b = 2.5
+        # TEST BINARY_MOD
+        self.assertEqual(a % b, 1.5)
+        self.assertEqual(b % a, 2.5)
+
+
 class FloatFormattingTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -17,7 +72,6 @@ class FloatFormattingTestCase(unittest.TestCase):
     def tearDown(self) -> None:
         pyjion.disable()
         gc.collect()
-
     def test_format_specials(self):
         # Test formatting of nans and infs.
         initial_ref = sys.getrefcount(INF)
