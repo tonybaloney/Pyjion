@@ -59,7 +59,7 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(loadAttr, level, 1);
     SET_OPT(superMethodCalls, level, 1);
     SET_OPT(compare, level, 1);
-    SET_OPT(unboxing, level, 2);
+    SET_OPT(unboxing, level, 1);
 }
 
 PgcStatus nextPgcStatus(PgcStatus status){
