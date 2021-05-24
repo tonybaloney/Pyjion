@@ -243,18 +243,16 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_sequencePoints = res.compiledCode->get_sequence_points();
     state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
 
-#ifdef DEBUG
-    if (strcmp(PyUnicode_AsUTF8(frame->f_code->co_name), "compile") == 0){
-        printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
-        auto code = (_Py_CODEUNIT *)PyBytes_AS_STRING(frame->f_code->co_code);
-        for (size_t i = 0; i < state->j_sequencePointsLen; i ++){
-            printf(" %016llX (IL_%04X): %s %d\n",
-                ((uint64_t)state->j_addr + (uint64_t)state->j_sequencePoints[i].nativeOffset),
-                state->j_sequencePoints[i].ilOffset,
-                opcodeName(_Py_OPCODE(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])),
-                _Py_OPARG(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])
-            );
-        }
+#ifdef DUMP_JIT_TRACES
+    printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
+    auto code = (_Py_CODEUNIT *)PyBytes_AS_STRING(frame->f_code->co_code);
+    for (size_t i = 0; i < state->j_sequencePointsLen; i ++){
+        printf(" %016llX (IL_%04X): %s %d\n",
+            ((uint64_t)state->j_addr + (uint64_t)state->j_sequencePoints[i].nativeOffset),
+            state->j_sequencePoints[i].ilOffset,
+            opcodeName(_Py_OPCODE(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])),
+            _Py_OPARG(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])
+        );
     }
 #endif
 

@@ -2319,7 +2319,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
             Local lcl = emit_define_local(LK_Pointer);
             Label guard_pass = emit_define_label();
             emit_store_local(lcl);
-            // if (value->needsGuard()){
+            if (value->needsGuard()){
                 emit_load_local(lcl);
                 LD_FIELD(PyObject, ob_type);
                 emit_ptr(&PyFloat_Type);
@@ -2328,7 +2328,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
                 emit_load_local(lcl);
                 emit_debug_pyobject();
                 emit_mark_label(guard_pass);
-            // }
+            }
 
             emit_load_local(lcl);
             decref();
