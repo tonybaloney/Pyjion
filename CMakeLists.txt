@@ -257,13 +257,13 @@ if (SKBUILD)
     python_extension_module(_pyjion)
 endif (SKBUILD)
 
-install(TARGETS _pyjion LIBRARY DESTINATION src/pyjion)
-#set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR})
-#install(TARGETS _pyjion
-#        CONFIGURATIONS Debug
-#        LIBRARY DESTINATION src/pyjion
-#        RUNTIME DESTINATION Debug/bin)
-#install(TARGETS _pyjion
-#        CONFIGURATIONS Release
-#        LIBRARY DESTINATION src/pyjion
-#        RUNTIME DESTINATION Release/bin)
+#install(TARGETS _pyjion LIBRARY DESTINATION src/pyjion)
+set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR})
+install(TARGETS _pyjion
+        CONFIGURATIONS Debug
+        LIBRARY DESTINATION src/pyjion
+        RUNTIME DESTINATION Debug/bin)
+install(TARGETS _pyjion
+        CONFIGURATIONS Release
+        LIBRARY DESTINATION src/pyjion
+        RUNTIME DESTINATION Release/bin)
