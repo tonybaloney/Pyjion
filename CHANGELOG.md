@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.0.0 (alpha3)
+
+* Updated to .NET 6 preview 4
+
 ## 1.0.0 (alpha2)
 
 * Debuggable JIT methods can be toggled at runtime using `pyjion.enable_debug()`/`pyjion.disable_debug()`
