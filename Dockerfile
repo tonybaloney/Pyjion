@@ -1,4 +1,4 @@
-ARG DOTNET_VERSION=6.0.100-preview.3.21202.5
+ARG DOTNET_VERSION=6.0.100-preview.4.21255.9
 FROM ubuntu:latest
 ARG DOTNET_VERSION
 RUN echo "Building Pyjion with .NET  $DOTNET_VERSION"

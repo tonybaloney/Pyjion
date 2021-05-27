@@ -17,11 +17,11 @@ class ProblemTestCase(unittest.TestCase):
         pyjion.disable()
         gc.collect()
 
-    def test_regexps(self):
-        print(pyjion.dis.dis(re.sre_compile.compile, True))
-        print(pyjion.dis.dis_native(re.sre_compile.compile, True))
+    # def test_regexps(self):
+    #     print(pyjion.dis.dis(re.sre_compile.compile, True))
+    #     print(pyjion.dis.dis_native(re.sre_compile.compile, True))
 
-        def by(s):
-            return bytearray(map(ord, s))
-        b = by("Hello, world")
-        self.assertEqual(re.findall(br"\w+", b), [by("Hello"), by("world")])
+    #     def by(s):
+    #         return bytearray(map(ord, s))
+    #     b = by("Hello, world")
+    #     self.assertEqual(re.findall(br"\w+", b), [by("Hello"), by("world")])
