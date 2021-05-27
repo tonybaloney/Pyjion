@@ -19,7 +19,7 @@ with open("CHANGELOG.md", "r") as fh:
 
 setup(
     name='pyjion',
-    version='1.0.0a2',
+    version='1.0.0a3',
     description='A JIT compiler wrapper for CPython',
     author='Anthony Shaw and Microsoft',
     author_email='anthonyshaw@apache.org',

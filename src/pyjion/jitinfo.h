@@ -85,6 +85,7 @@ public:
         m_code = code;
         m_module = module;
         m_il = vector<uint8_t>(0);
+        m_nativeSize = 0;
         m_compileDebug = compileDebug;
 #ifdef WINDOWS
         m_winHeap = HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, 0, 0);
@@ -1899,7 +1900,7 @@ public:
     }
 
     // Quick check whether the method is a jit intrinsic. Returns the same value as getMethodAttribs(ftn) & CORINFO_FLG_JIT_INTRINSIC, except faster.
-    bool isJitIntrinsic(CORINFO_METHOD_HANDLE ftn) {
+    bool isJitIntrinsic(CORINFO_METHOD_HANDLE ftn) override {
         // method attribs are CORINFO_FLG_STATIC | CORINFO_FLG_NATIVE - so always false.
         return false;
     }
