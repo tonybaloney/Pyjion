@@ -823,33 +823,53 @@ TEST_CASE("test binary/arithmetic operations") {
         );
         CHECK(t.returns() == "2");
     }
-
-    SECTION("test") {
+    SECTION("float postive unary") {
         auto t = EmissionTest(
                 "def f():\n    x = 1.0\n    y = +x\n    return y"
         );
         CHECK(t.returns() == "1.0");
-    }SECTION("test2") {
+    }
+    SECTION("float not unary") {
         auto t = EmissionTest(
                 "def f():\n    x = 1.0\n    if not x:\n        return 1\n    return 2"
         );
         CHECK(t.returns() == "2");
-    }SECTION("test3") {
+    }
+    SECTION("float is falsey") {
         auto t = EmissionTest(
                 "def f():\n    x = 0.0\n    if not x:\n        return 1\n    return 2"
         );
         CHECK(t.returns() == "1");
-    }SECTION("test4") {
+    }
+    SECTION("float negative unary") {
         auto t = EmissionTest(
                 "def f():\n    x = 1.0\n    y = -x\n    return y"
         );
         CHECK(t.returns() == "-1.0");
-    }SECTION("test5") {
+    }
+    SECTION("float not operator") {
         auto t = EmissionTest(
                 "def f():\n    x = 1.0\n    y = not x\n    return y"
         );
         CHECK(t.returns() == "False");
-    }SECTION("test6") {
+    }
+    SECTION("test unary constants"){
+        auto t = EmissionTest(
+            "def f(): \n"
+            "  if not -24.0 < -12.0: \n"
+            "    return False"
+        );
+        CHECK(t.returns() == "None");
+    }
+    SECTION("test unary constants reversed"){
+        auto t = EmissionTest(
+            "def f(): \n"
+            "  if not -24.0 > -12.0: \n"
+            "    return True"
+        );
+        CHECK(t.returns() == "True");
+    }
+    SECTION("float falsey not") {
         auto t = EmissionTest(
                 "def f():\n    x = 0.0\n    y = not x\n    return y"
         );
