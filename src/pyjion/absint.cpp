@@ -1218,7 +1218,7 @@ void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
 
     auto cur = m_stack.rbegin();
     for (; cur != m_stack.rend() && count >= 0; cur++) {
-        if (*cur == STACK_KIND_VALUE) {
+        if (*cur != STACK_KIND_OBJECT) {
             count--;
             m_comp->emit_pop();
         }
@@ -1242,7 +1242,7 @@ void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
 
     // continue walking our stack iterator
     for (auto i = 0; i < count; cur++, i++) {
-        if (*cur == STACK_KIND_VALUE) {
+        if (*cur != STACK_KIND_OBJECT) {
             // pop off the stack value...
             m_comp->emit_pop();
 
@@ -1493,10 +1493,17 @@ void AbstractInterpreter::emitPgcProbes(size_t curByte, size_t stackSize) {
     m_comp->emit_branch(BranchTrue, hasProbed);
     
     for (size_t i = 0; i < stackSize; i++){
-        if (m_stack.peek(i) == STACK_KIND_VALUE)
-            stack[i] = m_comp->emit_define_local(LK_Float); // TODO : Speculate type.
-        else
-            stack[i] = m_comp->emit_define_local(LK_Pointer);
+        switch(m_stack.peek(i)) {
+            case STACK_KIND_OBJECT:
+                stack[i] = m_comp->emit_define_local(LK_Pointer);
+                break;
+            case STACK_KIND_VALUE_FLOAT:
+                stack[i] = m_comp->emit_define_local(LK_Float);
+                break;
+            case STACK_KIND_VALUE_INT:
+                stack[i] = m_comp->emit_define_local(LK_Int);
+                break;
+        }
         m_comp->emit_store_local(stack[i]);
         if (m_stack.peek(i) == STACK_KIND_OBJECT) {
             m_comp->emit_pgc_profile_capture(stack[i], curByte, i);
@@ -1665,7 +1672,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                     if (OPT_ENABLED(unboxing) && op.escape) {
                         m_comp->emit_compare_unboxed(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
-                        incStack(1, STACK_KIND_VALUE);
+                        incStack(1, STACK_KIND_VALUE_INT);
                     } else if (OPT_ENABLED(internRichCompare)){
                         m_comp->emit_compare_known_object(static_cast<int>(oparg), stackInfo.second(), stackInfo.top());
                         decStack(2);
@@ -1953,7 +1960,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                         decStack(2);
                         if (canReturnInfinity(byte))
                             floatErrorCheck("unboxed binary op failed", curByte, byte);
-                        incStack(1, STACK_KIND_VALUE);
+                        incStack(1, STACK_KIND_VALUE_FLOAT); // TODO send the correct type back
                     } else {
                         m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
@@ -2120,7 +2127,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_blockStack.push_back(newBlock);
 
                 ValueStack newStack = ValueStack(m_stack);
-                newStack.inc(6, StackEntryKind::STACK_KIND_VALUE);
+                newStack.inc(6, STACK_KIND_OBJECT);
                 // This stack only gets used if an error occurs within the try:
                 m_offsetStack[jumpTo] = newStack;
                 skipEffect = true;

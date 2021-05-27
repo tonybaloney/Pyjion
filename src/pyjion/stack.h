@@ -33,8 +33,9 @@
 
 
 enum StackEntryKind {
-    STACK_KIND_VALUE = 0, // A non-boxed value, currently just floating point
-    STACK_KIND_OBJECT = 1 // A Python object, or a tagged int which might be an object
+    STACK_KIND_VALUE_FLOAT = 0, // An unboxed float
+    STACK_KIND_VALUE_INT = 1, // An unboxed int
+    STACK_KIND_OBJECT = 2 // A Python object, or a tagged int which might be an object
 };
 
 class StackUnderflowException: public std::exception {
