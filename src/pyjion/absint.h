@@ -425,6 +425,7 @@ private:
     void updateIntermediateSources();
     InstructionGraph* buildInstructionGraph();
 };
+bool canReturnInfinity(int opcode);
 
 // TODO : Fetch the range of interned integers from the interpreter state
 #define IS_SMALL_INT(ival) (-5 <= (ival) && (ival) < 257)

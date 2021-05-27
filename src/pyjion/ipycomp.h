@@ -399,11 +399,10 @@ public:
 
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
     virtual void emit_compare_object(uint16_t compareType) = 0;
-    virtual void emit_compare_floats(uint16_t compareType, bool guard) = 0;
+    virtual void emit_compare_floats(uint16_t compareType) = 0;
+    virtual void emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) = 0;
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
     virtual void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) = 0;
-    // Performs a comparison of two unboxed floating point values on the stack
-    virtual void emit_compare_float(uint16_t compareType) = 0;
     // Performs a comparison of two tagged integers
     virtual void emit_compare_tagged_int(uint16_t compareType) = 0;
 

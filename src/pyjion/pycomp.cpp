@@ -35,7 +35,6 @@ typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #include <Python.h>
 #include "pycomp.h"
 #include "pyjit.h"
-#include "pyjitmath.h"
 #include "unboxing.h"
 
 using namespace std;
@@ -125,7 +124,7 @@ void PythonCompiler::emit_pop_frame() {
         LD_FIELDA(PyThreadState, frame);
 
         load_frame();
-        LD_FIELD(PyFrameObject, f_back);
+        LD_FIELDI(PyFrameObject, f_back);
 
         m_il.st_ind_i();
     } else {
@@ -238,7 +237,7 @@ void PythonCompiler::decref(bool noopt) {
         m_il.load_one();                 // obj, obj, refcnt,  *refcnt, 1
         m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
         m_il.st_ind_i();              // obj, obj
-        LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
+        LD_FIELDI(PyObject, ob_refcnt); // obj, refcnt
         m_il.load_null();                 // obj, refcnt, 0
         emit_branch(BranchGreaterThan, popAndGo);
 
@@ -259,7 +258,7 @@ void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources ite
     if (iterable.Value->needsGuard()){
         passedGuard = emit_define_label(), failedGuard = emit_define_label();
         m_il.dup();
-        LD_FIELD(PyObject, ob_type);
+        LD_FIELDI(PyObject, ob_type);
         emit_ptr(iterable.Value->pythonType());
         emit_branch(BranchEqual, passedGuard);
         emit_unpack_generic(size, iterable);
@@ -310,7 +309,7 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
     if (iterable.Value->needsGuard()){
         passedGuard = emit_define_label(), failedGuard = emit_define_label();
         m_il.dup();
-        LD_FIELD(PyObject, ob_type);
+        LD_FIELDI(PyObject, ob_type);
         emit_ptr(iterable.Value->pythonType());
         emit_branch(BranchEqual, passedGuard);
         emit_unpack_generic(size, iterable);
@@ -960,12 +959,12 @@ void PythonCompiler::emit_load_attr(PyObject* name, AbstractValueWithSources obj
     Label skip_guard = emit_define_label(), execute_guard = emit_define_label();
     if (guard) {
         emit_load_local(objLocal);
-        LD_FIELD(PyObject, ob_type);
+        LD_FIELDI(PyObject, ob_type);
         emit_ptr(obj.Value->pythonType());
         emit_branch(BranchNotEqual, execute_guard);
         emit_load_local(objLocal);
-        LD_FIELD(PyObject, ob_type);
-        LD_FIELD(PyTypeObject, tp_getattro);
+        LD_FIELDI(PyObject, ob_type);
+        LD_FIELDI(PyTypeObject, tp_getattro);
         emit_ptr((void*)obj.Value->pythonType()->tp_getattro);
         emit_branch(BranchNotEqual, execute_guard);
     }
@@ -1093,7 +1092,7 @@ void PythonCompiler::emit_tuple_length(){
 }
 
 void PythonCompiler::emit_list_load(size_t index) {
-    LD_FIELD(PyListObject, ob_item);
+    LD_FIELDI(PyListObject, ob_item);
     if (index > 0) {
         m_il.ld_i(index * sizeof(size_t));
         m_il.add();
@@ -1775,7 +1774,7 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     m_il.add();
     m_il.ld_ind_i();
     emit_load_local(it_seq);
-    LD_FIELD(PyVarObject, ob_size);
+    LD_FIELDI(PyVarObject, ob_size);
     emit_branch(BranchGreaterThanEqual, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
 
     emit_load_local(it_seq);
@@ -1934,20 +1933,6 @@ void PythonCompiler::emit_not_in() {
     m_il.emit_call(METHOD_NOTCONTAINS_TOKEN);
 }
 
-void PythonCompiler::emit_compare_float(uint16_t compareType) {
-    // TODO: Optimize compare and POP_JUMP
-    // @body: If we know we're followed by the pop jump we could combine
-    // and do a single branch comparison.
-    switch (compareType) {
-        case Py_EQ: m_il.compare_eq(); break;
-        case Py_LT: m_il.compare_lt(); break;
-        case Py_LE: m_il.compare_le_float(); break;
-        case Py_NE: m_il.compare_ne(); break;
-        case Py_GT: m_il.compare_gt(); break;
-        case Py_GE: m_il.compare_ge_float(); break;
-    }
-}
-
 void PythonCompiler::emit_compare_tagged_int(uint16_t compareType) {
     switch (compareType) {
         case Py_EQ:
@@ -1983,50 +1968,13 @@ void PythonCompiler::emit_compare_known_object(uint16_t compareType, AbstractVal
                 return;
         }
     }
-    if (OPT_ENABLED(compare) && lhs.hasValue() && lhs.Value->known() && rhs.hasValue() && rhs.Value->known()){
-        // Specific comparisons.
-        switch (lhs.Value->kind()) {
-            case AVK_Float:
-                if (rhs.Value->kind() == AVK_Float) {
-                    emit_compare_floats(compareType, lhs.Value->needsGuard() || rhs.Value->needsGuard());
-                    return;
-                }
-                break;
-        }
-    }
     emit_compare_object(compareType);
 }
 
-void PythonCompiler::emit_compare_floats(uint16_t compareType, bool guard) {
-    Local left = emit_define_local(LK_Pointer);
-    Local right = emit_define_local(LK_Pointer);
-    Label guard_fail = emit_define_label();
-    Label guard_pass = emit_define_label();
-
-    emit_store_local(right);
-    emit_store_local(left);
-
-    if (guard){
-        emit_load_local(right);
-        LD_FIELD(PyObject, ob_type);
-        emit_ptr(&PyFloat_Type);
-        emit_branch(BranchNotEqual, guard_fail);
-
-        emit_load_local(left);
-        LD_FIELD(PyObject, ob_type);
-        emit_ptr(&PyFloat_Type);
-        emit_branch(BranchNotEqual, guard_fail);
-    }
-
-    emit_load_local(left);
-    LD_FIELD(PyFloatObject, ob_fval);
-    emit_load_local(right);
-    LD_FIELD(PyFloatObject, ob_fval);
-
+void PythonCompiler::emit_compare_floats(uint16_t compareType) {
     Label is_true = emit_define_label();
-    Label free_and_exit = emit_define_label();
     Label is_false = emit_define_label();
-
+    Label ret = emit_define_label();
     switch (compareType){
         case Py_EQ:
             m_il.branch(BranchEqual, is_true);
@@ -2055,34 +2003,14 @@ void PythonCompiler::emit_compare_floats(uint16_t compareType, bool guard) {
     };
 
     emit_mark_label(is_true);
-        emit_ptr(Py_True);
-        emit_dup();
-        emit_incref();
-        m_il.branch(BranchAlways, free_and_exit);
+        emit_int(1);
+        m_il.branch(BranchAlways, ret);
 
     emit_mark_label(is_false);
 
-        emit_ptr(Py_False);
-        emit_dup();
-        emit_incref();
+        emit_int(0);
 
-    emit_mark_label(free_and_exit);
-    emit_load_local(left);
-    decref();
-    emit_load_local(right);
-    decref();
-
-    if (guard){
-        m_il.branch(BranchAlways, guard_pass);
-        emit_mark_label(guard_fail);
-        emit_load_local(left);
-        emit_load_local(right);
-        emit_compare_object(compareType);
-        emit_mark_label(guard_pass);
-    }
-
-    emit_free_local(left);
-    emit_free_local(right);
+    emit_mark_label(ret);
 }
 
 void PythonCompiler::emit_load_method(void* name) {
@@ -2304,14 +2232,22 @@ void PythonCompiler::emit_pgc_profile_capture(Local value, size_t ipos, size_t i
 }
 
 void PythonCompiler::emit_box(AbstractValue* value) {
-    assert(supportsEscaping(value->kind()));
     switch(value->kind()){
         case AVK_Float:
             m_il.emit_call(METHOD_FLOAT_FROM_DOUBLE);
             break;
+        case AVK_Bool:
+            m_il.emit_call(METHOD_BOOL_FROM_LONG);
+            break;
     }
 };
-
+void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs){
+    assert(supportsEscaping(lhs.Value->kind()) && supportsEscaping(rhs.Value->kind()));
+    switch(lhs.Value->kind()){
+        case AVK_Float:
+            return emit_compare_floats(compareType);
+    }
+}
 void PythonCompiler::emit_unbox(AbstractValue* value) {
     assert(supportsEscaping(value->kind()));
     switch(value->kind()){
@@ -2322,7 +2258,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
             emit_store_local(lcl);
             if (value->needsGuard() || true){
                 emit_load_local(lcl);
-                LD_FIELD(PyObject, ob_type);
+                LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyFloat_Type);
                 emit_branch(BranchNotEqual, guard_fail);
             }

@@ -35,7 +35,6 @@ typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #include <Python.h>
 #include "pycomp.h"
 #include "pyjit.h"
-#include "pyjitmath.h"
 
 using namespace std;
 extern BaseModule g_module;
@@ -171,11 +170,11 @@ void PythonCompiler::emit_binary_object(uint16_t opcode, AbstractValueWithSource
 
     if (emit_guard){
         emit_load_local(leftLocal);
-        LD_FIELD(PyObject, ob_type);
+        LD_FIELDI(PyObject, ob_type);
         emit_ptr(left.Value->pythonType());
         emit_branch(BranchNotEqual, execute_fallback);
         emit_load_local(rightLocal);
-        LD_FIELD(PyObject, ob_type);
+        LD_FIELDI(PyObject, ob_type);
         emit_ptr(right.Value->pythonType());
         emit_branch(BranchNotEqual, execute_fallback);
     }

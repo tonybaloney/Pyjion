@@ -253,7 +253,8 @@
 #define METHOD_SUBSCR_LIST_SLICE_REVERSED 0x0007000B
 
 #define LD_FIELDA(type, field) if(offsetof(type, field)>0) {m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();}
-#define LD_FIELD(type, field) if(offsetof(type, field)>0) {m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();} m_il.ld_ind_i();
+#define LD_FIELDI(type, field) if(offsetof(type, field)>0) {m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();} m_il.ld_ind_i();
+#define LD_FIELDR8(type, field) if(offsetof(type, field)>0) {m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();} m_il.ld_ind_r8();
 
 extern ICorJitCompiler* g_jit;
 class PythonCompiler : public IPythonCompiler {
@@ -425,9 +426,9 @@ public:
     void emit_is(bool isNot) override;
 
     void emit_compare_object(uint16_t compareType) override;
-    void emit_compare_float(uint16_t compareType) override;
     void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
-    void emit_compare_floats(uint16_t compareType, bool guard) override;
+    void emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
+    void emit_compare_floats(uint16_t compareType) override;
     void emit_compare_tagged_int(uint16_t compareType) override;
 
     void emit_store_fast(size_t local) override;

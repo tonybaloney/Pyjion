@@ -28,7 +28,6 @@
 */
 
 #include <catch2/catch.hpp>
-#include <pyjitmath.h>
 #include "testing_util.h"
 
 template<typename T>

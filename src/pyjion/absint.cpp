@@ -32,7 +32,6 @@
 
 #include "absint.h"
 #include "pyjit.h"
-#include "pyjitmath.h"
 #include "pycomp.h"
 
 #define PGC_READY() g_pyjionSettings.pgc && profile != nullptr
@@ -579,7 +578,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     }
                     POP_VALUE();
                     POP_VALUE();
-                    PUSH_INTERMEDIATE(&Any);
+                    PUSH_INTERMEDIATE(&Bool);
                 }
                 break;
                 case IMPORT_NAME: {
@@ -1512,7 +1511,18 @@ void AbstractInterpreter::emitPgcProbes(size_t curByte, size_t stackSize) {
 
     m_comp->emit_mark_label(hasProbed);
 }
-
+bool canReturnInfinity(int opcode){
+    switch(opcode){
+        case BINARY_TRUE_DIVIDE:
+        case BINARY_FLOOR_DIVIDE:
+        case INPLACE_TRUE_DIVIDE:
+        case INPLACE_FLOOR_DIVIDE:
+        case BINARY_MODULO:
+        case INPLACE_MODULO:
+            return true;
+    }
+    return false;
+}
 AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status, InstructionGraph* graph) {
     Label ok;
 
@@ -1651,14 +1661,29 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_comp->emit_dup_top_two();
                 break;
             case COMPARE_OP: {
-                if ((OPT_ENABLED(internRichCompare) || OPT_ENABLED(compare)) && stackInfo.size() >= 2){
-                    m_comp->emit_compare_known_object(static_cast<int>(oparg), stackInfo.second(), stackInfo.top());
+                if (stackInfo.size() >= 2){
+                    if (OPT_ENABLED(unboxing) && op.escape) {
+                        m_comp->emit_compare_unboxed(byte, stackInfo.second(), stackInfo.top());
+                        decStack(2);
+                        incStack(1, STACK_KIND_VALUE);
+                    } else if (OPT_ENABLED(internRichCompare)){
+                        m_comp->emit_compare_known_object(static_cast<int>(oparg), stackInfo.second(), stackInfo.top());
+                        decStack(2);
+                        errorCheck("failed to compare", curByte);
+                        incStack(1);
+                    } else {
+                        m_comp->emit_compare_object(static_cast<int>(oparg));
+                        decStack(2);
+                        errorCheck("failed to compare", curByte);
+                        incStack(1);
+                    }
                 } else {
                     m_comp->emit_compare_object(static_cast<int>(oparg));
+                    decStack(2);
+                    errorCheck("failed to compare", curByte);
+                    incStack(1);
                 }
-                decStack(2);
-                errorCheck("failed to compare", curByte);
-                incStack(1);
+
                 break; }
             case LOAD_BUILD_CLASS:
                 m_comp->emit_load_build_class();
