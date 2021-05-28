@@ -1416,6 +1416,8 @@ void PythonCompiler::emit_load_build_class() {
 
 Local PythonCompiler::emit_define_local(AbstractValueKind kind) {
     switch(kind){
+        case AVK_Bool:
+            return m_il.define_local(Parameter(CORINFO_TYPE_INT));
         case AVK_Float:
             return m_il.define_local(Parameter(CORINFO_TYPE_DOUBLE));
         default:
@@ -1972,45 +1974,28 @@ void PythonCompiler::emit_compare_known_object(uint16_t compareType, AbstractVal
 }
 
 void PythonCompiler::emit_compare_floats(uint16_t compareType) {
-    Label is_true = emit_define_label();
-    Label is_false = emit_define_label();
-    Label ret = emit_define_label();
     switch (compareType){
         case Py_EQ:
-            m_il.branch(BranchEqual, is_true);
-            m_il.branch(BranchAlways, is_false);
+            m_il.compare_eq();
             break;
         case Py_NE:
-            m_il.branch(BranchNotEqual, is_true);
-            m_il.branch(BranchAlways, is_false);
+            m_il.compare_ne();
             break;
         case Py_GE:
-            m_il.branch(BranchGreaterThanEqual, is_true);
-            m_il.branch(BranchAlways, is_false);
+            m_il.compare_ge_float();
             break;
         case Py_LE:
-            m_il.branch(BranchLessThanEqual, is_true);
-            m_il.branch(BranchAlways, is_false);
+            m_il.compare_le_float();
             break;
         case Py_LT:
-            m_il.branch(BranchLessThan, is_true);
-            m_il.branch(BranchAlways, is_false);
+            m_il.compare_lt();
             break;
         case Py_GT:
-            m_il.branch(BranchGreaterThan, is_true);
-            m_il.branch(BranchAlways, is_false);
-        break;
+            m_il.compare_gt();
+            break;
+        default:
+            assert(false);
     };
-
-    emit_mark_label(is_true);
-        emit_int(1);
-        m_il.branch(BranchAlways, ret);
-
-    emit_mark_label(is_false);
-
-        emit_int(0);
-
-    emit_mark_label(ret);
 }
 
 void PythonCompiler::emit_load_method(void* name) {

@@ -1301,7 +1301,7 @@ void AbstractInterpreter::extendList(size_t argCnt) {
     decStack();
     extendListRecursively(listTmp, argCnt);
     m_comp->emit_load_and_free_local(listTmp);
-    incStack(1, STACK_KIND_OBJECT);
+    incStack(1);
 }
 
 void AbstractInterpreter::buildSet(size_t argCnt) {
@@ -1670,7 +1670,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case COMPARE_OP: {
                 if (stackInfo.size() >= 2){
                     if (OPT_ENABLED(unboxing) && op.escape) {
-                        m_comp->emit_compare_unboxed(byte, stackInfo.second(), stackInfo.top());
+                        m_comp->emit_compare_unboxed(oparg, stackInfo.second(), stackInfo.top());
                         decStack(2);
                         incStack(1, STACK_KIND_VALUE_INT);
                     } else if (OPT_ENABLED(internRichCompare)){
