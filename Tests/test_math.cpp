@@ -1139,12 +1139,12 @@ TEST_CASE("Test unboxing of floats") {
     }
     SECTION("complex nested calculation 2") {
         auto t = EmissionTest("def f():\n"
-                              "  dx = 3.0\n"
-                              "  dy = 4.0\n"
-                              "  dz = 5.0\n"
-                              "  m1 = 2.3\n"
-                              "  m2 = 3.5\n"
+                              "  dx = 9.5e-322\n"
+                              "  dy = -1.2174e-320\n"
+                              "  dz = -1.249e-320\n"
+                              "  m1 = 39.47841760435743\n"
+                              "  m2 = 0.03769367487038949\n"
                               "  return (m1 * m2) / ((dx * dx + dy * dy + dz * dz) ** 0.5)");
-        CHECK(t.returns() == "1.1384419177103413");
+        CHECK(t.raises() == PyExc_ZeroDivisionError);
     }
 }
