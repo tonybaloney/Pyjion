@@ -27,6 +27,8 @@
 
 bool supportsUnboxing(py_opcode opcode){
     switch (opcode){
+        case POP_JUMP_IF_FALSE:
+        case POP_JUMP_IF_TRUE:
         case COMPARE_OP:
         case BINARY_POWER:
         case INPLACE_POWER:

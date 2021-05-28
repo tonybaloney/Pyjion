@@ -1715,7 +1715,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case POP_JUMP_IF_TRUE:
             case POP_JUMP_IF_FALSE:
-                popJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
+                if (OPT_ENABLED(unboxing) && op.escape) {
+                    unboxedPopJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
+                } else {
+                    popJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
+                }
                 break;
             case LOAD_NAME:
                 if (OPT_ENABLED(hashedNames)){
@@ -2669,6 +2673,18 @@ void AbstractInterpreter::popJumpIf(bool isTrue, size_t opcodeIndex, size_t jump
     // Not branching, just pop the value and fall through
     m_comp->emit_mark_label(noJump);
     m_comp->emit_pop_top();
+
+    decStack();
+    m_offsetStack[jumpTo] = ValueStack(m_stack);
+}
+
+void AbstractInterpreter::unboxedPopJumpIf(bool isTrue, size_t opcodeIndex, size_t jumpTo) {
+    if (jumpTo <= opcodeIndex){
+        m_comp->emit_pending_calls();
+    }
+    auto target = getOffsetLabel(jumpTo);
+
+    m_comp->emit_branch(isTrue ? BranchTrue : BranchFalse, target);
 
     decStack();
     m_offsetStack[jumpTo] = ValueStack(m_stack);

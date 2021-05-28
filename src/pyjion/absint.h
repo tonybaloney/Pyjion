@@ -413,6 +413,7 @@ private:
 
     void jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t offset);
     void popJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
+    void unboxedPopJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
     void jumpIfNotExact(size_t opcodeIndex, size_t jumpTo);
     void testBoolAndBranch(Local value, bool isTrue, Label target);
 
