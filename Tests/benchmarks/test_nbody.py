@@ -93,7 +93,10 @@ def report_energy(bodies=SYSTEM, pairs=PAIRS, e=0.0):
         dx = x1 - x2
         dy = y1 - y2
         dz = z1 - z2
-        e -= (m1 * m2) / ((dx * dx + dy * dy + dz * dz) ** 0.5)
+        try:
+            e -= (m1 * m2) / ((dx * dx + dy * dy + dz * dz) ** 0.5)
+        except ZeroDivisionError:
+            print(dx, dy, dz, m1, m2)
     for (r, [vx, vy, vz], m) in bodies:
         e += m * (vx * vx + vy * vy + vz * vz) / 2.
     print("%.9f" % e)
