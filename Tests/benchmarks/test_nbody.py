@@ -93,10 +93,7 @@ def report_energy(bodies=SYSTEM, pairs=PAIRS, e=0.0):
         dx = x1 - x2
         dy = y1 - y2
         dz = z1 - z2
-        try:
-            e -= (m1 * m2) / ((dx * dx + dy * dy + dz * dz) ** 0.5)
-        except ZeroDivisionError:
-            print(dx, dy, dz, m1, m2)
+        e -= (m1 * m2) / ((dx * dx + dy * dy + dz * dz) ** 0.5)
     for (r, [vx, vy, vz], m) in bodies:
         e += m * (vx * vx + vy * vy + vz * vz) / 2.
     print("%.9f" % e)
@@ -122,7 +119,7 @@ def main(n=50000, ref='sun'):
 
 
 if __name__ == "__main__":
-    print("N-body took {0} without Pyjion".format(timeit.repeat(main, repeat=5, number=1)))
+    # print("N-body took {0} without Pyjion".format(timeit.repeat(main, repeat=5, number=1)))
     pyjion.enable()
     pyjion.set_optimization_level(1)
     print("N-body took {0} with Pyjion".format(timeit.repeat(main, repeat=5, number=1)))
