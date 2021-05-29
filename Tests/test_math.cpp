@@ -1147,4 +1147,31 @@ TEST_CASE("Test unboxing of floats") {
                               "  return (m1 * m2) / ((dx * dx + dy * dy + dz * dz) ** 0.5)");
         CHECK(t.raises() == PyExc_ZeroDivisionError);
     }
+    SECTION("test inplace subtraction") {
+        auto t = EmissionTest("def f():\n"
+                              "  dx = 0.452345\n"
+                              "  dy = -91.35555\n"
+                              "  dz = -1.249e-320\n"
+                              "  dz -= dx * dy\n"
+                              "  return dz");
+        CHECK(t.returns() == "41.324226264749996");
+    }
+    SECTION("test inplace addition") {
+        auto t = EmissionTest("def f():\n"
+                              "  dx = 0.452345\n"
+                              "  dy = -91.35555\n"
+                              "  dz = 2346.3333\n"
+                              "  dz += dx * dy\n"
+                              "  return dz");
+        CHECK(t.returns() == "2305.00907373525");
+    }
+    SECTION("test inplace slice addition") {
+        auto t = EmissionTest("def f():\n"
+                              "  dx = 0.452345\n"
+                              "  dy = -91.35555\n"
+                              "  dz = [2346.3333]\n"
+                              "  dz[0] += dx * dy\n"
+                              "  return dz[0]");
+        CHECK(t.returns() == "2305.00907373525");
+    }
 }
