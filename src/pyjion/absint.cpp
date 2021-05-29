@@ -1156,7 +1156,7 @@ void AbstractInterpreter::floatErrorCheck(const char *reason, size_t curByte, py
         m_comp->emit_load_local(errorCheckLocal);
         m_comp->emit_infinity();
         m_comp->emit_branch(BranchNotEqual, noErr);
-        m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero");
+        m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero/operation infinite");
         branchRaise(reason, curByte);
     }
 
