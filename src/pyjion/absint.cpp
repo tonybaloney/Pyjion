@@ -1150,15 +1150,21 @@ void AbstractInterpreter::errorCheck(const char *reason, size_t curByte) {
 
 void AbstractInterpreter::floatErrorCheck(const char *reason, size_t curByte, py_opcode opcode) {
     auto noErr = m_comp->emit_define_label();
-    m_comp->emit_dup();
     Local errorCheckLocal = m_comp->emit_define_local(LK_Float); // TODO : Work out actual type.
     m_comp->emit_store_local(errorCheckLocal);
-    if (canReturnInfinity(opcode))
+    if (canReturnInfinity(opcode)) {
+        m_comp->emit_load_local(errorCheckLocal);
         m_comp->emit_infinity();
+        m_comp->emit_branch(BranchNotEqual, noErr);
+        m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero");
+        branchRaise(reason, curByte);
+    }
 
+    m_comp->emit_load_local(errorCheckLocal);
+    m_comp->emit_nan();
     m_comp->emit_branch(BranchNotEqual, noErr);
-    m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero");
     branchRaise(reason, curByte);
+
     m_comp->emit_mark_label(noErr);
     m_comp->emit_load_and_free_local(errorCheckLocal);
 }

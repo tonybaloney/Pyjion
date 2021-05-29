@@ -2258,7 +2258,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
             if (value->needsGuard() || true){
                 emit_branch(BranchAlways, guard_pass);
                     emit_mark_label(guard_fail);
-                    emit_infinity();
+                    emit_nan();
                     emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
                 emit_mark_label(guard_pass);
             }
