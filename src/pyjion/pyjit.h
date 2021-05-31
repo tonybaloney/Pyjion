@@ -98,8 +98,7 @@ typedef struct PyjionSettings {
     bool opt_typeSlotLookups = OPTIMIZE_TYPESLOT_LOOKUPS; // OPT-13
     bool opt_functionCalls = OPTIMIZE_FUNCTION_CALLS; // OPT-14
     bool opt_loadAttr = OPTIMIZE_LOAD_ATTR; // OPT-15
-    bool opt_superMethodCalls = OPTIMIZE_METHOD_CALLS; // OPT-16
-    bool opt_unboxing = OPTIMIZE_UNBOXING; // OPT-18
+    bool opt_unboxing = OPTIMIZE_UNBOXING; // OPT-16
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;
