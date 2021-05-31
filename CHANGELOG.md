@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.0.0 (alpha4)
+
+* Added unboxing and escape analysis for floating point objects (OPT-16)
+* Removed OPT-8 as it is superseded by OPT-16
+
 ## 1.0.0 (alpha3)
 
 * Updated to .NET 6 preview 4

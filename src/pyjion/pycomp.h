@@ -146,7 +146,7 @@
 #define METHOD_SETUP_ANNOTATIONS                 0x00000078
 #define METHOD_DEALLOC_OBJECT                    0x00000079
 #define METHOD_LOAD_CLOSURE                      0x0000007A
-#define METHOD_TRIPLE_BINARY_OP                  0x0000007B
+// Unused                                        0x0000007B
 // Unused                                        0x0000007C
 #define METHOD_LOADNAME_HASH                     0x0000007D
 #define METHOD_LOADGLOBAL_HASH                   0x0000007E
@@ -252,8 +252,9 @@
 #define METHOD_SUBSCR_LIST_SLICE_STEPPED 0x0007000A
 #define METHOD_SUBSCR_LIST_SLICE_REVERSED 0x0007000B
 
-#define LD_FIELDA(type, field) m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();
-#define LD_FIELD(type, field) m_il.ld_i((int32_t)offsetof(type, field)); m_il.add(); m_il.ld_ind_i();
+#define LD_FIELDA(type, field) if(offsetof(type, field)>0) {m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();}
+#define LD_FIELDI(type, field) if(offsetof(type, field)>0) {m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();} m_il.ld_ind_i();
+#define LD_FIELDR8(type, field) if(offsetof(type, field)>0) {m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();} m_il.ld_ind_r8();
 
 extern ICorJitCompiler* g_jit;
 class PythonCompiler : public IPythonCompiler {
@@ -394,6 +395,7 @@ public:
     void emit_load_and_free_local(Local local) override;
     Local emit_define_local(bool cache) override;
     Local emit_define_local(LocalKind kind) override;
+    Local emit_define_local(AbstractValueKind kind) override;
     void emit_free_local(Local local) override;
 
     void emit_set_add() override;
@@ -412,6 +414,7 @@ public:
     void emit_binary_float(uint16_t opcode) override;
     void emit_binary_object(uint16_t opcode) override;
     void emit_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
+    void emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) override;
@@ -423,9 +426,9 @@ public:
     void emit_is(bool isNot) override;
 
     void emit_compare_object(uint16_t compareType) override;
-    void emit_compare_float(uint16_t compareType) override;
     void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
-    void emit_compare_floats(uint16_t compareType, bool guard) override;
+    void emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
+    void emit_compare_floats(uint16_t compareType) override;
     void emit_compare_tagged_int(uint16_t compareType) override;
 
     void emit_store_fast(size_t local) override;
@@ -484,17 +487,19 @@ public:
     void emit_trace_exception() override;
     void emit_profile_frame_entry() override;
     void emit_profile_frame_exit() override;
-    void emit_pgc_probe(size_t curByte, size_t stackSize) override;
-
+    void emit_pgc_profile_capture(Local value, size_t ipos, size_t istack) override;
     void emit_load_frame_locals() override;
-    void emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) override;
     JittedCode* emit_compile() override;
     void lift_n_to_top(uint16_t pos) override;
     void lift_n_to_second(uint16_t pos) override;
     void lift_n_to_third(uint16_t pos) override;
     void sink_top_to_n(uint16_t pos) override;
     void mark_sequence_point(size_t idx) override;
-
+    void emit_box(AbstractValue* value) override;
+    void emit_unbox(AbstractValue* value) override;
+    void emit_escape_edges(EdgeMap edges) override;
+    void emit_infinity() override;
+    void emit_nan() override;
 private:
     void load_frame();
     void load_tstate();
@@ -514,6 +519,7 @@ private:
     void emit_known_binary_op_multiply(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
                               int sq_slot, int fallback_token);
     void fill_local_vector(vector<Local> & vec, size_t len);
+
 };
 
 // Copies of internal CPython structures
@@ -525,7 +531,6 @@ typedef struct {
 } _tupleiterobject;
 
 
-
-const char* opcodeName(size_t opcode) ;
+const char* opcodeName(py_opcode opcode) ;
 
 #endif

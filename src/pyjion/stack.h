@@ -33,8 +33,9 @@
 
 
 enum StackEntryKind {
-    STACK_KIND_VALUE = 0, // A non-boxed value, currently just floating point
-    STACK_KIND_OBJECT = 1 // A Python object, or a tagged int which might be an object
+    STACK_KIND_VALUE_FLOAT = 0, // An unboxed float
+    STACK_KIND_VALUE_INT = 1, // An unboxed int
+    STACK_KIND_OBJECT = 2 // A Python object, or a tagged int which might be an object
 };
 
 class StackUnderflowException: public std::exception {
@@ -76,6 +77,10 @@ public:
 
     reverse_iterator rend(){
      return std::vector<StackEntryKind>::rend();
+    }
+
+    StackEntryKind peek(size_t n){
+        return std::vector<StackEntryKind>::at(size() - 1 - n);
     }
 };
 
@@ -138,18 +143,28 @@ class InterpreterStack : public std::vector<AbstractValueWithSources> {
 
 public:
     AbstractValueWithSources top() {
+        if (size() < 1)
+            throw StackUnderflowException();
         return std::vector<AbstractValueWithSources>::at(size() - 1);
     }
     AbstractValueWithSources second() {
+        if (size() < 2)
+            throw StackUnderflowException();
         return std::vector<AbstractValueWithSources>::at(size() - 2);
     }
     AbstractValueWithSources third() {
+        if (size() < 3)
+            throw StackUnderflowException();
         return std::vector<AbstractValueWithSources>::at(size() - 3);
     }
     AbstractValueWithSources fourth() {
+        if (size() < 4)
+            throw StackUnderflowException();
         return std::vector<AbstractValueWithSources>::at(size() - 4);
     }
     AbstractValueWithSources nth(unsigned long n) {
+        if (size() < n)
+            throw StackUnderflowException();
         return std::vector<AbstractValueWithSources>::at(size() - n);
     }
 };

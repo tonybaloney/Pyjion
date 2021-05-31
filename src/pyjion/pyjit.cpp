@@ -50,7 +50,6 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(inlineFramePushPop, level, 1);
     SET_OPT(knownStoreSubscr, level, 1);
     SET_OPT(knownBinarySubscr, level, 1);
-    SET_OPT(tripleBinaryFunctions, level, 1);
     SET_OPT(inlineIterators, level, 1);
     SET_OPT(hashedNames, level, 1);
     SET_OPT(subscrSlice, level, 1);
@@ -58,8 +57,7 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(typeSlotLookups, level, 1);
     SET_OPT(functionCalls, level, 1);
     SET_OPT(loadAttr, level, 1);
-    SET_OPT(superMethodCalls, level, 1);
-    SET_OPT(compare, level, 1);
+    SET_OPT(unboxing, level, 1);
 }
 
 PgcStatus nextPgcStatus(PgcStatus status){
@@ -247,10 +245,11 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
     auto code = (_Py_CODEUNIT *)PyBytes_AS_STRING(frame->f_code->co_code);
     for (size_t i = 0; i < state->j_sequencePointsLen; i ++){
-        printf(" %016llX : %s %d\n",
-               ((uint64_t)state->j_addr + (uint64_t)state->j_sequencePoints[i].nativeOffset),
-               opcodeName(_Py_OPCODE(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])),
-               _Py_OPARG(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])
+        printf(" %016llX (IL_%04X): %s %d\n",
+            ((uint64_t)state->j_addr + (uint64_t)state->j_sequencePoints[i].nativeOffset),
+            state->j_sequencePoints[i].ilOffset,
+            opcodeName(_Py_OPCODE(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])),
+            _Py_OPARG(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])
         );
     }
 #endif

@@ -26,8 +26,6 @@
 #ifndef PYJION_PYJIT_H
 #define PYJION_PYJIT_H
 
-#define FEATURE_NO_HOST
-
 #include <cstdint>
 #include <windows.h>
 #include <cwchar>
@@ -61,7 +59,6 @@ public:
     ~PyjionCodeProfile();
 };
 
-
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition);
 class PyjionJittedCode;
 
@@ -94,7 +91,6 @@ typedef struct PyjionSettings {
 	bool opt_inlineFramePushPop = OPTIMIZE_PUSH_FRAME; // OPT-5
     bool opt_knownStoreSubscr = OPTIMIZE_KNOWN_STORE_SUBSCR; // OPT-6
     bool opt_knownBinarySubscr = OPTIMIZE_KNOWN_BINARY_SUBSCR; // OPT-7
-    bool opt_tripleBinaryFunctions = OPTIMIZE_BINARY_FUNCTIONS; // OPT-8
     bool opt_inlineIterators = OPTIMIZE_ITERATORS; // OPT-9
     bool opt_hashedNames = OPTIMIZE_HASHED_NAMES; // OPT-10
     bool opt_subscrSlice = OPTIMIZE_BINARY_SLICE; // OPT-11
@@ -102,8 +98,7 @@ typedef struct PyjionSettings {
     bool opt_typeSlotLookups = OPTIMIZE_TYPESLOT_LOOKUPS; // OPT-13
     bool opt_functionCalls = OPTIMIZE_FUNCTION_CALLS; // OPT-14
     bool opt_loadAttr = OPTIMIZE_LOAD_ATTR; // OPT-15
-    bool opt_superMethodCalls = OPTIMIZE_METHOD_CALLS; // OPT-16
-    bool opt_compare = OPTIMIZE_COMPARE; // OPT-17
+    bool opt_unboxing = OPTIMIZE_UNBOXING; // OPT-16
 } PyjionSettings;
 
 static PY_UINT64_T HOT_CODE = 0;

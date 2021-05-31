@@ -262,4 +262,19 @@ TEST_CASE("test STORE_SUBSCR PGC") {
         CHECK(t.returns() == "[4, 1, 2, 3, 4]");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
+
+    SECTION("test complex inplace operation with floats") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  text = [0.1,1.32,2.4,3.55,4.5]\n"
+                "  n = 2.00\n"
+                "  text[0] += 2. ** n\n"
+                "  return text"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "[4.1, 1.32, 2.4, 3.55, 4.5]");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.returns() == "[4.1, 1.32, 2.4, 3.55, 4.5]");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
 }

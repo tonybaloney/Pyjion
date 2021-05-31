@@ -13,13 +13,14 @@ Built-in Optimizations
     opt/opt-5
     opt/opt-6
     opt/opt-7
-    opt/opt-8
     opt/opt-9
     opt/opt-10
     opt/opt-11
     opt/opt-12
     opt/opt-13
     opt/opt-14
+    opt/opt-15
+    opt/opt-16
 
 Overview
 --------
@@ -73,11 +74,12 @@ By default, Pyjion will flag the EE compiler to use the ``CORJIT_FLAG_SPEED_OPT`
 Boxing and unboxing of variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Work was done by Dino in early versions of Pyjion to box/unbox Python integers and floats into native long/float types. This allows for native CIL opcodes like ADD, SUB, IMUL, etc. to be used
+Work was done in early versions of Pyjion to box/unbox Python integers and floats into native long/float types. This allows for native CIL opcodes like ADD, SUB, IMUL, etc. to be used
 on native integers instead of having to use the complex (and slow) ``PyLongObject``/``PyFloatObject`` operations.
-I've found this initial prototype to be unstable so the boxing and unboxing has been removed. In future versions it could be reintroduced. Performance tests done at the time showed that it added
-little gain in performance because python is untyped and so many of the types were undeterminate and required frequent unboxing. The conversion overhead negated the gains from the native operators.
-Also, for low-level operations in mathematics, Cython would make a better choice.
+I've found this initial prototype to be unstable so the boxing and unboxing has been completely rewritten.
+
+Pyjion's escape analysis is acheived using an instruction graph to traverse supported unboxed types and opcodes then to tag transition stack variables as unboxed.
+This functionality complements PGC.
 
 Tracing/profiling
 ~~~~~~~~~~~~~~~~~
@@ -130,10 +132,6 @@ Optimization Matrix
      - Off
      - On
      - On
-   * - :ref:`OPT-8`
-     - Off
-     - On
-     - On
    * - :ref:`OPT-9`
      - Off
      - On
@@ -155,6 +153,14 @@ Optimization Matrix
      - On
      - On
    * - :ref:`OPT-14`
+     - Off
+     - On
+     - On
+   * - :ref:`OPT-15`
+     - Off
+     - On
+     - On
+   * - :ref:`OPT-16`
      - Off
      - On
      - On

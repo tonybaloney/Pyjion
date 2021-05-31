@@ -35,7 +35,6 @@ typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #include <Python.h>
 #include "pycomp.h"
 #include "pyjit.h"
-#include "pyjitmath.h"
 
 using namespace std;
 extern BaseModule g_module;
@@ -171,11 +170,11 @@ void PythonCompiler::emit_binary_object(uint16_t opcode, AbstractValueWithSource
 
     if (emit_guard){
         emit_load_local(leftLocal);
-        LD_FIELD(PyObject, ob_type);
+        LD_FIELDI(PyObject, ob_type);
         emit_ptr(left.Value->pythonType());
         emit_branch(BranchNotEqual, execute_fallback);
         emit_load_local(rightLocal);
-        LD_FIELD(PyObject, ob_type);
+        LD_FIELDI(PyObject, ob_type);
         emit_ptr(right.Value->pythonType());
         emit_branch(BranchNotEqual, execute_fallback);
     }
@@ -679,8 +678,10 @@ void PythonCompiler::emit_known_binary_op_power(AbstractValueWithSources &left, 
     }
 }
 
-void PythonCompiler::emit_triple_binary_op(uint16_t firstOp, uint16_t secondOp) {
-    m_il.ld_i4(firstOp);
-    m_il.ld_i4(secondOp);
-    m_il.emit_call(METHOD_TRIPLE_BINARY_OP);
+void PythonCompiler::emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
+    if (left.hasValue() && left.Value->kind() == AVK_Float){
+        emit_binary_float(opcode);
+    } else {
+        assert("Not supported");
+    }
 }

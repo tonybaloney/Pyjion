@@ -32,11 +32,7 @@
 
 #include "absint.h"
 #include "pyjit.h"
-#include "pyjitmath.h"
-
-#define SIZEOF_CODEUNIT sizeof(_Py_CODEUNIT)
-#define GET_OPARG(index)  _Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
-#define GET_OPCODE(index) _Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
+#include "pycomp.h"
 
 #define PGC_READY() g_pyjionSettings.pgc && profile != nullptr
 
@@ -45,9 +41,20 @@
 #define PGC_UPDATE_STACK(count) \
     if (pgc_status == PgcStatus::CompiledWithProbes) {                      \
         for (int pos = 0; pos < (count) ; pos++) \
-            lastState.push_n(pos, lastState.fromPgc(pos, profile->getType(curByte, pos), profile->getValue(curByte, pos), addPgcSource(opcodeIndex))); \
+            lastState.push_n(pos,                                           \
+                             lastState.fromPgc(                             \
+                                pos,                                        \
+                                profile->getType(curByte, pos),             \
+                                profile->getValue(curByte, pos)));          \
         mStartStates[curByte] = lastState; \
     }
+#define POP_VALUE() \
+    lastState.pop(curByte, stackPosition); stackPosition++;
+
+#define PUSH_INTERMEDIATE(ty) \
+    lastState.push(AbstractValueWithSources((ty), newSource(new IntermediateSource(curByte))));
+#define PUSH_INTERMEDIATE_TO(ty, to) \
+    (to).push(AbstractValueWithSources((ty), newSource(new IntermediateSource(curByte))));
 
 AbstractInterpreter::AbstractInterpreter(PyCodeObject *code, IPythonCompiler* comp) : mReturnValue(&Undefined), mCode(code), m_comp(comp) {
     mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
@@ -181,7 +188,7 @@ void AbstractInterpreter::setLocalType(size_t index, PyObject* val) {
     auto& lastState = mStartStates[0];
     if (val != nullptr) {
         auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val));
-        localInfo.ValueInfo.Sources = newSource(new LocalSource());
+        localInfo.ValueInfo.Sources = newSource(new LocalSource(index));
         lastState.replaceLocal(index, localInfo);
     }
 }
@@ -248,6 +255,8 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
             size_t curStackLen = lastState.stackSize();
             int jump = 0;
             bool skipEffect = false;
+            size_t stackPosition = 0;
+
             switch (opcode) {
                 case EXTENDED_ARG: {
                     curByte += SIZEOF_CODEUNIT;
@@ -259,43 +268,49 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case NOP:
                     break;
                 case ROT_TWO: {
-                    auto top = lastState.popNoEscape();
-                    auto second = lastState.popNoEscape();
+                    auto top = POP_VALUE();
+                    auto second = POP_VALUE();
 
                     auto sources = AbstractSource::combine(top.Sources, second.Sources);
                     m_opcodeSources[opcodeIndex] = sources;
-
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    second.Sources = newSource(new IntermediateSource(curByte));
                     lastState.push(top);
                     lastState.push(second);
                     break;
                 }
                 case ROT_THREE: {
-                    auto top = lastState.popNoEscape();
-                    auto second = lastState.popNoEscape();
-                    auto third = lastState.popNoEscape();
+                    auto top = POP_VALUE();
+                    auto second = POP_VALUE();
+                    auto third = POP_VALUE();
 
                     auto sources = AbstractSource::combine(
                             top.Sources,
                             AbstractSource::combine(second.Sources, third.Sources));
                     m_opcodeSources[opcodeIndex] = sources;
-
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    second.Sources = newSource(new IntermediateSource(curByte));
+                    third.Sources = newSource(new IntermediateSource(curByte));
                     lastState.push(top);
                     lastState.push(third);
                     lastState.push(second);
                     break;
                 }
                 case ROT_FOUR: {
-                    auto top = lastState.popNoEscape();
-                    auto second = lastState.popNoEscape();
-                    auto third = lastState.popNoEscape();
-                    auto fourth = lastState.popNoEscape();
+                    auto top = POP_VALUE();
+                    auto second = POP_VALUE();
+                    auto third = POP_VALUE();
+                    auto fourth = POP_VALUE();
 
                     auto sources = AbstractSource::combine(
                             top.Sources,
                             AbstractSource::combine(second.Sources,
                                                     AbstractSource::combine(third.Sources, fourth.Sources)));
                     m_opcodeSources[opcodeIndex] = sources;
-
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    second.Sources = newSource(new IntermediateSource(curByte));
+                    third.Sources = newSource(new IntermediateSource(curByte));
+                    fourth.Sources = newSource(new IntermediateSource(curByte));
                     lastState.push(top);
                     lastState.push(fourth);
                     lastState.push(third);
@@ -303,23 +318,27 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 }
                 case POP_TOP:
-                    lastState.pop();
+                    POP_VALUE();
                     break;
-                case DUP_TOP:
-                    lastState.push(lastState[lastState.stackSize() - 1]);
+                case DUP_TOP: {
+                    auto top = lastState[lastState.stackSize() - 1];
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    lastState.push(top);
                     break;
+                }
                 case DUP_TOP_TWO: {
                     auto top = lastState[lastState.stackSize() - 1];
                     auto second = lastState[lastState.stackSize() - 2];
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    second.Sources = newSource(new IntermediateSource(curByte));
                     lastState.push(second);
                     lastState.push(top);
                     break;
                 }
                 case RERAISE: {
-                    // Doesn't actually work this way
-                    lastState.pop();
-                    lastState.pop();
-                    lastState.pop();
+                    POP_VALUE();
+                    POP_VALUE();
+                    POP_VALUE();
                     break;
                 }
                 case LOAD_CONST: {
@@ -335,14 +354,12 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case LOAD_FAST: {
                     auto localSource = addLocalSource(opcodeIndex, oparg);
                     auto local = lastState.getLocal(oparg);
-
-                    local.ValueInfo.Sources = AbstractSource::combine(localSource, local.ValueInfo.Sources);
-
+                    local.ValueInfo.Sources = localSource;
                     lastState.push(local.ValueInfo);
                     break;
                 }
                 case STORE_FAST: {
-                    auto valueInfo = lastState.popNoEscape();
+                    auto valueInfo = POP_VALUE();
                     m_opcodeSources[opcodeIndex] = valueInfo.Sources;
                     lastState.replaceLocal(oparg, AbstractLocalInfo(valueInfo, valueInfo.Value == &Undefined));
                 }
@@ -385,22 +402,21 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         PGC_PROBE(2);
                         PGC_UPDATE_STACK(2);
                     }
-                    two = lastState.popNoEscape();
-                    one = lastState.popNoEscape();
+                    two = POP_VALUE();
+                    one = POP_VALUE();
 
                     auto out = one.Value->binary(one.Sources, opcode, two);
-                    lastState.push(out);
+                    PUSH_INTERMEDIATE(out)
                 }
                 break;
                 case POP_JUMP_IF_FALSE: {
-                    auto value = lastState.popNoEscape();
+                    auto value = POP_VALUE();
 
                     // merge our current state into the branched to location...
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
                     }
 
-                    value.Value->truth(value.Sources);
                     if (value.Value->isAlwaysFalse()) {
                         // We're always jumping, we don't need to process the following opcodes...
                         goto next;
@@ -410,14 +426,13 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 }
                 case POP_JUMP_IF_TRUE: {
-                    auto value = lastState.popNoEscape();
+                    auto value = POP_VALUE();
 
                     // merge our current state into the branched to location...
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
                     }
 
-                    value.Value->truth(value.Sources);
                     if (value.Value->isAlwaysTrue()) {
                         // We're always jumping, we don't need to process the following opcodes...
                         goto next;
@@ -431,8 +446,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
                     }
-                    auto value = lastState.popNoEscape();
-                    value.Value->truth(value.Sources);
+                    auto value = POP_VALUE();
                     if (value.Value->isAlwaysTrue()) {
                         // we always jump, no need to analyze the following instructions...
                         goto next;
@@ -444,8 +458,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
                     }
-                    auto value = lastState.popNoEscape();
-                    value.Value->truth(value.Sources);
+                    auto value = POP_VALUE();
                     if (value.Value->isAlwaysFalse()) {
                         // we always jump, no need to analyze the following instructions...
                         goto next;
@@ -453,8 +466,8 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 }
                     break;
                 case JUMP_IF_NOT_EXC_MATCH:
-                    lastState.pop();
-                    lastState.pop();
+                    POP_VALUE();
+                    POP_VALUE();
 
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
@@ -475,25 +488,25 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     // to the following opcodes before we'll process them.
                     goto next;
                 case RETURN_VALUE: {
-                    // We don't treat returning as escaping as it would just result in a single
-                    // boxing over the lifetime of the function.
-                    auto retValue = lastState.popNoEscape();
+                    auto retValue = POP_VALUE();
                     mReturnValue = mReturnValue->mergeWith(retValue.Value);
                     }
                     goto next;
-                case LOAD_NAME:
+                case LOAD_NAME: {
                     // Used to load __name__ for a class def
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case STORE_NAME:
                     // Stores __module__, __doc__, __qualname__, as well as class/function defs sometimes
-                    lastState.pop();
+                    POP_VALUE();
                     break;
                 case DELETE_NAME:
                     break;
-                case LOAD_CLASSDEREF:
-                    lastState.push(&Any);
+                case LOAD_CLASSDEREF: {
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case LOAD_GLOBAL: {
                     auto name = PyTuple_GetItem(mCode->co_names, oparg);
 
@@ -504,7 +517,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         if (v == nullptr) {
                             PyErr_Clear();
                             // Neither. Maybe it'll appear at runtime!!
-                            lastState.push(&Any);
+                            PUSH_INTERMEDIATE(&Any);
                         }
                         else {
                             // Builtin source
@@ -529,62 +542,67 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 }
                 case STORE_GLOBAL:
-                    lastState.pop();
+                    POP_VALUE();
                     break;
-                case LOAD_ATTR:
-                    if (PGC_READY()){
+                case LOAD_ATTR: {
+                    if (PGC_READY()) {
                         PGC_PROBE(1);
                         PGC_UPDATE_STACK(1);
                     }
-                    lastState.pop();
-                    lastState.push(&Any);
-                    break;
-                case STORE_ATTR:
-                    lastState.pop();
-                    lastState.pop();
-                    break;
-                case DELETE_ATTR:
-                    lastState.pop();
-                    break;
-                case BUILD_LIST:
-                    for (int i = 0; i < oparg; i++) {
-                        lastState.pop();
-                    }
-                    lastState.push(&List);
-                    break;
-                case BUILD_TUPLE: {
-                    for (int i = 0; i < oparg; i++) {
-                        lastState.pop();
-                    }
-                    lastState.push(&Tuple);
+                    POP_VALUE();
+                    PUSH_INTERMEDIATE(&Any);
                     break;
                 }
-                case BUILD_MAP:
-                    for (int i = 0; i < oparg; i++) {
-                        lastState.pop();
-                        lastState.pop();
-                    }
-                    lastState.push(&Dict);
+                case STORE_ATTR:
+                    POP_VALUE();
+                    POP_VALUE();
                     break;
+                case DELETE_ATTR:
+                    POP_VALUE();
+                    break;
+                case BUILD_LIST: {
+                    for (int i = 0; i < oparg; i++) {
+                        POP_VALUE();
+                    }
+                    PUSH_INTERMEDIATE(&List);
+                    break;
+                }
+                case BUILD_TUPLE: {
+                    for (int i = 0; i < oparg; i++) {
+                        POP_VALUE();
+                    }
+                    PUSH_INTERMEDIATE(&Tuple);
+                    break;
+                }
+                case BUILD_MAP: {
+                    for (int i = 0; i < oparg; i++) {
+                        POP_VALUE();
+                        POP_VALUE();
+                    }
+                    PUSH_INTERMEDIATE(&Dict);
+                    break;
+                }
                 case COMPARE_OP: {
                     if (PGC_READY()){
                         PGC_PROBE(2);
                         PGC_UPDATE_STACK(2);
                     }
-                    lastState.pop();
-                    lastState.pop();
-                    lastState.push(&Any);
+                    POP_VALUE();
+                    POP_VALUE();
+                    PUSH_INTERMEDIATE(&Bool);
                 }
                 break;
-                case IMPORT_NAME:
-                    lastState.pop();
-                    lastState.pop();
-                    lastState.push(&Any);
+                case IMPORT_NAME: {
+                    POP_VALUE();
+                    POP_VALUE();
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case IMPORT_FROM:
-                case LOAD_CLOSURE:
-                    lastState.push(&Any);
+                case LOAD_CLOSURE: {
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case CALL_FUNCTION: {
                     if (PGC_READY()){
                         PGC_PROBE(oparg + 1);
@@ -592,20 +610,19 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     }
                     int argCnt = oparg & 0xff;
                     int kwArgCnt = (oparg >> 8) & 0xff;
-
                     for (int i = 0; i < argCnt; i++) {
-                        lastState.pop();
+                        POP_VALUE();
                     }
                     for (int i = 0; i < kwArgCnt; i++) {
-                        lastState.pop();
-                        lastState.pop();
+                        POP_VALUE();
+                        POP_VALUE();
                     }
 
                     // pop the function...
-                    auto func = lastState.popNoEscape();
+                    auto func = POP_VALUE();
                     auto source = AbstractValueWithSources(
                         avkToAbstractValue(knownFunctionReturnType(func)),
-                        newSource(new LocalSource()));
+                        newSource(new LocalSource(curByte)));
                     lastState.push(source);
                     break;
                 }
@@ -613,94 +630,98 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     int na = oparg;
 
                     // Pop the names tuple
-                    auto names = lastState.popNoEscape();
+                    auto names = POP_VALUE();
                     assert(names.Value->kind() == AVK_Tuple);
 
                     for (int i = 0; i < na; i++) {
-                        lastState.pop();
+                        POP_VALUE();
                     }
 
                     // pop the function
-                    lastState.pop();
+                    POP_VALUE();
 
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
                 }
-                case CALL_FUNCTION_EX:
+                case CALL_FUNCTION_EX: {
                     if (oparg & 0x01) {
                         // kwargs
-                        lastState.pop();
+                        POP_VALUE();
                     }
 
                     // call args (iterable)
-                    lastState.pop();
+                    POP_VALUE();
                     // function
-                    lastState.pop();
+                    POP_VALUE();
 
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case MAKE_FUNCTION: {
-                    lastState.pop(); // qual name
-                    lastState.pop(); // code
+                    POP_VALUE(); // qual name
+                    POP_VALUE(); // code
 
                     if (oparg & 0x08) {
                         // closure object
-                        lastState.pop();
+                        POP_VALUE();
                     }
                     if (oparg & 0x04) {
                         // annotations
-                        lastState.pop();
+                        POP_VALUE();
                     }
                     if (oparg & 0x02) {
                         // kw defaults
-                        lastState.pop();
+                        POP_VALUE();
                     }
                     if (oparg & 0x01) {
                         // defaults
-                        lastState.pop();
+                        POP_VALUE();
                     }
 
-                    lastState.push(&Function);
+                    PUSH_INTERMEDIATE(&Function);
                     break;
                 }
-                case BUILD_SLICE:
+                case BUILD_SLICE: {
                     for (int i = 0; i < oparg; i++) {
-                        lastState.pop();
+                        POP_VALUE();
                     }
-                    lastState.push(&Slice);
+                    PUSH_INTERMEDIATE(&Slice);
                     break;
+                }
                 case UNARY_POSITIVE:
                 case UNARY_NEGATIVE:
                 case UNARY_INVERT:
                 case UNARY_NOT: {
-                    auto in = lastState.popNoEscape();
+                    auto in = POP_VALUE();
                     auto out = in.Value->unary(in.Sources, opcode);
-                    lastState.push(out);
+                    PUSH_INTERMEDIATE(out);
                     break;
                 }
-                case UNPACK_EX:
-                    lastState.pop();
+                case UNPACK_EX: {
+                    POP_VALUE();
                     for (int i = 0; i < oparg >> 8; i++) {
-                        lastState.push(&Any);
+                        PUSH_INTERMEDIATE(&Any);
                     }
-                    lastState.push(&List);
+                    PUSH_INTERMEDIATE(&List);
                     for (int i = 0; i < (oparg & 0xff); i++) {
-                        lastState.push(&Any);
+                        PUSH_INTERMEDIATE(&Any);
                     }
                     break;
-                case UNPACK_SEQUENCE:
-                    if (PGC_READY()){
+                }
+                case UNPACK_SEQUENCE: {
+                    if (PGC_READY()) {
                         PGC_PROBE(1);
                         PGC_UPDATE_STACK(1);
                     }
-                    lastState.pop();
+                    POP_VALUE();
                     for (int i = 0; i < oparg; i++) {
-                        lastState.push(&Any);
+                        PUSH_INTERMEDIATE(&Any);
                     }
                     break;
+                }
                 case RAISE_VARARGS:
                     for (int i = 0; i < oparg; i++) {
-                        lastState.pop();
+                        POP_VALUE();
                     }
                     goto next;
                 case STORE_SUBSCR:
@@ -708,45 +729,47 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         PGC_PROBE(3);
                         PGC_UPDATE_STACK(3);
                     }
-                    lastState.pop();
-                    lastState.pop();
-                    lastState.pop();
+                    POP_VALUE();
+                    POP_VALUE();
+                    POP_VALUE();
                     break;
                 case DELETE_SUBSCR:
-                    lastState.pop();
-                    lastState.pop();
+                    POP_VALUE();
+                    POP_VALUE();
                     break;
-                case BUILD_SET:
+                case BUILD_SET: {
                     for (int i = 0; i < oparg; i++) {
-                        lastState.pop();
+                        POP_VALUE();
                     }
-                    lastState.push(&Set);
+                    PUSH_INTERMEDIATE(&Set);
                     break;
+                }
                 case STORE_DEREF:
                     // There is no tracking of cell variables.
-                    lastState.pop();
+                    POP_VALUE();
                     break;
-                case LOAD_DEREF:
+                case LOAD_DEREF: {
                     // There is no tracking of cell variables.
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case DELETE_DEREF:
                     // Since cell variables are not tracked, no need to worry
                     // about their deletion.
                     break;
                 case GET_ITER: {
-                    auto iteratorType = lastState.popNoEscape();
+                    auto iteratorType = POP_VALUE();
                     // TODO : Allow guarded/PGC sources to be optimized.
                     auto source = AbstractValueWithSources(
                             &Iterable,
-                            newSource(new IteratorSource(iteratorType.Value->needsGuard() ? AVK_Any: iteratorType.Value->kind())));
+                            newSource(new IteratorSource(iteratorType.Value->needsGuard() ? AVK_Any: iteratorType.Value->kind(), curByte)));
                     lastState.push(source);
                 }
                     break;
                 case FOR_ITER: {
                     // For branches out with the value consumed
                     auto leaveState = lastState;
-                    leaveState.pop(); // Iterator
+                    leaveState.pop(curByte, 0); // Iterator
                     if (updateStartState(leaveState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
                         queue.push_back((size_t) oparg + curByte + SIZEOF_CODEUNIT);
                     }
@@ -754,89 +777,95 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     // When we compile this we don't actually leave the value on the stack,
                     // but the sequence of opcodes assumes that happens.  to keep our stack
                     // properly balanced we match what's really going on.
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
                 }
-                case POP_BLOCK:
+                case POP_BLOCK: {
                     lastState.mStack = mStartStates[m_blockStarts[opcodeIndex]].mStack;
-                    lastState.push(&Any);
-                    lastState.push(&Any);
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
+                    PUSH_INTERMEDIATE(&Any);
+                    PUSH_INTERMEDIATE(&Any);
+                }
                 case POP_EXCEPT:
                     skipEffect = true;
                     break;
-                case LOAD_BUILD_CLASS:
+                case LOAD_BUILD_CLASS: {
                     // TODO: if we know this is __builtins__.__build_class__ we can push a special value
                     // to optimize the call.f
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
+                }
                 case SET_ADD:
-                    lastState.pop();
+                    POP_VALUE();
                     break;
-                case LIST_APPEND:
+                case LIST_APPEND: {
                     // pop the value being stored off, leave list on stack
-                    lastState.pop();
-                    lastState.pop();
-                    lastState.push(&List);
+                    POP_VALUE();
+                    POP_VALUE();
+                    PUSH_INTERMEDIATE(&List);
                     break;
-                case MAP_ADD:
+                }
+                case MAP_ADD: {
                     // pop the value and key being stored off, leave list on stack
-                    lastState.pop();
-                    lastState.pop();
-                    lastState.pop();
-                    lastState.push(&Dict);
+                    POP_VALUE();
+                    POP_VALUE();
+                    POP_VALUE();
+                    PUSH_INTERMEDIATE(&Dict);
+                }
                     break;
-                case FORMAT_VALUE:
+                case FORMAT_VALUE: {
                     if ((oparg & FVS_MASK) == FVS_HAVE_SPEC) {
                         // format spec
-                        lastState.pop();
+                        POP_VALUE();
                     }
-                    lastState.pop();
-                    lastState.push(&String);
+                    POP_VALUE();
+                    PUSH_INTERMEDIATE(&String);
                     break;
-                case BUILD_STRING:
+                }
+                case BUILD_STRING: {
                     for (auto i = 0; i < oparg; i++) {
-                        lastState.pop();
+                        POP_VALUE();
                     }
-                    lastState.push(&String);
+                    PUSH_INTERMEDIATE(&String);
                     break;
+                }
                 case SETUP_ASYNC_WITH:
                 case SETUP_WITH: {
                     auto finallyState = lastState;
-                    finallyState.push(&Any);
+                    PUSH_INTERMEDIATE_TO(&Any, finallyState);
                     if (updateStartState(finallyState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
                         jump = 1;
                         queue.push_back((size_t) oparg + curByte + SIZEOF_CODEUNIT);
                     }
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     goto next;
                 }
                 case SETUP_FINALLY: {
                     auto ehState = lastState;
                     // Except is entered with the exception object, traceback, and exception
                     // type.  TODO: We could type these stronger then they currently are typed
-                    ehState.push(&Any);
-                    ehState.push(&Any);
-                    ehState.push(&Any);
-                    ehState.push(&Any);
-                    ehState.push(&Any);
-                    ehState.push(&Any);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
+                    PUSH_INTERMEDIATE_TO(&Any, ehState);
                     if (updateStartState(ehState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
                         queue.push_back((size_t)oparg + curByte + SIZEOF_CODEUNIT);
                     }
                     break;
                 }
                 case BUILD_CONST_KEY_MAP:
-                    lastState.pop(); //keys
+                    POP_VALUE(); //keys
                     for (auto i = 0; i < oparg; i++) {
-                        lastState.pop(); // values
+                        POP_VALUE(); // values
                     }
-                    lastState.push(&Dict);
+                    PUSH_INTERMEDIATE(&Dict);
                     break;
                 case LOAD_METHOD: {
                     auto method = AbstractValueWithSources(
                             &Method,
-                            newSource(new MethodSource(utf8_names[oparg])));
+                            newSource(new MethodSource(utf8_names[oparg], curByte)));
                     lastState.push(method);
                     break;
                 }
@@ -861,23 +890,24 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         PGC_PROBE(1 + oparg);
                         PGC_UPDATE_STACK(1 + oparg);
                     }
-                    auto method = lastState.popNoEscape();
-                    auto self = lastState.pop();
+                    auto method = POP_VALUE();
+                    auto self = POP_VALUE();
                     for (int i = 0 ; i < oparg; i++)
-                        lastState.pop();
-                    if (method.hasValue() && method.Value->kind() == AVK_Method && self->known()){
+                        POP_VALUE();
+                    if (method.hasValue() && method.Value->kind() == AVK_Method && self.Value->known()){
                         auto meth_source = dynamic_cast<MethodSource*>(method.Sources);
-                        lastState.push(avkToAbstractValue(avkToAbstractValue(self->kind())->resolveMethod(meth_source->name())));
+                        lastState.push(AbstractValueWithSources(avkToAbstractValue(avkToAbstractValue(self.Value->kind())->resolveMethod(meth_source->name())),
+                                                                newSource(new IntermediateSource(curByte))));
                     } else {
-                        lastState.push(&Any); // push result.
+                        PUSH_INTERMEDIATE(&Any);
                     }
                     break;
                 }
                 case IS_OP:
                 case CONTAINS_OP:
-                    lastState.pop();
-                    lastState.pop();
-                    lastState.push(&Bool);
+                    POP_VALUE();
+                    POP_VALUE();
+                    PUSH_INTERMEDIATE(&Bool);
                     break;
                 case WITH_EXCEPT_START: {
                     // TODO: Implement WITH_EXCEPT_START
@@ -890,19 +920,19 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                        return value.
                     */
                     return IncompatibleOpcode_WithExcept; // not implemented
-                    auto top = lastState.pop(); // exc
-                    auto second = lastState.pop(); // val
-                    auto third = lastState.pop(); // tb
-                    auto seventh = lastState[lastState.stackSize() - 7]; // exit_func
-                    // TODO : Vectorcall (exit_func, stack+1, 3, ..)
-                    lastState.push(&Any); // res
-                    break;
+//                    auto top = POP_VALUE(); // exc
+//                    auto second = POP_VALUE(); // val
+//                    auto third = POP_VALUE(); // tb
+//                    auto seventh = lastState[lastState.stackSize() - 7]; // exit_func
+//                    // TODO : Vectorcall (exit_func, stack+1, 3, ..)
+//                    lastState.push(&Any); // res
+//                    break;
                 }
                 case LIST_EXTEND:
                 {
-                    lastState.pop();
-                    lastState.pop();
-                    lastState.push(&List);
+                    POP_VALUE();
+                    POP_VALUE();
+                    PUSH_INTERMEDIATE(&List);
                     break;
                 }
                 case DICT_UPDATE:
@@ -910,22 +940,22 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case DICT_MERGE:
                 case PRINT_EXPR:
                 {
-                    lastState.pop(); // value
+                    POP_VALUE(); // value
                     break;
                 }
                 case LIST_TO_TUPLE:
                 {
-                    lastState.pop(); // list
-                    lastState.push(&Tuple); // tuple
+                    POP_VALUE(); // list
+                    PUSH_INTERMEDIATE(&Tuple);
                     break;
                 }
                 case LOAD_ASSERTION_ERROR:
                 {
-                    lastState.push(&Any);
+                    PUSH_INTERMEDIATE(&Any);
                     break;
                 }
                 case IMPORT_STAR:
-                    lastState.pop();
+                    POP_VALUE();
                     break;
                 case DELETE_GLOBAL:
                 case SETUP_ANNOTATIONS:
@@ -1073,7 +1103,7 @@ AbstractValue* AbstractInterpreter::getReturnInfo() {
 AbstractSource* AbstractInterpreter::addLocalSource(size_t opcodeIndex, size_t localIndex) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new LocalSource());
+        return m_opcodeSources[opcodeIndex] = newSource(new LocalSource(opcodeIndex));
     }
 
     return store->second;
@@ -1082,7 +1112,7 @@ AbstractSource* AbstractInterpreter::addLocalSource(size_t opcodeIndex, size_t l
 AbstractSource* AbstractInterpreter::addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new GlobalSource(name, value));
+        return m_opcodeSources[opcodeIndex] = newSource(new GlobalSource(name, value, opcodeIndex));
     }
 
     return store->second;
@@ -1091,7 +1121,7 @@ AbstractSource* AbstractInterpreter::addGlobalSource(size_t opcodeIndex, size_t 
 AbstractSource* AbstractInterpreter::addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new BuiltinSource(name, value));
+        return m_opcodeSources[opcodeIndex] = newSource(new BuiltinSource(name, value, opcodeIndex));
     }
 
     return store->second;
@@ -1100,22 +1130,14 @@ AbstractSource* AbstractInterpreter::addBuiltinSource(size_t opcodeIndex, size_t
 AbstractSource* AbstractInterpreter::addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value) {
     auto store = m_opcodeSources.find(opcodeIndex);
     if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new ConstSource(value));
+        return m_opcodeSources[opcodeIndex] = newSource(new ConstSource(value, opcodeIndex));
     }
 
     return store->second;
 }
 
-AbstractSource* AbstractInterpreter::addPgcSource(size_t opcodeIndex) {
-    auto store = m_opcodeSources.find(opcodeIndex);
-    if (store == m_opcodeSources.end()) {
-        return m_opcodeSources[opcodeIndex] = newSource(new PgcSource());
-    }
-    return store->second;
-}
-
- // Checks to see if we have a non-zero error code on the stack, and if so,
- // branches to the current error handler.  Consumes the error code in the process
+// Checks to see if we have a non-zero error code on the stack, and if so,
+// branches to the current error handler.  Consumes the error code in the process
 void AbstractInterpreter::intErrorCheck(const char* reason, size_t curByte) {
     auto noErr = m_comp->emit_define_label();
     m_comp->emit_branch(BranchFalse, noErr);
@@ -1135,6 +1157,27 @@ void AbstractInterpreter::errorCheck(const char *reason, size_t curByte) {
     branchRaise(reason, curByte);
     m_comp->emit_mark_label(noErr);
     m_comp->emit_load_local(mErrorCheckLocal);
+}
+
+void AbstractInterpreter::floatErrorCheck(const char *reason, size_t curByte, py_opcode opcode) {
+    auto noErr = m_comp->emit_define_label();
+    Local errorCheckLocal = m_comp->emit_define_local(LK_Float); // TODO : Work out actual type.
+    m_comp->emit_store_local(errorCheckLocal);
+    if (canReturnInfinity(opcode)) {
+        m_comp->emit_load_local(errorCheckLocal);
+        m_comp->emit_infinity();
+        m_comp->emit_branch(BranchNotEqual, noErr);
+        m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero/operation infinite");
+        branchRaise(reason, curByte);
+    }
+
+    m_comp->emit_load_local(errorCheckLocal);
+    m_comp->emit_nan();
+    m_comp->emit_branch(BranchNotEqual, noErr);
+    branchRaise(reason, curByte);
+
+    m_comp->emit_mark_label(noErr);
+    m_comp->emit_load_and_free_local(errorCheckLocal);
 }
 
 Label AbstractInterpreter::getOffsetLabel(size_t jumpTo) {
@@ -1192,7 +1235,7 @@ void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
 
     auto cur = m_stack.rbegin();
     for (; cur != m_stack.rend() && count >= 0; cur++) {
-        if (*cur == STACK_KIND_VALUE) {
+        if (*cur != STACK_KIND_OBJECT) {
             count--;
             m_comp->emit_pop();
         }
@@ -1216,7 +1259,7 @@ void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
 
     // continue walking our stack iterator
     for (auto i = 0; i < count; cur++, i++) {
-        if (*cur == STACK_KIND_VALUE) {
+        if (*cur != STACK_KIND_OBJECT) {
             // pop off the stack value...
             m_comp->emit_pop();
 
@@ -1275,7 +1318,7 @@ void AbstractInterpreter::extendList(size_t argCnt) {
     decStack();
     extendListRecursively(listTmp, argCnt);
     m_comp->emit_load_and_free_local(listTmp);
-    incStack(1, STACK_KIND_OBJECT);
+    incStack(1);
 }
 
 void AbstractInterpreter::buildSet(size_t argCnt) {
@@ -1457,7 +1500,54 @@ void AbstractInterpreter::popExcVars(){
     m_comp->emit_mark_label(nothing_to_pop);
 }
 
-AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status) {
+void AbstractInterpreter::emitPgcProbes(size_t curByte, size_t stackSize) {
+    vector<Local> stack;
+    stack.resize(stackSize);
+    Local hasProbedFlag = m_comp->emit_define_local(LK_Bool);
+    auto hasProbed = m_comp->emit_define_label();
+
+    m_comp->emit_load_local(hasProbedFlag);
+    m_comp->emit_branch(BranchTrue, hasProbed);
+    
+    for (size_t i = 0; i < stackSize; i++){
+        switch(m_stack.peek(i)) {
+            case STACK_KIND_OBJECT:
+                stack[i] = m_comp->emit_define_local(LK_Pointer);
+                break;
+            case STACK_KIND_VALUE_FLOAT:
+                stack[i] = m_comp->emit_define_local(LK_Float);
+                break;
+            case STACK_KIND_VALUE_INT:
+                stack[i] = m_comp->emit_define_local(LK_Int);
+                break;
+        }
+        m_comp->emit_store_local(stack[i]);
+        if (m_stack.peek(i) == STACK_KIND_OBJECT) {
+            m_comp->emit_pgc_profile_capture(stack[i], curByte, i);
+        }
+    }
+    m_comp->emit_int(1);
+    m_comp->emit_store_local(hasProbedFlag);
+    // Recover the stack in the right order
+    for (size_t i = stackSize; i > 0; --i){
+        m_comp->emit_load_and_free_local(stack[i-1]);
+    }
+
+    m_comp->emit_mark_label(hasProbed);
+}
+bool canReturnInfinity(int opcode){
+    switch(opcode){
+        case BINARY_TRUE_DIVIDE:
+        case BINARY_FLOOR_DIVIDE:
+        case INPLACE_TRUE_DIVIDE:
+        case INPLACE_FLOOR_DIVIDE:
+        case BINARY_MODULO:
+        case INPLACE_MODULO:
+            return true;
+    }
+    return false;
+}
+AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status, InstructionGraph* graph) {
     Label ok;
 
     m_comp->emit_lasti_init();
@@ -1501,15 +1591,16 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
     // Loop through all opcodes in this frame
     for (size_t curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
         assert(curByte % SIZEOF_CODEUNIT == 0);
+        auto op = graph->operator[](curByte);
 
         // opcodeIndex is the opcode position (matches the dis.dis() output)
         auto opcodeIndex = curByte;
 
         // Get the opcode identifier (see opcode.h)
-        auto byte = GET_OPCODE(curByte);
+        auto byte = op.opcode;
 
         // Get an additional oparg, see dis help for information on what each means
-        size_t oparg = GET_OPARG(curByte);
+        size_t oparg = op.oparg;
 
     processOpCode:
         markOffsetLabel(curByte);
@@ -1540,18 +1631,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         size_t curStackSize = m_stack.size();
         bool skipEffect = false;
 
+        auto edges = graph->getEdges(curByte);
         if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status)){
-            m_comp->emit_pgc_probe(curByte, pgcProbeSize(curByte));
+            emitPgcProbes(curByte, pgcProbeSize(curByte));
         }
 
-        if (OPT_ENABLED(tripleBinaryFunctions) && stackInfo.size() >= 2 && nextStackInfo.size() >= 1 && canBeOptimized(byte, next_byte, stackInfo.top().Value->kind(), stackInfo.second().Value->kind(), nextStackInfo.top().Value->kind())){
-            m_comp->emit_triple_binary_op(byte, next_byte);
-            decStack(3);
-            errorCheck("binary math op failed", curByte);
-            incStack();
-            curByte += SIZEOF_CODEUNIT;
-            continue;
-        }
         if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() >= (1 + oparg)){
             bool optimized ;
             if (oparg == 3) {
@@ -1566,6 +1650,9 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 curByte += SIZEOF_CODEUNIT;
                 continue;
             } // Else, use normal compilation path.
+        }
+        if (OPT_ENABLED(unboxing)) {
+            m_comp->emit_escape_edges(edges);
         }
 
         switch (byte) {
@@ -1598,14 +1685,29 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_comp->emit_dup_top_two();
                 break;
             case COMPARE_OP: {
-                if ((OPT_ENABLED(internRichCompare) || OPT_ENABLED(compare)) && stackInfo.size() >= 2){
-                    m_comp->emit_compare_known_object(static_cast<int>(oparg), stackInfo.second(), stackInfo.top());
+                if (stackInfo.size() >= 2){
+                    if (OPT_ENABLED(unboxing) && op.escape) {
+                        m_comp->emit_compare_unboxed(oparg, stackInfo.second(), stackInfo.top());
+                        decStack(2);
+                        incStack(1, STACK_KIND_VALUE_INT);
+                    } else if (OPT_ENABLED(internRichCompare)){
+                        m_comp->emit_compare_known_object(static_cast<int>(oparg), stackInfo.second(), stackInfo.top());
+                        decStack(2);
+                        errorCheck("failed to compare", curByte);
+                        incStack(1);
+                    } else {
+                        m_comp->emit_compare_object(static_cast<int>(oparg));
+                        decStack(2);
+                        errorCheck("failed to compare", curByte);
+                        incStack(1);
+                    }
                 } else {
                     m_comp->emit_compare_object(static_cast<int>(oparg));
+                    decStack(2);
+                    errorCheck("failed to compare", curByte);
+                    incStack(1);
                 }
-                decStack(2);
-                errorCheck("failed to compare", curByte);
-                incStack(1);
+
                 break; }
             case LOAD_BUILD_CLASS:
                 m_comp->emit_load_build_class();
@@ -1630,7 +1732,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case POP_JUMP_IF_TRUE:
             case POP_JUMP_IF_FALSE:
-                popJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
+                if (OPT_ENABLED(unboxing) && op.escape) {
+                    unboxedPopJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
+                } else {
+                    popJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
+                }
                 break;
             case LOAD_NAME:
                 if (OPT_ENABLED(hashedNames)){
@@ -1807,11 +1913,23 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 buildSet(oparg);
                 break;
             case UNARY_POSITIVE:
-                unaryPositive(opcodeIndex); break;
+                m_comp->emit_unary_positive();
+                decStack();
+                errorCheck("unary positive failed", opcodeIndex);
+                incStack();
+                break;
             case UNARY_NEGATIVE:
-                unaryNegative(opcodeIndex); break;
+                m_comp->emit_unary_negative();
+                decStack();
+                errorCheck("unary negative failed", opcodeIndex);
+                incStack();
+                break;
             case UNARY_NOT:
-                unaryNot(opcodeIndex); break;
+                m_comp->emit_unary_not();
+                decStack(1);
+                errorCheck("unary not failed", opcodeIndex);
+                incStack();
+                break;
             case UNARY_INVERT:
                 m_comp->emit_unary_invert();
                 decStack(1);
@@ -1858,16 +1976,25 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case INPLACE_XOR:
             case INPLACE_OR:
                 if (stackInfo.size() >= 2) {
-                    m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
-                    decStack(2);
-                    errorCheck("optimized binary op failed", curByte);
+                    if (OPT_ENABLED(unboxing) && op.escape) {
+                        m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
+                        decStack(2);
+                        if (canReturnInfinity(byte))
+                            floatErrorCheck("unboxed binary op failed", curByte, byte);
+                        incStack(1, STACK_KIND_VALUE_FLOAT); // TODO send the correct type back
+                    } else {
+                        m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
+                        decStack(2);
+                        errorCheck("optimized binary op failed", curByte);
+                        incStack();
+                    }
                 }
                 else {
                     m_comp->emit_binary_object(byte);
                     decStack(2);
                     errorCheck("binary op failed", curByte);
+                    incStack();
                 }
-                incStack();
                 break;
             case RETURN_VALUE:
                 returnValue(opcodeIndex); break;
@@ -2021,7 +2148,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_blockStack.push_back(newBlock);
 
                 ValueStack newStack = ValueStack(m_stack);
-                newStack.inc(6, StackEntryKind::STACK_KIND_VALUE);
+                newStack.inc(6, STACK_KIND_OBJECT);
                 // This stack only gets used if an error occurs within the try:
                 m_offsetStack[jumpTo] = newStack;
                 skipEffect = true;
@@ -2300,25 +2427,25 @@ void AbstractInterpreter::testBoolAndBranch(Local value, bool isTrue, Label targ
     m_comp->emit_branch(BranchEqual, target);
 }
 
-void AbstractInterpreter::unaryPositive(size_t opcodeIndex) {
-    m_comp->emit_unary_positive();
-    decStack();
-    errorCheck("unary positive failed", opcodeIndex);
-    incStack();
+void AbstractInterpreter::updateIntermediateSources(){
+    for (auto & s : m_sources){
+        if (s->isIntermediate()){
+            auto interSource = reinterpret_cast<IntermediateSource*>(s);
+            if (interSource->markForSingleUse()){
+                m_unboxableProducers[interSource->producer()] = true;
+            }
+        }
+    }
 }
 
-void AbstractInterpreter::unaryNegative(size_t opcodeIndex) {
-    m_comp->emit_unary_negative();
-    decStack();
-    errorCheck("unary negative failed", opcodeIndex);
-    incStack();
-}
-
-void AbstractInterpreter::unaryNot(size_t opcodeIndex) {
-    m_comp->emit_unary_not();
-    decStack(1);
-    errorCheck("unary not failed", opcodeIndex);
-    incStack();
+InstructionGraph* AbstractInterpreter::buildInstructionGraph() {
+    unordered_map<size_t, const InterpreterStack*> stacks;
+    for (const auto &state: mStartStates){
+        stacks[state.first] = &state.second.mStack;
+    }
+    InstructionGraph* graph = new InstructionGraph(mCode, stacks);
+    updateIntermediateSources();
+    return graph;
 }
 
 AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status) {
@@ -2327,7 +2454,13 @@ AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins,
         return {nullptr, interpreted};
     }
     try {
-        return compileWorker(pgc_status);
+        auto instructionGraph = buildInstructionGraph();
+#ifdef DUMP_JIT_TRACES
+        instructionGraph->printGraph(PyUnicode_AsUTF8(mCode->co_name));
+#endif
+        auto result = compileWorker(pgc_status, instructionGraph);
+        delete instructionGraph;
+        return result;
     } catch (const exception& e){
 #ifdef DEBUG
         printf("Error whilst compiling : %s\n", e.what());
@@ -2557,6 +2690,18 @@ void AbstractInterpreter::popJumpIf(bool isTrue, size_t opcodeIndex, size_t jump
     // Not branching, just pop the value and fall through
     m_comp->emit_mark_label(noJump);
     m_comp->emit_pop_top();
+
+    decStack();
+    m_offsetStack[jumpTo] = ValueStack(m_stack);
+}
+
+void AbstractInterpreter::unboxedPopJumpIf(bool isTrue, size_t opcodeIndex, size_t jumpTo) {
+    if (jumpTo <= opcodeIndex){
+        m_comp->emit_pending_calls();
+    }
+    auto target = getOffsetLabel(jumpTo);
+
+    m_comp->emit_branch(isTrue ? BranchTrue : BranchFalse, target);
 
     decStack();
     m_offsetStack[jumpTo] = ValueStack(m_stack);

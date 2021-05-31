@@ -35,7 +35,7 @@ typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #include <Python.h>
 #include "pycomp.h"
 #include "pyjit.h"
-#include "pyjitmath.h"
+#include "unboxing.h"
 
 using namespace std;
 
@@ -124,7 +124,7 @@ void PythonCompiler::emit_pop_frame() {
         LD_FIELDA(PyThreadState, frame);
 
         load_frame();
-        LD_FIELD(PyFrameObject, f_back);
+        LD_FIELDI(PyFrameObject, f_back);
 
         m_il.st_ind_i();
     } else {
@@ -237,7 +237,7 @@ void PythonCompiler::decref(bool noopt) {
         m_il.load_one();                 // obj, obj, refcnt,  *refcnt, 1
         m_il.sub();                    // obj, obj, refcnt, (*refcnt - 1)
         m_il.st_ind_i();              // obj, obj
-        LD_FIELD(PyObject, ob_refcnt); // obj, refcnt
+        LD_FIELDI(PyObject, ob_refcnt); // obj, refcnt
         m_il.load_null();                 // obj, refcnt, 0
         emit_branch(BranchGreaterThan, popAndGo);
 
@@ -258,7 +258,7 @@ void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources ite
     if (iterable.Value->needsGuard()){
         passedGuard = emit_define_label(), failedGuard = emit_define_label();
         m_il.dup();
-        LD_FIELD(PyObject, ob_type);
+        LD_FIELDI(PyObject, ob_type);
         emit_ptr(iterable.Value->pythonType());
         emit_branch(BranchEqual, passedGuard);
         emit_unpack_generic(size, iterable);
@@ -309,7 +309,7 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
     if (iterable.Value->needsGuard()){
         passedGuard = emit_define_label(), failedGuard = emit_define_label();
         m_il.dup();
-        LD_FIELD(PyObject, ob_type);
+        LD_FIELDI(PyObject, ob_type);
         emit_ptr(iterable.Value->pythonType());
         emit_branch(BranchEqual, passedGuard);
         emit_unpack_generic(size, iterable);
@@ -959,12 +959,12 @@ void PythonCompiler::emit_load_attr(PyObject* name, AbstractValueWithSources obj
     Label skip_guard = emit_define_label(), execute_guard = emit_define_label();
     if (guard) {
         emit_load_local(objLocal);
-        LD_FIELD(PyObject, ob_type);
+        LD_FIELDI(PyObject, ob_type);
         emit_ptr(obj.Value->pythonType());
         emit_branch(BranchNotEqual, execute_guard);
         emit_load_local(objLocal);
-        LD_FIELD(PyObject, ob_type);
-        LD_FIELD(PyTypeObject, tp_getattro);
+        LD_FIELDI(PyObject, ob_type);
+        LD_FIELDI(PyTypeObject, tp_getattro);
         emit_ptr((void*)obj.Value->pythonType()->tp_getattro);
         emit_branch(BranchNotEqual, execute_guard);
     }
@@ -1044,7 +1044,7 @@ void PythonCompiler::emit_load_global(PyObject* name) {
 void PythonCompiler::emit_load_global_hashed(PyObject* name, ssize_t name_hash) {
     load_frame();
     m_il.ld_i(name);
-    m_il.ld_i8(name_hash);
+    m_il.ld_i(name_hash);
     m_il.emit_call(METHOD_LOADGLOBAL_HASH);
 }
 
@@ -1092,7 +1092,7 @@ void PythonCompiler::emit_tuple_length(){
 }
 
 void PythonCompiler::emit_list_load(size_t index) {
-    LD_FIELD(PyListObject, ob_item);
+    LD_FIELDI(PyListObject, ob_item);
     if (index > 0) {
         m_il.ld_i(index * sizeof(size_t));
         m_il.add();
@@ -1412,6 +1412,17 @@ void PythonCompiler::emit_import_star() {
 void PythonCompiler::emit_load_build_class() {
     load_frame();
     m_il.emit_call(METHOD_GETBUILDCLASS_TOKEN);
+}
+
+Local PythonCompiler::emit_define_local(AbstractValueKind kind) {
+    switch(kind){
+        case AVK_Bool:
+            return m_il.define_local(Parameter(CORINFO_TYPE_INT));
+        case AVK_Float:
+            return m_il.define_local(Parameter(CORINFO_TYPE_DOUBLE));
+        default:
+            return m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+    }
 }
 
 Local PythonCompiler::emit_define_local(LocalKind kind) {
@@ -1765,7 +1776,7 @@ void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, 
     m_il.add();
     m_il.ld_ind_i();
     emit_load_local(it_seq);
-    LD_FIELD(PyVarObject, ob_size);
+    LD_FIELDI(PyVarObject, ob_size);
     emit_branch(BranchGreaterThanEqual, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
 
     emit_load_local(it_seq);
@@ -1858,7 +1869,7 @@ void PythonCompiler::emit_binary_float(uint16_t opcode) {
             break;
         case INPLACE_SUBTRACT:
         case BINARY_SUBTRACT:
-            m_il.sub_with_overflow();
+            m_il.sub();
             break;
         case BINARY_POWER:
         case INPLACE_POWER:
@@ -1924,20 +1935,6 @@ void PythonCompiler::emit_not_in() {
     m_il.emit_call(METHOD_NOTCONTAINS_TOKEN);
 }
 
-void PythonCompiler::emit_compare_float(uint16_t compareType) {
-    // TODO: Optimize compare and POP_JUMP
-    // @body: If we know we're followed by the pop jump we could combine
-    // and do a single branch comparison.
-    switch (compareType) {
-        case Py_EQ: m_il.compare_eq(); break;
-        case Py_LT: m_il.compare_lt(); break;
-        case Py_LE: m_il.compare_le_float(); break;
-        case Py_NE: m_il.compare_ne(); break;
-        case Py_GT: m_il.compare_gt(); break;
-        case Py_GE: m_il.compare_ge_float(); break;
-    }
-}
-
 void PythonCompiler::emit_compare_tagged_int(uint16_t compareType) {
     switch (compareType) {
         case Py_EQ:
@@ -1973,106 +1970,32 @@ void PythonCompiler::emit_compare_known_object(uint16_t compareType, AbstractVal
                 return;
         }
     }
-    if (OPT_ENABLED(compare) && lhs.hasValue() && lhs.Value->known() && rhs.hasValue() && rhs.Value->known()){
-        // Specific comparisons.
-        switch (lhs.Value->kind()) {
-            case AVK_Float:
-                if (rhs.Value->kind() == AVK_Float) {
-                    emit_compare_floats(compareType, lhs.Value->needsGuard() || rhs.Value->needsGuard());
-                    return;
-                }
-                break;
-        }
-    }
     emit_compare_object(compareType);
 }
 
-void PythonCompiler::emit_compare_floats(uint16_t compareType, bool guard) {
-    Local left = emit_define_local(LK_Pointer);
-    Local right = emit_define_local(LK_Pointer);
-    Label guard_fail = emit_define_label();
-    Label guard_pass = emit_define_label();
-
-    emit_store_local(right);
-    emit_store_local(left);
-
-    if (guard){
-        emit_load_local(right);
-        LD_FIELD(PyObject, ob_type);
-        emit_ptr(&PyFloat_Type);
-        emit_branch(BranchNotEqual, guard_fail);
-
-        emit_load_local(left);
-        LD_FIELD(PyObject, ob_type);
-        emit_ptr(&PyFloat_Type);
-        emit_branch(BranchNotEqual, guard_fail);
-    }
-
-    emit_load_local(left);
-    LD_FIELD(PyFloatObject, ob_fval);
-    emit_load_local(right);
-    LD_FIELD(PyFloatObject, ob_fval);
-
-    Label is_true = emit_define_label();
-    Label free_and_exit = emit_define_label();
-    Label is_false = emit_define_label();
-
+void PythonCompiler::emit_compare_floats(uint16_t compareType) {
     switch (compareType){
         case Py_EQ:
-            m_il.branch(BranchEqual, is_true);
-            m_il.branch(BranchAlways, is_false);
+            m_il.compare_eq();
             break;
         case Py_NE:
-            m_il.branch(BranchNotEqual, is_true);
-            m_il.branch(BranchAlways, is_false);
+            m_il.compare_ne();
             break;
         case Py_GE:
-            m_il.branch(BranchGreaterThanEqual, is_true);
-            m_il.branch(BranchAlways, is_false);
+            m_il.compare_ge_float();
             break;
         case Py_LE:
-            m_il.branch(BranchLessThanEqual, is_true);
-            m_il.branch(BranchAlways, is_false);
+            m_il.compare_le_float();
             break;
         case Py_LT:
-            m_il.branch(BranchLessThan, is_true);
-            m_il.branch(BranchAlways, is_false);
+            m_il.compare_lt();
             break;
         case Py_GT:
-            m_il.branch(BranchGreaterThan, is_true);
-            m_il.branch(BranchAlways, is_false);
-        break;
+            m_il.compare_gt();
+            break;
+        default:
+            assert(false);
     };
-
-    emit_mark_label(is_true);
-        emit_ptr(Py_True);
-        emit_dup();
-        emit_incref();
-        m_il.branch(BranchAlways, free_and_exit);
-
-    emit_mark_label(is_false);
-
-        emit_ptr(Py_False);
-        emit_dup();
-        emit_incref();
-
-    emit_mark_label(free_and_exit);
-    emit_load_local(left);
-    decref();
-    emit_load_local(right);
-    decref();
-
-    if (guard){
-        m_il.branch(BranchAlways, guard_pass);
-        emit_mark_label(guard_fail);
-        emit_load_local(left);
-        emit_load_local(right);
-        emit_compare_object(compareType);
-        emit_mark_label(guard_pass);
-    }
-
-    emit_free_local(left);
-    emit_free_local(right);
 }
 
 void PythonCompiler::emit_load_method(void* name) {
@@ -2281,40 +2204,113 @@ void PythonCompiler::emit_tagged_int_to_float() {
     m_il.emit_call(METHOD_INT_TO_FLOAT);
 }
 
-void PythonCompiler::emit_pgc_probe(size_t curByte, size_t stackSize) {
-    vector<Local> stack;
-    stack.resize(stackSize);
-    Local hasProbedFlag = emit_define_local(LK_Bool);
-    auto hasProbed = emit_define_label();
-
-    emit_load_local(hasProbedFlag);
-    emit_branch(BranchTrue, hasProbed);
-    for (size_t i = 0; i < stackSize; i++){
-        stack[i] = emit_define_local(LK_Pointer);
-        emit_store_local(stack[i]);
-
-        m_il.ld_arg(3);
-        emit_load_local(stack[i]);
-        m_il.ld_i8(curByte);
-        emit_int(i);
-
-        m_il.emit_call(METHOD_PGC_PROBE);
-    }
-    m_il.ld_i4(1);
-    emit_store_local(hasProbedFlag);
-    // Recover the stack in the right order
-    for (size_t i = stackSize; i > 0; --i){
-        emit_load_and_free_local(stack[i-1]);
-    }
-
-    emit_mark_label(hasProbed);
-}
-
 void PythonCompiler::mark_sequence_point(size_t idx) {
     m_il.mark_sequence_point(idx);
 }
 
+void PythonCompiler::emit_pgc_profile_capture(Local value, size_t ipos, size_t istack) {
+    m_il.ld_arg(3);
+    emit_load_local(value);
+    m_il.ld_i8(ipos);
+    emit_int(istack);
+    m_il.emit_call(METHOD_PGC_PROBE);
+}
 
+void PythonCompiler::emit_box(AbstractValue* value) {
+    switch(value->kind()){
+        case AVK_Float:
+            m_il.emit_call(METHOD_FLOAT_FROM_DOUBLE);
+            break;
+        case AVK_Bool:
+            m_il.emit_call(METHOD_BOOL_FROM_LONG);
+            break;
+    }
+};
+void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs){
+    assert(supportsEscaping(lhs.Value->kind()) && supportsEscaping(rhs.Value->kind()));
+    switch(lhs.Value->kind()){
+        case AVK_Float:
+            return emit_compare_floats(compareType);
+    }
+}
+void PythonCompiler::emit_unbox(AbstractValue* value) {
+    assert(supportsEscaping(value->kind()));
+    switch(value->kind()){
+        case AVK_Float:
+            Local lcl = emit_define_local(LK_Pointer);
+            Label guard_pass = emit_define_label();
+            Label guard_fail = emit_define_label();
+            emit_store_local(lcl);
+            if (value->needsGuard() || true){
+                emit_load_local(lcl);
+                LD_FIELDI(PyObject, ob_type);
+                emit_ptr(&PyFloat_Type);
+                emit_branch(BranchNotEqual, guard_fail);
+            }
+
+            emit_load_local(lcl);
+            decref();
+            emit_load_and_free_local(lcl);
+            m_il.ld_i(offsetof(PyFloatObject, ob_fval));
+            m_il.add();
+            m_il.ld_ind_r8();
+
+            if (value->needsGuard() || true){
+                emit_branch(BranchAlways, guard_pass);
+                    emit_mark_label(guard_fail);
+                    emit_nan();
+                    emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
+                emit_mark_label(guard_pass);
+            }
+            break;
+    }
+};
+
+void PythonCompiler::emit_infinity() {
+    m_il.ld_r8(INFINITY);
+}
+
+void PythonCompiler::emit_nan() {
+    m_il.ld_r8(NAN);
+}
+
+void PythonCompiler::emit_escape_edges(EdgeMap edges){
+    // If none of the edges need escaping, skip
+    bool needsEscapes = false;
+    for (size_t i = 0; i < edges.size(); i++){
+        if (edges[i].escaped == Unbox || edges[i].escaped == Box)
+            needsEscapes = true;
+    }
+    if (!needsEscapes)
+        return;
+
+    // Push the values onto temporary locals, box/unbox them then push
+    // them back onto the stack in the same order
+    vector<Local> stack = vector<Local>(edges.size());
+    for (size_t i = 0; i < stack.size(); i++){
+        if (edges[i].escaped == Unboxed || edges[i].escaped == Box){
+            // IF
+            stack[i] = emit_define_local(edges[i].value->kind());
+        } else {
+            stack[i] = emit_define_local(LK_Pointer);
+        }
+        emit_store_local(stack[i]);
+    }
+    // Recover the stack in the right order
+    for (size_t i = edges.size(); i > 0; --i){
+        emit_load_and_free_local(stack[i-1]);
+        switch(edges[i-1].escaped){
+            case Unbox:
+                emit_unbox(edges[i-1].value);
+                break;
+            case Box:
+                emit_box(edges[i-1].value);
+                break;
+            default:
+                break;
+        }
+    }
+}
 /************************************************************************
 * End Compiler interface implementation
 */
@@ -2557,7 +2553,6 @@ GLOBAL_METHOD(METHOD_PROFILE_FRAME_EXIT, &PyJit_ProfileFrameExit, CORINFO_TYPE_V
 
 GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
 
-GLOBAL_METHOD(METHOD_TRIPLE_BINARY_OP, &PyJitMath_TripleBinaryOp, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT), Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );
 
 GLOBAL_METHOD(METHOD_PGC_PROBE, &capturePgcStackValue, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
@@ -2568,7 +2563,7 @@ GLOBAL_METHOD(METHOD_GIL_ENSURE, &PyGILState_Ensure, CORINFO_TYPE_NATIVEINT);
 GLOBAL_METHOD(METHOD_GIL_RELEASE, &PyGILState_Release, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
 
 
-const char* opcodeName(size_t opcode) {
+const char* opcodeName(py_opcode opcode) {
 #define OP_TO_STR(x)   case x: return #x;
     switch (opcode) { // NOLINT(hicpp-multiway-paths-covered)
         OP_TO_STR(POP_TOP)

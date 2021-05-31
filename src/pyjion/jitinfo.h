@@ -26,7 +26,6 @@
 #ifndef PYJION_JITINFO_H
 #define PYJION_JITINFO_H
 
-
 #include <Python.h>
 #include <frameobject.h>
 #include <opcode.h>
@@ -36,6 +35,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <cmath>
 #include <corjit.h>
 
 #include <openum.h>
@@ -138,6 +138,19 @@ public:
         throw GuardStackException();
     };
 
+    static double dblRemHelper(double dividend, double divisor) {
+        if (divisor==0 || !isfinite(dividend))
+        {
+            return INFINITY;
+        }
+        else if (!isfinite(divisor) && !isnan(divisor))
+        {
+            return dividend;
+        }
+        // else...
+        return(fmod(dividend,divisor));
+    };
+
     /// Override the default .NET CIL_NEWARR with a custom array allocator. See getHelperFtn
     /// \param size Requested array size
     /// \param arrayMT Array type handle
@@ -230,7 +243,7 @@ public:
 
     int doAssert(const char* szFile, int iLine, const char* szExpr) override {
 #ifdef DEBUG
-        printf(".NET failed assertion: %s %d\n", szFile, iLine);
+        printf(".NET failed assertion: %s %d %s\n", szFile, iLine, szExpr);
 #endif
         return 1;
     }
@@ -1685,6 +1698,9 @@ public:
             case CORINFO_HELP_VERIFICATION:
                 helper = (void*)&verificationExceptionHelper;
                 break;
+            case CORINFO_HELP_DBLREM:
+                helper = (void*)&dblRemHelper;
+                break;
             default:
                 throw UnsupportedHelperException(ftnNum);
                 break;
@@ -1717,9 +1733,12 @@ public:
                 return (void*)nullReferenceExceptionHelper;
             case CORINFO_HELP_VERIFICATION:
                 return (void*)verificationExceptionHelper;
+            case CORINFO_HELP_DBLREM:
+                return (void*)dblRemHelper;
             default:
                 throw UnsupportedHelperException(ftnNum);
         }
+        return nullptr;
     }
 #endif
     void getLocationOfThisType(CORINFO_METHOD_HANDLE context, CORINFO_LOOKUP_KIND *pLookupKind) override {
@@ -1884,17 +1903,6 @@ public:
     bool isJitIntrinsic(CORINFO_METHOD_HANDLE ftn) override {
         // method attribs are CORINFO_FLG_STATIC | CORINFO_FLG_NATIVE - so always false.
         return false;
-    }
-
-    CORINFO_CLASS_HANDLE getLikelyClass(
-            CORINFO_METHOD_HANDLE ftnHnd,
-            CORINFO_CLASS_HANDLE  baseHnd,
-            uint32_t                ilOffset,
-            uint32_t *              pLikelihood,      // OUT, estimated likelihood of the class (0...100)
-            uint32_t *              pNumberOfClasses  // OUT, estimated number of possible classes
-    ) {
-        // This will be dropped in preview 4
-        return nullptr;
     }
 };
 

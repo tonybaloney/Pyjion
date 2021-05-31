@@ -37,6 +37,7 @@
 #include "block.h"
 #include "stack.h"
 #include "exceptionhandling.h"
+#include "instructions.h"
 
 using namespace std;
 
@@ -167,23 +168,18 @@ public:
         mLocals.replace(index, value);
     }
 
-    AbstractValue* pop() {
+    AbstractValueWithSources pop(size_t idx, size_t position) {
         if (mStack.empty())
             throw StackUnderflowException();
         auto res = mStack.back();
         mStack.pop_back();
-        return res.Value;
-    }
-
-    AbstractValueWithSources popNoEscape() {
-        if (mStack.empty())
-            throw StackUnderflowException();
-        auto res = mStack.back();
-        mStack.pop_back();
+        if (res.hasSource()){
+            res.Sources->addConsumer(idx, position);
+        }
         return res;
     }
 
-    AbstractValueWithSources fromPgc(size_t stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject, AbstractSource* source) {
+    AbstractValueWithSources fromPgc(size_t stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject) {
         if (mStack.empty())
             throw StackUnderflowException();
         auto existing = mStack[mStack.size() - 1 - stackPosition];
@@ -194,17 +190,13 @@ public:
         else {
             return AbstractValueWithSources(
                     new PgcValue(pyTypeObject, pyObject),
-                    source
+                    existing.Sources
             );
         }
     }
 
-    void push(AbstractValueWithSources& value) {
+    void push(AbstractValueWithSources value) {
         mStack.push_back(value);
-    }
-
-    void push(AbstractValue* value) {
-        mStack.emplace_back(value);
     }
 
     size_t stackSize() const {
@@ -322,6 +314,7 @@ class AbstractInterpreter {
     Label m_retLabel;
     Local m_retValue;
     unordered_map<size_t, bool> m_assignmentState;
+    unordered_map<size_t, bool> m_unboxableProducers;
 
 #pragma warning (default:4251)
 
@@ -364,7 +357,6 @@ private:
     AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
     AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
     AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
-    AbstractSource* addPgcSource(size_t opcodeIndex);
 
     void makeFunction(size_t oparg);
     bool canSkipLastiUpdate(size_t opcodeIndex);
@@ -373,8 +365,8 @@ private:
     void extendListRecursively(Local list, size_t argCnt);
     void extendList(size_t argCnt);
     void buildSet(size_t argCnt);
-
     void buildMap(size_t argCnt);
+    void emitPgcProbes(size_t pos, size_t size);
 
     Label getOffsetLabel(size_t jumpTo);
     void forIter(size_t loopIndex);
@@ -383,6 +375,7 @@ private:
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
     void errorCheck(const char* reason = nullptr, size_t curByte = ~0);
+    void floatErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
     void intErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
@@ -405,7 +398,7 @@ private:
 
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
 
-    AbstactInterpreterCompileResult compileWorker(PgcStatus status);
+    AbstactInterpreterCompileResult compileWorker(PgcStatus status, InstructionGraph* graph);
 
     void storeFast(size_t local, size_t opcodeIndex);
 
@@ -418,12 +411,9 @@ private:
 
     void popExcept();
 
-    void unaryPositive(size_t opcodeIndex);
-    void unaryNegative(size_t opcodeIndex);
-    void unaryNot(size_t opcodeIndex);
-
     void jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t offset);
     void popJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
+    void unboxedPopJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
     void jumpIfNotExact(size_t opcodeIndex, size_t jumpTo);
     void testBoolAndBranch(Local value, bool isTrue, Label target);
 
@@ -433,8 +423,10 @@ private:
     void popExcVars();
     void decExcVars(size_t count);
     void incExcVars(size_t count);
-
+    void updateIntermediateSources();
+    InstructionGraph* buildInstructionGraph();
 };
+bool canReturnInfinity(int opcode);
 
 // TODO : Fetch the range of interned integers from the interpreter state
 #define IS_SMALL_INT(ival) (-5 <= (ival) && (ival) < 257)

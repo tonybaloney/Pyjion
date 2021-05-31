@@ -75,19 +75,55 @@ static bool isKnownType(AbstractValueKind kind) {
 }
 
 class AbstractSource {
+    vector<pair<size_t, size_t>> _consumers;
+    bool single_use = false;
+    size_t _producer;
 public:
     shared_ptr<AbstractSources> Sources;
 
-    AbstractSource();
+    explicit AbstractSource(size_t producer);
 
     virtual bool hasConstValue() { return false; }
 
     virtual bool isBuiltin() {
         return false;
     }
-
+    virtual bool isIntermediate() {
+        return false;
+    }
     virtual const char* describe() {
         return "unknown source";
+    }
+
+    void addConsumer(size_t opcode, size_t position){
+        _consumers.push_back({opcode, position});
+    }
+
+    ssize_t isConsumedBy(size_t idx){
+        for (size_t i = 0 ; i < _consumers.size(); i++){
+            if (_consumers[i].first == idx)
+                return _consumers[i].second;
+        };
+        return -1;
+    }
+
+    bool markForSingleUse(){
+        if (_consumers.size() == 1 || _consumers.size() == 0){
+            single_use = true;
+        }
+        return single_use;
+    }
+
+    bool singleUse() {
+        return single_use;
+    }
+
+    size_t producer(){
+        return _producer;
+    }
+
+    void setProducer(size_t i){
+        _producer = i;
     }
 
     static AbstractSource* combine(AbstractSource* one, AbstractSource*two);
@@ -95,14 +131,9 @@ public:
 
 struct AbstractSources {
     unordered_set<AbstractSource*> Sources;
-    bool m_escapes;
 
     AbstractSources() {
         Sources = unordered_set<AbstractSource*>();
-        m_escapes = false;
-    }
-    void escapes() {
-        m_escapes = true;
     }
 };
 
@@ -112,7 +143,7 @@ class ConstSource : public AbstractSource {
     bool hasNumericValueSet = false;
     Py_ssize_t numericValue = -1;
 public:
-    explicit ConstSource(PyObject* value) {
+    explicit ConstSource(PyObject* value, size_t producer): AbstractSource(producer) {
         this->hash = PyObject_Hash(value);
         if (PyErr_Occurred()){
             PyErr_Clear();
@@ -151,7 +182,7 @@ class GlobalSource : public AbstractSource {
     const char* _name;
     PyObject* _value;
 public:
-    explicit GlobalSource(const char* name, PyObject* value) {
+    explicit GlobalSource(const char* name, PyObject* value, size_t producer) : AbstractSource(producer) {
         _name = name;
         _value = value;
     }
@@ -169,7 +200,7 @@ class BuiltinSource : public AbstractSource {
     const char* _name;
     PyObject* _value;
 public:
-    explicit BuiltinSource(const char* name, PyObject* value)  {
+    explicit BuiltinSource(const char* name, PyObject* value, size_t producer) : AbstractSource(producer)  {
         _name = name;
         _value = value;
     };
@@ -193,6 +224,8 @@ public:
 
 class LocalSource : public AbstractSource {
 public:
+    explicit LocalSource(size_t producer): AbstractSource(producer) { } ;
+
     const char* describe() override {
         return "Source: Local";
     }
@@ -200,22 +233,21 @@ public:
 
 class IntermediateSource : public AbstractSource {
 public:
+    explicit IntermediateSource(size_t producer): AbstractSource(producer) { } ;
+
     const char* describe() override {
         return "Source: Intermediate";
     }
-};
 
-class PgcSource : public AbstractSource {
-public:
-    const char* describe() override {
-        return "Source: PGC";
+    bool isIntermediate() override {
+        return true;
     }
 };
 
 class IteratorSource : public AbstractSource {
     AbstractValueKind _kind;
 public:
-    explicit IteratorSource(AbstractValueKind iterableKind){
+    IteratorSource(AbstractValueKind iterableKind, size_t producer) : AbstractSource(producer){
         _kind = iterableKind;
     }
 
@@ -229,7 +261,7 @@ public:
 class MethodSource : public AbstractSource {
     const char* _name = "";
 public:
-    explicit MethodSource(const char* name){
+    explicit MethodSource(const char* name, size_t producer) : AbstractSource(producer){
         _name = name;
     }
 
@@ -247,7 +279,6 @@ public:
     virtual AbstractValue* unary(AbstractSource* selfSources, int op);
     virtual AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other);
     virtual AbstractValue* compare(AbstractSource* selfSources, int op, AbstractValueWithSources& other);
-    virtual void truth(AbstractSource* selfSources);
 
     virtual bool isAlwaysTrue() {
         return false;
@@ -353,7 +384,6 @@ class BoolValue : public AbstractValue {
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
-    void truth(AbstractSource* selfSources) override;
 };
 
 class BytesValue : public AbstractValue {
@@ -377,9 +407,9 @@ class IntegerValue : public AbstractValue {
     AbstractValue* binary(AbstractSource*selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
-    void truth(AbstractSource* sources) override;
     AbstractValueKind resolveMethod(const char* name) override;
-
+public:
+    static AbstractValue* binary(int op, AbstractValueWithSources& other);
 };
 
 class InternIntegerValue : public IntegerValue {
@@ -403,8 +433,9 @@ class FloatValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
-    void truth(AbstractSource* selfSources) override;
     const char* describe() override;
+public:
+    static AbstractValue* binary(int op, AbstractValueWithSources& other);
 };
 
 class TupleValue : public AbstractValue {
@@ -518,53 +549,45 @@ class FileValue : public AbstractValue {
 };
 
 class VolatileValue: public AbstractValue{
-public:
-    bool needsGuard() override {
-        return true;
-    }
-    virtual PyObject* lastValue() {
-        Py_RETURN_NONE;
-    }
-};
-
-class PgcValue : public VolatileValue {
     PyTypeObject* _type;
     PyObject* _object;
 public:
-    explicit PgcValue(PyTypeObject* type, PyObject* object){
+    VolatileValue(PyTypeObject* type, PyObject* object){
         _type = type;
         _object = object;
     }
+
     AbstractValueKind kind() override;
+
     PyTypeObject* pythonType() override;
+
     bool known() override {
         return true;
     }
-    PyObject* lastValue() override {
+    PyObject* lastValue() {
         if (_PyObject_IsFreed(_object) || _object == (PyObject*)0xFFFFFFFFFFFFFFFF)
             return nullptr;
         return _object;
     }
+
+    const char* describe() override {
+        return _type->tp_name;
+    }
+
+    bool needsGuard() override {
+        return true;
+    }
+    AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
+};
+
+class PgcValue : public VolatileValue {
+public:
+    PgcValue(PyTypeObject* type, PyObject* object) : VolatileValue(type, object){}
 };
 
 class ArgumentValue: public VolatileValue {
-    PyTypeObject* _type;
-    PyObject* _value;
 public:
-    explicit ArgumentValue(PyTypeObject* type, PyObject* value){
-        _type = type;
-        _value = value;
-    }
-    AbstractValueKind kind() override;
-    PyTypeObject* pythonType() override;
-    bool known() override {
-        return true;
-    }
-    PyObject* lastValue() override {
-        if (_PyObject_IsFreed(_value) || _value == (PyObject*)0xFFFFFFFFFFFFFFFF)
-            return nullptr;
-        return _value;
-    }
+    ArgumentValue(PyTypeObject* type, PyObject* object) : VolatileValue(type, object){}
 };
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);

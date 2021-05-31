@@ -28,7 +28,6 @@
 */
 
 #include <catch2/catch.hpp>
-#include <pyjitmath.h>
 #include "testing_util.h"
 
 template<typename T>
@@ -60,7 +59,16 @@ TEST_CASE("Test inplace") {
                               "  return c");
         CHECK(t.returns() == "10.0");
     }
-
+    SECTION("complex nested calculation") {
+        auto t = EmissionTest("def f():\n"
+                              "  dt = 2.0\n"
+                              "  dx = 3.0\n"
+                              "  dy = 4.0\n"
+                              "  dz = 5.0\n"
+                              "  mag = dt * ((dx * dx + dy * dy + dz * dz) ** (-1.5))\n"
+                              "  return mag");
+        CHECK(t.returns() == "0.00565685424949238");
+    }
     SECTION("inplace addition of multiple ints") {
         auto t = EmissionTest("def f():\n"
                               "  a = 2\n"
@@ -111,92 +119,6 @@ TEST_CASE("Test inplace") {
     }
 }
 
-TEST_CASE("Test math functions directly"){
-    SECTION("Binary then inplace all floats") {
-        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
-        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
-        printf("Float %d by %d", firstOpcode, secondOpcode);
-        PyObject* a = PyFloat_FromDouble(6.0);
-        PyObject* b = PyFloat_FromDouble(2.0);
-        PyObject* c = PyFloat_FromDouble(4.0);
-        incref(a,b,c);
-
-        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
-        REQUIRE(res != nullptr);
-        if (firstOpcode == BINARY_TRUE_DIVIDE)
-            CHECK(PyFloat_Check(res));
-        if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
-            CHECK(PyFloat_Check(res));
-        CHECK(a->ob_refcnt == 1);
-        CHECK(b->ob_refcnt == 1);
-        CHECK(c->ob_refcnt == 1);
-    }
-
-    SECTION("Binary then inplace int float float") {
-        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
-        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
-        printf("int/float/float %d by %d", firstOpcode, secondOpcode);
-        PyObject* a = PyLong_FromLong(6);
-        PyObject* b = PyFloat_FromDouble(3.0);
-        PyObject* c = PyFloat_FromDouble(40.0);
-        incref(a,b,c);
-
-        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
-        REQUIRE(res != nullptr);
-        if (firstOpcode == BINARY_TRUE_DIVIDE)
-            CHECK(PyFloat_Check(res));
-        if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
-            CHECK(PyFloat_Check(res));
-    }
-
-    SECTION("Binary then inplace float int int") {
-        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD);
-        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_POWER, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
-        printf("int/float/float %d by %d", firstOpcode, secondOpcode);
-        PyObject* a = PyFloat_FromDouble(600.0);
-        PyObject* b = PyLong_FromLong(30);
-        PyObject* c = PyLong_FromLong(40);
-        incref(a,b,c);
-
-        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
-        REQUIRE(res != nullptr);
-        if (firstOpcode == BINARY_TRUE_DIVIDE)
-            CHECK(PyFloat_Check(res));
-        if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
-            CHECK(PyFloat_Check(res));
-    }
-
-    SECTION("Binary then inplace all ints") {
-        // Dont test the power operation here because it will cause havoc with these numbers!!
-        auto firstOpcode = GENERATE(BINARY_TRUE_DIVIDE);
-        auto secondOpcode = GENERATE(BINARY_TRUE_DIVIDE, BINARY_FLOOR_DIVIDE, BINARY_MULTIPLY, BINARY_SUBTRACT, BINARY_ADD, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_TRUE_DIVIDE, INPLACE_FLOOR_DIVIDE, INPLACE_ADD, INPLACE_SUBTRACT);
-        printf("int %d by %d", firstOpcode, secondOpcode);
-        PyObject* a = PyLong_FromLong(6);
-        PyObject* b = PyLong_FromLong(3);
-        PyObject* c = PyLong_FromLong(12);
-        incref(a,b,c);
-
-        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
-        REQUIRE(res != nullptr);
-        if (firstOpcode == BINARY_TRUE_DIVIDE)
-            CHECK(PyFloat_Check(res));
-        if (secondOpcode == BINARY_TRUE_DIVIDE || secondOpcode == INPLACE_TRUE_DIVIDE)
-            CHECK(PyFloat_Check(res));
-    }
-
-    SECTION("Binary then inplace all strings") {
-        auto firstOpcode = GENERATE(BINARY_ADD);
-        auto secondOpcode = GENERATE(BINARY_ADD, INPLACE_ADD);
-
-        PyObject* a = PyUnicode_FromString("123");
-        PyObject* b = PyUnicode_FromString("1234");
-        PyObject* c = PyUnicode_FromString("12345");
-        incref(a,b,c);
-
-        PyObject* res = PyJitMath_TripleBinaryOp(c, a, b, firstOpcode, secondOpcode);
-        REQUIRE(res != nullptr);
-    }
-}
 
 TEST_CASE("Unary tests") {
     SECTION("most basic unary not") {
@@ -900,85 +822,105 @@ TEST_CASE("test binary/arithmetic operations") {
         );
         CHECK(t.returns() == "2");
     }
-
-    SECTION("test") {
+    SECTION("float postive unary") {
         auto t = EmissionTest(
                 "def f():\n    x = 1.0\n    y = +x\n    return y"
         );
         CHECK(t.returns() == "1.0");
-    }SECTION("test2") {
+    }
+    SECTION("float not unary") {
         auto t = EmissionTest(
                 "def f():\n    x = 1.0\n    if not x:\n        return 1\n    return 2"
         );
         CHECK(t.returns() == "2");
-    }SECTION("test3") {
+    }
+    SECTION("float is falsey") {
         auto t = EmissionTest(
                 "def f():\n    x = 0.0\n    if not x:\n        return 1\n    return 2"
         );
         CHECK(t.returns() == "1");
-    }SECTION("test4") {
+    }
+    SECTION("float negative unary") {
         auto t = EmissionTest(
                 "def f():\n    x = 1.0\n    y = -x\n    return y"
         );
         CHECK(t.returns() == "-1.0");
-    }SECTION("test5") {
+    }
+    SECTION("float not operator") {
         auto t = EmissionTest(
                 "def f():\n    x = 1.0\n    y = not x\n    return y"
         );
         CHECK(t.returns() == "False");
-    }SECTION("test6") {
+    }
+    SECTION("test unary constants"){
+        auto t = EmissionTest(
+            "def f(): \n"
+            "  if not -24.0 < -12.0: \n"
+            "    return False"
+        );
+        CHECK(t.returns() == "None");
+    }
+    SECTION("test unary constants reversed"){
+        auto t = EmissionTest(
+            "def f(): \n"
+            "  if not -24.0 > -12.0: \n"
+            "    return True"
+        );
+        CHECK(t.returns() == "True");
+    }
+    SECTION("float falsey not") {
         auto t = EmissionTest(
                 "def f():\n    x = 0.0\n    y = not x\n    return y"
         );
         CHECK(t.returns() == "True");
     }SECTION("test7") {
         auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    return x"
+                "def f():\n    x = 1.2\n    return x"
         );
-        CHECK(t.returns() == "1.0");
+        CHECK(t.returns() == "1.2");
     }SECTION("test8") {
         auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    y = 2.0\n    z = x + y\n    return z"
+                "def f():\n    x = 1.001\n    y = 2.022\n    z = x + y\n    return z"
         );
-        CHECK(t.returns() == "3.0");
+        CHECK(t.returns() == "3.0229999999999997");
     }SECTION("test9") {
         auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    y = 2.0\n    z = x - y\n    return z"
+                "def f():\n    x = 1.001\n    y = 2.01\n    z = x - y\n    return z"
         );
-        CHECK(t.returns() == "-1.0");
+        CHECK(t.returns() == "-1.009");
     }SECTION("test10") {
         auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    y = 2.0\n    z = x / y\n    return z"
+                "def f():\n    x = 1.022\n    y = 2.033\n    z = x / y\n    return z"
         );
-        CHECK(t.returns() == "0.5");
+        CHECK(t.returns() == "0.5027053615346778");
     }SECTION("test11") {
         auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    y = 2.0\n    z = x // y\n    return z"
+                "def f():\n    x = 1.022\n    y = 2.033\n    z = x // y\n    return z"
         );
         CHECK(t.returns() == "0.0");
     }SECTION("test12") {
         auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    y = 2.0\n    z = x % y\n    return z"
+                "def f():\n    x = 1.011\n    y = 2.011\n    z = x % y\n    return z"
         );
-        CHECK(t.returns() == "1.0");
+        CHECK(t.returns() == "1.011");
     }SECTION("test13") {
         auto t = EmissionTest(
-                "def f():\n    x = 2.0\n    y = 3.0\n    z = x * y\n    return z"
+                "def f():\n    x = 2.022\n    y = 3.033\n    z = x * y\n    return z"
         );
-        CHECK(t.returns() == "6.0");
+        CHECK(t.returns() == "6.132725999999999");
     }SECTION("test14") {
         auto t = EmissionTest(
-                "def f():\n    x = 2.0\n    y = 3.0\n    z = x ** y\n    return z"
+                "def f():\n    x = 2.022\n    y = 3.033\n    z = x ** y\n    return z"
         );
-        CHECK(t.returns() == "8.0");
+        CHECK(t.returns() == "8.461244245792681");
     }SECTION("test15") {
         auto t = EmissionTest(
-                "def f():\n    x = 2.0\n    y = 3.0\n    if x == y:\n        return True\n    return False"
+                "def f():\n    x = 2.022\n    y = 3.033\n    if x == y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "False");
     }SECTION("test16") {
         auto t = EmissionTest(
-                "def f():\n    x = 3.0\n    y = 3.0\n    if x == y:\n        return True\n    return False"
+                "def f():\n    x = 3.022\n    y = 3.022\n    if x == y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "True");
     }SECTION("test17") {
@@ -1003,89 +945,89 @@ TEST_CASE("test binary/arithmetic operations") {
         CHECK(t.returns() == "True");
     }SECTION("test21") {
         auto t = EmissionTest(
-                "def f():\n    x = 2.0\n    y = 3.0\n    if x != y:\n        return True\n    return False"
+                "def f():\n    x = 2.022\n    y = 3.023\n    if x != y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "True");
     }SECTION("test22") {
         auto t = EmissionTest(
-                "def f():\n    x = 3.0\n    y = 3.0\n    if x != y:\n        return True\n    return False"
+                "def f():\n    x = 3.023\n    y = 3.023\n    if x != y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "False");
     }SECTION("test23") {
         auto t = EmissionTest(
-                "def f():\n    x = 2.0\n    y = 3.0\n    if x >= y:\n        return True\n    return False"
+                "def f():\n    x = 2.023\n    y = 3.023\n    if x >= y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "False");
     }SECTION("test24") {
         auto t = EmissionTest(
-                "def f():\n    x = 3.0\n    y = 3.0\n    if x >= y:\n        return True\n    return False"
+                "def f():\n    x = 3.023\n    y = 3.023\n    if x >= y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "True");
     }SECTION("test25") {
         auto t = EmissionTest(
-                "def f():\n    x = 2.0\n    y = 3.0\n    if x > y:\n        return True\n    return False"
+                "def f():\n    x = 2.023\n    y = 3.023\n    if x > y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "False");
     }SECTION("test26") {
         auto t = EmissionTest(
-                "def f():\n    x = 4.0\n    y = 3.0\n    if x > y:\n        return True\n    return False"
+                "def f():\n    x = 4.023\n    y = 3.023\n    if x > y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "True");
     }SECTION("test27") {
         auto t = EmissionTest(
-                "def f():\n    x = 3.0\n    y = 2.0\n    if x <= y:\n        return True\n    return False"
+                "def f():\n    x = 3.023\n    y = 2.023\n    if x <= y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "False");
     }SECTION("test28") {
         auto t = EmissionTest(
-                "def f():\n    x = 3.0\n    y = 3.0\n    if x <= y:\n        return True\n    return False"
+                "def f():\n    x = 3.023\n    y = 3.023\n    if x <= y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "True");
     }SECTION("test29") {
         auto t = EmissionTest(
-                "def f():\n    x = 3.0\n    y = 2.0\n    if x < y:\n        return True\n    return False"
+                "def f():\n    x = 3.023\n    y = 2.023\n    if x < y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "False");
     }SECTION("test30") {
         auto t = EmissionTest(
-                "def f():\n    x = 3.0\n    y = 4.0\n    if x < y:\n        return True\n    return False"
+                "def f():\n    x = 3.023\n    y = 4.023\n    if x < y:\n        return True\n    return False"
         );
         CHECK(t.returns() == "True");
     }SECTION("test31") {
         auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    y = 2.0\n    x += y\n    return x"
+                "def f():\n    x = 1.023\n    y = 2.023\n    x += y\n    return x"
         );
-        CHECK(t.returns() == "3.0");
+        CHECK(t.returns() == "3.0460000000000003");
     }SECTION("test32") {
         auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    y = 2.0\n    x -= y\n    return x"
+                "def f():\n    x = 1.023\n    y = 2.023\n    x -= y\n    return x"
         );
-        CHECK(t.returns() == "-1.0");
+        CHECK(t.returns() == "-1.0000000000000002");
     }SECTION("test33") {
         auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    y = 2.0\n    x /= y\n    return x"
+                "def f():\n    x = 1.023\n    y = 2.023\n    x /= y\n    return x"
         );
-        CHECK(t.returns() == "0.5");
+        CHECK(t.returns() == "0.5056846267918932");
     }SECTION("test34") {
         auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    y = 2.0\n    x //= y\n    return x"
-        );
-        CHECK(t.returns() == "0.0");
-    }SECTION("test35") {
-        auto t = EmissionTest(
-                "def f():\n    x = 1.0\n    y = 2.0\n    x %= y\n    return x"
+                "def f():\n    x = 2.023\n    y = 1.023\n    x //= y\n    return x"
         );
         CHECK(t.returns() == "1.0");
+    }SECTION("test35") {
+        auto t = EmissionTest(
+                "def f():\n    x = 1.023\n    y = 2.023\n    x %= y\n    return x"
+        );
+        CHECK(t.returns() == "1.023");
     }SECTION("test36") {
         auto t = EmissionTest(
-                "def f():\n    x = 2.0\n    y = 3.0\n    x *= y\n    return x"
+                "def f():\n    x = 2.023\n    y = 3.023\n    x *= y\n    return x"
         );
-        CHECK(t.returns() == "6.0");
+        CHECK(t.returns() == "6.115529");
     }SECTION("test37") {
         auto t = EmissionTest(
-                "def f():\n    x = 2.0\n    y = 3.0\n    x **= y\n    return x"
+                "def f():\n    x = 2.023\n    y = 3.023\n    x **= y\n    return x"
         );
-        CHECK(t.returns() == "8.0");
+        CHECK(t.returns() == "8.414446502664783");
     }
         // fully optimized complex code
     SECTION("test38") {
@@ -1146,19 +1088,19 @@ TEST_CASE("Test math operations") {
     }
     SECTION("test modulus floats by zero") {
         auto t = EmissionTest(
-                "def f():\n    5.0 % 0.0"
+                "def f():\n    return 5.0 % 0.0"
         );
         CHECK(t.raises() == PyExc_ZeroDivisionError);
     }
     SECTION("test floor divide by zero") {
         auto t = EmissionTest(
-                "def f():\n    5.0 // 0.0"
+                "def f():\n    return 5.0 // 0.0"
         );
         CHECK(t.raises() == PyExc_ZeroDivisionError);
     }
     SECTION("test divide by zero") {
         auto t = EmissionTest(
-                "def f():\n    5.0 / 0.0"
+                "def f():\n    return 5.0 / 0.0"
         );
         CHECK(t.raises() == PyExc_ZeroDivisionError);
     }
@@ -1183,4 +1125,53 @@ TEST_CASE("Test rich comparisons of floats") {
         );
         CHECK(t.returns() == "False");
     };
+}
+
+TEST_CASE("Test unboxing of floats") {
+    SECTION("complex nested calculation") {
+        auto t = EmissionTest("def f():\n"
+                              "  dx = 3.0\n"
+                              "  dy = 4.0\n"
+                              "  dz = 5.0\n"
+                              "  mag = dz * (dx * dy)\n"
+                              "  return mag");
+        CHECK(t.returns() == "60.0");
+    }
+    SECTION("complex nested calculation 2") {
+        auto t = EmissionTest("def f():\n"
+                              "  dx = 9.5e-322\n"
+                              "  dy = -1.2174e-320\n"
+                              "  dz = -1.249e-320\n"
+                              "  m1 = 39.47841760435743\n"
+                              "  m2 = 0.03769367487038949\n"
+                              "  return (m1 * m2) / ((dx * dx + dy * dy + dz * dz) ** 0.5)");
+        CHECK(t.raises() == PyExc_ZeroDivisionError);
+    }
+    SECTION("test inplace subtraction") {
+        auto t = EmissionTest("def f():\n"
+                              "  dx = 0.452345\n"
+                              "  dy = -91.35555\n"
+                              "  dz = -1.249e-320\n"
+                              "  dz -= dx * dy\n"
+                              "  return dz");
+        CHECK(t.returns() == "41.324226264749996");
+    }
+    SECTION("test inplace addition") {
+        auto t = EmissionTest("def f():\n"
+                              "  dx = 0.452345\n"
+                              "  dy = -91.35555\n"
+                              "  dz = 2346.3333\n"
+                              "  dz += dx * dy\n"
+                              "  return dz");
+        CHECK(t.returns() == "2305.00907373525");
+    }
+    SECTION("test inplace slice addition") {
+        auto t = EmissionTest("def f():\n"
+                              "  dx = 0.452345\n"
+                              "  dy = -91.35555\n"
+                              "  dz = [2346.3333]\n"
+                              "  dz[0] += dx * dy\n"
+                              "  return dz[0]");
+        CHECK(t.returns() == "2305.00907373525");
+    }
 }
