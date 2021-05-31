@@ -32,7 +32,6 @@
 
 #include "absint.h"
 #include "pyjit.h"
-#include "pycomp.h"
 
 #define PGC_READY() g_pyjionSettings.pgc && profile != nullptr
 
@@ -2455,7 +2454,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins,
     }
     try {
         auto instructionGraph = buildInstructionGraph();
-#ifdef DUMP_JIT_TRACES
+#ifdef DUMP_INSTRUCTION_GRAPHS
         instructionGraph->printGraph(PyUnicode_AsUTF8(mCode->co_name));
 #endif
         auto result = compileWorker(pgc_status, instructionGraph);
