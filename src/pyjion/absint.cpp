@@ -273,7 +273,8 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
 
                     auto sources = AbstractSource::combine(top.Sources, second.Sources);
                     m_opcodeSources[opcodeIndex] = sources;
-
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    second.Sources = newSource(new IntermediateSource(curByte));
                     lastState.push(top);
                     lastState.push(second);
                     break;
@@ -287,7 +288,9 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                             top.Sources,
                             AbstractSource::combine(second.Sources, third.Sources));
                     m_opcodeSources[opcodeIndex] = sources;
-
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    second.Sources = newSource(new IntermediateSource(curByte));
+                    third.Sources = newSource(new IntermediateSource(curByte));
                     lastState.push(top);
                     lastState.push(third);
                     lastState.push(second);
@@ -304,7 +307,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                             AbstractSource::combine(second.Sources,
                                                     AbstractSource::combine(third.Sources, fourth.Sources)));
                     m_opcodeSources[opcodeIndex] = sources;
-
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    second.Sources = newSource(new IntermediateSource(curByte));
+                    third.Sources = newSource(new IntermediateSource(curByte));
+                    fourth.Sources = newSource(new IntermediateSource(curByte));
                     lastState.push(top);
                     lastState.push(fourth);
                     lastState.push(third);
@@ -314,12 +320,17 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case POP_TOP:
                     POP_VALUE();
                     break;
-                case DUP_TOP:
-                    lastState.push(lastState[lastState.stackSize() - 1]);
+                case DUP_TOP: {
+                    auto top = lastState[lastState.stackSize() - 1];
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    lastState.push(top);
                     break;
+                }
                 case DUP_TOP_TWO: {
                     auto top = lastState[lastState.stackSize() - 1];
                     auto second = lastState[lastState.stackSize() - 2];
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    second.Sources = newSource(new IntermediateSource(curByte));
                     lastState.push(second);
                     lastState.push(top);
                     break;
