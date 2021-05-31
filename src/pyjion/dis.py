@@ -3,6 +3,7 @@ from dis import get_instructions
 from pyjion import dump_il, dump_native, get_offsets
 from collections import namedtuple
 from warnings import warn
+import struct
 # Pre stack effect
 Pop0 = 0
 Pop1 = 1
@@ -629,6 +630,11 @@ def print_il(il, offsets=None, bytecodes=None):
             elif op.size == InlineField:
                 field = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
                 print(f"[IL_{pc:04x}] F {op.name:15} ({field})")
+                pc += 5
+                continue
+            elif op.size == InlineR:
+                [target] = struct.unpack('f', bytes((next(i), next(i), next(i), next(i))))
+                print(f"[IL_{pc:04x}] IR {op.name:15} ({target})")
                 pc += 5
                 continue
             elif op.size == InlineI:

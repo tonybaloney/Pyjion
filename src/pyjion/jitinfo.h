@@ -243,7 +243,7 @@ public:
 
     int doAssert(const char* szFile, int iLine, const char* szExpr) override {
 #ifdef DEBUG
-        printf(".NET failed assertion: %s %d\n", szFile, iLine);
+        printf(".NET failed assertion: %s %d %s\n", szFile, iLine, szExpr);
 #endif
         return 1;
     }
