@@ -123,13 +123,8 @@
 #define METHOD_BOOL_FROM_LONG                    0x00000054
 #define METHOD_PYERR_SETSTRING                   0x00000055
 #define METHOD_NUMBER_AS_SSIZET                  0x00000056
-
-#define METHOD_EQUALS_INT_TOKEN                  0x00000065
-#define METHOD_LESS_THAN_INT_TOKEN               0x00000066
-#define METHOD_LESS_THAN_EQUALS_INT_TOKEN        0x00000067
-#define METHOD_NOT_EQUALS_INT_TOKEN              0x00000068
-#define METHOD_GREATER_THAN_INT_TOKEN            0x00000069
-#define METHOD_GREATER_THAN_EQUALS_INT_TOKEN     0x0000006A
+#define METHOD_PYLONG_AS_LONG                    0x00000057
+#define METHOD_PYLONG_FROM_LONG                  0x00000058
 
 #define METHOD_EXTENDLIST_TOKEN                  0x0000006C
 #define METHOD_LISTTOTUPLE_TOKEN                 0x0000006D
@@ -411,10 +406,11 @@ public:
     void emit_for_next() override;
     void emit_for_next(AbstractValueWithSources) override;
 
-    void emit_binary_float(uint16_t opcode) override;
+    LocalKind emit_binary_float(uint16_t opcode) override;
+    LocalKind emit_binary_int(uint16_t opcode) override;
     void emit_binary_object(uint16_t opcode) override;
     void emit_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
-    void emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
+    LocalKind emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) override;
@@ -429,7 +425,7 @@ public:
     void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
     void emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
     void emit_compare_floats(uint16_t compareType) override;
-    void emit_compare_tagged_int(uint16_t compareType) override;
+    void emit_compare_ints(uint16_t compareType) override;
 
     void emit_store_fast(size_t local) override;
     void emit_unbound_local_check() override;

@@ -538,7 +538,7 @@ void PythonCompiler::emit_load_fast(size_t local) {
 CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
     switch (kind) {
         case LK_Float: return CORINFO_TYPE_DOUBLE;
-        case LK_Int: return CORINFO_TYPE_INT;
+        case LK_Int: return CORINFO_TYPE_LONG;
         case LK_Bool: return CORINFO_TYPE_BOOL;
         case LK_Pointer: return CORINFO_TYPE_PTR;
         case LK_NativeInt: return CORINFO_TYPE_NATIVEINT;
@@ -1420,6 +1420,8 @@ Local PythonCompiler::emit_define_local(AbstractValueKind kind) {
             return m_il.define_local(Parameter(CORINFO_TYPE_INT));
         case AVK_Float:
             return m_il.define_local(Parameter(CORINFO_TYPE_DOUBLE));
+        case AVK_Integer:
+            return m_il.define_local(Parameter(CORINFO_TYPE_LONG));
         default:
             return m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     }
@@ -1849,7 +1851,7 @@ void PythonCompiler::emit_debug_pyobject() {
     m_il.emit_call(METHOD_DEBUG_PYOBJECT);
 }
 
-void PythonCompiler::emit_binary_float(uint16_t opcode) {
+LocalKind PythonCompiler::emit_binary_float(uint16_t opcode) {
     switch (opcode) {
         case BINARY_ADD:
         case INPLACE_ADD:
@@ -1881,6 +1883,41 @@ void PythonCompiler::emit_binary_float(uint16_t opcode) {
             m_il.emit_call(METHOD_FLOAT_FLOOR_TOKEN);
             break;
     }
+    return LK_Float;
+}
+LocalKind PythonCompiler::emit_binary_int(uint16_t opcode) {
+    switch (opcode) {
+        case BINARY_ADD:
+        case INPLACE_ADD:
+            m_il.add();
+            return LK_Int;
+        case INPLACE_TRUE_DIVIDE:
+        case BINARY_TRUE_DIVIDE:
+            m_il.div();
+            return LK_Int;
+        case INPLACE_MODULO:
+        case BINARY_MODULO:
+            m_il.mod();
+            return LK_Int;
+        case INPLACE_MULTIPLY:
+        case BINARY_MULTIPLY:
+            m_il.mul();
+            return LK_Int;
+        case INPLACE_SUBTRACT:
+        case BINARY_SUBTRACT:
+            m_il.sub();
+            return LK_Int;
+        case BINARY_POWER:
+        case INPLACE_POWER:
+            m_il.emit_call(METHOD_FLOAT_POWER_TOKEN);
+            return LK_Int;
+        case BINARY_FLOOR_DIVIDE:
+        case INPLACE_FLOOR_DIVIDE:
+            m_il.div();
+            m_il.emit_call(METHOD_FLOAT_FLOOR_TOKEN);
+            return LK_Int;
+    }
+    return LK_Int;
 }
 
 void PythonCompiler::emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
@@ -1935,23 +1972,6 @@ void PythonCompiler::emit_not_in() {
     m_il.emit_call(METHOD_NOTCONTAINS_TOKEN);
 }
 
-void PythonCompiler::emit_compare_tagged_int(uint16_t compareType) {
-    switch (compareType) {
-        case Py_EQ:
-            m_il.emit_call(METHOD_EQUALS_INT_TOKEN); break;
-        case Py_LT:
-            m_il.emit_call(METHOD_LESS_THAN_INT_TOKEN); break;
-        case Py_LE:
-            m_il.emit_call(METHOD_LESS_THAN_EQUALS_INT_TOKEN); break;
-        case Py_NE:
-            m_il.emit_call(METHOD_NOT_EQUALS_INT_TOKEN); break;
-        case Py_GT:
-            m_il.emit_call(METHOD_GREATER_THAN_INT_TOKEN); break;
-        case Py_GE:
-            m_il.emit_call(METHOD_GREATER_THAN_EQUALS_INT_TOKEN); break;
-    }
-}
-
 void PythonCompiler::emit_compare_object(uint16_t compareType) {
     m_il.ld_i4(compareType);
     m_il.emit_call(METHOD_RICHCMP_TOKEN);
@@ -1986,6 +2006,31 @@ void PythonCompiler::emit_compare_floats(uint16_t compareType) {
             break;
         case Py_LE:
             m_il.compare_le_float();
+            break;
+        case Py_LT:
+            m_il.compare_lt();
+            break;
+        case Py_GT:
+            m_il.compare_gt();
+            break;
+        default:
+            assert(false);
+    };
+}
+
+void PythonCompiler::emit_compare_ints(uint16_t compareType) {
+    switch (compareType){
+        case Py_EQ:
+            m_il.compare_eq();
+            break;
+        case Py_NE:
+            m_il.compare_ne();
+            break;
+        case Py_GE:
+            m_il.compare_ge();
+            break;
+        case Py_LE:
+            m_il.compare_le();
             break;
         case Py_LT:
             m_il.compare_lt();
@@ -2224,6 +2269,9 @@ void PythonCompiler::emit_box(AbstractValue* value) {
         case AVK_Bool:
             m_il.emit_call(METHOD_BOOL_FROM_LONG);
             break;
+        case AVK_Integer:
+            m_il.emit_call(METHOD_PYLONG_FROM_LONG);
+            break;
     }
 };
 void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs){
@@ -2231,17 +2279,23 @@ void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWit
     switch(lhs.Value->kind()){
         case AVK_Float:
             return emit_compare_floats(compareType);
+        case AVK_Integer:
+            return emit_compare_ints(compareType);
+        case AVK_Bool:
+            return emit_compare_ints(compareType);
+        default:
+            assert(false);
     }
 }
 void PythonCompiler::emit_unbox(AbstractValue* value) {
     assert(supportsEscaping(value->kind()));
-    switch(value->kind()){
-        case AVK_Float:
+    switch(value->kind()) {
+        case AVK_Float: {
             Local lcl = emit_define_local(LK_Pointer);
             Label guard_pass = emit_define_label();
             Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard() || true){
+            if (value->needsGuard() || true) {
                 emit_load_local(lcl);
                 LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyFloat_Type);
@@ -2255,14 +2309,41 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
             m_il.add();
             m_il.ld_ind_r8();
 
-            if (value->needsGuard() || true){
+            if (value->needsGuard() || true) {
                 emit_branch(BranchAlways, guard_pass);
-                    emit_mark_label(guard_fail);
-                    emit_nan();
-                    emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
+                emit_mark_label(guard_fail);
+                emit_nan();
+                emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
                 emit_mark_label(guard_pass);
             }
             break;
+        }
+        case AVK_Integer: {
+            Local lcl = emit_define_local(LK_Pointer);
+            Label guard_pass = emit_define_label();
+            Label guard_fail = emit_define_label();
+            emit_store_local(lcl);
+            if (value->needsGuard() || true) {
+                emit_load_local(lcl);
+                LD_FIELDI(PyObject, ob_type);
+                emit_ptr(&PyLong_Type);
+                emit_branch(BranchNotEqual, guard_fail);
+            }
+
+            emit_load_local(lcl);
+            decref();
+            emit_load_and_free_local(lcl);
+            m_il.emit_call(METHOD_PYLONG_AS_LONG);
+
+            if (value->needsGuard() || true) {
+                emit_branch(BranchAlways, guard_pass);
+                emit_mark_label(guard_fail);
+                emit_int(-1);
+                emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
+                emit_mark_label(guard_pass);
+            }
+            break;
+        }
     }
 };
 
@@ -2515,6 +2596,8 @@ GLOBAL_METHOD(METHOD_FLOAT_MODULUS_TOKEN, static_cast<double(*)(double, double)>
 GLOBAL_METHOD(METHOD_FLOAT_FROM_DOUBLE, PyFloat_FromDouble, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_BOOL_FROM_LONG, PyBool_FromLong, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_NUMBER_AS_SSIZET, PyNumber_AsSsize_t, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_PYLONG_AS_LONG, PyLong_AsLong, CORINFO_TYPE_LONG, Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_PYLONG_FROM_LONG, PyLong_FromLong, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_LONG));
 
 GLOBAL_METHOD(METHOD_PYERR_SETSTRING, PyErr_SetString, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 

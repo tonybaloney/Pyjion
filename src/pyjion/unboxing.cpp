@@ -54,6 +54,8 @@ bool supportsEscaping(AbstractValueKind kind){
     switch (kind){
         case AVK_Float:
             return true;
+        case AVK_Integer:
+            return true;
         default:
             return false;
     }

@@ -678,9 +678,12 @@ void PythonCompiler::emit_known_binary_op_power(AbstractValueWithSources &left, 
     }
 }
 
-void PythonCompiler::emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
+LocalKind PythonCompiler::emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
     if (left.hasValue() && left.Value->kind() == AVK_Float){
-        emit_binary_float(opcode);
+        return emit_binary_float(opcode);
+    }
+    else if (left.hasValue() && left.Value->kind() == AVK_Integer){
+        return emit_binary_int(opcode);
     } else {
         assert("Not supported");
     }

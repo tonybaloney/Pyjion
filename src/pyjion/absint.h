@@ -397,6 +397,7 @@ private:
     void decStack(size_t size = 1);
 
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
+    void incStack(size_t size, LocalKind kind);
 
     AbstactInterpreterCompileResult compileWorker(PgcStatus status, InstructionGraph* graph);
 

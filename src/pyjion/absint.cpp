@@ -1451,6 +1451,20 @@ void AbstractInterpreter::incStack(size_t size, StackEntryKind kind) {
     m_stack.inc(size, kind);
 }
 
+void AbstractInterpreter::incStack(size_t size, LocalKind kind) {
+    switch (kind){
+        case LK_Int:
+            m_stack.inc(size, STACK_KIND_VALUE_INT);
+            break;
+        case LK_Float:
+            m_stack.inc(size, STACK_KIND_VALUE_FLOAT);
+            break;
+        case LK_Bool:
+            m_stack.inc(size, STACK_KIND_VALUE_INT);
+            break;
+    }
+}
+
 // Checks to see if -1 is the current value on the stack, and if so, falls into
 // the logic for raising an exception.  If not execution continues forward progress.
 // Used for checking if an API reports an error (typically true/false/-1)
@@ -1976,11 +1990,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case INPLACE_OR:
                 if (stackInfo.size() >= 2) {
                     if (OPT_ENABLED(unboxing) && op.escape) {
-                        m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
+                        auto retKind = m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
                         if (canReturnInfinity(byte))
                             floatErrorCheck("unboxed binary op failed", curByte, byte);
-                        incStack(1, STACK_KIND_VALUE_FLOAT); // TODO send the correct type back
+                        incStack(1, retKind);
                     } else {
                         m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
