@@ -26,8 +26,6 @@
 #ifndef PYJION_CODEMODEL_H
 #define PYJION_CODEMODEL_H
 
-#define FEATURE_NO_HOST
-
 #include <stdint.h>
 #include <windows.h>
 #include <wchar.h>

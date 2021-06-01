@@ -1158,9 +1158,9 @@ void AbstractInterpreter::errorCheck(const char *reason, size_t curByte) {
     m_comp->emit_load_local(mErrorCheckLocal);
 }
 
-void AbstractInterpreter::floatErrorCheck(const char *reason, size_t curByte, py_opcode opcode) {
+void AbstractInterpreter::invalidFloatErrorCheck(const char *reason, size_t curByte, py_opcode opcode) {
     auto noErr = m_comp->emit_define_label();
-    Local errorCheckLocal = m_comp->emit_define_local(LK_Float); // TODO : Work out actual type.
+    Local errorCheckLocal = m_comp->emit_define_local(LK_Float);
     m_comp->emit_store_local(errorCheckLocal);
     if (canReturnInfinity(opcode)) {
         m_comp->emit_load_local(errorCheckLocal);
@@ -1172,6 +1172,27 @@ void AbstractInterpreter::floatErrorCheck(const char *reason, size_t curByte, py
 
     m_comp->emit_load_local(errorCheckLocal);
     m_comp->emit_nan();
+    m_comp->emit_branch(BranchNotEqual, noErr);
+    branchRaise(reason, curByte);
+
+    m_comp->emit_mark_label(noErr);
+    m_comp->emit_load_and_free_local(errorCheckLocal);
+}
+
+void AbstractInterpreter::invalidIntErrorCheck(const char *reason, size_t curByte, py_opcode opcode) {
+    auto noErr = m_comp->emit_define_label();
+    Local errorCheckLocal = m_comp->emit_define_local(LK_Int);
+    m_comp->emit_store_local(errorCheckLocal);
+    if (canReturnInfinity(opcode)) {
+        m_comp->emit_load_local(errorCheckLocal);
+        m_comp->emit_infinity_long();
+        m_comp->emit_branch(BranchNotEqual, noErr);
+        m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero/operation infinite");
+        branchRaise(reason, curByte);
+    }
+
+    m_comp->emit_load_local(errorCheckLocal);
+    m_comp->emit_nan_long();
     m_comp->emit_branch(BranchNotEqual, noErr);
     branchRaise(reason, curByte);
 
@@ -1992,8 +2013,16 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                     if (OPT_ENABLED(unboxing) && op.escape) {
                         auto retKind = m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
-                        if (canReturnInfinity(byte))
-                            floatErrorCheck("unboxed binary op failed", curByte, byte);
+                        if (canReturnInfinity(byte)) {
+                            switch (retKind) {
+                                case LK_Float:
+                                    invalidFloatErrorCheck("unboxed binary op failed", curByte, byte);
+                                    break;
+                                case LK_Int:
+                                    invalidIntErrorCheck("unboxed binary op failed", curByte, byte);
+                                    break;
+                            }
+                        }
                         incStack(1, retKind);
                     } else {
                         m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());

@@ -26,9 +26,6 @@
 #ifndef PYJION_JITINIT_H
 #define PYJION_JITINIT_H
 
-
-#define FEATURE_NO_HOST
-
 #include <cstdint>
 #include <windows.h>
 #include <cwchar>

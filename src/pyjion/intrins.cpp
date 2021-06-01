@@ -2594,3 +2594,27 @@ void PyJit_TraceFrameException(PyFrameObject* f){
 PyObject* PyJit_GetListItemReversed(PyObject* list, size_t index){
     return PyList_GET_ITEM(list, PyList_GET_SIZE(list) - index - 1);
 }
+
+long double PyJit_LongTrueDivide(long x, long y){
+    if (y == 0){
+        PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
+        return INFINITY;
+    }
+    return x / y;
+}
+
+long PyJit_LongFloorDivide(long x, long y) {
+    if (y == 0){
+        PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
+        return MAXLONG;
+    }
+    return floor(x / y);
+}
+
+long PyJit_LongMod(long x, long y) {
+    if (y == 0){
+        PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
+        return MAXLONG;
+    }
+    return x % y;
+}

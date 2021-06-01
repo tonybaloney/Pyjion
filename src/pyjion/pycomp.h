@@ -225,6 +225,10 @@
 #define METHOD_FLOAT_POWER_TOKEN    0x00050000
 #define METHOD_FLOAT_FLOOR_TOKEN    0x00050001
 #define METHOD_FLOAT_MODULUS_TOKEN  0x00050002
+#define METHOD_INT_POWER            0x00050003
+#define METHOD_INT_FLOOR_DIVIDE     0x00050004
+#define METHOD_INT_TRUE_DIVIDE      0x00050005
+#define METHOD_INT_MOD              0x00050006
 
 #define METHOD_STORE_SUBSCR_OBJ       0x00060000
 #define METHOD_STORE_SUBSCR_OBJ_I     0x00060001
@@ -496,6 +500,8 @@ public:
     void emit_escape_edges(EdgeMap edges) override;
     void emit_infinity() override;
     void emit_nan() override;
+    void emit_infinity_long() override;
+    void emit_nan_long() override;
 private:
     void load_frame();
     void load_tstate();

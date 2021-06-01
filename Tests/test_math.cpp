@@ -1082,7 +1082,7 @@ TEST_CASE("Test math operations") {
     }
     SECTION("test modulus by zero") {
         auto t = EmissionTest(
-                "def f():\n    5 % 0"
+                "def f():\n    return 5 % 0"
         );
         CHECK(t.raises() == PyExc_ZeroDivisionError);
     }

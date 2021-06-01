@@ -313,4 +313,9 @@ PyObject* MethCallN(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 int PyJit_SetupAnnotations(PyFrameObject* frame);
 
 PyObject* PyJit_GetListItemReversed(PyObject* list, size_t index);
+
+long double PyJit_LongTrueDivide(long x, long y);
+long PyJit_LongFloorDivide(long x, long y);
+long PyJit_LongMod(long x, long y);
+
 #endif

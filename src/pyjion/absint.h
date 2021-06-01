@@ -375,7 +375,8 @@ private:
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
     void errorCheck(const char* reason = nullptr, size_t curByte = ~0);
-    void floatErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
+    void invalidFloatErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
+    void invalidIntErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
     void intErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);

@@ -26,8 +26,6 @@
 #ifndef PYJION_ILGEN_H
 #define PYJION_ILGEN_H
 
-#define FEATURE_NO_HOST
-
 #include <cstdint>
 #include <windows.h>
 #include <cwchar>

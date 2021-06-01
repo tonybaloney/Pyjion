@@ -1893,11 +1893,11 @@ LocalKind PythonCompiler::emit_binary_int(uint16_t opcode) {
             return LK_Int;
         case INPLACE_TRUE_DIVIDE:
         case BINARY_TRUE_DIVIDE:
-            m_il.div();
-            return LK_Int;
+            m_il.emit_call(METHOD_INT_TRUE_DIVIDE);
+            return LK_Float;
         case INPLACE_MODULO:
         case BINARY_MODULO:
-            m_il.mod();
+            m_il.emit_call(METHOD_INT_MOD);
             return LK_Int;
         case INPLACE_MULTIPLY:
         case BINARY_MULTIPLY:
@@ -1909,12 +1909,11 @@ LocalKind PythonCompiler::emit_binary_int(uint16_t opcode) {
             return LK_Int;
         case BINARY_POWER:
         case INPLACE_POWER:
-            m_il.emit_call(METHOD_FLOAT_POWER_TOKEN);
+            m_il.emit_call(METHOD_INT_POWER);
             return LK_Int;
         case BINARY_FLOOR_DIVIDE:
         case INPLACE_FLOOR_DIVIDE:
-            m_il.div();
-            m_il.emit_call(METHOD_FLOAT_FLOOR_TOKEN);
+            m_il.emit_call(METHOD_INT_FLOOR_DIVIDE);
             return LK_Int;
     }
     return LK_Int;
@@ -2355,6 +2354,14 @@ void PythonCompiler::emit_nan() {
     m_il.ld_r8(NAN);
 }
 
+void PythonCompiler::emit_infinity_long() {
+    m_il.ld_i8(MAXLONG);
+}
+
+void PythonCompiler::emit_nan_long() {
+    m_il.ld_i8(MAXLONG);
+}
+
 void PythonCompiler::emit_escape_edges(EdgeMap edges){
     // If none of the edges need escaping, skip
     bool needsEscapes = false;
@@ -2592,6 +2599,11 @@ GLOBAL_METHOD(METHOD_ISNOT_BOOL, &PyJit_IsNot_Bool, CORINFO_TYPE_INT, Parameter(
 
 GLOBAL_METHOD(METHOD_FLOAT_POWER_TOKEN, static_cast<double(*)(double, double)>(pow), CORINFO_TYPE_DOUBLE, Parameter(CORINFO_TYPE_DOUBLE), Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_FLOAT_FLOOR_TOKEN, static_cast<double(*)(double)>(floor), CORINFO_TYPE_DOUBLE, Parameter(CORINFO_TYPE_DOUBLE));
+GLOBAL_METHOD(METHOD_INT_POWER, static_cast<long double(*)(long double, long double)>(powl), CORINFO_TYPE_LONG, Parameter(CORINFO_TYPE_LONG), Parameter(CORINFO_TYPE_LONG));
+GLOBAL_METHOD(METHOD_INT_FLOOR_DIVIDE, PyJit_LongFloorDivide, CORINFO_TYPE_LONG, Parameter(CORINFO_TYPE_LONG), Parameter(CORINFO_TYPE_LONG));
+GLOBAL_METHOD(METHOD_INT_TRUE_DIVIDE, PyJit_LongTrueDivide, CORINFO_TYPE_DOUBLE, Parameter(CORINFO_TYPE_LONG), Parameter(CORINFO_TYPE_LONG));
+GLOBAL_METHOD(METHOD_INT_MOD, PyJit_LongMod, CORINFO_TYPE_LONG, Parameter(CORINFO_TYPE_LONG), Parameter(CORINFO_TYPE_LONG));
+
 GLOBAL_METHOD(METHOD_FLOAT_MODULUS_TOKEN, static_cast<double(*)(double, double)>(fmod), CORINFO_TYPE_DOUBLE, Parameter(CORINFO_TYPE_DOUBLE), Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_FLOAT_FROM_DOUBLE, PyFloat_FromDouble, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_BOOL_FROM_LONG, PyBool_FromLong, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_INT));
