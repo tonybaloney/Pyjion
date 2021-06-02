@@ -30,6 +30,7 @@ AnyValue Any;
 UndefinedValue Undefined;
 IntegerValue Integer;
 InternIntegerValue InternInteger;
+BigIntegerValue BigInteger;
 FloatValue Float;
 BoolValue Bool;
 ListValue List;

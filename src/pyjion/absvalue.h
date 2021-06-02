@@ -61,7 +61,8 @@ enum AbstractValueKind {
     AVK_File,
     AVK_Type,
     AVK_Module,
-    AVK_Method
+    AVK_Method,
+    AVK_BigInteger
 };
 
 static bool isKnownType(AbstractValueKind kind) {
@@ -421,6 +422,14 @@ public:
     InternIntegerValue() = default;
 };
 
+class BigIntegerValue : public IntegerValue {
+public:
+    BigIntegerValue() = default;
+    AbstractValueKind kind() override {
+        return AVK_BigInteger;
+    }
+};
+
 class StringValue : public AbstractValue {
     AbstractValueKind kind() override;
     AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
@@ -597,6 +606,7 @@ extern AnyValue Any;
 extern BoolValue Bool;
 extern IntegerValue Integer;
 extern InternIntegerValue InternInteger;
+extern BigIntegerValue BigInteger;
 extern FloatValue Float;
 extern ListValue List;
 extern TupleValue Tuple;
