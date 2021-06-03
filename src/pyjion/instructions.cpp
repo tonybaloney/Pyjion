@@ -83,7 +83,7 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
             .index = index,
             .opcode = opcode,
             .oparg = oparg,
-            .escape = supportsUnboxing(opcode) && allEscaped
+            .escape = supportsUnboxing(opcode) && allEscaped && !getEdgesFrom(index).empty()
         };
     }
     for (auto & edge: this->edges){
@@ -142,9 +142,18 @@ void InstructionGraph::printGraph(const char* name) {
 }
 
 EdgeMap InstructionGraph::getEdges(size_t i){
-    unordered_map<size_t, Edge> filteredEdges;
+    EdgeMap filteredEdges;
     for (auto & edge: this->edges){
         if (edge.to == i)
+            filteredEdges[edge.position] = edge;
+    }
+    return filteredEdges;
+}
+
+EdgeMap InstructionGraph::getEdgesFrom(size_t i){
+    EdgeMap filteredEdges;
+    for (auto & edge: this->edges){
+        if (edge.from == i)
             filteredEdges[edge.position] = edge;
     }
     return filteredEdges;

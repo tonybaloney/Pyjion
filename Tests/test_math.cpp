@@ -1065,29 +1065,29 @@ TEST_CASE("test binary/arithmetic operations") {
         CHECK(t.returns() == "3.141592653589793");
     }
         // division error handling code gen with value on the stack
-    SECTION("test39") {
+    SECTION("test operator precedence") {
         auto t = EmissionTest(
                 "def f():\n    x = 1.0\n    y = 2.0\n    z = 3.0\n    return x + y / z"
         );
         CHECK(t.returns() == "1.6666666666666665");
     }
         // division by zero error case
-    SECTION("test40") {
+    SECTION("test divide int by zero") {
         auto t = EmissionTest(
                 "def f():\n    x = 1\n    y = 0\n    try:\n        return x / y\n    except:\n        return 42"
         );
         CHECK(t.returns() == "42");
-    }SECTION("test41") {
+    }SECTION("test floor divide by zero") {
         auto t = EmissionTest(
                 "def f():\n    x = 1\n    y = 0\n    try:\n        return x // y\n    except:\n        return 42"
         );
         CHECK(t.returns() == "42");
-    }SECTION("test43") {
+    }SECTION("test name error raised on delete RefCountCheck") {
         auto t = EmissionTest(
                 "def f():\n    a = RefCountCheck()\n    del a\n    return finalized"
         );
         CHECK(t.raises() == PyExc_NameError);
-    }SECTION("test44") {
+    }SECTION("test scope leak of loop") {
         auto t = EmissionTest(
                 "def f():\n    for i in {2:3}:\n        pass\n    return i"
         );
