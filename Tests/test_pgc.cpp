@@ -77,9 +77,9 @@ TEST_CASE("test BINARY PGC"){
                 "  return a,b,c,d\n"
         );
         CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
-        CHECK(t.returns() == "(1000, 2.0, 'cheese', ' shop')");
+        CHECK(t.raises() == PyExc_ValueError);
         CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
-        CHECK(t.returns() == "(1000, 2.0, 'cheese', ' shop')");
+        CHECK(t.raises() == PyExc_ValueError);
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
 
@@ -95,9 +95,9 @@ TEST_CASE("test BINARY PGC"){
                 "  return equal(a,b), equal (c,d), equal(a, d)\n"
         );
         CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
-        CHECK(t.returns() == "(False, False, False)");
+        CHECK(t.raises() == PyExc_ValueError);
         CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
-        CHECK(t.returns() == "(False, False, False)");
+        CHECK(t.raises() == PyExc_ValueError);
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
 }

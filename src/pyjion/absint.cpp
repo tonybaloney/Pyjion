@@ -1219,7 +1219,7 @@ void AbstractInterpreter::ensureLabels(vector<Label>& labels, size_t count) {
     }
 }
 
-void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
+void AbstractInterpreter::branchRaise(const char *reason, size_t curByte, bool force) {
     auto ehBlock = currentHandler();
     auto& entryStack = ehBlock->EntryStack;
 
@@ -1242,7 +1242,7 @@ void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
 
     auto cur = m_stack.rbegin();
     for (; cur != m_stack.rend() && count >= 0; cur++) {
-        if (*cur != STACK_KIND_OBJECT) {
+        if (*cur != STACK_KIND_OBJECT || force) {
             count--;
             m_comp->emit_pop();
         }
@@ -1266,7 +1266,7 @@ void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
 
     // continue walking our stack iterator
     for (auto i = 0; i < count; cur++, i++) {
-        if (*cur != STACK_KIND_OBJECT) {
+        if (*cur != STACK_KIND_OBJECT || force) {
             // pop off the stack value...
             m_comp->emit_pop();
 
@@ -1503,15 +1503,9 @@ void AbstractInterpreter::escapeEdges(EdgeMap edges, size_t curByte) {
     Local escapeSuccess = m_comp->emit_define_local(LK_Int);
     Label noError = m_comp->emit_define_label();
     m_comp->emit_escape_edges(edges, escapeSuccess);
-    for (auto & edge: edges){
-        if (edge.second.escaped == Unbox){
-            decStack();
-            incStack(1, avkAsStackEntryKind(edge.second.value->kind()));
-        }
-    }
     m_comp->emit_load_and_free_local(escapeSuccess);
     m_comp->emit_branch(BranchFalse, noError);
-    branchRaise("failed unboxing operation", curByte);
+    branchRaise("failed unboxing operation", curByte, true);
     m_comp->emit_mark_label(noError);
 }
 
