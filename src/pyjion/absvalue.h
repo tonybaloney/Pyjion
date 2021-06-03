@@ -428,6 +428,9 @@ public:
     AbstractValueKind kind() override {
         return AVK_BigInteger;
     }
+    const char * describe() override{
+        return "big int";
+    }
 };
 
 class StringValue : public AbstractValue {

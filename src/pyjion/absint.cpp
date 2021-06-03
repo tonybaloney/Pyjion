@@ -1035,12 +1035,12 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
         return &None;
     }
     else if (PyLong_CheckExact(obj)) {
-        int value;
-        if (Py_SIZE(obj) < 4)
-            if (IS_SMALL_INT(PyLong_AsLongLongAndOverflow(obj, &value)))
-                return &InternInteger;
-        if (Py_SIZE(obj) > 10)
+        int ovf;
+        long value = PyLong_AsLongAndOverflow(obj, &ovf);
+        if (ovf)
             return &BigInteger;
+        if (Py_SIZE(obj) < 4 && IS_SMALL_INT(value))
+            return &InternInteger;
         return &Integer;
     }
     else if (PyUnicode_Check(obj)) {

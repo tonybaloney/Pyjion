@@ -1325,6 +1325,7 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
     switch (type) {
         case AVK_Any: return &PyType_Type;
         case AVK_Integer: return &PyLong_Type;
+        case AVK_BigInteger: return &PyLong_Type;
         case AVK_Float: return &PyFloat_Type;
         case AVK_Dict: return &PyDict_Type;
         case AVK_Tuple: return &PyTuple_Type;
@@ -1343,7 +1344,7 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         case AVK_Code: return &PyCode_Type;
         case AVK_Bytearray: return &PyByteArray_Type;
         default:
-            return nullptr;
+            assert(false);
     }
 }
 

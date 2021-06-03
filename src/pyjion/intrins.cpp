@@ -2595,12 +2595,12 @@ PyObject* PyJit_GetListItemReversed(PyObject* list, size_t index){
     return PyList_GET_ITEM(list, PyList_GET_SIZE(list) - index - 1);
 }
 
-long double PyJit_LongTrueDivide(long x, long y){
+double PyJit_LongTrueDivide(long x, long y){
     if (y == 0){
         PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
         return INFINITY;
     }
-    return x / y;
+    return (double)x / (double)y;
 }
 
 long PyJit_LongFloorDivide(long x, long y) {
@@ -2608,7 +2608,13 @@ long PyJit_LongFloorDivide(long x, long y) {
         PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
         return MAXLONG;
     }
-    return floor(x / y);
+    // C++ handles -ve divisors weirdly, use normal long division for +ve
+    if (0 < (x^y)){
+        return x / y;
+    } else {
+        ldiv_t res = ldiv(x,y);
+        return (res.rem)? res.quot-1 : res.quot;
+    }
 }
 
 long PyJit_LongMod(long x, long y) {
@@ -2616,5 +2622,23 @@ long PyJit_LongMod(long x, long y) {
         PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
         return MAXLONG;
     }
-    return x % y;
+    // C++ handles -ve divisors weirdly, use normal long division for +ve
+    if (0 < (x^y)){
+        return x % y;
+    } else {
+        return (y + (x%y)) % y;
+    }
+}
+
+long PyJit_LongPow(long base, long exp) {
+    long result = 1;
+    for (;;)
+    {
+        if (exp & 1) result *= base;
+        exp >>= 1;
+        if (!exp) break;
+        base *= base;
+    }
+
+    return result;
 }
