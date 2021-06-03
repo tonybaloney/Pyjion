@@ -1,5 +1,6 @@
 import pyjion
 import timeit
+from statistics import fmean
 
 
 def test_floats(n=10000):
@@ -19,8 +20,12 @@ def test_ints(n=10000):
 if __name__ == "__main__":
     tests = (test_floats, test_ints)
     for test in tests:
-        print("{1} took {0} without Pyjion".format(timeit.repeat(test, repeat=5, number=1000), str(test)))
+        without_result = timeit.repeat(test, repeat=5, number=1000)
+        print("{0} took {1} min, {2} max, {3} mean without Pyjion".format(str(test), min(without_result), max(without_result), fmean(without_result)))
         pyjion.enable()
         pyjion.set_optimization_level(1)
-        print("{1} took {0} {0} with Pyjion".format(timeit.repeat(test, repeat=5, number=1000), str(test)))
+        with_result = timeit.repeat(test, repeat=5, number=1000)
         pyjion.disable()
+        print("{0} took {1} min, {2} max, {3} mean with Pyjion".format(str(test), min(with_result), max(with_result), fmean(with_result)))
+        delta = (abs(fmean(with_result) - fmean(without_result)) / fmean(without_result)) * 100.0
+        print(f"Pyjion is {delta:.2f}% faster")
