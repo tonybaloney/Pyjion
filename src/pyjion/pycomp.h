@@ -496,8 +496,8 @@ public:
     void sink_top_to_n(uint16_t pos) override;
     void mark_sequence_point(size_t idx) override;
     void emit_box(AbstractValue* value) override;
-    void emit_unbox(AbstractValue* value) override;
-    void emit_escape_edges(EdgeMap edges) override;
+    void emit_unbox(AbstractValue* value, Local success) override;
+    void emit_escape_edges(EdgeMap edges, Local success) override;
     void emit_infinity() override;
     void emit_nan() override;
     void emit_infinity_long() override;

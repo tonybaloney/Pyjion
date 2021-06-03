@@ -469,8 +469,8 @@ public:
 
     // New boxing operations
     virtual void emit_box(AbstractValue* value) = 0;
-    virtual void emit_unbox(AbstractValue* value) = 0;
-    virtual void emit_escape_edges(EdgeMap edges) = 0;
+    virtual void emit_unbox(AbstractValue* value, Local success) = 0;
+    virtual void emit_escape_edges(EdgeMap edges, Local success) = 0;
     virtual void emit_infinity() = 0;
     virtual void emit_nan() = 0;
     virtual void emit_infinity_long() = 0;

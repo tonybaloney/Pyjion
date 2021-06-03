@@ -1164,17 +1164,10 @@ void AbstractInterpreter::invalidFloatErrorCheck(const char *reason, size_t curB
     auto noErr = m_comp->emit_define_label();
     Local errorCheckLocal = m_comp->emit_define_local(LK_Float);
     m_comp->emit_store_local(errorCheckLocal);
-    if (canReturnInfinity(opcode)) {
-        m_comp->emit_load_local(errorCheckLocal);
-        m_comp->emit_infinity();
-        m_comp->emit_branch(BranchNotEqual, noErr);
-        m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero/operation infinite");
-        branchRaise(reason, curByte);
-    }
-
     m_comp->emit_load_local(errorCheckLocal);
-    m_comp->emit_nan();
+    m_comp->emit_infinity();
     m_comp->emit_branch(BranchNotEqual, noErr);
+    m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero/operation infinite");
     branchRaise(reason, curByte);
 
     m_comp->emit_mark_label(noErr);
@@ -1185,19 +1178,11 @@ void AbstractInterpreter::invalidIntErrorCheck(const char *reason, size_t curByt
     auto noErr = m_comp->emit_define_label();
     Local errorCheckLocal = m_comp->emit_define_local(LK_Int);
     m_comp->emit_store_local(errorCheckLocal);
-    if (canReturnInfinity(opcode)) {
-        m_comp->emit_load_local(errorCheckLocal);
-        m_comp->emit_infinity_long();
-        m_comp->emit_branch(BranchNotEqual, noErr);
-        m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero/operation infinite");
-        branchRaise(reason, curByte);
-    }
-
     m_comp->emit_load_local(errorCheckLocal);
-    m_comp->emit_nan_long();
+    m_comp->emit_infinity_long();
     m_comp->emit_branch(BranchNotEqual, noErr);
+    m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero/operation infinite");
     branchRaise(reason, curByte);
-
     m_comp->emit_mark_label(noErr);
     m_comp->emit_load_and_free_local(errorCheckLocal);
 }
@@ -1514,6 +1499,22 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
     m_comp->emit_load_local(handler->ExVars.FinallyExc);
 }
 
+void AbstractInterpreter::escapeEdges(EdgeMap edges, size_t curByte) {
+    Local escapeSuccess = m_comp->emit_define_local(LK_Int);
+    Label noError = m_comp->emit_define_label();
+    m_comp->emit_escape_edges(edges, escapeSuccess);
+    for (auto & edge: edges){
+        if (edge.second.escaped == Unbox){
+            decStack();
+            incStack(1, avkAsStackEntryKind(edge.second.value->kind()));
+        }
+    }
+    m_comp->emit_load_and_free_local(escapeSuccess);
+    m_comp->emit_branch(BranchFalse, noError);
+    branchRaise("failed unboxing operation", curByte);
+    m_comp->emit_mark_label(noError);
+}
+
 void AbstractInterpreter::decExcVars(size_t count){
     m_comp->emit_dec_local(mExcVarsOnStack, count);
 }
@@ -1546,17 +1547,7 @@ void AbstractInterpreter::emitPgcProbes(size_t curByte, size_t stackSize) {
     m_comp->emit_branch(BranchTrue, hasProbed);
     
     for (size_t i = 0; i < stackSize; i++){
-        switch(m_stack.peek(i)) {
-            case STACK_KIND_OBJECT:
-                stack[i] = m_comp->emit_define_local(LK_Pointer);
-                break;
-            case STACK_KIND_VALUE_FLOAT:
-                stack[i] = m_comp->emit_define_local(LK_Float);
-                break;
-            case STACK_KIND_VALUE_INT:
-                stack[i] = m_comp->emit_define_local(LK_Int);
-                break;
-        }
+        stack[i] = m_comp->emit_define_local(stackEntryKindAsLocalKind(m_stack.peek(i)));
         m_comp->emit_store_local(stack[i]);
         if (m_stack.peek(i) == STACK_KIND_OBJECT) {
             m_comp->emit_pgc_profile_capture(stack[i], curByte, i);
@@ -1688,7 +1679,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             } // Else, use normal compilation path.
         }
         if (OPT_ENABLED(unboxing)) {
-            m_comp->emit_escape_edges(edges);
+            escapeEdges(edges, curByte);
         }
 
         switch (byte) {

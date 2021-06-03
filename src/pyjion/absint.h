@@ -427,6 +427,7 @@ private:
     void incExcVars(size_t count);
     void updateIntermediateSources();
     InstructionGraph* buildInstructionGraph();
+    void escapeEdges(EdgeMap edges, size_t curByte);
 };
 bool canReturnInfinity(int opcode);
 

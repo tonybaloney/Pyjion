@@ -2286,7 +2286,7 @@ void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWit
             assert(false);
     }
 }
-void PythonCompiler::emit_unbox(AbstractValue* value) {
+void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
     assert(supportsEscaping(value->kind()));
     switch(value->kind()) {
         case AVK_Float: {
@@ -2294,7 +2294,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
             Label guard_pass = emit_define_label();
             Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard() || true) {
+            if (value->needsGuard()) {
                 emit_load_local(lcl);
                 LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyFloat_Type);
@@ -2308,11 +2308,14 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
             m_il.add();
             m_il.ld_ind_r8();
 
-            if (value->needsGuard() || true) {
+            if (value->needsGuard()) {
                 emit_branch(BranchAlways, guard_pass);
                 emit_mark_label(guard_fail);
-                emit_nan();
+                emit_int(1);
+                emit_store_local(success);
+                emit_debug_msg("guard failed on unbox float");
                 emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
+                emit_nan(); // keep the stack effect equivalent, this value is never used.
                 emit_mark_label(guard_pass);
             }
             break;
@@ -2322,7 +2325,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
             Label guard_pass = emit_define_label();
             Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard() || true) {
+            if (value->needsGuard()) {
                 emit_load_local(lcl);
                 LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyLong_Type);
@@ -2334,11 +2337,14 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
             emit_load_and_free_local(lcl);
             m_il.emit_call(METHOD_PYLONG_AS_LONG);
 
-            if (value->needsGuard() || true) {
+            if (value->needsGuard()) {
                 emit_branch(BranchAlways, guard_pass);
                 emit_mark_label(guard_fail);
-                emit_int(-1);
+                emit_int(1);
+                emit_store_local(success);
+                emit_debug_msg("guard failed on unbox int");
                 emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
+                emit_nan_long(); // keep the stack effect equivalent, this value is never used.
                 emit_mark_label(guard_pass);
             }
             break;
@@ -2362,7 +2368,9 @@ void PythonCompiler::emit_nan_long() {
     m_il.ld_i8(MAXLONG);
 }
 
-void PythonCompiler::emit_escape_edges(EdgeMap edges){
+void PythonCompiler::emit_escape_edges(EdgeMap edges, Local success){
+    emit_int(0);
+    emit_store_local(success); // Will get set to 1 on unbox failures.
     // If none of the edges need escaping, skip
     bool needsEscapes = false;
     for (size_t i = 0; i < edges.size(); i++){
@@ -2389,7 +2397,7 @@ void PythonCompiler::emit_escape_edges(EdgeMap edges){
         emit_load_and_free_local(stack[i-1]);
         switch(edges[i-1].escaped){
             case Unbox:
-                emit_unbox(edges[i-1].value);
+                emit_unbox(edges[i-1].value, success);
                 break;
             case Box:
                 emit_box(edges[i-1].value);
