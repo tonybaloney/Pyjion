@@ -2273,17 +2273,22 @@ void PythonCompiler::emit_box(AbstractValue* value) {
             break;
     }
 };
-void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs){
-    assert(supportsEscaping(lhs.Value->kind()) && supportsEscaping(rhs.Value->kind()));
-    switch(lhs.Value->kind()){
-        case AVK_Float:
-            return emit_compare_floats(compareType);
-        case AVK_Integer:
-            return emit_compare_ints(compareType);
-        case AVK_Bool:
-            return emit_compare_ints(compareType);
-        default:
-            assert(false);
+void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources left, AbstractValueWithSources right){
+    assert(supportsEscaping(left.Value->kind()) && supportsEscaping(right.Value->kind()));
+
+    if (left.Value->kind() == AVK_Float && right.Value->kind() == AVK_Float){
+        return emit_compare_floats(compareType);
+    } else if (left.Value->kind() == AVK_Integer && right.Value->kind() == AVK_Integer){
+        return emit_compare_ints(compareType);
+    } else if (left.Value->kind() == AVK_Integer && right.Value->kind() == AVK_Float) {
+        Local right_l = emit_define_local(LK_Float);
+        emit_store_local(right_l);
+        m_il.conv_r8();
+        emit_load_and_free_local(right_l);
+        return emit_compare_floats(compareType);
+    } else if (left.Value->kind() == AVK_Float && right.Value->kind() == AVK_Integer) {
+        m_il.conv_r8();
+        return emit_compare_floats(compareType);
     }
 }
 void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
