@@ -2639,6 +2639,5 @@ long PyJit_LongPow(long base, long exp) {
         if (!exp) break;
         base *= base;
     }
-
     return result;
 }

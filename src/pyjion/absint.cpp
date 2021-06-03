@@ -1037,7 +1037,7 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
     else if (PyLong_CheckExact(obj)) {
         int ovf;
         long value = PyLong_AsLongAndOverflow(obj, &ovf);
-        if (ovf)
+        if (ovf || value > 2147483647 || value < -2147483647 )
             return &BigInteger;
         if (Py_SIZE(obj) < 4 && IS_SMALL_INT(value))
             return &InternInteger;

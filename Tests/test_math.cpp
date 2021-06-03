@@ -764,12 +764,13 @@ TEST_CASE("Unary tests") {
                 "def f():\n    x = -9223372036854775808\n    y = 1\n    return x - y"
         );
         CHECK(t.returns() == "-9223372036854775809");
-    }SECTION("test113") {
+    }
+    SECTION("large -ve spill int no overflow") {
         auto t = EmissionTest(
                 "def f():\n    x = -1\n    y = 4611686018427387904\n    return x - y"
         );
         CHECK(t.returns() == "-4611686018427387905");
-    }SECTION("test114") {
+    }SECTION("small -1 int minus large int") {
         auto t = EmissionTest(
                 "def f():\n    x = -1\n    y = 9223372036854775808\n    return x - y"
         );
