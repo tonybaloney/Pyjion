@@ -56,6 +56,8 @@ bool supportsEscaping(AbstractValueKind kind){
             return true;
         case AVK_Integer:
             return true;
+//        case AVK_Bool:
+//            return true;
         default:
             return false;
     }

@@ -139,12 +139,15 @@ struct AbstractSources {
 };
 
 class ConstSource : public AbstractSource {
+    PyObject* value;
     Py_hash_t hash;
     bool hasHashValueSet = false;
     bool hasNumericValueSet = false;
     Py_ssize_t numericValue = -1;
 public:
     explicit ConstSource(PyObject* value, size_t producer): AbstractSource(producer) {
+        this->value = value;
+        Py_INCREF(value);
         this->hash = PyObject_Hash(value);
         if (PyErr_Occurred()){
             PyErr_Clear();
@@ -161,6 +164,12 @@ public:
             }
         }
     }
+
+    ~ConstSource(){
+        Py_DECREF(this->value);
+    }
+
+    PyObject* getValue() { return value; }
 
     bool hasConstValue() override { return true; }
 
