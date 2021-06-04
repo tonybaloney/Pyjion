@@ -83,8 +83,15 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
             .index = index,
             .opcode = opcode,
             .oparg = oparg,
-            .escape = supportsUnboxing(opcode) && allEscaped && !getEdgesFrom(index).empty()
+            .escape = supportsUnboxing(opcode) && allEscaped
         };
+    }
+    // Inspect all instructions for escape cost and potential escape leaks
+    for (auto & instruction: this->instructions){
+        // If the instruction is escaped but has no output edge (POP_BLOCK or basic frame pop)
+        if (getEdgesFrom(instruction.first).empty() && instruction.second.escape){
+            instruction.second.escape = false;
+        }
     }
     for (auto & edge: this->edges){
         // If the instruction is no longer escaped, dont box the output
