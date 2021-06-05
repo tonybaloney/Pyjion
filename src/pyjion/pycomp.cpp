@@ -2307,11 +2307,11 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             }
 
             emit_load_local(lcl);
-            decref();
-            emit_load_and_free_local(lcl);
             m_il.ld_i(offsetof(PyFloatObject, ob_fval));
             m_il.add();
             m_il.ld_ind_r8();
+            emit_load_and_free_local(lcl);
+            decref();
 
             if (value->needsGuard()) {
                 emit_branch(BranchAlways, guard_pass);
@@ -2338,9 +2338,9 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             }
 
             emit_load_local(lcl);
-            decref();
-            emit_load_and_free_local(lcl);
             m_il.emit_call(METHOD_PYLONG_AS_LONG);
+            emit_load_and_free_local(lcl);
+            decref();
 
             if (value->needsGuard()) {
                 emit_branch(BranchAlways, guard_pass);
@@ -2376,12 +2376,12 @@ void PythonCompiler::emit_nan_long() {
 void PythonCompiler::emit_unbox_const(ConstSource *source, AbstractValue *value) {
     switch(value->kind()) {
         case AVK_Float: {
-            m_il.pop();
+            decref();
             m_il.ld_r8(PyFloat_AsDouble(source->getValue())) ;
         }
             break;
         case AVK_Integer: {
-            m_il.pop();
+            decref();
             m_il.ld_i8(PyLong_AsLong(source->getValue())) ;
         }
         break;
