@@ -476,6 +476,7 @@ public:
     virtual void emit_nan() = 0;
     virtual void emit_infinity_long() = 0;
     virtual void emit_nan_long() = 0;
+    virtual void emit_guard_exception(const char* expected) = 0;
 };
 
 #endif

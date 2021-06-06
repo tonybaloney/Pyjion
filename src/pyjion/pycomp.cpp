@@ -2291,6 +2291,12 @@ void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWit
         return emit_compare_floats(compareType);
     }
 }
+
+void PythonCompiler::emit_guard_exception(const char* expected){
+    m_il.ld_i((void*)expected);
+    m_il.emit_call(METHOD_PGC_GUARD_EXCEPTION);
+}
+
 void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
     assert(supportsEscaping(value->kind()));
     switch(value->kind()) {
@@ -2310,7 +2316,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             m_il.ld_i(offsetof(PyFloatObject, ob_fval));
             m_il.add();
             m_il.ld_ind_r8();
-            emit_load_and_free_local(lcl);
+            emit_load_local(lcl);
             decref();
 
             if (value->needsGuard()) {
@@ -2318,11 +2324,12 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
                 emit_mark_label(guard_fail);
                 emit_int(1);
                 emit_store_local(success);
-                emit_debug_msg("guard failed on unbox float");
-                emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
+                emit_load_local(lcl);
+                emit_guard_exception("float");
                 emit_nan(); // keep the stack effect equivalent, this value is never used.
                 emit_mark_label(guard_pass);
             }
+            emit_free_local(lcl);
             break;
         }
         case AVK_Integer: {
@@ -2339,7 +2346,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
 
             emit_load_local(lcl);
             m_il.emit_call(METHOD_PYLONG_AS_LONG);
-            emit_load_and_free_local(lcl);
+            emit_load_local(lcl);
             decref();
 
             if (value->needsGuard()) {
@@ -2347,11 +2354,12 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
                 emit_mark_label(guard_fail);
                 emit_int(1);
                 emit_store_local(success);
-                emit_debug_msg("guard failed on unbox int");
-                emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
+                emit_load_local(lcl);
+                emit_guard_exception("int");
                 emit_nan_long(); // keep the stack effect equivalent, this value is never used.
                 emit_mark_label(guard_pass);
             }
+            emit_free_local(lcl);
             break;
         }
     }
@@ -2687,6 +2695,7 @@ GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, P
 GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );
 
 GLOBAL_METHOD(METHOD_PGC_PROBE, &capturePgcStackValue, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
+GLOBAL_METHOD(METHOD_PGC_GUARD_EXCEPTION, &PyJit_PgcGuardException, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SEQUENCE_AS_LIST, &PySequence_List, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_LIST_ITEM_FROM_BACK, &PyJit_GetListItemReversed, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 

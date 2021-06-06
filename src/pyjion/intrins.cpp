@@ -2641,3 +2641,11 @@ long PyJit_LongPow(long base, long exp) {
     }
     return result;
 }
+
+void PyJit_PgcGuardException(PyObject* obj, const char* expected) {
+    PyErr_Format(PyExc_ValueError,
+                 "Pyjion PGC expected %s, but %s is a %s.",
+                 expected,
+                 PyUnicode_AsUTF8(PyObject_Repr(obj)),
+                 obj->ob_type->tp_name);
+}

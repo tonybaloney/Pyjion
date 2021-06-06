@@ -219,6 +219,7 @@
 #define METHOD_PROFILE_FRAME_ENTRY   0x00030014
 #define METHOD_PROFILE_FRAME_EXIT    0x00030015
 #define METHOD_PGC_PROBE             0x00030016
+#define METHOD_PGC_GUARD_EXCEPTION   0x00030017
 
 #define METHOD_ITERNEXT_TOKEN        0x00040000
 
@@ -503,6 +504,7 @@ public:
     void emit_infinity_long() override;
     void emit_nan_long() override;
     void emit_unbox_const(ConstSource *pSource, AbstractValue *pValue) override;
+    void emit_guard_exception(const char* expected) override;
 private:
     void load_frame();
     void load_tstate();
