@@ -86,13 +86,43 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
             .escape = supportsUnboxing(opcode) && allEscaped
         };
     }
-    // Inspect all instructions for escape cost and potential escape leaks
-    for (auto & instruction: this->instructions){
-        // If the instruction is escaped but has no output edge (POP_BLOCK or basic frame pop)
-        if (getEdgesFrom(instruction.first).empty() && instruction.second.escape){
-            instruction.second.escape = false;
+    // Correct any edges (pass 1)
+    for (auto & edge: this->edges){
+        // If the instruction is no longer escaped, dont box the output
+        if (!this->instructions[edge.from].escape) {
+            // From non-escaped operation
+            if (this->instructions[edge.to].escape){
+                edge.escaped = Unbox;
+            } else {
+                edge.escaped = NoEscape;
+            }
+        } else {
+            // From escaped operation
+            if (this->instructions[edge.to].escape){
+                edge.escaped = Unboxed;
+            } else {
+                edge.escaped = Box;
+            }
         }
     }
+
+    // Inspect all instructions for escape cost and potential escape leaks
+    for (auto & instruction: this->instructions){
+        auto edgesIn = getEdges(instruction.first);
+        auto edgesOut = getEdgesFrom(instruction.first);
+        // If the instruction is escaped but has no output edge (POP_BLOCK or basic frame pop)
+        if (edgesOut.empty() && instruction.second.escape){
+            instruction.second.escape = false;
+            continue;
+        }
+        // If the instruction is the only one boxed and not part of a chain, dont bother.
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && edgesOut[0].escaped == Box){
+            instruction.second.escape = false;
+            continue;
+        }
+    }
+
+    // Correct any edges (pass 2)
     for (auto & edge: this->edges){
         // If the instruction is no longer escaped, dont box the output
         if (!this->instructions[edge.from].escape) {
