@@ -116,6 +116,7 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
             continue;
         }
         // If the instruction is the only one boxed and not part of a chain, dont bother.
+        // TODO : This is potentially a deoptimization, make a configuration/OPT
         if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && edgesOut[0].escaped == Box){
             instruction.second.escape = false;
             continue;

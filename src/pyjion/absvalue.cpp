@@ -1343,8 +1343,11 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         case AVK_Enumerate: return &PyEnum_Type;
         case AVK_Code: return &PyCode_Type;
         case AVK_Bytearray: return &PyByteArray_Type;
+        case AVK_Module: return &PyModule_Type;
+        case AVK_Method: return &PyMethod_Type;
+        // TODO : resolve missing AVK_File and AVK_Iterable
         default:
-            assert(false);
+            return &PyType_Type;
     }
 }
 
