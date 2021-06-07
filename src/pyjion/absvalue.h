@@ -147,7 +147,6 @@ class ConstSource : public AbstractSource {
 public:
     explicit ConstSource(PyObject* value, size_t producer): AbstractSource(producer) {
         this->value = value;
-        Py_INCREF(value);
         this->hash = PyObject_Hash(value);
         if (PyErr_Occurred()){
             PyErr_Clear();
@@ -163,10 +162,6 @@ public:
                 hasNumericValueSet = true;
             }
         }
-    }
-
-    ~ConstSource(){
-        Py_DECREF(this->value);
     }
 
     PyObject* getValue() { return value; }
