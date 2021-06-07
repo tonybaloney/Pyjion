@@ -1212,4 +1212,12 @@ TEST_CASE("Test unboxing of floats") {
                               "  return x");
         CHECK(t.returns() == "'boo 3'");
     }
+
+    SECTION("test root negative mixed"){
+        auto t = EmissionTest("def f():\n"
+                              "  i = -10\n"
+                              "  x = 1234567890.0 * (10.0 ** i)\n"
+                              "  return x");
+        CHECK(t.returns() == "0.12345678900000001");
+    }
 }
