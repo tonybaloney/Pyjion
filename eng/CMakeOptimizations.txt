@@ -15,6 +15,7 @@ option(OPTIMIZE_FUNCTION_CALLS "Precompile method calls to builtin CFunctions" O
 option(OPTIMIZE_LOAD_ATTR "Optimize LOAD_ATTR for known types" ON)
 option(OPTIMIZE_METHOD_CALLS "Optimize LOAD_METHOD/CALL_METHOD" ON)
 option(OPTIMIZE_UNBOXING "Optimize floats by unboxing values" ON)
+option(OPTIMIZE_UNBOX_CONSTS "Optimize const numeric values by emitted their value directly onto the stack" ON)
 
 option(EE_DEBUG_CODE "Emit debug EE/JITted code" OFF)
 option(DOTNET_PGO "Use .NET 6 PGO profiles" OFF)
@@ -113,6 +114,12 @@ if (OPTIMIZE_UNBOXING)
     add_definitions(-DOPTIMIZE_UNBOXING=1)
 else()
     add_definitions(-DOPTIMIZE_UNBOXING=0)
+endif()
+
+if (OPTIMIZE_UNBOX_CONSTS)
+    add_definitions(-DOPTIMIZE_UNBOX_CONSTS=1)
+else()
+    add_definitions(-DOPTIMIZE_UNBOX_CONSTS=0)
 endif()
 
 if (EE_DEBUG_CODE)

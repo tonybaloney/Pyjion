@@ -2427,7 +2427,7 @@ void PythonCompiler::emit_escape_edges(EdgeMap edges, Local success){
         emit_load_and_free_local(stack[i-1]);
         switch(edges[i-1].escaped){
             case Unbox:
-                if (edges[i-1].source->hasConstValue()) {
+                if (OPT_ENABLED(unboxConsts) && edges[i-1].source->hasConstValue()) {
                     emit_unbox_const(reinterpret_cast<ConstSource *>(edges[i - 1].source), edges[i - 1].value);
                 } else {
                     emit_unbox(edges[i - 1].value, success);
