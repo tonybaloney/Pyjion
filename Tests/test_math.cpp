@@ -1202,4 +1202,14 @@ TEST_CASE("Test unboxing of floats") {
                               "  return dz[0]");
         CHECK(t.returns() == "2305.00907373525");
     }
+
+    SECTION("test mixed modulo") {
+        auto t = EmissionTest("def f():\n"
+                              "  a = 1\n"
+                              "  b = 2\n"
+                              "  c = \"boo %s\"\n"
+                              "  x = c % (a + b)\n"
+                              "  return x");
+        CHECK(t.returns() == "'boo 3'");
+    }
 }
