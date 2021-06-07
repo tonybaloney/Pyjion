@@ -77,7 +77,7 @@ AbstractInterpreter::~AbstractInterpreter() {
 }
 
 AbstractInterpreterResult AbstractInterpreter::preprocess() {
-    if (mCode->co_flags & (CO_COROUTINE | CO_GENERATOR | CO_ITERABLE_COROUTINE | CO_ASYNC_GENERATOR)) {
+    if (mCode->co_flags & (CO_COROUTINE | CO_ITERABLE_COROUTINE | CO_ASYNC_GENERATOR)) {
         // Don't compile co-routines or generators.  We can't rely on
         // detecting yields because they could be optimized out.
         return IncompatibleCompilerFlags;
@@ -125,9 +125,7 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
                 goto processOpCode;
             }
             case YIELD_FROM:
-            case YIELD_VALUE:
                 return IncompatibleOpcode_Yield;
-
             case DELETE_FAST:
                 if (oparg < mCode->co_argcount) {
                     // this local is deleted, so we need to check for assignment
@@ -959,6 +957,8 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case DELETE_GLOBAL:
                 case SETUP_ANNOTATIONS:
                     break;  // No stack effect
+                case YIELD_VALUE:
+                    break;  // No stack effect
                 default:
                     PyErr_Format(PyExc_ValueError,
                                  "Unknown unsupported opcode: %d", opcode);
@@ -1551,6 +1551,9 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
     m_comp->emit_lasti_init();
     m_comp->emit_push_frame();
+    if (mCode->co_flags & CO_GENERATOR){
+        // TODO : Jump to last instruction
+    }
 
     if (OPT_ENABLED(nativeLocals))
         m_comp->emit_load_frame_locals();
@@ -2175,9 +2178,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case SETUP_WITH:
                 return {nullptr, IncompatibleOpcode_With};
             case YIELD_FROM:
-            case YIELD_VALUE:
                 return {nullptr, IncompatibleOpcode_Yield};
-
             case IMPORT_NAME:
                 m_comp->emit_import_name(PyTuple_GetItem(mCode->co_names, oparg));
                 decStack(2);
@@ -2376,6 +2377,12 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 incStack();
                 break;
             }
+            case YIELD_VALUE:
+                m_comp->emit_store_local(m_retValue);
+                m_comp->emit_branch(BranchAlways, m_retLabel);
+                //decStack();
+                skipEffect = true;
+                break;
             default:
                 return {nullptr, IncompatibleOpcode_Unknown};
         }

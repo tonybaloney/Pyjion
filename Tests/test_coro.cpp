@@ -29,14 +29,15 @@
 
 #include <catch2/catch.hpp>
 #include "testing_util.h"
-#include <Python.h>
 
 TEST_CASE("Test simple yield") {
     SECTION("common case") {
         auto t = EmissionTest("def f():\n"
         "  def cr():\n"
         "     yield 1\n"
-        "  return cr()");
-        CHECK(t.returns() == "[1, 2, 3, 4]");
+        "     yield 2\n"
+        "  gen = cr()\n"
+        "  return next(gen), next(gen)\n");
+        CHECK(t.returns() == "(1, 2)");
     }
 }
