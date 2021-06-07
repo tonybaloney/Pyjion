@@ -53,7 +53,7 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(inlineIterators, level, 1);
     SET_OPT(hashedNames, level, 1);
     SET_OPT(subscrSlice, level, 1);
-    SET_OPT(builtinMethods, level, 1);
+    SET_OPT(builtinMethods, level, 2);
     SET_OPT(typeSlotLookups, level, 1);
     SET_OPT(functionCalls, level, 1);
     SET_OPT(loadAttr, level, 1);
