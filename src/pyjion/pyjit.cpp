@@ -242,7 +242,7 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_sequencePoints = res.compiledCode->get_sequence_points();
     state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
 
-#ifdef DUMP_JIT_TRACES
+#ifdef DUMP_SEQUENCE_POINTS
     printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
     auto code = (_Py_CODEUNIT *)PyBytes_AS_STRING(frame->f_code->co_code);
     for (size_t i = 0; i < state->j_sequencePointsLen; i ++){
