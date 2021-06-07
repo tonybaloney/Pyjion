@@ -2269,7 +2269,7 @@ void PythonCompiler::emit_box(AbstractValue* value) {
             m_il.emit_call(METHOD_BOOL_FROM_LONG);
             break;
         case AVK_Integer:
-            m_il.emit_call(METHOD_PYLONG_FROM_LONG);
+            m_il.emit_call(METHOD_PYLONG_FROM_LONGLONG);
             break;
     }
 };
@@ -2345,7 +2345,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             }
 
             emit_load_local(lcl);
-            m_il.emit_call(METHOD_PYLONG_AS_LONG);
+            m_il.emit_call(METHOD_PYLONG_AS_LONGLONG);
             emit_load_local(lcl);
             decref();
 
@@ -2652,8 +2652,8 @@ GLOBAL_METHOD(METHOD_FLOAT_MODULUS_TOKEN, static_cast<double(*)(double, double)>
 GLOBAL_METHOD(METHOD_FLOAT_FROM_DOUBLE, PyFloat_FromDouble, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_BOOL_FROM_LONG, PyBool_FromLong, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_NUMBER_AS_SSIZET, PyNumber_AsSsize_t, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
-GLOBAL_METHOD(METHOD_PYLONG_AS_LONG, PyLong_AsLong, CORINFO_TYPE_LONG, Parameter(CORINFO_TYPE_NATIVEINT));
-GLOBAL_METHOD(METHOD_PYLONG_FROM_LONG, PyLong_FromLong, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_LONG));
+GLOBAL_METHOD(METHOD_PYLONG_AS_LONGLONG, PyLong_AsLongLong, CORINFO_TYPE_LONG, Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_PYLONG_FROM_LONGLONG, PyLong_FromLongLong, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_LONG));
 
 GLOBAL_METHOD(METHOD_PYERR_SETSTRING, PyErr_SetString, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 

@@ -123,8 +123,8 @@
 #define METHOD_BOOL_FROM_LONG                    0x00000054
 #define METHOD_PYERR_SETSTRING                   0x00000055
 #define METHOD_NUMBER_AS_SSIZET                  0x00000056
-#define METHOD_PYLONG_AS_LONG                    0x00000057
-#define METHOD_PYLONG_FROM_LONG                  0x00000058
+#define METHOD_PYLONG_AS_LONGLONG                0x00000057
+#define METHOD_PYLONG_FROM_LONGLONG              0x00000058
 
 #define METHOD_EXTENDLIST_TOKEN                  0x0000006C
 #define METHOD_LISTTOTUPLE_TOKEN                 0x0000006D
