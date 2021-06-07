@@ -1347,7 +1347,10 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         case AVK_Method: return &PyMethod_Type;
         // TODO : resolve missing AVK_File and AVK_Iterable
         default:
-            return &PyType_Type;
+        #ifdef DEBUG
+            printf("Warning: Missing GetPyType for %d", type);
+        #endif
+            return nullptr;
     }
 }
 
