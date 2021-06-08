@@ -147,8 +147,9 @@ public:
         {
             return dividend;
         }
-        // else...
-        return(fmod(dividend,divisor));
+        else {
+            return fmod(dividend, divisor);
+        }
     };
 
     /// Override the default .NET CIL_NEWARR with a custom array allocator. See getHelperFtn
