@@ -118,8 +118,8 @@ Optimization Matrix
      - On
    * - :ref:`OPT-4`
      - Off
-     - Off
-     - Off
+     - On
+     - On
    * - :ref:`OPT-5`
      - Off
      - On
