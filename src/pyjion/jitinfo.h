@@ -232,7 +232,7 @@ public:
     }
 
     bool logMsg(unsigned level, const char* fmt, va_list args) override {
-#ifdef DEBUG
+#ifdef REPORT_CLR_FAULTS
         if (level <= 3)
             vprintf(fmt, args);
         return false;
@@ -242,7 +242,7 @@ public:
     }
 
     int doAssert(const char* szFile, int iLine, const char* szExpr) override {
-#ifdef DEBUG
+#ifdef REPORT_CLR_FAULTS
         printf(".NET failed assertion: %s %d %s\n", szFile, iLine, szExpr);
 #endif
         return 1;
