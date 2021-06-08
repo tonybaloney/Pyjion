@@ -179,7 +179,7 @@ public:
     }
 
     const char* describe() override {
-        return "Source: Const";
+        return "Const";
     }
 };
 
@@ -193,7 +193,7 @@ public:
     }
 
     const char* describe() override {
-        return "Source: Global";
+        return "Global";
     }
 
     const char* getName() {
@@ -211,7 +211,7 @@ public:
     };
 
     const char* describe() override {
-        return "Source: Builtin";
+        return "Builtin";
     }
 
     bool isBuiltin() override {
@@ -232,7 +232,7 @@ public:
     explicit LocalSource(size_t producer): AbstractSource(producer) { } ;
 
     const char* describe() override {
-        return "Source: Local";
+        return "Local";
     }
 };
 
@@ -241,7 +241,7 @@ public:
     explicit IntermediateSource(size_t producer): AbstractSource(producer) { } ;
 
     const char* describe() override {
-        return "Source: Intermediate";
+        return "Intermediate";
     }
 
     bool isIntermediate() override {
@@ -257,7 +257,7 @@ public:
     }
 
     const char* describe() override {
-        return "Source: Iterator";
+        return "Iterator";
     }
 
     AbstractValueKind kind() { return _kind; }
@@ -271,7 +271,7 @@ public:
     }
 
     const char* describe() override {
-        return "Source: Method";
+        return "Method";
     }
 
     const char* name() {
