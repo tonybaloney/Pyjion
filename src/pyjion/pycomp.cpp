@@ -2390,7 +2390,7 @@ void PythonCompiler::emit_unbox_const(ConstSource *source, AbstractValue *value)
             break;
         case AVK_Integer: {
             decref();
-            m_il.ld_i8(PyLong_AsLong(source->getValue())) ;
+            m_il.ld_i8(PyLong_AsLongLong(source->getValue())) ;
         }
         break;
         default:

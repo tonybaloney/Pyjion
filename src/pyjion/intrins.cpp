@@ -2595,7 +2595,7 @@ PyObject* PyJit_GetListItemReversed(PyObject* list, size_t index){
     return PyList_GET_ITEM(list, PyList_GET_SIZE(list) - index - 1);
 }
 
-double PyJit_LongTrueDivide(long x, long y){
+double PyJit_LongTrueDivide(long long x, long long y){
     if (y == 0){
         PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
         return INFINITY;
@@ -2603,7 +2603,7 @@ double PyJit_LongTrueDivide(long x, long y){
     return (double)x / (double)y;
 }
 
-long PyJit_LongFloorDivide(long x, long y) {
+long long PyJit_LongFloorDivide(long long x, long long y) {
     if (y == 0){
         PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
         return MAXLONG;
@@ -2612,12 +2612,12 @@ long PyJit_LongFloorDivide(long x, long y) {
     if (0 < (x^y)){
         return x / y;
     } else {
-        ldiv_t res = ldiv(x,y);
+        lldiv_t res = lldiv(x,y);
         return (res.rem)? res.quot-1 : res.quot;
     }
 }
 
-long PyJit_LongMod(long x, long y) {
+long long PyJit_LongMod(long long x, long long y) {
     if (y == 0){
         PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
         return MAXLONG;
@@ -2630,8 +2630,8 @@ long PyJit_LongMod(long x, long y) {
     }
 }
 
-long PyJit_LongPow(long base, long exp) {
-    long result = 1;
+long long PyJit_LongPow(long long base, long long exp) {
+    long long result = 1;
     for (;;)
     {
         if (exp & 1) result *= base;
