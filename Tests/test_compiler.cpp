@@ -511,3 +511,14 @@ TEST_CASE("byte arrays") {
         CHECK(t.returns() == "None");
     }
 }
+
+TEST_CASE("test equivalent with isinstance") {
+    SECTION("test is string") {
+        auto t = EmissionTest(
+                "def f():\n"
+                "    b = str('hello')\n"
+                "    return isinstance(b, str)\n"
+        );
+        CHECK(t.returns() == "True");
+    }
+}
