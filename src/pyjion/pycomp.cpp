@@ -2401,14 +2401,6 @@ void PythonCompiler::emit_unbox_const(ConstSource *source, AbstractValue *value)
 void PythonCompiler::emit_escape_edges(EdgeMap edges, Local success){
     emit_int(0);
     emit_store_local(success); // Will get set to 1 on unbox failures.
-    // If none of the edges need escaping, skip
-    bool needsEscapes = false;
-    for (size_t i = 0; i < edges.size(); i++){
-        if (edges[i].escaped == Unbox || edges[i].escaped == Box)
-            needsEscapes = true;
-    }
-    if (!needsEscapes)
-        return;
 
     // Push the values onto temporary locals, box/unbox them then push
     // them back onto the stack in the same order
