@@ -463,8 +463,6 @@ public:
     virtual void emit_inc_local(Local local, size_t value) = 0;
     virtual void emit_dec_local(Local local, size_t value) = 0;
 
-    virtual void emit_load_frame_locals() = 0;
-
     virtual void mark_sequence_point(size_t idx) = 0;
 
     // New boxing operations
