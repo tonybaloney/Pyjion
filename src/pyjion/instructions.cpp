@@ -111,13 +111,16 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
         auto edgesIn = getEdges(instruction.first);
         auto edgesOut = getEdgesFrom(instruction.first);
         // If the instruction is escaped but has no output edge (POP_BLOCK or basic frame pop)
-        if (edgesOut.empty() && instruction.second.escape){
+        if (edgesOut.empty() && instruction.second.escape && !allowNoOutputs(instruction.second.opcode)){
             instruction.second.escape = false;
             continue;
         }
         // If the instruction is the only one boxed and not part of a chain, dont bother.
         // TODO : This is potentially a deoptimization, make a configuration/OPT
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && edgesOut[0].escaped == Box){
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && // inbound edges are unbox
+            ((!edgesOut.empty() && edgesOut[0].escaped == Box) || // outbound are box, or no outbound
+              edgesOut.empty()))
+        {
             instruction.second.escape = false;
             continue;
         }

@@ -62,3 +62,15 @@ bool supportsEscaping(AbstractValueKind kind){
             return false;
     }
 }
+
+bool allowNoOutputs(py_opcode opcode) {
+    switch(opcode){
+        case POP_JUMP_IF_FALSE:
+        case POP_JUMP_IF_TRUE:
+        case POP_TOP:
+        case STORE_FAST:
+            return true;
+        default:
+            return false;
+    }
+}
