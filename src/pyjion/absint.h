@@ -353,10 +353,10 @@ private:
         return source;
     }
 
-    AbstractSource* addLocalSource(py_opindex opcodeIndex, size_t localIndex);
-    AbstractSource* addConstSource(py_opindex opcodeIndex, size_t constIndex, PyObject* value);
-    AbstractSource* addGlobalSource(py_opindex opcodeIndex, size_t constIndex, const char * name, PyObject* value);
-    AbstractSource* addBuiltinSource(py_opindex opcodeIndex, size_t constIndex, const char * name, PyObject* value);
+    AbstractSource* addLocalSource(py_opindex opcodeIndex, py_oparg localIndex);
+    AbstractSource* addConstSource(py_opindex opcodeIndex, py_oparg constIndex, PyObject* value);
+    AbstractSource* addGlobalSource(py_opindex opcodeIndex, py_oparg constIndex, const char * name, PyObject* value);
+    AbstractSource* addBuiltinSource(py_opindex opcodeIndex, py_oparg constIndex, const char * name, PyObject* value);
 
     void makeFunction(py_oparg oparg);
     bool canSkipLastiUpdate(py_opindex opcodeIndex);
@@ -402,19 +402,19 @@ private:
 
     AbstactInterpreterCompileResult compileWorker(PgcStatus status, InstructionGraph* graph);
 
-    void loadConst(oparg_t constIndex, py_opindex opcodeIndex);
+    void loadConst(py_oparg constIndex, py_opindex opcodeIndex);
 
     void returnValue(py_opindex opcodeIndex);
 
-    void loadFast(size_t local, py_opindex opcodeIndex);
+    void loadFast(py_oparg local, py_opindex opcodeIndex);
     void loadFastWorker(size_t local, bool checkUnbound, py_opindex curByte);
 
     void popExcept();
 
-    void jumpIfOrPop(bool isTrue, py_opindex opcodeIndex, py_opindex offset);
-    void popJumpIf(bool isTrue, py_opindex opcodeIndex, py_opindex offset);
-    void unboxedPopJumpIf(bool isTrue, py_opindex opcodeIndex, py_opindex offset);
-    void jumpIfNotExact(py_opindex opcodeIndex, py_opindex jumpTo);
+    void jumpIfOrPop(bool isTrue, py_opindex opcodeIndex, py_oparg offset);
+    void popJumpIf(bool isTrue, py_opindex opcodeIndex, py_oparg offset);
+    void unboxedPopJumpIf(bool isTrue, py_opindex opcodeIndex, py_oparg offset);
+    void jumpIfNotExact(py_opindex opcodeIndex, py_oparg jumpTo);
     void testBoolAndBranch(Local value, bool isTrue, Label target);
 
     void unwindHandlers();

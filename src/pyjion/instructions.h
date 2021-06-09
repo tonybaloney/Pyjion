@@ -51,7 +51,7 @@ enum EscapeTransition {
 };
 
 struct Instruction {
-    size_t index;
+    py_opindex index;
     py_opcode opcode;
     py_oparg oparg;
     bool escape;

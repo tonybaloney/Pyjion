@@ -31,7 +31,7 @@
 InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, const InterpreterStack*> stacks) {
     auto mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
     auto size = PyBytes_Size(code->co_code);
-    for (size_t curByte = 0; curByte < size; curByte += SIZEOF_CODEUNIT) {
+    for (py_opindex curByte = 0; curByte < size; curByte += SIZEOF_CODEUNIT) {
         auto index = curByte;
         auto opcode = GET_OPCODE(curByte);
         auto oparg = GET_OPARG(curByte);
