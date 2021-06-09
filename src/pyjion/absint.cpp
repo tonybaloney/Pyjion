@@ -1500,6 +1500,17 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
 }
 
 void AbstractInterpreter::escapeEdges(EdgeMap edges, size_t curByte) {
+    // Check if edges need boxing/unboxing
+    // If none of the edges need escaping, skip
+    bool needsEscapes = false;
+    for (size_t i = 0; i < edges.size(); i++){
+        if (edges[i].escaped == Unbox || edges[i].escaped == Box)
+            needsEscapes = true;
+    }
+    if (!needsEscapes)
+        return;
+
+    // Escape edges
     Local escapeSuccess = m_comp->emit_define_local(LK_Int);
     Label noError = m_comp->emit_define_label();
     m_comp->emit_escape_edges(edges, escapeSuccess);
