@@ -1219,7 +1219,7 @@ void AbstractInterpreter::ensureLabels(vector<Label>& labels, size_t count) {
     }
 }
 
-void AbstractInterpreter::branchRaise(const char *reason, size_t curByte, bool force) {
+void AbstractInterpreter::branchRaise(const char *reason, uint16_t curByte, bool force) {
     auto ehBlock = currentHandler();
     auto& entryStack = ehBlock->EntryStack;
 
@@ -1834,7 +1834,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case STORE_FAST:
                 m_comp->emit_store_fast(oparg);
                 decStack();
-                m_assignmentState[local] = true;
+                m_assignmentState[oparg] = true;
                 break;
             case LOAD_FAST:
                 loadFast(oparg, opcodeIndex); break;

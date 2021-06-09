@@ -384,7 +384,7 @@ private:
 
     void ensureLabels(vector<Label>& labels, size_t count);
 
-    void branchRaise(const char* reason = nullptr, size_t curByte = ~0, bool force=false);
+    void branchRaise(const char* reason = nullptr, uint16_t curByte = ~0, bool force=false);
     void raiseOnNegativeOne(size_t curByte);
 
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);
