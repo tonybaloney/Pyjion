@@ -353,39 +353,39 @@ private:
         return source;
     }
 
-    AbstractSource* addLocalSource(size_t opcodeIndex, size_t localIndex);
-    AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
-    AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
-    AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
+    AbstractSource* addLocalSource(py_opindex opcodeIndex, size_t localIndex);
+    AbstractSource* addConstSource(py_opindex opcodeIndex, size_t constIndex, PyObject* value);
+    AbstractSource* addGlobalSource(py_opindex opcodeIndex, size_t constIndex, const char * name, PyObject* value);
+    AbstractSource* addBuiltinSource(py_opindex opcodeIndex, size_t constIndex, const char * name, PyObject* value);
 
-    void makeFunction(size_t oparg);
-    bool canSkipLastiUpdate(size_t opcodeIndex);
-    void buildTuple(size_t argCnt);
-    void buildList(size_t argCnt);
-    void extendListRecursively(Local list, size_t argCnt);
-    void extendList(size_t argCnt);
-    void buildSet(size_t argCnt);
-    void buildMap(size_t argCnt);
-    void emitPgcProbes(size_t pos, size_t size);
+    void makeFunction(py_oparg oparg);
+    bool canSkipLastiUpdate(py_opindex opcodeIndex);
+    void buildTuple(py_oparg argCnt);
+    void buildList(py_oparg argCnt);
+    void extendListRecursively(Local list, py_oparg argCnt);
+    void extendList(py_oparg argCnt);
+    void buildSet(py_oparg argCnt);
+    void buildMap(py_oparg argCnt);
+    void emitPgcProbes(py_opindex pos, size_t size);
 
-    Label getOffsetLabel(size_t jumpTo);
-    void forIter(size_t loopIndex);
-    void forIter(size_t loopIndex, AbstractValueWithSources* iterator);
+    Label getOffsetLabel(py_opindex jumpTo);
+    void forIter(py_opindex loopIndex);
+    void forIter(py_opindex loopIndex, AbstractValueWithSources* iterator);
 
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
-    void errorCheck(const char* reason = nullptr, size_t curByte = ~0);
-    void invalidFloatErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
-    void invalidIntErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
-    void intErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
+    void errorCheck(const char* reason = nullptr, py_opindex curByte = 0);
+    void invalidFloatErrorCheck(const char* reason = nullptr, py_opindex curByte = 0, py_opcode opcode = 0);
+    void invalidIntErrorCheck(const char* reason = nullptr, py_opindex curByte = 0, py_opcode opcode = 0);
+    void intErrorCheck(const char* reason = nullptr, py_opindex curByte = 0);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
     void ensureRaiseAndFreeLocals(size_t localCount);
 
     void ensureLabels(vector<Label>& labels, size_t count);
 
-    void branchRaise(const char* reason = nullptr, uint16_t curByte = ~0, bool force=false);
-    void raiseOnNegativeOne(size_t curByte);
+    void branchRaise(const char* reason = nullptr, py_opindex curByte = 0, bool force=false);
+    void raiseOnNegativeOne(py_opindex curByte);
 
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);
 
@@ -393,7 +393,7 @@ private:
 
     void markOffsetLabel(size_t index);
 
-    void jumpAbsolute(size_t index, size_t from);
+    void jumpAbsolute(py_opindex index, py_opindex from);
 
     void decStack(size_t size = 1);
 
@@ -402,19 +402,19 @@ private:
 
     AbstactInterpreterCompileResult compileWorker(PgcStatus status, InstructionGraph* graph);
 
-    void loadConst(ssize_t constIndex, size_t opcodeIndex);
+    void loadConst(oparg_t constIndex, py_opindex opcodeIndex);
 
-    void returnValue(size_t opcodeIndex);
+    void returnValue(py_opindex opcodeIndex);
 
-    void loadFast(size_t local, size_t opcodeIndex);
-    void loadFastWorker(size_t local, bool checkUnbound, int curByte);
+    void loadFast(size_t local, py_opindex opcodeIndex);
+    void loadFastWorker(size_t local, bool checkUnbound, py_opindex curByte);
 
     void popExcept();
 
-    void jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t offset);
-    void popJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
-    void unboxedPopJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
-    void jumpIfNotExact(size_t opcodeIndex, size_t jumpTo);
+    void jumpIfOrPop(bool isTrue, py_opindex opcodeIndex, py_opindex offset);
+    void popJumpIf(bool isTrue, py_opindex opcodeIndex, py_opindex offset);
+    void unboxedPopJumpIf(bool isTrue, py_opindex opcodeIndex, py_opindex offset);
+    void jumpIfNotExact(py_opindex opcodeIndex, py_opindex jumpTo);
     void testBoolAndBranch(Local value, bool isTrue, Label target);
 
     void unwindHandlers();
@@ -425,9 +425,9 @@ private:
     void incExcVars(size_t count);
     void updateIntermediateSources();
     InstructionGraph* buildInstructionGraph();
-    void escapeEdges(EdgeMap edges, size_t curByte);
+    void escapeEdges(EdgeMap edges, py_opindex curByte);
 };
-bool canReturnInfinity(int opcode);
+bool canReturnInfinity(py_opcode opcode);
 
 // TODO : Fetch the range of interned integers from the interpreter state
 #define IS_SMALL_INT(ival) (-5 <= (ival) && (ival) < 257)
