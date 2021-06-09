@@ -402,8 +402,6 @@ private:
 
     AbstactInterpreterCompileResult compileWorker(PgcStatus status, InstructionGraph* graph);
 
-    void storeFast(size_t local, size_t opcodeIndex);
-
     void loadConst(ssize_t constIndex, size_t opcodeIndex);
 
     void returnValue(size_t opcodeIndex);

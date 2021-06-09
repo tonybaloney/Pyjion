@@ -1832,7 +1832,10 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_assignmentState[oparg] = false;
                 break;
             case STORE_FAST:
-                storeFast(oparg, opcodeIndex); break;
+                m_comp->emit_store_fast(oparg);
+                decStack();
+                m_assignmentState[local] = true;
+                break;
             case LOAD_FAST:
                 loadFast(oparg, opcodeIndex); break;
             case UNPACK_SEQUENCE:
@@ -2533,12 +2536,6 @@ bool AbstractInterpreter::canSkipLastiUpdate(size_t opcodeIndex) {
     }
 
     return false;
-}
-
-void AbstractInterpreter::storeFast(size_t local, size_t opcodeIndex) {
-    m_comp->emit_store_fast(local);
-    decStack();
-    m_assignmentState[local] = true;
 }
 
 void AbstractInterpreter::loadConst(ssize_t constIndex, size_t opcodeIndex) {
