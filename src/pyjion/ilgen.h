@@ -26,8 +26,6 @@
 #ifndef PYJION_ILGEN_H
 #define PYJION_ILGEN_H
 
-#define FEATURE_NO_HOST
-
 #include <cstdint>
 #include <windows.h>
 #include <cwchar>
@@ -503,6 +501,10 @@ public:
         m_il.push_back((BYTE)CEE_CGT_UN); //  Pop1+Pop1, PushI
         ld_i4(0);
         compare_eq();
+    }
+
+    void conv_r8(){
+        m_il.push_back(CEE_CONV_R8);
     }
 
     void ld_i(int32_t i) {

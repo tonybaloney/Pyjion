@@ -80,6 +80,7 @@ public:
     size_t size() {return instructions.size();}
     void printGraph(const char* name) ;
     EdgeMap getEdges(size_t i);
+    EdgeMap getEdgesFrom(size_t i);
 };
 
 #endif //PYJION_INSTRUCTIONS_H

@@ -30,6 +30,7 @@ AnyValue Any;
 UndefinedValue Undefined;
 IntegerValue Integer;
 InternIntegerValue InternInteger;
+BigIntegerValue BigInteger;
 FloatValue Float;
 BoolValue Bool;
 ListValue List;
@@ -1324,6 +1325,7 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
     switch (type) {
         case AVK_Any: return &PyType_Type;
         case AVK_Integer: return &PyLong_Type;
+        case AVK_BigInteger: return &PyLong_Type;
         case AVK_Float: return &PyFloat_Type;
         case AVK_Dict: return &PyDict_Type;
         case AVK_Tuple: return &PyTuple_Type;
@@ -1341,7 +1343,13 @@ PyTypeObject* GetPyType(AbstractValueKind type) {
         case AVK_Enumerate: return &PyEnum_Type;
         case AVK_Code: return &PyCode_Type;
         case AVK_Bytearray: return &PyByteArray_Type;
+        case AVK_Module: return &PyModule_Type;
+        case AVK_Method: return &PyMethod_Type;
+        // TODO : resolve missing AVK_File and AVK_Iterable
         default:
+        #ifdef DEBUG
+            printf("Warning: Missing GetPyType for %d", type);
+        #endif
             return nullptr;
     }
 }

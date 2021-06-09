@@ -61,7 +61,8 @@ enum AbstractValueKind {
     AVK_File,
     AVK_Type,
     AVK_Module,
-    AVK_Method
+    AVK_Method,
+    AVK_BigInteger
 };
 
 static bool isKnownType(AbstractValueKind kind) {
@@ -138,12 +139,14 @@ struct AbstractSources {
 };
 
 class ConstSource : public AbstractSource {
+    PyObject* value;
     Py_hash_t hash;
     bool hasHashValueSet = false;
     bool hasNumericValueSet = false;
     Py_ssize_t numericValue = -1;
 public:
     explicit ConstSource(PyObject* value, size_t producer): AbstractSource(producer) {
+        this->value = value;
         this->hash = PyObject_Hash(value);
         if (PyErr_Occurred()){
             PyErr_Clear();
@@ -161,6 +164,8 @@ public:
         }
     }
 
+    PyObject* getValue() { return value; }
+
     bool hasConstValue() override { return true; }
 
     bool hasHashValue() const { return hasHashValueSet; }
@@ -174,7 +179,7 @@ public:
     }
 
     const char* describe() override {
-        return "Source: Const";
+        return "Const";
     }
 };
 
@@ -188,7 +193,7 @@ public:
     }
 
     const char* describe() override {
-        return "Source: Global";
+        return "Global";
     }
 
     const char* getName() {
@@ -206,7 +211,7 @@ public:
     };
 
     const char* describe() override {
-        return "Source: Builtin";
+        return "Builtin";
     }
 
     bool isBuiltin() override {
@@ -227,7 +232,7 @@ public:
     explicit LocalSource(size_t producer): AbstractSource(producer) { } ;
 
     const char* describe() override {
-        return "Source: Local";
+        return "Local";
     }
 };
 
@@ -236,7 +241,7 @@ public:
     explicit IntermediateSource(size_t producer): AbstractSource(producer) { } ;
 
     const char* describe() override {
-        return "Source: Intermediate";
+        return "Intermediate";
     }
 
     bool isIntermediate() override {
@@ -252,7 +257,7 @@ public:
     }
 
     const char* describe() override {
-        return "Source: Iterator";
+        return "Iterator";
     }
 
     AbstractValueKind kind() { return _kind; }
@@ -266,7 +271,7 @@ public:
     }
 
     const char* describe() override {
-        return "Source: Method";
+        return "Method";
     }
 
     const char* name() {
@@ -419,6 +424,17 @@ class InternIntegerValue : public IntegerValue {
 
 public:
     InternIntegerValue() = default;
+};
+
+class BigIntegerValue : public IntegerValue {
+public:
+    BigIntegerValue() = default;
+    AbstractValueKind kind() override {
+        return AVK_BigInteger;
+    }
+    const char * describe() override{
+        return "big int";
+    }
 };
 
 class StringValue : public AbstractValue {
@@ -597,6 +613,7 @@ extern AnyValue Any;
 extern BoolValue Bool;
 extern IntegerValue Integer;
 extern InternIntegerValue InternInteger;
+extern BigIntegerValue BigInteger;
 extern FloatValue Float;
 extern ListValue List;
 extern TupleValue Tuple;

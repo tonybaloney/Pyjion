@@ -134,3 +134,42 @@ TEST_CASE("test type"){
         CHECK(t.returns() == "42");
     }
 }
+
+TEST_CASE("Test methods"){
+    SECTION("test simple method + argument") {
+        auto t = EmissionTest(
+                "def f():\n"
+                "       class B:\n"
+                "            def ham(self, _with):\n"
+                "                return 'ham + %s' % _with\n"
+                "       b = B()\n"
+                "       return b.ham('eggs')\n"
+        );
+        CHECK(t.returns() == "'ham + eggs'");
+    }
+
+    SECTION("test simple classmethod + argument") {
+        auto t = EmissionTest(
+                "def f():\n"
+                "       class B:\n"
+                "            @classmethod\n"
+                "            def ham(cls, _with):\n"
+                "                return 'ham + %s' % _with\n"
+                "       b = B()\n"
+                "       return b.ham('eggs')\n"
+        );
+        CHECK(t.returns() == "'ham + eggs'");
+    }
+    SECTION("test simple staticmethod + argument") {
+        auto t = EmissionTest(
+                "def f():\n"
+                "       class B:\n"
+                "            @staticmethod\n"
+                "            def ham(_with):\n"
+                "                return 'ham + %s' % _with\n"
+                "       b = B()\n"
+                "       return b.ham('eggs')\n"
+        );
+        CHECK(t.returns() == "'ham + eggs'");
+    }
+}

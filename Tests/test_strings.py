@@ -45,5 +45,21 @@ class StringFormattingTestCase(unittest.TestCase):
         self.assertEqual(c, "...Hello world!")
 
 
+class FStringFormattingTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        pyjion.enable()
+        pyjion.disable_pgc()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+        gc.collect()
+
+    def test_perc_format(self):
+        place = "world"
+        message = f"Hello {place}!"
+        self.assertEqual(message, "Hello world!")
+
+
 if __name__ == "__main__":
     unittest.main()

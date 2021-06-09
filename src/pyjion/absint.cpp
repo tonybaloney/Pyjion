@@ -1035,10 +1035,12 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
         return &None;
     }
     else if (PyLong_CheckExact(obj)) {
-        int value;
-        if (Py_SIZE(obj) < 4)
-            if (IS_SMALL_INT(PyLong_AsLongLongAndOverflow(obj, &value)))
-                return &InternInteger;
+        int ovf;
+        long value = PyLong_AsLongAndOverflow(obj, &ovf);
+        if (ovf || value > 2147483647 || value < -2147483647 )
+            return &BigInteger;
+        if (Py_SIZE(obj) < 4 && IS_SMALL_INT(value))
+            return &InternInteger;
         return &Integer;
     }
     else if (PyUnicode_Check(obj)) {
@@ -1158,23 +1160,29 @@ void AbstractInterpreter::errorCheck(const char *reason, size_t curByte) {
     m_comp->emit_load_local(mErrorCheckLocal);
 }
 
-void AbstractInterpreter::floatErrorCheck(const char *reason, size_t curByte, py_opcode opcode) {
+void AbstractInterpreter::invalidFloatErrorCheck(const char *reason, size_t curByte, py_opcode opcode) {
     auto noErr = m_comp->emit_define_label();
-    Local errorCheckLocal = m_comp->emit_define_local(LK_Float); // TODO : Work out actual type.
+    Local errorCheckLocal = m_comp->emit_define_local(LK_Float);
     m_comp->emit_store_local(errorCheckLocal);
-    if (canReturnInfinity(opcode)) {
-        m_comp->emit_load_local(errorCheckLocal);
-        m_comp->emit_infinity();
-        m_comp->emit_branch(BranchNotEqual, noErr);
-        m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero/operation infinite");
-        branchRaise(reason, curByte);
-    }
-
     m_comp->emit_load_local(errorCheckLocal);
-    m_comp->emit_nan();
+    m_comp->emit_infinity();
     m_comp->emit_branch(BranchNotEqual, noErr);
+    m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero/operation infinite");
     branchRaise(reason, curByte);
 
+    m_comp->emit_mark_label(noErr);
+    m_comp->emit_load_and_free_local(errorCheckLocal);
+}
+
+void AbstractInterpreter::invalidIntErrorCheck(const char *reason, size_t curByte, py_opcode opcode) {
+    auto noErr = m_comp->emit_define_label();
+    Local errorCheckLocal = m_comp->emit_define_local(LK_Int);
+    m_comp->emit_store_local(errorCheckLocal);
+    m_comp->emit_load_local(errorCheckLocal);
+    m_comp->emit_infinity_long();
+    m_comp->emit_branch(BranchNotEqual, noErr);
+    m_comp->emit_pyerr_setstring(PyExc_ZeroDivisionError, "division by zero/operation infinite");
+    branchRaise(reason, curByte);
     m_comp->emit_mark_label(noErr);
     m_comp->emit_load_and_free_local(errorCheckLocal);
 }
@@ -1211,7 +1219,7 @@ void AbstractInterpreter::ensureLabels(vector<Label>& labels, size_t count) {
     }
 }
 
-void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
+void AbstractInterpreter::branchRaise(const char *reason, size_t curByte, bool force) {
     auto ehBlock = currentHandler();
     auto& entryStack = ehBlock->EntryStack;
 
@@ -1234,7 +1242,7 @@ void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
 
     auto cur = m_stack.rbegin();
     for (; cur != m_stack.rend() && count >= 0; cur++) {
-        if (*cur != STACK_KIND_OBJECT) {
+        if (*cur != STACK_KIND_OBJECT || force) {
             count--;
             m_comp->emit_pop();
         }
@@ -1258,7 +1266,7 @@ void AbstractInterpreter::branchRaise(const char *reason, size_t curByte) {
 
     // continue walking our stack iterator
     for (auto i = 0; i < count; cur++, i++) {
-        if (*cur != STACK_KIND_OBJECT) {
+        if (*cur != STACK_KIND_OBJECT || force) {
             // pop off the stack value...
             m_comp->emit_pop();
 
@@ -1451,6 +1459,20 @@ void AbstractInterpreter::incStack(size_t size, StackEntryKind kind) {
     m_stack.inc(size, kind);
 }
 
+void AbstractInterpreter::incStack(size_t size, LocalKind kind) {
+    switch (kind){
+        case LK_Int:
+            m_stack.inc(size, STACK_KIND_VALUE_INT);
+            break;
+        case LK_Float:
+            m_stack.inc(size, STACK_KIND_VALUE_FLOAT);
+            break;
+        case LK_Bool:
+            m_stack.inc(size, STACK_KIND_VALUE_INT);
+            break;
+    }
+}
+
 // Checks to see if -1 is the current value on the stack, and if so, falls into
 // the logic for raising an exception.  If not execution continues forward progress.
 // Used for checking if an API reports an error (typically true/false/-1)
@@ -1475,6 +1497,27 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
     m_comp->emit_load_local(handler->ExVars.FinallyTb);
     m_comp->emit_load_local(handler->ExVars.FinallyValue);
     m_comp->emit_load_local(handler->ExVars.FinallyExc);
+}
+
+void AbstractInterpreter::escapeEdges(EdgeMap edges, size_t curByte) {
+    // Check if edges need boxing/unboxing
+    // If none of the edges need escaping, skip
+    bool needsEscapes = false;
+    for (size_t i = 0; i < edges.size(); i++){
+        if (edges[i].escaped == Unbox || edges[i].escaped == Box)
+            needsEscapes = true;
+    }
+    if (!needsEscapes)
+        return;
+
+    // Escape edges
+    Local escapeSuccess = m_comp->emit_define_local(LK_Int);
+    Label noError = m_comp->emit_define_label();
+    m_comp->emit_escape_edges(edges, escapeSuccess);
+    m_comp->emit_load_and_free_local(escapeSuccess);
+    m_comp->emit_branch(BranchFalse, noError);
+    branchRaise("failed unboxing operation", curByte, true);
+    m_comp->emit_mark_label(noError);
 }
 
 void AbstractInterpreter::decExcVars(size_t count){
@@ -1509,17 +1552,7 @@ void AbstractInterpreter::emitPgcProbes(size_t curByte, size_t stackSize) {
     m_comp->emit_branch(BranchTrue, hasProbed);
     
     for (size_t i = 0; i < stackSize; i++){
-        switch(m_stack.peek(i)) {
-            case STACK_KIND_OBJECT:
-                stack[i] = m_comp->emit_define_local(LK_Pointer);
-                break;
-            case STACK_KIND_VALUE_FLOAT:
-                stack[i] = m_comp->emit_define_local(LK_Float);
-                break;
-            case STACK_KIND_VALUE_INT:
-                stack[i] = m_comp->emit_define_local(LK_Int);
-                break;
-        }
+        stack[i] = m_comp->emit_define_local(stackEntryKindAsLocalKind(m_stack.peek(i)));
         m_comp->emit_store_local(stack[i]);
         if (m_stack.peek(i) == STACK_KIND_OBJECT) {
             m_comp->emit_pgc_profile_capture(stack[i], curByte, i);
@@ -1651,7 +1684,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             } // Else, use normal compilation path.
         }
         if (OPT_ENABLED(unboxing)) {
-            m_comp->emit_escape_edges(edges);
+            escapeEdges(edges, curByte);
         }
 
         switch (byte) {
@@ -1976,11 +2009,19 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case INPLACE_OR:
                 if (stackInfo.size() >= 2) {
                     if (OPT_ENABLED(unboxing) && op.escape) {
-                        m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
+                        auto retKind = m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
-                        if (canReturnInfinity(byte))
-                            floatErrorCheck("unboxed binary op failed", curByte, byte);
-                        incStack(1, STACK_KIND_VALUE_FLOAT); // TODO send the correct type back
+                        if (canReturnInfinity(byte)) {
+                            switch (retKind) {
+                                case LK_Float:
+                                    invalidFloatErrorCheck("unboxed binary op failed", curByte, byte);
+                                    break;
+                                case LK_Int:
+                                    invalidIntErrorCheck("unboxed binary op failed", curByte, byte);
+                                    break;
+                            }
+                        }
+                        incStack(1, retKind);
                     } else {
                         m_comp->emit_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);

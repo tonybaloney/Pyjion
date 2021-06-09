@@ -62,7 +62,7 @@ jobs:
         shell: bash
         run: |
           pip install -r Tests/requirements_test.txt
-          python -m unittest discover Tests/
+          python -X dev -m unittest discover Tests/
 
       - name: Run smoke tests
         shell: bash

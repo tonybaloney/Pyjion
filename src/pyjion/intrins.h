@@ -179,7 +179,7 @@ void PyJit_DebugTrace(char* msg);
 void PyJit_DebugPtr(void* ptr);
 void PyJit_DebugType(PyTypeObject* ty);
 void PyJit_DebugPyObject(PyObject* obj);
-
+void PyJit_PgcGuardException(PyObject* obj, const char* expected);
 void PyJit_PyErrRestore(PyObject*tb, PyObject*value, PyObject*exception);
 
 PyObject* PyJit_ImportName(PyObject*level, PyObject*from, PyObject* name, PyFrameObject* f);
@@ -313,4 +313,10 @@ PyObject* MethCallN(PyObject* self, PyJitMethodLocation* method_info, PyObject* 
 int PyJit_SetupAnnotations(PyFrameObject* frame);
 
 PyObject* PyJit_GetListItemReversed(PyObject* list, size_t index);
+
+double PyJit_LongTrueDivide(long long x, long long y);
+long long PyJit_LongFloorDivide(long long x, long long y);
+long long PyJit_LongMod(long long x, long long y);
+long long PyJit_LongPow(long long x, long long y);
+
 #endif

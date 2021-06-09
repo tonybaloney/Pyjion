@@ -39,3 +39,42 @@ void ValueStack::dec(size_t by) {
         pop_back();
     }
 }
+
+StackEntryKind avkAsStackEntryKind(AbstractValueKind k){
+    switch(k){
+        case AVK_Integer:
+            return STACK_KIND_VALUE_INT;
+        case AVK_Float:
+            return STACK_KIND_VALUE_FLOAT;
+        case AVK_Bool:
+            return STACK_KIND_VALUE_INT;
+        default:
+            return STACK_KIND_OBJECT;
+    }
+}
+
+StackEntryKind lkAsStackEntryKind(LocalKind k){
+    switch (k){
+        case LK_Pointer:
+            return STACK_KIND_OBJECT;
+        case LK_Int:
+            return STACK_KIND_VALUE_INT;
+        case LK_Float:
+            return STACK_KIND_VALUE_FLOAT;
+        default:
+            return STACK_KIND_OBJECT;
+    }
+}
+
+LocalKind stackEntryKindAsLocalKind(StackEntryKind k){
+    switch (k){
+        case STACK_KIND_OBJECT:
+            return LK_Pointer;
+        case STACK_KIND_VALUE_INT:
+            return LK_Int;
+        case STACK_KIND_VALUE_FLOAT:
+            return LK_Float;
+        default:
+            return LK_Pointer;
+    }
+}

@@ -38,6 +38,10 @@ enum StackEntryKind {
     STACK_KIND_OBJECT = 2 // A Python object, or a tagged int which might be an object
 };
 
+StackEntryKind avkAsStackEntryKind(AbstractValueKind k);
+StackEntryKind lkAsStackEntryKind(LocalKind k);
+LocalKind stackEntryKindAsLocalKind(StackEntryKind k);
+
 class StackUnderflowException: public std::exception {
 public:
     StackUnderflowException() : std::exception() {};

@@ -375,7 +375,8 @@ private:
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
     void errorCheck(const char* reason = nullptr, size_t curByte = ~0);
-    void floatErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
+    void invalidFloatErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
+    void invalidIntErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
     void intErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
@@ -383,7 +384,7 @@ private:
 
     void ensureLabels(vector<Label>& labels, size_t count);
 
-    void branchRaise(const char* reason = nullptr, size_t curByte = ~0);
+    void branchRaise(const char* reason = nullptr, size_t curByte = ~0, bool force=false);
     void raiseOnNegativeOne(size_t curByte);
 
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);
@@ -397,6 +398,7 @@ private:
     void decStack(size_t size = 1);
 
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
+    void incStack(size_t size, LocalKind kind);
 
     AbstactInterpreterCompileResult compileWorker(PgcStatus status, InstructionGraph* graph);
 
@@ -425,6 +427,7 @@ private:
     void incExcVars(size_t count);
     void updateIntermediateSources();
     InstructionGraph* buildInstructionGraph();
+    void escapeEdges(EdgeMap edges, size_t curByte);
 };
 bool canReturnInfinity(int opcode);
 
