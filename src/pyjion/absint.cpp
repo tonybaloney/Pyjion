@@ -768,7 +768,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case FOR_ITER: {
                     // For branches out with the value consumed
                     auto leaveState = lastState;
-                    leaveState.pop(curByte, 0); // Iterator
+                    auto iterator = leaveState.pop(curByte, 0); // Iterator
                     if (updateStartState(leaveState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
                         queue.push_back((size_t) oparg + curByte + SIZEOF_CODEUNIT);
                     }

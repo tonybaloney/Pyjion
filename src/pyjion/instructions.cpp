@@ -98,8 +98,13 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
         if (opcode == STORE_FAST && escape){
             unboxedLocals.insert(oparg);
             unboxedFastLocals[oparg] = edgesForOperation[0].kind;
-        } else if (opcode == LOAD_FAST && unboxedLocals.find(oparg) != unboxedLocals.end()){
-            escape = true; // force escaping for locals which are already escaped.
+        }
+        if (opcode == LOAD_FAST){
+            if (unboxedLocals.find(oparg) != unboxedLocals.end()){
+                escape = true; // force escaping for locals which are already escaped.
+            } else {
+                escape = false;
+            }
         }
         instructions[index] = {
             .index = index,
@@ -142,6 +147,11 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
             instruction.second.escape = false;
             continue;
         }
+        // Dont unbox frame locals (arguments)
+        if (instruction.second.opcode == LOAD_FAST && instruction.second.oparg < code->co_argcount && unboxedLocals.find(instruction.second.oparg) == unboxedLocals.end()){
+            instruction.second.escape = false;
+            continue;
+        }
         // If the instruction is escaped, has no input edge but the output is just boxed, dont bother.
         if (!edgesOut.empty() && edgesIn.empty() && edgesOut[0].escaped == Box && (instruction.second.opcode != LOAD_FAST)){
             instruction.second.escape = false;
@@ -154,13 +164,13 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
             continue;
         }
         // If the instruction has no output edges.. this is probably a bug
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && edgesOut.empty())
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && edgesOut.empty() && (instruction.second.opcode != STORE_FAST))
         {
             instruction.second.escape = false;
             continue;
         }
         // If the edge only goes to an instruction like POP_JUMP_IF_FALSE, dont optimize this aggressively.
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && allowNoOutputs(instructions[edgesOut[0].to].opcode))
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && allowNoOutputs(instructions[edgesOut[0].to].opcode))
         {
             instruction.second.escape = false;
             instructions[edgesOut[0].to].escape = false;
