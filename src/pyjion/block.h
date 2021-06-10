@@ -37,12 +37,23 @@
 struct ExceptionHandler;
 
 struct BlockInfo {
-    int EndOffset, Kind;
+    py_opindex EndOffset;
+    int Kind;
+    bool Root;
     ehFlags Flags;
     ExceptionHandler* CurrentHandler;  // the current exception handler
 
-    BlockInfo(int endOffset, int kind, ExceptionHandler* currentHandler, ehFlags flags = EhfNone) {
+    BlockInfo(int kind, ExceptionHandler* currentHandler, ehFlags flags = EhfNone) {
+        EndOffset = 0;
+        Root = true;
+        Kind = kind;
+        Flags = flags;
+        CurrentHandler = currentHandler;
+    }
+
+    BlockInfo(py_opindex endOffset, int kind, ExceptionHandler* currentHandler, ehFlags flags = EhfNone) {
         EndOffset = endOffset;
+        Root = false;
         Kind = kind;
         Flags = flags;
         CurrentHandler = currentHandler;

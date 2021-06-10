@@ -111,7 +111,7 @@ struct ExceptionHandler {
 
 class ExceptionHandlerManager {
     vector<ExceptionHandler*> m_exceptionHandlers;
-    unordered_map<size_t, ExceptionHandler*> m_handlerIndexes;
+    unordered_map<py_opindex, ExceptionHandler*> m_handlerIndexes;
 public:
     ExceptionHandlerManager() = default;
 
@@ -125,12 +125,12 @@ public:
     ExceptionHandler* SetRootHandler(Label handlerLabel, ExceptionVars vars);
     ExceptionHandler* GetRootHandler();
     ExceptionHandler *AddSetupFinallyHandler(Label handlerLabel, ValueStack stack,
-                                             ExceptionHandler *currentHandler, ExceptionVars vars, unsigned long handlerIndex);
+                                             ExceptionHandler *currentHandler, ExceptionVars vars, py_opindex handlerIndex);
 
     vector<ExceptionHandler*> GetHandlers();
 
-    bool IsHandlerAtOffset(size_t offset);
-    ExceptionHandler* HandlerAtOffset(size_t offset);
+    bool IsHandlerAtOffset(py_opindex offset);
+    ExceptionHandler* HandlerAtOffset(py_opindex offset);
 };
 
 #endif //PYJION_EXCEPTIONHANDLING_H

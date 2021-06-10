@@ -45,9 +45,9 @@ struct AbstractLocalInfo;
 
 // Tracks block information for analyzing loops, exception blocks, and break opcodes.
 struct AbsIntBlockInfo {
-    size_t BlockStart, BlockEnd;
+    py_opindex BlockStart, BlockEnd;
 
-    AbsIntBlockInfo(size_t blockStart, size_t blockEnd) {
+    AbsIntBlockInfo(py_opindex blockStart, py_opindex blockEnd) {
         BlockStart = blockStart;
         BlockEnd = blockEnd;
     }
@@ -168,7 +168,7 @@ public:
         mLocals.replace(index, value);
     }
 
-    AbstractValueWithSources pop(size_t idx, size_t position) {
+    AbstractValueWithSources pop(py_opindex idx, size_t position) {
         if (mStack.empty())
             throw StackUnderflowException();
         auto res = mStack.back();
@@ -258,7 +258,7 @@ class AbstractInterpreter {
 #endif
     // ** Results produced:
     // Tracks the interpreter state before each opcode
-    unordered_map<size_t, InterpreterState> mStartStates;
+    unordered_map<py_opindex, InterpreterState> mStartStates;
     AbstractValue* mReturnValue;
     // ** Inputs:
     PyCodeObject* mCode;
@@ -276,8 +276,8 @@ class AbstractInterpreter {
     // ** Data consumed during analysis:
     // Tracks the entry point for each POP_BLOCK opcode, so we can restore our
     // stack state back after the POP_BLOCK
-    unordered_map<size_t, size_t> m_blockStarts;
-    unordered_map<size_t, AbstractSource*> m_opcodeSources;
+    unordered_map<py_opindex, py_opindex> m_blockStarts;
+    unordered_map<py_opindex, AbstractSource*> m_opcodeSources;
     // all values produced during abstract interpretation, need to be freed
     vector<AbstractValue*> m_values;
     vector<AbstractSource*> m_sources;
@@ -292,15 +292,15 @@ class AbstractInterpreter {
     ExceptionHandlerManager m_exceptionHandler;
     // Labels that map from a Python byte code offset to an ilgen label.  This allows us to branch to any
     // byte code offset.
-    unordered_map<size_t, Label> m_offsetLabels;
+    unordered_map<py_opindex, Label> m_offsetLabels;
     // Tracks the current depth of the stack,  as well as if we have an object reference that needs to be freed.
     // True (STACK_KIND_OBJECT) if we have an object, false (STACK_KIND_VALUE) if we don't
     ValueStack m_stack;
     // Tracks the state of the stack when we perform a branch.  We copy the existing state to the map and
     // reload it when we begin processing at the stack.
-    unordered_map<size_t, ValueStack> m_offsetStack;
+    unordered_map<py_opindex, ValueStack> m_offsetStack;
 
-    unordered_map<int, ssize_t> nameHashes;
+    unordered_map<Py_ssize_t, Py_ssize_t> nameHashes;
 
     // Set of labels used for when we need to raise an error but have values on the stack
     // that need to be freed.  We have one set of labels which fall through to each other
@@ -310,11 +310,11 @@ class AbstractInterpreter {
     //      raise logic.
     //  This was so we don't need to have decref/frees spread all over the code
     vector<vector<Label>> m_raiseAndFree;
-    unordered_set<size_t> m_jumpsTo;
+    unordered_set<py_opindex> m_jumpsTo;
     Label m_retLabel;
     Local m_retValue;
-    unordered_map<size_t, bool> m_assignmentState;
-    unordered_map<size_t, bool> m_unboxableProducers;
+    unordered_map<py_opindex, bool> m_assignmentState;
+    unordered_map<py_opindex, bool> m_unboxableProducers;
 
 #pragma warning (default:4251)
 
@@ -328,14 +328,14 @@ public:
     void setLocalType(size_t index, PyObject* val);
     // Returns information about the specified local variable at a specific
     // byte code index.
-    AbstractLocalInfo getLocalInfo(size_t byteCodeIndex, size_t localIndex);
+    AbstractLocalInfo getLocalInfo(py_opindex byteCodeIndex, size_t localIndex);
 
     // Returns information about the stack at the specific byte code index.
-    InterpreterStack& getStackInfo(size_t byteCodeIndex);
+    InterpreterStack& getStackInfo(py_opindex byteCodeIndex);
 
     AbstractValue* getReturnInfo();
-    bool pgcProbeRequired(size_t byteCodeIndex, PgcStatus status);
-    short pgcProbeSize(size_t byteCodeIndex);
+    bool pgcProbeRequired(py_opindex byteCodeIndex, PgcStatus status);
+    short pgcProbeSize(py_opindex byteCodeIndex);
     void enableTracing();
     void disableTracing();
     void enableProfiling();
@@ -345,7 +345,7 @@ private:
     AbstractValue* toAbstract(PyObject* obj);
 
     static bool mergeStates(InterpreterState& newState, InterpreterState& mergeTo);
-    bool updateStartState(InterpreterState& newState, size_t index);
+    bool updateStartState(InterpreterState& newState, py_opindex index);
     void initStartingState();
     AbstractInterpreterResult preprocess();
     AbstractSource* newSource(AbstractSource* source) {
@@ -353,47 +353,47 @@ private:
         return source;
     }
 
-    AbstractSource* addLocalSource(size_t opcodeIndex, size_t localIndex);
-    AbstractSource* addConstSource(size_t opcodeIndex, size_t constIndex, PyObject* value);
-    AbstractSource* addGlobalSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
-    AbstractSource* addBuiltinSource(size_t opcodeIndex, size_t constIndex, const char * name, PyObject* value);
+    AbstractSource* addLocalSource(py_opindex opcodeIndex, py_oparg localIndex);
+    AbstractSource* addConstSource(py_opindex opcodeIndex, py_oparg constIndex, PyObject* value);
+    AbstractSource* addGlobalSource(py_opindex opcodeIndex, py_oparg constIndex, const char * name, PyObject* value);
+    AbstractSource* addBuiltinSource(py_opindex opcodeIndex, py_oparg constIndex, const char * name, PyObject* value);
 
-    void makeFunction(size_t oparg);
-    bool canSkipLastiUpdate(size_t opcodeIndex);
-    void buildTuple(size_t argCnt);
-    void buildList(size_t argCnt);
-    void extendListRecursively(Local list, size_t argCnt);
-    void extendList(size_t argCnt);
-    void buildSet(size_t argCnt);
-    void buildMap(size_t argCnt);
-    void emitPgcProbes(size_t pos, size_t size);
+    void makeFunction(py_oparg oparg);
+    bool canSkipLastiUpdate(py_opindex opcodeIndex);
+    void buildTuple(py_oparg argCnt);
+    void buildList(py_oparg argCnt);
+    void extendListRecursively(Local list, py_oparg argCnt);
+    void extendList(py_oparg argCnt);
+    void buildSet(py_oparg argCnt);
+    void buildMap(py_oparg argCnt);
+    void emitPgcProbes(py_opindex pos, size_t size);
 
-    Label getOffsetLabel(size_t jumpTo);
-    void forIter(size_t loopIndex);
-    void forIter(size_t loopIndex, AbstractValueWithSources* iterator);
+    Label getOffsetLabel(py_opindex jumpTo);
+    void forIter(py_opindex loopIndex);
+    void forIter(py_opindex loopIndex, AbstractValueWithSources* iterator);
 
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
-    void errorCheck(const char* reason = nullptr, size_t curByte = ~0);
-    void invalidFloatErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
-    void invalidIntErrorCheck(const char* reason = nullptr, size_t curByte = ~0, py_opcode opcode = 0);
-    void intErrorCheck(const char* reason = nullptr, size_t curByte = ~0);
+    void errorCheck(const char* reason = nullptr, py_opindex curByte = 0);
+    void invalidFloatErrorCheck(const char* reason = nullptr, py_opindex curByte = 0, py_opcode opcode = 0);
+    void invalidIntErrorCheck(const char* reason = nullptr, py_opindex curByte = 0, py_opcode opcode = 0);
+    void intErrorCheck(const char* reason = nullptr, py_opindex curByte = 0);
 
     vector<Label>& getRaiseAndFreeLabels(size_t blockId);
     void ensureRaiseAndFreeLocals(size_t localCount);
 
     void ensureLabels(vector<Label>& labels, size_t count);
 
-    void branchRaise(const char* reason = nullptr, size_t curByte = ~0, bool force=false);
-    void raiseOnNegativeOne(size_t curByte);
+    void branchRaise(const char* reason = nullptr, py_opindex curByte = 0, bool force=false);
+    void raiseOnNegativeOne(py_opindex curByte);
 
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);
 
     ExceptionHandler * currentHandler();
 
-    void markOffsetLabel(size_t index);
+    void markOffsetLabel(py_opindex index);
 
-    void jumpAbsolute(size_t index, size_t from);
+    void jumpAbsolute(py_opindex index, py_opindex from);
 
     void decStack(size_t size = 1);
 
@@ -402,21 +402,19 @@ private:
 
     AbstactInterpreterCompileResult compileWorker(PgcStatus status, InstructionGraph* graph);
 
-    void storeFast(size_t local, size_t opcodeIndex);
+    void loadConst(py_oparg constIndex, py_opindex opcodeIndex);
 
-    void loadConst(ssize_t constIndex, size_t opcodeIndex);
+    void returnValue(py_opindex opcodeIndex);
 
-    void returnValue(size_t opcodeIndex);
-
-    void loadFast(size_t local, size_t opcodeIndex);
-    void loadFastWorker(size_t local, bool checkUnbound, int curByte);
+    void loadFast(py_oparg local, py_opindex opcodeIndex);
+    void loadFastWorker(size_t local, bool checkUnbound, py_opindex curByte);
 
     void popExcept();
 
-    void jumpIfOrPop(bool isTrue, size_t opcodeIndex, size_t offset);
-    void popJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
-    void unboxedPopJumpIf(bool isTrue, size_t opcodeIndex, size_t offset);
-    void jumpIfNotExact(size_t opcodeIndex, size_t jumpTo);
+    void jumpIfOrPop(bool isTrue, py_opindex opcodeIndex, py_oparg offset);
+    void popJumpIf(bool isTrue, py_opindex opcodeIndex, py_oparg offset);
+    void unboxedPopJumpIf(bool isTrue, py_opindex opcodeIndex, py_oparg offset);
+    void jumpIfNotExact(py_opindex opcodeIndex, py_oparg jumpTo);
     void testBoolAndBranch(Local value, bool isTrue, Label target);
 
     void unwindHandlers();
@@ -427,9 +425,9 @@ private:
     void incExcVars(size_t count);
     void updateIntermediateSources();
     InstructionGraph* buildInstructionGraph();
-    void escapeEdges(EdgeMap edges, size_t curByte);
+    void escapeEdges(EdgeMap edges, py_opindex curByte);
 };
-bool canReturnInfinity(int opcode);
+bool canReturnInfinity(py_opcode opcode);
 
 // TODO : Fetch the range of interned integers from the interpreter state
 #define IS_SMALL_INT(ival) (-5 <= (ival) && (ival) < 257)

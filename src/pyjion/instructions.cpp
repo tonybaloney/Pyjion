@@ -28,13 +28,13 @@
 #include "unboxing.h"
 
 
-InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, const InterpreterStack*> stacks) {
+InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex , const InterpreterStack*> stacks) {
     auto mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
     auto size = PyBytes_Size(code->co_code);
-    for (size_t curByte = 0; curByte < size; curByte += SIZEOF_CODEUNIT) {
-        auto index = curByte;
-        auto opcode = GET_OPCODE(curByte);
-        auto oparg = GET_OPARG(curByte);
+    for (py_opindex curByte = 0; curByte < size; curByte += SIZEOF_CODEUNIT) {
+        py_opindex index = curByte;
+        py_opcode opcode = GET_OPCODE(curByte);
+        py_oparg oparg = GET_OPARG(curByte);
         if (stacks[index] != nullptr){
             for (const auto & si: *stacks[index]){
                 if (si.hasSource()){
@@ -58,14 +58,14 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
                         }
 
                         edges.push_back({
-                            .from = static_cast<ssize_t>(si.Sources->producer()),
+                            .from = si.Sources->producer(),
                             .to = index,
                             .label = si.Sources->describe(),
                             .value = si.Value,
                             .source = si.Sources,
                             .escaped = transition,
                             .kind = si.hasValue() ? si.Value->kind() : AVK_Any,
-                            .position = static_cast<size_t>(stackPosition)
+                            .position = static_cast<py_opindex>(stackPosition)
                         });
                     }
                 }
@@ -111,13 +111,16 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<size_t, con
         auto edgesIn = getEdges(instruction.first);
         auto edgesOut = getEdgesFrom(instruction.first);
         // If the instruction is escaped but has no output edge (POP_BLOCK or basic frame pop)
-        if (edgesOut.empty() && instruction.second.escape){
+        if (edgesOut.empty() && instruction.second.escape && !allowNoOutputs(instruction.second.opcode)){
             instruction.second.escape = false;
             continue;
         }
         // If the instruction is the only one boxed and not part of a chain, dont bother.
         // TODO : This is potentially a deoptimization, make a configuration/OPT
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && edgesOut[0].escaped == Box){
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && // inbound edges are unbox
+            ((!edgesOut.empty() && edgesOut[0].escaped == Box) || // outbound are box, or no outbound
+              edgesOut.empty()))
+        {
             instruction.second.escape = false;
             continue;
         }
@@ -150,36 +153,35 @@ void InstructionGraph::printGraph(const char* name) {
     printf("\tFRAME [label=FRAME];\n");
     for (const auto & node: instructions){
         if (node.second.escape)
-            printf("  OP%zu [label=\"%s (%d)\" color=blue];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+            printf("  OP%u [label=\"%s (%d)\" color=blue];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
         else
-            printf("  OP%zu [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+            printf("  OP%u [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
     }
 
     for (const auto & edge: edges){
         if (edge.from == -1) {
-            printf("\tFRAME -> OP%zu [label=\"%s (%s)\"];\n", edge.to, edge.label, edge.value->describe());
+            printf("\tFRAME -> OP%u [label=\"%s (%s)\"];\n", edge.to, edge.label, edge.value->describe());
         } else {
             switch (edge.escaped) {
                 case NoEscape:
-                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) -%zu\" color=black];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    printf("\tOP%u -> OP%u [label=\"%s (%s) -%u\" color=black];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
                 case Unbox:
-                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) U%zu\" color=red];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    printf("\tOP%u -> OP%u [label=\"%s (%s) U%u\" color=red];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
                 case Box:
-                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) B%zu\" color=green];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    printf("\tOP%u -> OP%u [label=\"%s (%s) B%u\" color=green];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
                 case Unboxed:
-                    printf("\tOP%zd -> OP%zu [label=\"%s (%s) UN%zu\" color=purple];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    printf("\tOP%u -> OP%u [label=\"%s (%s) UN%u\" color=purple];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
             }
-
         }
     }
     printf("}\n");
 }
 
-EdgeMap InstructionGraph::getEdges(size_t i){
+EdgeMap InstructionGraph::getEdges(py_opindex i){
     EdgeMap filteredEdges;
     for (auto & edge: this->edges){
         if (edge.to == i)
@@ -188,7 +190,7 @@ EdgeMap InstructionGraph::getEdges(size_t i){
     return filteredEdges;
 }
 
-EdgeMap InstructionGraph::getEdgesFrom(size_t i){
+EdgeMap InstructionGraph::getEdgesFrom(py_opindex i){
     EdgeMap filteredEdges;
     for (auto & edge: this->edges){
         if (edge.from == i)

@@ -692,7 +692,8 @@ LocalKind PythonCompiler::emit_unboxed_binary_object(uint16_t opcode, AbstractVa
     } else if (left.Value->kind() == AVK_Float && right.Value->kind() == AVK_Integer) {
         m_il.conv_r8();
         return emit_binary_float(opcode);
-    } else{
+    } else {
         assert(false);
+        return LK_Pointer;
     }
 }

@@ -197,7 +197,7 @@ public:
         }
     }
 
-    void new_array(size_t len){
+    void new_array(int32_t len){
         /*Stack Transition:
 
         …, numElems → …, array
@@ -586,7 +586,7 @@ public:
             default:
                 if (index < 256) {
                     m_il.push_back(CEE_LDLOC_S); 
-                    m_il.push_back(index);
+                    m_il.push_back((BYTE)index);
                 }
                 else {
                     m_il.push_back(CEE_PREFIX1); // NIL

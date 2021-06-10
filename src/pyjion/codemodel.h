@@ -171,7 +171,7 @@ public:
     }
 
     unsigned int getSequencePointCount() override {
-        return m_sequencePoints.size();
+        return static_cast<unsigned int>(m_sequencePoints.size());
     }
 
     uint32_t * getSequencePointOffsets() override {
