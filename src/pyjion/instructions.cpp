@@ -30,6 +30,7 @@
 
 InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex , const InterpreterStack*> stacks) {
     auto mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
+    unordered_map<py_oparg, bool> unboxedFastLocals ;
     auto size = PyBytes_Size(code->co_code);
     for (py_opindex curByte = 0; curByte < size; curByte += SIZEOF_CODEUNIT) {
         py_opindex index = curByte;
@@ -93,11 +94,17 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
             if (e.escaped == NoEscape)
                 allEscaped = false;
         }
+        bool escape = supportsUnboxing(opcode) && allEscaped;
+        if (opcode == STORE_FAST && escape){
+            unboxedFastLocals[oparg] = true;
+        } else if (opcode == LOAD_FAST && unboxedFastLocals[oparg]){
+            escape = true; // force escaping for locals which are already escaped.
+        }
         instructions[index] = {
             .index = index,
             .opcode = opcode,
             .oparg = oparg,
-            .escape = supportsUnboxing(opcode) && allEscaped
+            .escape = escape
         };
     }
     // Correct any edges (pass 1)
@@ -135,7 +142,7 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
             continue;
         }
         // If the instruction is escaped, has no input edge but the output is just boxed, dont bother.
-        if (!edgesOut.empty() && edgesIn.empty() && edgesOut[0].escaped == Box){
+        if (!edgesOut.empty() && edgesIn.empty() && edgesOut[0].escaped == Box && (instruction.second.opcode != LOAD_FAST)){
             instruction.second.escape = false;
             continue;
         }
@@ -177,16 +184,6 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
                 edge.escaped = Unboxed;
             } else {
                 edge.escaped = Box;
-            }
-        }
-    }
-
-    // Do Local analysis...
-    for (auto & instruction: this->instructions){
-        if (instruction.second.opcode == STORE_FAST){
-            auto edgesIn = getEdges(instruction.first);
-            if (!edgesIn.empty() && edgesIn[0].escaped == Box){
-                // TODO : Do inspections of the locals..
             }
         }
     }
