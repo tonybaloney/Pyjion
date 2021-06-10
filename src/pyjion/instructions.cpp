@@ -35,6 +35,20 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
         py_opindex index = curByte;
         py_opcode opcode = GET_OPCODE(curByte);
         py_oparg oparg = GET_OPARG(curByte);
+
+        if (opcode == EXTENDED_ARG)
+        {
+            instructions[index] = {
+                    .index = index,
+                    .opcode = opcode,
+                    .oparg = oparg,
+                    .escape = false
+            };
+            curByte += SIZEOF_CODEUNIT;
+            oparg = (oparg << 8) | GET_OPARG(curByte);
+            opcode = GET_OPCODE(curByte);
+            index = curByte;
+        }
         if (stacks[index] != nullptr){
             for (const auto & si: *stacks[index]){
                 if (si.hasSource()){
@@ -116,12 +130,23 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
             continue;
         }
         // If the instruction is the only one boxed and not part of a chain, dont bother.
-        // TODO : This is potentially a deoptimization, make a configuration/OPT
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && // inbound edges are unbox
-            ((!edgesOut.empty() && edgesOut[0].escaped == Box) || // outbound are box, or no outbound
-              edgesOut.empty()))
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && edgesOut[0].escaped == Box)  // outbound are box
         {
             instruction.second.escape = false;
+            continue;
+        }
+        // If the instruction has no output edges.. this is probably a bug
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && edgesOut.empty())
+        {
+            instruction.second.escape = false;
+            continue;
+        }
+        // If the edge only goes to an instruction like POP_JUMP_IF_FALSE, dont optimize this aggressively.
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && allowNoOutputs(instructions[edgesOut[0].to].opcode))
+        {
+            instruction.second.escape = false;
+            instructions[edgesOut[0].to].escape = false;
+            edgesOut[0].escaped = NoEscape;
             continue;
         }
     }
@@ -153,9 +178,22 @@ void InstructionGraph::printGraph(const char* name) {
     printf("\tFRAME [label=FRAME];\n");
     for (const auto & node: instructions){
         if (node.second.escape)
-            printf("  OP%u [label=\"%s (%d)\" color=blue];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+            printf("\tOP%u [label=\"%s (%d)\" color=blue];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
         else
-            printf("  OP%u [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+            printf("\tOP%u [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+        switch(node.second.opcode){
+            case JUMP_FORWARD:
+                printf("\tOP%u -> OP%u [label=\"Jump\" color=yellow];\n", node.second.index, node.second.index + node.second.oparg);
+                break;
+            case JUMP_ABSOLUTE:
+            case JUMP_IF_FALSE_OR_POP:
+            case JUMP_IF_TRUE_OR_POP:
+            case JUMP_IF_NOT_EXC_MATCH:
+            case POP_JUMP_IF_TRUE:
+            case POP_JUMP_IF_FALSE:
+                printf("\tOP%u -> OP%u [label=\"Jump\" color=yellow];\n", node.second.index, node.second.oparg);
+                break;
+        }
     }
 
     for (const auto & edge: edges){

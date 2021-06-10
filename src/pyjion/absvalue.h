@@ -98,29 +98,29 @@ public:
     }
 
     void addConsumer(py_opindex index, size_t position){
-        _consumers.push_back({index, position});
+        _consumers.emplace_back(index, position);
     }
 
     ssize_t isConsumedBy(py_opindex idx){
-        for (size_t i = 0 ; i < _consumers.size(); i++){
-            if (_consumers[i].first == idx)
-                return _consumers[i].second;
+        for (auto & _consumer : _consumers){
+            if (_consumer.first == idx)
+                return _consumer.second;
         };
         return -1;
     }
 
     bool markForSingleUse(){
-        if (_consumers.size() == 1 || _consumers.size() == 0){
+        if (_consumers.size() == 1 || _consumers.empty()){
             single_use = true;
         }
         return single_use;
     }
 
-    bool singleUse() {
+    bool singleUse() const {
         return single_use;
     }
 
-    py_opindex producer(){
+    py_opindex producer() const{
         return _producer;
     }
 

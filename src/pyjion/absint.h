@@ -220,6 +220,7 @@ enum ComprehensionType {
 };
 
 enum AbstractInterpreterResult {
+    NoResult = 0,
     Success = 1,
 
     // Failure codes
@@ -238,7 +239,7 @@ enum AbstractInterpreterResult {
 
 struct AbstactInterpreterCompileResult {
     JittedCode* compiledCode = nullptr;
-    AbstractInterpreterResult result;
+    AbstractInterpreterResult result = NoResult;
 };
 
 class StackImbalanceException: public std::exception {
@@ -425,7 +426,7 @@ private:
     void incExcVars(size_t count);
     void updateIntermediateSources();
     InstructionGraph* buildInstructionGraph();
-    void escapeEdges(EdgeMap edges, py_opindex curByte);
+    void escapeEdges(const EdgeMap& edges, py_opindex curByte);
 };
 bool canReturnInfinity(py_opcode opcode);
 

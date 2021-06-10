@@ -2394,9 +2394,9 @@ void PythonCompiler::emit_escape_edges(EdgeMap edges, Local success){
     // Push the values onto temporary locals, box/unbox them then push
     // them back onto the stack in the same order
     vector<Local> stack = vector<Local>(edges.size());
+
     for (size_t i = 0; i < stack.size(); i++){
         if (edges[i].escaped == Unboxed || edges[i].escaped == Box){
-            // IF
             stack[i] = emit_define_local(edges[i].value->kind());
         } else {
             stack[i] = emit_define_local(LK_Pointer);

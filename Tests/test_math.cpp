@@ -117,6 +117,7 @@ TEST_CASE("Test inplace") {
                               "  return c");
         CHECK(t.returns() == "'cab'");
     }
+
     SECTION("compare two calculations") {
         auto t = EmissionTest("def f():\n"
                               "  a = 3\n"
@@ -1231,4 +1232,55 @@ TEST_CASE("Test unboxing of floats") {
                               "  return x");
         CHECK(t.returns() == "0.12345678900000001");
     }
+}
+
+TEST_CASE("Test bool arithmetic") {
+    SECTION("test greater than") {
+        auto t = EmissionTest(
+                "def f():\n    x = True\n    y = False\n    return x > y"
+        );
+        CHECK(t.returns() == "True");
+    };
+
+    SECTION("test less than") {
+        auto t = EmissionTest(
+                "def f():\n    x = True\n    y = False\n    return x < y"
+        );
+        CHECK(t.returns() == "False");
+    };
+
+    SECTION("test equal") {
+        auto t = EmissionTest(
+                "def f():\n    x = True\n    y = False\n    return x == y"
+        );
+        CHECK(t.returns() == "False");
+    };
+
+    SECTION("test greater than equal") {
+        auto t = EmissionTest(
+                "def f():\n    x = True\n    y = False\n    return x >= y"
+        );
+        CHECK(t.returns() == "True");
+    };
+
+    SECTION("test less than equal") {
+        auto t = EmissionTest(
+                "def f():\n    x = True\n    y = False\n    return x <= y"
+        );
+        CHECK(t.returns() == "False");
+    };
+
+    SECTION("test not equal") {
+        auto t = EmissionTest(
+                "def f():\n    x = True\n    y = False\n    return x != y"
+        );
+        CHECK(t.returns() == "True");
+    };
+
+    SECTION("test is") {
+        auto t = EmissionTest(
+                "def f():\n    x = True\n    y = False\n    return x is y"
+        );
+        CHECK(t.returns() == "False");
+    };
 }
