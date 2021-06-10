@@ -130,12 +130,23 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
             continue;
         }
         // If the instruction is the only one boxed and not part of a chain, dont bother.
-        // TODO : This is potentially a deoptimization, make a configuration/OPT
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && // inbound edges are unbox
-            ((!edgesOut.empty() && edgesOut[0].escaped == Box) || // outbound are box, or no outbound
-              edgesOut.empty()))
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && edgesOut[0].escaped == Box)  // outbound are box
         {
             instruction.second.escape = false;
+            continue;
+        }
+        // If the instruction has no output edges.. this is probably a bug
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && edgesOut.empty())
+        {
+            instruction.second.escape = false;
+            continue;
+        }
+        // If the edge only goes to an instruction like POP_JUMP_IF_FALSE, dont optimize this aggressively.
+        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && allowNoOutputs(instructions[edgesOut[0].to].opcode))
+        {
+            instruction.second.escape = false;
+            instructions[edgesOut[0].to].escape = false;
+            edgesOut[0].escaped = NoEscape;
             continue;
         }
     }

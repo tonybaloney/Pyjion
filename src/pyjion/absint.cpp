@@ -1499,12 +1499,12 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
     m_comp->emit_load_local(handler->ExVars.FinallyExc);
 }
 
-void AbstractInterpreter::escapeEdges(EdgeMap edges, py_opindex curByte) {
+void AbstractInterpreter::escapeEdges(const EdgeMap& edges, py_opindex curByte) {
     // Check if edges need boxing/unboxing
     // If none of the edges need escaping, skip
     bool needsEscapes = false;
-    for (py_opindex i = 0; i < edges.size(); i++){
-        if (edges[i].escaped == Unbox || edges[i].escaped == Box)
+    for (auto & edge : edges){
+        if (edge.second.escaped == Unbox || edge.second.escaped == Box)
             needsEscapes = true;
     }
     if (!needsEscapes)
