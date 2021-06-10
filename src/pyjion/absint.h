@@ -220,6 +220,7 @@ enum ComprehensionType {
 };
 
 enum AbstractInterpreterResult {
+    NoResult = 0,
     Success = 1,
 
     // Failure codes
@@ -238,7 +239,7 @@ enum AbstractInterpreterResult {
 
 struct AbstactInterpreterCompileResult {
     JittedCode* compiledCode = nullptr;
-    AbstractInterpreterResult result;
+    AbstractInterpreterResult result = NoResult;
 };
 
 class StackImbalanceException: public std::exception {
