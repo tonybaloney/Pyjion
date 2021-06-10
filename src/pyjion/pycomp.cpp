@@ -2432,7 +2432,7 @@ void PythonCompiler::emit_unbox_const(ConstSource *source, AbstractValue *value)
     }
 }
 
-void PythonCompiler::emit_escape_edges(EdgeMap edges, Local success){
+void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
     emit_int(0);
     emit_store_local(success); // Will get set to 1 on unbox failures.
 

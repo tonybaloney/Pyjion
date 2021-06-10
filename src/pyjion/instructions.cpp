@@ -90,7 +90,7 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
         bool allEscaped = true;
         auto edgesForOperation = getEdges(index);
         for (auto & e: edgesForOperation){
-            if (e.second.escaped == NoEscape)
+            if (e.escaped == NoEscape)
                 allEscaped = false;
         }
         instructions[index] = {
@@ -126,6 +126,11 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
         auto edgesOut = getEdgesFrom(instruction.first);
         // If the instruction is escaped but has no output edge (POP_BLOCK or basic frame pop)
         if (edgesOut.empty() && instruction.second.escape && !allowNoOutputs(instruction.second.opcode)){
+            instruction.second.escape = false;
+            continue;
+        }
+        // If the instruction is escaped but the value it produces doesn't support escaping..
+        if (!edgesOut.empty() && !supportsEscaping(edgesOut[0].kind)){
             instruction.second.escape = false;
             continue;
         }
@@ -176,7 +181,7 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
         if (instruction.second.opcode == STORE_FAST){
             auto edgesIn = getEdges(instruction.first);
             if (!edgesIn.empty() && edgesIn[0].escaped == Box){
-                printf("Potential optimized local");
+                // TODO : Do inspections of the locals..
             }
         }
     }
@@ -229,20 +234,20 @@ void InstructionGraph::printGraph(const char* name) {
     printf("}\n");
 }
 
-EdgeMap InstructionGraph::getEdges(py_opindex i){
-    EdgeMap filteredEdges;
+vector<Edge> InstructionGraph::getEdges(py_opindex i){
+    vector<Edge> filteredEdges;
     for (auto & edge: this->edges){
         if (edge.to == i)
-            filteredEdges[edge.position] = edge;
+            filteredEdges.push_back(edge);
     }
     return filteredEdges;
 }
 
-EdgeMap InstructionGraph::getEdgesFrom(py_opindex i){
-    EdgeMap filteredEdges;
+vector<Edge> InstructionGraph::getEdgesFrom(py_opindex i){
+    vector<Edge> filteredEdges;
     for (auto & edge: this->edges){
         if (edge.from == i)
-            filteredEdges[edge.position] = edge;
+            filteredEdges.push_back(edge);
     }
     return filteredEdges;
 }

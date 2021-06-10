@@ -497,7 +497,7 @@ public:
     void mark_sequence_point(size_t idx) override;
     void emit_box(AbstractValue* value) override;
     void emit_unbox(AbstractValue* value, Local success) override;
-    void emit_escape_edges(EdgeMap edges, Local success) override;
+    void emit_escape_edges(vector<Edge> edges, Local success) override;
     void emit_infinity() override;
     void emit_nan() override;
     void emit_infinity_long() override;

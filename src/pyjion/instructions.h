@@ -79,8 +79,8 @@ public:
     Instruction & operator [](py_opindex i) {return instructions[i];}
     size_t size() {return instructions.size();}
     void printGraph(const char* name) ;
-    EdgeMap getEdges(py_opindex i);
-    EdgeMap getEdgesFrom(py_opindex i);
+    vector<Edge> getEdges(py_opindex i);
+    vector<Edge> getEdgesFrom(py_opindex i);
 };
 
 #endif //PYJION_INSTRUCTIONS_H
