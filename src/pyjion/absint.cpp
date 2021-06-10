@@ -91,12 +91,12 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
         return IncompatibleSize;
     }
 
-    int oparg;
+    py_oparg oparg;
     vector<bool> ehKind;
     vector<AbsIntBlockInfo> blockStarts;
-    for (size_t curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
-        auto opcodeIndex = curByte;
-        auto byte = GET_OPCODE(curByte);
+    for (py_opindex curByte = 0; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
+        py_opindex opcodeIndex = curByte;
+        py_opcode byte = GET_OPCODE(curByte);
         oparg = GET_OPARG(curByte);
     processOpCode:
         while (!blockStarts.empty() &&
@@ -1503,7 +1503,7 @@ void AbstractInterpreter::escapeEdges(EdgeMap edges, py_opindex curByte) {
     // Check if edges need boxing/unboxing
     // If none of the edges need escaping, skip
     bool needsEscapes = false;
-    for (size_t i = 0; i < edges.size(); i++){
+    for (py_opindex i = 0; i < edges.size(); i++){
         if (edges[i].escaped == Unbox || edges[i].escaped == Box)
             needsEscapes = true;
     }

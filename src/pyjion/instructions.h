@@ -65,7 +65,7 @@ struct Edge {
     AbstractSource* source;
     EscapeTransition escaped;
     AbstractValueKind kind;
-    size_t position;
+    py_opindex position;
 };
 
 typedef unordered_map<py_opindex, Edge> EdgeMap;

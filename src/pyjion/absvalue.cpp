@@ -55,7 +55,7 @@ EnumeratorValue Enumerator;
 FileValue File;
 
 
-AbstractSource::AbstractSource(size_t producer) {
+AbstractSource::AbstractSource(py_opindex producer) {
     Sources = shared_ptr<AbstractSources>(new AbstractSources());
     Sources->Sources.insert(this);
     _producer = producer;

@@ -30,6 +30,7 @@
 #include <opcode.h>
 #include <unordered_map>
 #include "cowvector.h"
+#include "types.h"
 
 class AbstractValue;
 struct AbstractValueWithSources;
@@ -76,13 +77,13 @@ static bool isKnownType(AbstractValueKind kind) {
 }
 
 class AbstractSource {
-    vector<pair<size_t, size_t>> _consumers;
+    vector<pair<py_opindex, size_t>> _consumers;
     bool single_use = false;
-    size_t _producer;
+    py_opindex _producer;
 public:
     shared_ptr<AbstractSources> Sources;
 
-    explicit AbstractSource(size_t producer);
+    explicit AbstractSource(py_opindex producer);
 
     virtual bool hasConstValue() { return false; }
 
@@ -96,11 +97,11 @@ public:
         return "unknown source";
     }
 
-    void addConsumer(size_t opcode, size_t position){
-        _consumers.push_back({opcode, position});
+    void addConsumer(py_opindex index, size_t position){
+        _consumers.push_back({index, position});
     }
 
-    ssize_t isConsumedBy(size_t idx){
+    ssize_t isConsumedBy(py_opindex idx){
         for (size_t i = 0 ; i < _consumers.size(); i++){
             if (_consumers[i].first == idx)
                 return _consumers[i].second;
@@ -119,11 +120,11 @@ public:
         return single_use;
     }
 
-    size_t producer(){
+    py_opindex producer(){
         return _producer;
     }
 
-    void setProducer(size_t i){
+    void setProducer(py_opindex i){
         _producer = i;
     }
 
@@ -145,7 +146,7 @@ class ConstSource : public AbstractSource {
     bool hasNumericValueSet = false;
     Py_ssize_t numericValue = -1;
 public:
-    explicit ConstSource(PyObject* value, size_t producer): AbstractSource(producer) {
+    explicit ConstSource(PyObject* value, py_opindex producer): AbstractSource(producer) {
         this->value = value;
         this->hash = PyObject_Hash(value);
         if (PyErr_Occurred()){
@@ -187,7 +188,7 @@ class GlobalSource : public AbstractSource {
     const char* _name;
     PyObject* _value;
 public:
-    explicit GlobalSource(const char* name, PyObject* value, size_t producer) : AbstractSource(producer) {
+    explicit GlobalSource(const char* name, PyObject* value, py_opindex producer) : AbstractSource(producer) {
         _name = name;
         _value = value;
     }
@@ -205,7 +206,7 @@ class BuiltinSource : public AbstractSource {
     const char* _name;
     PyObject* _value;
 public:
-    explicit BuiltinSource(const char* name, PyObject* value, size_t producer) : AbstractSource(producer)  {
+    explicit BuiltinSource(const char* name, PyObject* value, py_opindex producer) : AbstractSource(producer)  {
         _name = name;
         _value = value;
     };
@@ -229,7 +230,7 @@ public:
 
 class LocalSource : public AbstractSource {
 public:
-    explicit LocalSource(size_t producer): AbstractSource(producer) { } ;
+    explicit LocalSource(py_opindex producer): AbstractSource(producer) { } ;
 
     const char* describe() override {
         return "Local";
@@ -238,7 +239,7 @@ public:
 
 class IntermediateSource : public AbstractSource {
 public:
-    explicit IntermediateSource(size_t producer): AbstractSource(producer) { } ;
+    explicit IntermediateSource(py_opindex producer): AbstractSource(producer) { } ;
 
     const char* describe() override {
         return "Intermediate";
@@ -252,7 +253,7 @@ public:
 class IteratorSource : public AbstractSource {
     AbstractValueKind _kind;
 public:
-    IteratorSource(AbstractValueKind iterableKind, size_t producer) : AbstractSource(producer){
+    IteratorSource(AbstractValueKind iterableKind, py_opindex producer) : AbstractSource(producer){
         _kind = iterableKind;
     }
 
@@ -266,7 +267,7 @@ public:
 class MethodSource : public AbstractSource {
     const char* _name = "";
 public:
-    explicit MethodSource(const char* name, size_t producer) : AbstractSource(producer){
+    explicit MethodSource(const char* name, py_opindex producer) : AbstractSource(producer){
         _name = name;
     }
 

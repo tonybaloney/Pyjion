@@ -168,7 +168,7 @@ public:
         mLocals.replace(index, value);
     }
 
-    AbstractValueWithSources pop(size_t idx, size_t position) {
+    AbstractValueWithSources pop(py_opindex idx, size_t position) {
         if (mStack.empty())
             throw StackUnderflowException();
         auto res = mStack.back();
