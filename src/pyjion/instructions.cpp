@@ -58,14 +58,14 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
                         }
 
                         edges.push_back({
-                            .from = static_cast<py_opindex>(si.Sources->producer()),
+                            .from = si.Sources->producer(),
                             .to = index,
                             .label = si.Sources->describe(),
                             .value = si.Value,
                             .source = si.Sources,
                             .escaped = transition,
                             .kind = si.hasValue() ? si.Value->kind() : AVK_Any,
-                            .position = static_cast<size_t>(stackPosition)
+                            .position = static_cast<py_opindex>(stackPosition)
                         });
                     }
                 }
@@ -164,19 +164,18 @@ void InstructionGraph::printGraph(const char* name) {
         } else {
             switch (edge.escaped) {
                 case NoEscape:
-                    printf("\tOP%ud -> OP%u [label=\"%s (%s) -%zu\" color=black];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    printf("\tOP%ud -> OP%u [label=\"%s (%s) -%u\" color=black];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
                 case Unbox:
-                    printf("\tOP%ud -> OP%u [label=\"%s (%s) U%zu\" color=red];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    printf("\tOP%ud -> OP%u [label=\"%s (%s) U%u\" color=red];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
                 case Box:
-                    printf("\tOP%ud -> OP%u [label=\"%s (%s) B%zu\" color=green];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    printf("\tOP%ud -> OP%u [label=\"%s (%s) B%u\" color=green];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
                 case Unboxed:
-                    printf("\tOP%ud -> OP%u [label=\"%s (%s) UN%zu\" color=purple];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    printf("\tOP%ud -> OP%u [label=\"%s (%s) UN%u\" color=purple];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
                     break;
             }
-
         }
     }
     printf("}\n");
