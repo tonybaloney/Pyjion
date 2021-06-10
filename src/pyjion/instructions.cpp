@@ -134,6 +134,11 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
             instruction.second.escape = false;
             continue;
         }
+        // If the instruction is escaped, has no input edge but the output is just boxed, dont bother.
+        if (!edgesOut.empty() && edgesIn.empty() && edgesOut[0].escaped == Box){
+            instruction.second.escape = false;
+            continue;
+        }
         // If the instruction is the only one boxed and not part of a chain, dont bother.
         if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && edgesOut[0].escaped == Box)  // outbound are box
         {
@@ -234,20 +239,40 @@ void InstructionGraph::printGraph(const char* name) {
     printf("}\n");
 }
 
-vector<Edge> InstructionGraph::getEdges(py_opindex i){
-    vector<Edge> filteredEdges;
+vector<Edge> InstructionGraph::getEdges(py_opindex idx){
+    EdgeMap filteredEdges;
+    size_t max_position = 0;
     for (auto & edge: this->edges){
-        if (edge.to == i)
-            filteredEdges.push_back(edge);
+        if (edge.to == idx) {
+            filteredEdges[edge.position] = edge;
+            if (edge.position > max_position)
+                max_position = edge.position;
+        }
     }
-    return filteredEdges;
+    vector<Edge> result ;
+    for (size_t i = 0 ; i <= max_position; i++){
+        if (filteredEdges.find(i) != filteredEdges.end())
+            result.push_back(filteredEdges[i]);
+    }
+
+    return result;
 }
 
-vector<Edge> InstructionGraph::getEdgesFrom(py_opindex i){
-    vector<Edge> filteredEdges;
+vector<Edge> InstructionGraph::getEdgesFrom(py_opindex idx){
+    EdgeMap filteredEdges;
+    size_t max_position = 0;
     for (auto & edge: this->edges){
-        if (edge.from == i)
-            filteredEdges.push_back(edge);
+        if (edge.from == idx) {
+            filteredEdges[edge.position] = edge;
+            if (edge.position > max_position)
+                max_position = edge.position;
+        }
     }
-    return filteredEdges;
+    vector<Edge> result ;
+    for (size_t i = 0 ; i <= max_position; i++){
+        if (filteredEdges.find(i) != filteredEdges.end())
+            result.push_back(filteredEdges[i]);
+    }
+
+    return result;
 }
