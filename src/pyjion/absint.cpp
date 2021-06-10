@@ -2172,7 +2172,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case SETUP_FINALLY:
             {
                 auto current = m_blockStack.back();
-                auto jumpTo = oparg + curByte + SIZEOF_CODEUNIT;
+                py_opindex jumpTo = oparg + curByte + SIZEOF_CODEUNIT;
                 auto handlerLabel = m_comp->emit_define_label();
 
                 auto newHandler = m_exceptionHandler.AddSetupFinallyHandler(
