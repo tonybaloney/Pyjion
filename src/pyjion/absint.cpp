@@ -230,7 +230,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
 
     // walk all the blocks in the code one by one, analyzing them, and enqueing any
     // new blocks that we encounter from branches.
-    deque<size_t> queue;
+    deque<py_opindex> queue;
     queue.push_back(0);
     vector<const char*> utf8_names ;
     for (Py_ssize_t i = 0; i < PyTuple_Size(mCode->co_names); i++)
@@ -238,7 +238,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
 
     do {
         py_oparg oparg;
-        auto cur = queue.front();
+        py_opindex cur = queue.front();
         queue.pop_front();
         for (py_opindex curByte = cur; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
             // get our starting state when we entered this opcode
@@ -980,7 +980,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
     return Success;
 }
 
-bool AbstractInterpreter::updateStartState(InterpreterState& newState, size_t index) {
+bool AbstractInterpreter::updateStartState(InterpreterState& newState, py_opindex index) {
     auto initialState = mStartStates.find(index);
     if (initialState != mStartStates.end()) {
         return mergeStates(newState, initialState->second);
@@ -1078,20 +1078,20 @@ AbstractValue* AbstractInterpreter::toAbstract(PyObject*obj) {
 
 // Returns information about the specified local variable at a specific
 // byte code index.
-AbstractLocalInfo AbstractInterpreter::getLocalInfo(size_t byteCodeIndex, size_t localIndex) {
+AbstractLocalInfo AbstractInterpreter::getLocalInfo(py_opindex byteCodeIndex, size_t localIndex) {
     return mStartStates[byteCodeIndex].getLocal(localIndex);
 }
 
 // Returns information about the stack at the specific byte code index.
-InterpreterStack& AbstractInterpreter::getStackInfo(size_t byteCodeIndex) {
+InterpreterStack& AbstractInterpreter::getStackInfo(py_opindex byteCodeIndex) {
     return mStartStates[byteCodeIndex].mStack;
 }
 
-short AbstractInterpreter::pgcProbeSize(size_t byteCodeIndex) {
+short AbstractInterpreter::pgcProbeSize(py_opindex byteCodeIndex) {
     return mStartStates[byteCodeIndex].pgcProbeSize;
 }
 
-bool AbstractInterpreter::pgcProbeRequired(size_t byteCodeIndex, PgcStatus status) {
+bool AbstractInterpreter::pgcProbeRequired(py_opindex byteCodeIndex, PgcStatus status) {
     if (status == PgcStatus::Uncompiled)
         return mStartStates[byteCodeIndex].requiresPgcProbe;
     return false;
@@ -2790,7 +2790,7 @@ inline ExceptionHandler* AbstractInterpreter::currentHandler() {
 // and generated locations in the code.  So for each Python byte code index
 // we define a label in the generated code.  If we ever branch to a specific
 // opcode then we'll branch to the generated label.
-void AbstractInterpreter::markOffsetLabel(size_t index) {
+void AbstractInterpreter::markOffsetLabel(py_opindex index) {
     auto existingLabel = m_offsetLabels.find(index);
     if (existingLabel != m_offsetLabels.end()) {
         m_comp->emit_mark_label(existingLabel->second);

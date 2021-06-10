@@ -45,9 +45,9 @@ struct AbstractLocalInfo;
 
 // Tracks block information for analyzing loops, exception blocks, and break opcodes.
 struct AbsIntBlockInfo {
-    size_t BlockStart, BlockEnd;
+    py_opindex BlockStart, BlockEnd;
 
-    AbsIntBlockInfo(size_t blockStart, size_t blockEnd) {
+    AbsIntBlockInfo(py_opindex blockStart, py_opindex blockEnd) {
         BlockStart = blockStart;
         BlockEnd = blockEnd;
     }
@@ -276,7 +276,7 @@ class AbstractInterpreter {
     // ** Data consumed during analysis:
     // Tracks the entry point for each POP_BLOCK opcode, so we can restore our
     // stack state back after the POP_BLOCK
-    unordered_map<size_t, size_t> m_blockStarts;
+    unordered_map<py_opindex, py_opindex> m_blockStarts;
     unordered_map<py_opindex, AbstractSource*> m_opcodeSources;
     // all values produced during abstract interpretation, need to be freed
     vector<AbstractValue*> m_values;
@@ -310,11 +310,11 @@ class AbstractInterpreter {
     //      raise logic.
     //  This was so we don't need to have decref/frees spread all over the code
     vector<vector<Label>> m_raiseAndFree;
-    unordered_set<size_t> m_jumpsTo;
+    unordered_set<py_opindex> m_jumpsTo;
     Label m_retLabel;
     Local m_retValue;
-    unordered_map<size_t, bool> m_assignmentState;
-    unordered_map<size_t, bool> m_unboxableProducers;
+    unordered_map<py_opindex, bool> m_assignmentState;
+    unordered_map<py_opindex, bool> m_unboxableProducers;
 
 #pragma warning (default:4251)
 
@@ -328,14 +328,14 @@ public:
     void setLocalType(size_t index, PyObject* val);
     // Returns information about the specified local variable at a specific
     // byte code index.
-    AbstractLocalInfo getLocalInfo(size_t byteCodeIndex, size_t localIndex);
+    AbstractLocalInfo getLocalInfo(py_opindex byteCodeIndex, size_t localIndex);
 
     // Returns information about the stack at the specific byte code index.
-    InterpreterStack& getStackInfo(size_t byteCodeIndex);
+    InterpreterStack& getStackInfo(py_opindex byteCodeIndex);
 
     AbstractValue* getReturnInfo();
-    bool pgcProbeRequired(size_t byteCodeIndex, PgcStatus status);
-    short pgcProbeSize(size_t byteCodeIndex);
+    bool pgcProbeRequired(py_opindex byteCodeIndex, PgcStatus status);
+    short pgcProbeSize(py_opindex byteCodeIndex);
     void enableTracing();
     void disableTracing();
     void enableProfiling();
@@ -345,7 +345,7 @@ private:
     AbstractValue* toAbstract(PyObject* obj);
 
     static bool mergeStates(InterpreterState& newState, InterpreterState& mergeTo);
-    bool updateStartState(InterpreterState& newState, size_t index);
+    bool updateStartState(InterpreterState& newState, py_opindex index);
     void initStartingState();
     AbstractInterpreterResult preprocess();
     AbstractSource* newSource(AbstractSource* source) {
@@ -391,7 +391,7 @@ private:
 
     ExceptionHandler * currentHandler();
 
-    void markOffsetLabel(size_t index);
+    void markOffsetLabel(py_opindex index);
 
     void jumpAbsolute(py_opindex index, py_opindex from);
 
