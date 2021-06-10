@@ -170,7 +170,6 @@ public:
     virtual Local emit_define_local(bool cache) = 0;
     // Defines a local of a specific type
     virtual Local emit_define_local(LocalKind kind = LK_Pointer) = 0;
-
     virtual Local emit_define_local(AbstractValueKind kind) = 0;
     // Frees a local making it available for re-use
     virtual void emit_free_local(Local local) = 0;

@@ -1595,6 +1595,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
     m_comp->emit_init_instr_counter();
 
+    for(auto &fastLocal : graph->getUnboxedFastLocals()){
+        m_fastNativeLocals[fastLocal.first] = m_comp->emit_define_local(fastLocal.second);
+        m_fastNativeLocalKinds[fastLocal.first] = avkAsStackEntryKind(fastLocal.second);
+    }
+
     if (mTracingEnabled){
         // push initial trace on entry to frame
         m_comp->emit_trace_frame_entry();
@@ -1840,7 +1845,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case STORE_FAST:
                 if (OPT_ENABLED(unboxing) && op.escape){
-                    storeFastUnboxed(oparg, stackInfo.top());
+                    storeFastUnboxed(oparg);
                 } else {
                     m_comp->emit_store_fast(oparg);
                     decStack();
@@ -2664,9 +2669,7 @@ void AbstractInterpreter::loadFastUnboxed(py_oparg local, py_opindex opcodeIndex
     m_comp->emit_load_local(m_fastNativeLocals[local]);
     incStack(1, m_fastNativeLocalKinds[local]);
 }
-void AbstractInterpreter::storeFastUnboxed(py_oparg local, AbstractValueWithSources value) {
-    m_fastNativeLocals[local] = m_comp->emit_define_local(value.Value->kind());
-    m_fastNativeLocalKinds[local] = avkAsStackEntryKind(value.Value->kind());
+void AbstractInterpreter::storeFastUnboxed(py_oparg local) {
     m_comp->emit_store_local(m_fastNativeLocals[local]);
     decStack();
 }

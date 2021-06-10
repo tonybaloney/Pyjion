@@ -30,7 +30,7 @@
 
 InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex , const InterpreterStack*> stacks) {
     auto mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
-    unordered_map<py_oparg, bool> unboxedFastLocals ;
+    unordered_set<py_oparg> unboxedLocals;
     auto size = PyBytes_Size(code->co_code);
     for (py_opindex curByte = 0; curByte < size; curByte += SIZEOF_CODEUNIT) {
         py_opindex index = curByte;
@@ -96,8 +96,9 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
         }
         bool escape = supportsUnboxing(opcode) && allEscaped;
         if (opcode == STORE_FAST && escape){
-            unboxedFastLocals[oparg] = true;
-        } else if (opcode == LOAD_FAST && unboxedFastLocals[oparg]){
+            unboxedLocals.insert(oparg);
+            unboxedFastLocals[oparg] = edgesForOperation[0].kind;
+        } else if (opcode == LOAD_FAST && unboxedLocals.find(oparg) != unboxedLocals.end()){
             escape = true; // force escaping for locals which are already escaped.
         }
         instructions[index] = {
@@ -272,4 +273,8 @@ vector<Edge> InstructionGraph::getEdgesFrom(py_opindex idx){
     }
 
     return result;
+}
+
+unordered_map<py_oparg, AbstractValueKind> InstructionGraph::getUnboxedFastLocals(){
+    return unboxedFastLocals;
 }

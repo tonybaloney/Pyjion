@@ -410,7 +410,7 @@ private:
 
     void returnValue(py_opindex opcodeIndex);
 
-    void storeFastUnboxed(py_oparg local, AbstractValueWithSources value);
+    void storeFastUnboxed(py_oparg local);
     void loadFast(py_oparg local, py_opindex opcodeIndex);
     void loadFastUnboxed(py_oparg local, py_opindex opcodeIndex);
     void loadFastWorker(size_t local, bool checkUnbound, py_opindex curByte);
