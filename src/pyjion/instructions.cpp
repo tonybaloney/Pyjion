@@ -27,6 +27,14 @@
 #include "pycomp.h"
 #include "unboxing.h"
 
+bool allAre(vector<Edge> edges, EscapeTransition transition){
+    bool allMatch = true;
+    for (auto &edge: edges){
+        if (edge.escaped != transition)
+            allMatch = false;
+    }
+    return allMatch;
+}
 
 InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex , const InterpreterStack*> stacks) {
     auto mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
@@ -153,24 +161,24 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
             continue;
         }
         // If the instruction is escaped, has no input edge but the output is just boxed, dont bother.
-        if (!edgesOut.empty() && edgesIn.empty() && edgesOut[0].escaped == Box && (instruction.second.opcode != LOAD_FAST)){
+        if (!edgesOut.empty() && edgesIn.empty() && allAre(edgesOut, Box) && (instruction.second.opcode != LOAD_FAST)){
             instruction.second.escape = false;
             continue;
         }
         // If the instruction is the only one boxed and not part of a chain, dont bother.
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && edgesOut[0].escaped == Box)  // outbound are box
+        if (!edgesIn.empty() && allAre(edgesIn, Unbox) && !edgesOut.empty() && allAre(edgesOut, Box))  // outbound are box
         {
             instruction.second.escape = false;
             continue;
         }
         // If the instruction has no output edges.. this is probably a bug
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && edgesOut.empty() && (instruction.second.opcode != STORE_FAST))
+        if (!edgesIn.empty() && allAre(edgesIn, Unbox) && edgesOut.empty() && (instruction.second.opcode != STORE_FAST))
         {
             instruction.second.escape = false;
             continue;
         }
         // If the edge only goes to an instruction like POP_JUMP_IF_FALSE, dont optimize this aggressively.
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && allowNoOutputs(instructions[edgesOut[0].to].opcode))
+        if (!edgesIn.empty() && allAre(edgesIn, Unbox) && !edgesOut.empty() && allowNoOutputs(instructions[edgesOut[0].to].opcode))
         {
             instruction.second.escape = false;
             instructions[edgesOut[0].to].escape = false;
