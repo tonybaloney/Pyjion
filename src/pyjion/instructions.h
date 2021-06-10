@@ -58,8 +58,8 @@ struct Instruction {
 };
 
 struct Edge {
-    ssize_t from;
-    size_t to;
+    py_opindex from;
+    py_opindex to;
     const char* label;
     AbstractValue* value;
     AbstractSource* source;
@@ -68,19 +68,19 @@ struct Edge {
     size_t position;
 };
 
-typedef unordered_map<size_t, Edge> EdgeMap;
+typedef unordered_map<py_opindex, Edge> EdgeMap;
 
 class InstructionGraph {
 private:
-    unordered_map<size_t, Instruction> instructions;
+    unordered_map<py_opindex, Instruction> instructions;
     vector<Edge> edges;
 public:
-    InstructionGraph(PyCodeObject* code, unordered_map<size_t, const InterpreterStack*> stacks) ;
-    Instruction & operator [](size_t i) {return instructions[i];}
+    InstructionGraph(PyCodeObject* code, unordered_map<py_opindex, const InterpreterStack*> stacks) ;
+    Instruction & operator [](py_opindex i) {return instructions[i];}
     size_t size() {return instructions.size();}
     void printGraph(const char* name) ;
-    EdgeMap getEdges(size_t i);
-    EdgeMap getEdgesFrom(size_t i);
+    EdgeMap getEdges(py_opindex i);
+    EdgeMap getEdgesFrom(py_opindex i);
 };
 
 #endif //PYJION_INSTRUCTIONS_H

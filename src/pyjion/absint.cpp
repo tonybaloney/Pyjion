@@ -176,7 +176,7 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
         }
     }
     if (OPT_ENABLED(hashedNames)){
-        for (int i = 0; i < PyTuple_Size(mCode->co_names); i++) {
+        for (Py_ssize_t i = 0; i < PyTuple_Size(mCode->co_names); i++) {
             nameHashes[i] = PyObject_Hash(PyTuple_GetItem(mCode->co_names, i));
         }
     }
@@ -233,19 +233,19 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
     deque<size_t> queue;
     queue.push_back(0);
     vector<const char*> utf8_names ;
-    for (size_t i = 0; i < PyTuple_Size(mCode->co_names); i++)
+    for (Py_ssize_t i = 0; i < PyTuple_Size(mCode->co_names); i++)
         utf8_names.push_back(PyUnicode_AsUTF8(PyTuple_GetItem(mCode->co_names, i)));
 
     do {
-        uint16_t oparg;
+        py_oparg oparg;
         auto cur = queue.front();
         queue.pop_front();
-        for (size_t curByte = cur; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
+        for (py_opindex curByte = cur; curByte < mSize; curByte += SIZEOF_CODEUNIT) {
             // get our starting state when we entered this opcode
             InterpreterState lastState = mStartStates.find(curByte)->second;
 
-            auto opcodeIndex = curByte;
-            uint16_t opcode = GET_OPCODE(curByte);
+            py_opindex opcodeIndex = curByte;
+            py_opcode opcode = GET_OPCODE(curByte);
             bool pgcRequired = false;
             short pgcSize = 0;
             oparg = GET_OPARG(curByte);
@@ -1771,7 +1771,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case LOAD_NAME:
                 if (OPT_ENABLED(hashedNames)){
-                    m_comp->emit_load_name_hashed(PyTuple_GetItem(mCode->co_names, oparg), (long)nameHashes[oparg]);
+                    m_comp->emit_load_name_hashed(PyTuple_GetItem(mCode->co_names, oparg), nameHashes[oparg]);
                 } else {
                     m_comp->emit_load_name(PyTuple_GetItem(mCode->co_names, oparg));
                 }
@@ -2077,7 +2077,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             {
                 auto postIterStack = ValueStack(m_stack);
                 postIterStack.dec(1); // pop iter when stopiter happens
-                size_t jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
+                py_opindex jumpTo = curByte + oparg + SIZEOF_CODEUNIT;
                 if (OPT_ENABLED(inlineIterators) && !stackInfo.empty()){
                     auto iterator = stackInfo.top();
                     forIter(
@@ -2481,7 +2481,7 @@ void AbstractInterpreter::updateIntermediateSources(){
 }
 
 InstructionGraph* AbstractInterpreter::buildInstructionGraph() {
-    unordered_map<size_t, const InterpreterStack*> stacks;
+    unordered_map<py_opindex, const InterpreterStack*> stacks;
     for (const auto &state: mStartStates){
         stacks[state.first] = &state.second.mStack;
     }

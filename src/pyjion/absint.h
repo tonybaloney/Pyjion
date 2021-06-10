@@ -258,7 +258,7 @@ class AbstractInterpreter {
 #endif
     // ** Results produced:
     // Tracks the interpreter state before each opcode
-    unordered_map<size_t, InterpreterState> mStartStates;
+    unordered_map<py_opindex, InterpreterState> mStartStates;
     AbstractValue* mReturnValue;
     // ** Inputs:
     PyCodeObject* mCode;
@@ -277,7 +277,7 @@ class AbstractInterpreter {
     // Tracks the entry point for each POP_BLOCK opcode, so we can restore our
     // stack state back after the POP_BLOCK
     unordered_map<size_t, size_t> m_blockStarts;
-    unordered_map<size_t, AbstractSource*> m_opcodeSources;
+    unordered_map<py_opindex, AbstractSource*> m_opcodeSources;
     // all values produced during abstract interpretation, need to be freed
     vector<AbstractValue*> m_values;
     vector<AbstractSource*> m_sources;
@@ -292,15 +292,15 @@ class AbstractInterpreter {
     ExceptionHandlerManager m_exceptionHandler;
     // Labels that map from a Python byte code offset to an ilgen label.  This allows us to branch to any
     // byte code offset.
-    unordered_map<size_t, Label> m_offsetLabels;
+    unordered_map<py_opindex, Label> m_offsetLabels;
     // Tracks the current depth of the stack,  as well as if we have an object reference that needs to be freed.
     // True (STACK_KIND_OBJECT) if we have an object, false (STACK_KIND_VALUE) if we don't
     ValueStack m_stack;
     // Tracks the state of the stack when we perform a branch.  We copy the existing state to the map and
     // reload it when we begin processing at the stack.
-    unordered_map<size_t, ValueStack> m_offsetStack;
+    unordered_map<py_opindex, ValueStack> m_offsetStack;
 
-    unordered_map<int, ssize_t> nameHashes;
+    unordered_map<Py_ssize_t, Py_ssize_t> nameHashes;
 
     // Set of labels used for when we need to raise an error but have values on the stack
     // that need to be freed.  We have one set of labels which fall through to each other
