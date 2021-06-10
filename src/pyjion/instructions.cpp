@@ -153,9 +153,22 @@ void InstructionGraph::printGraph(const char* name) {
     printf("\tFRAME [label=FRAME];\n");
     for (const auto & node: instructions){
         if (node.second.escape)
-            printf("  OP%u [label=\"%s (%d)\" color=blue];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+            printf("\tOP%u [label=\"%s (%d)\" color=blue];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
         else
-            printf("  OP%u [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+            printf("\tOP%u [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+        switch(node.second.opcode){
+            case JUMP_FORWARD:
+                printf("\tOP%u -> OP%u [label=\"Jump\" color=yellow];\n", node.second.index, node.second.index + node.second.oparg);
+                break;
+            case JUMP_ABSOLUTE:
+            case JUMP_IF_FALSE_OR_POP:
+            case JUMP_IF_TRUE_OR_POP:
+            case JUMP_IF_NOT_EXC_MATCH:
+            case POP_JUMP_IF_TRUE:
+            case POP_JUMP_IF_FALSE:
+                printf("\tOP%u -> OP%u [label=\"Jump\" color=yellow];\n", node.second.index, node.second.oparg);
+                break;
+        }
     }
 
     for (const auto & edge: edges){
