@@ -117,6 +117,17 @@ TEST_CASE("Test inplace") {
                               "  return c");
         CHECK(t.returns() == "'cab'");
     }
+    SECTION("compare two calculations") {
+        auto t = EmissionTest("def f():\n"
+                              "  a = 3\n"
+                              "  b = 5\n"
+                              "  c = 7\n"
+                              "  if a + b == c * a:\n"
+                              "     return False\n"
+                              "  else:\n"
+                              "     return True");
+        CHECK(t.returns() == "True");
+    }
 }
 
 
