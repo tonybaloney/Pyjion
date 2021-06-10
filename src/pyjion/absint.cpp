@@ -1633,7 +1633,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         // Get an additional oparg, see dis help for information on what each means
         py_oparg oparg = op.oparg;
 
-    processOpCode:
         markOffsetLabel(curByte);
         m_comp->mark_sequence_point(curByte);
 
@@ -1688,6 +1687,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
         switch (byte) {
             case NOP: break;
+            case EXTENDED_ARG: break;
             case ROT_TWO:
             {
                 m_comp->emit_rot_two();
@@ -2040,14 +2040,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case RETURN_VALUE:
                 returnValue(opcodeIndex); break;
-            case EXTENDED_ARG:
-            {
-                curByte += SIZEOF_CODEUNIT;
-                oparg = (oparg << 8) | GET_OPARG(curByte);
-                byte = GET_OPCODE(curByte);
-
-                goto processOpCode;
-            }
             case MAKE_FUNCTION:
                 makeFunction(oparg);
                 break;

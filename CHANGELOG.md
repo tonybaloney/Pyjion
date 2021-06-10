@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.0.0 (beta1)
+
+* Added unboxing for integers (OPT-16)
+* Added unboxing for bool
+* Fixed a bug with interned hash maps on Windows
+
 ## 1.0.0 (alpha4)
 
 * Added unboxing and escape analysis for floating point objects (OPT-16)

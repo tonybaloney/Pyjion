@@ -3,7 +3,7 @@ import pathlib
 import os
 import platform
 
-__version__ = '1.0.0a4'
+__version__ = '1.0.0b1'
 
 
 def _no_dotnet(path):
