@@ -170,6 +170,16 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
             }
         }
     }
+
+    // Do Local analysis...
+    for (auto & instruction: this->instructions){
+        if (instruction.second.opcode == STORE_FAST){
+            auto edgesIn = getEdges(instruction.first);
+            if (!edgesIn.empty() && edgesIn[0].escaped == Box){
+                printf("Potential optimized local");
+            }
+        }
+    }
 }
 
 void InstructionGraph::printGraph(const char* name) {

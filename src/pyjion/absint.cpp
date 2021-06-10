@@ -1662,7 +1662,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         bool skipEffect = false;
 
         auto edges = graph->getEdges(curByte);
-        if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status)){
+        if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status) && !(OPT_ENABLED(unboxing) && op.escape)){
             emitPgcProbes(curByte, pgcProbeSize(curByte));
         }
 
@@ -1817,7 +1817,12 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 incStack();
                 break;
             case LOAD_CONST:
-                loadConst(oparg, opcodeIndex); break;
+                if (OPT_ENABLED(unboxing) && op.escape){
+                    loadUnboxedConst(oparg, opcodeIndex);
+                } else {
+                    loadConst(oparg, opcodeIndex);
+                }
+                break;
             case STORE_NAME:
                 m_comp->emit_store_name(PyTuple_GetItem(mCode->co_names, oparg));
                 decStack();
@@ -1834,12 +1839,21 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_assignmentState[oparg] = false;
                 break;
             case STORE_FAST:
-                m_comp->emit_store_fast(oparg);
-                decStack();
+                if (OPT_ENABLED(unboxing) && op.escape){
+                    storeFastUnboxed(oparg, stackInfo.top());
+                } else {
+                    m_comp->emit_store_fast(oparg);
+                    decStack();
+                }
                 m_assignmentState[oparg] = true;
                 break;
             case LOAD_FAST:
-                loadFast(oparg, opcodeIndex); break;
+                if (OPT_ENABLED(unboxing) && op.escape){
+                    loadFastUnboxed(oparg, opcodeIndex);
+                } else {
+                    loadFast(oparg, opcodeIndex);
+                }
+                break;
             case UNPACK_SEQUENCE:
                 m_comp->emit_unpack_sequence(oparg, stackInfo.top());
                 decStack();
@@ -2540,6 +2554,28 @@ void AbstractInterpreter::loadConst(py_oparg constIndex, py_opindex opcodeIndex)
     incStack();
 }
 
+void AbstractInterpreter::loadUnboxedConst(py_oparg constIndex, py_opindex opcodeIndex) {
+    auto constValue = PyTuple_GetItem(mCode->co_consts, constIndex);
+    auto abstractT = GetAbstractType(constValue->ob_type);
+    switch(abstractT){
+        case AVK_Float:
+            m_comp->emit_float(PyFloat_AS_DOUBLE(constValue));
+            incStack(1, STACK_KIND_VALUE_FLOAT);
+            break;
+        case AVK_Integer:
+            m_comp->emit_long_long(PyLong_AsLongLong(constValue));
+            incStack(1, STACK_KIND_VALUE_INT);
+            break;
+        case AVK_Bool:
+            if (constValue == Py_True)
+                m_comp->emit_int(1);
+            else
+                m_comp->emit_int(0);
+            incStack(1, STACK_KIND_VALUE_INT);
+            break;
+    }
+}
+
 void AbstractInterpreter::unwindHandlers(){
     // for each exception handler we need to load the exception
     // information onto the stack, and then branch to the correct
@@ -2620,6 +2656,19 @@ void AbstractInterpreter::loadFast(py_oparg local, py_opindex opcodeIndex) {
     bool checkUnbound = m_assignmentState.find(local) == m_assignmentState.end() || !m_assignmentState.find(local)->second;
     loadFastWorker(local, checkUnbound, opcodeIndex);
     incStack();
+}
+
+void AbstractInterpreter::loadFastUnboxed(py_oparg local, py_opindex opcodeIndex) {
+    bool checkUnbound = m_assignmentState.find(local) == m_assignmentState.end() || !m_assignmentState.find(local)->second;
+    assert(!checkUnbound);
+    m_comp->emit_load_local(m_fastNativeLocals[local]);
+    incStack(1, m_fastNativeLocalKinds[local]);
+}
+void AbstractInterpreter::storeFastUnboxed(py_oparg local, AbstractValueWithSources value) {
+    m_fastNativeLocals[local] = m_comp->emit_define_local(value.Value->kind());
+    m_fastNativeLocalKinds[local] = avkAsStackEntryKind(value.Value->kind());
+    m_comp->emit_store_local(m_fastNativeLocals[local]);
+    decStack();
 }
 
 void AbstractInterpreter::loadFastWorker(size_t local, bool checkUnbound, py_opindex curByte) {

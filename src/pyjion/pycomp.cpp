@@ -2351,6 +2351,44 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             emit_free_local(lcl);
             break;
         }
+        case AVK_Bool: {
+            Local lcl = emit_define_local(LK_Pointer);
+            Label guard_pass = emit_define_label();
+            Label guard_fail = emit_define_label();
+            emit_store_local(lcl);
+            if (value->needsGuard()) {
+                emit_load_local(lcl);
+                LD_FIELDI(PyObject, ob_type);
+                emit_ptr(&PyBool_Type);
+                emit_branch(BranchNotEqual, guard_fail);
+            }
+
+            Label isFalse = emit_define_label();
+            Label decref_out = emit_define_label();
+            emit_load_local(lcl);
+            emit_ptr(Py_True);
+            emit_branch(BranchNotEqual, isFalse);
+            emit_int(1);
+            emit_branch(BranchAlways, decref_out);
+            emit_mark_label(isFalse);
+            emit_int(0);
+            emit_mark_label(decref_out);
+            emit_load_local(lcl);
+            decref();
+
+            if (value->needsGuard()) {
+                emit_branch(BranchAlways, guard_pass);
+                emit_mark_label(guard_fail);
+                emit_int(1);
+                emit_store_local(success);
+                emit_load_local(lcl);
+                emit_guard_exception("bool");
+                emit_int(1); // keep the stack effect equivalent, this value is never used.
+                emit_mark_label(guard_pass);
+            }
+            emit_free_local(lcl);
+            break;
+        }
     }
 };
 
@@ -2380,6 +2418,13 @@ void PythonCompiler::emit_unbox_const(ConstSource *source, AbstractValue *value)
         case AVK_Integer: {
             decref();
             m_il.ld_i8(PyLong_AsLongLong(source->getValue())) ;
+        }
+        case AVK_Bool: {
+            decref();
+            if (source->getValue() == Py_True)
+                emit_int(1);
+            else
+                emit_int(0);
         }
         break;
         default:
