@@ -75,6 +75,9 @@ private:
     unordered_map<py_opindex, Instruction> instructions;
     unordered_map<py_oparg, AbstractValueKind> unboxedFastLocals ;
     vector<Edge> edges;
+    void fixEdges();
+    void fixInstructions();
+    void fixLocals();
 public:
     InstructionGraph(PyCodeObject* code, unordered_map<py_opindex, const InterpreterStack*> stacks) ;
     Instruction & operator [](py_opindex i) {return instructions[i];}

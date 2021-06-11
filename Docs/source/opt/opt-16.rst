@@ -27,7 +27,7 @@ I've found this initial prototype to be unstable so the boxing and unboxing has 
 Solution
 --------
 
-Pyjion's escape analysis is acheived using an instruction graph to traverse supported unboxed types and opcodes then to tag transition stack variables as unboxed.
+Pyjion's escape analysis is achieved using an instruction graph to traverse supported unboxed types and opcodes then to tag transition stack variables as unboxed.
 This functionality complements PGC.
 
 Pyjion uses the .NET JIT compiler's value stack instead of CPython's value stack. In this optimization:
