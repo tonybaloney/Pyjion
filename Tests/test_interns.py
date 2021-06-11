@@ -71,7 +71,7 @@ class InternIntegerTestCase(unittest.TestCase):
             b = 2000
             return a == b
 
-        self.assertOptimized(test_f)
+        self.assertNotOptimized(test_f)
 
     def test_const_not_integer(self):
         def test_f():
@@ -87,7 +87,7 @@ class InternIntegerTestCase(unittest.TestCase):
             b = 1.0
             return a == b
 
-        self.assertOptimized(test_f)
+        self.assertNotOptimized(test_f)
 
 
 class InternIntegerSubscrTestCase(unittest.TestCase):
