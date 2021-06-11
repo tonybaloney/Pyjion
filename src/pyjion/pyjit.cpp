@@ -57,7 +57,6 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(functionCalls, level, 1);
     SET_OPT(loadAttr, level, 1);
     SET_OPT(unboxing, level, 1);
-    SET_OPT(unboxConsts, level, 1);
 }
 
 PgcStatus nextPgcStatus(PgcStatus status){

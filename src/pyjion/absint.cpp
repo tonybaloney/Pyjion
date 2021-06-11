@@ -1499,7 +1499,7 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
     m_comp->emit_load_local(handler->ExVars.FinallyExc);
 }
 
-void AbstractInterpreter::escapeEdges(vector<Edge> edges, py_opindex curByte) {
+void AbstractInterpreter::escapeEdges(const vector<Edge>& edges, py_opindex curByte) {
     // Check if edges need boxing/unboxing
     // If none of the edges need escaping, skip
     bool needsEscapes = false;
@@ -1658,10 +1658,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
             }
         }
-
         auto stackInfo = getStackInfo(curByte);
-        py_opindex next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
-        auto nextStackInfo = getStackInfo(next_byte);
 
         size_t curStackSize = m_stack.size();
         bool skipEffect = false;

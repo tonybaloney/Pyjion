@@ -2408,30 +2408,6 @@ void PythonCompiler::emit_nan_long() {
     m_il.ld_i8(MAXLONG);
 }
 
-void PythonCompiler::emit_unbox_const(ConstSource *source, AbstractValue *value) {
-    switch(value->kind()) {
-        case AVK_Float: {
-            decref();
-            m_il.ld_r8(PyFloat_AsDouble(source->getValue())) ;
-        }
-            break;
-        case AVK_Integer: {
-            decref();
-            m_il.ld_i8(PyLong_AsLongLong(source->getValue())) ;
-        }
-        case AVK_Bool: {
-            decref();
-            if (source->getValue() == Py_True)
-                emit_int(1);
-            else
-                emit_int(0);
-        }
-        break;
-        default:
-            assert(false);
-    }
-}
-
 void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
     emit_int(0);
     emit_store_local(success); // Will get set to 1 on unbox failures.
@@ -2453,11 +2429,7 @@ void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
         emit_load_and_free_local(stack[i-1]);
         switch(edges[i-1].escaped){
             case Unbox:
-                if (OPT_ENABLED(unboxConsts) && edges[i-1].source->hasConstValue()) {
-                    emit_unbox_const(reinterpret_cast<ConstSource *>(edges[i - 1].source), edges[i - 1].value);
-                } else {
-                    emit_unbox(edges[i - 1].value, success);
-                }
+                emit_unbox(edges[i - 1].value, success);
                 break;
             case Box:
                 emit_box(edges[i-1].value);

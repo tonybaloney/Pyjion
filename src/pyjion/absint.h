@@ -430,7 +430,7 @@ private:
     void decExcVars(size_t count);
     void incExcVars(size_t count);
     void updateIntermediateSources();
-    void escapeEdges(vector<Edge> edges, py_opindex curByte);
+    void escapeEdges(const vector<Edge>& edges, py_opindex curByte);
 };
 bool canReturnInfinity(py_opcode opcode);
 

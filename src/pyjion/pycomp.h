@@ -502,7 +502,6 @@ public:
     void emit_nan() override;
     void emit_infinity_long() override;
     void emit_nan_long() override;
-    void emit_unbox_const(ConstSource *pSource, AbstractValue *pValue) override;
     void emit_guard_exception(const char* expected) override;
 private:
     void load_frame();
