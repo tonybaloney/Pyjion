@@ -2263,21 +2263,33 @@ void PythonCompiler::emit_box(AbstractValue* value) {
     }
 };
 void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources left, AbstractValueWithSources right){
+#ifdef DEBUG
     assert(supportsEscaping(left.Value->kind()) && supportsEscaping(right.Value->kind()));
+#endif
+    AbstractValueKind leftKind = left.Value->kind();
+    AbstractValueKind rightKind = right.Value->kind();
 
-    if (left.Value->kind() == AVK_Float && right.Value->kind() == AVK_Float){
+    // Treat bools as integers
+    if (leftKind == AVK_Bool)
+        leftKind = AVK_Integer;
+    if (rightKind == AVK_Bool)
+        rightKind = AVK_Integer;
+
+    if (leftKind == AVK_Float && rightKind == AVK_Float){
         return emit_compare_floats(compareType);
-    } else if (left.Value->kind() == AVK_Integer && right.Value->kind() == AVK_Integer){
+    } else if (leftKind == AVK_Integer && rightKind == AVK_Integer){
         return emit_compare_ints(compareType);
-    } else if (left.Value->kind() == AVK_Integer && right.Value->kind() == AVK_Float) {
+    } else if (leftKind == AVK_Integer && rightKind == AVK_Float) {
         Local right_l = emit_define_local(LK_Float);
         emit_store_local(right_l);
         m_il.conv_r8();
         emit_load_and_free_local(right_l);
         return emit_compare_floats(compareType);
-    } else if (left.Value->kind() == AVK_Float && right.Value->kind() == AVK_Integer) {
+    } else if (leftKind == AVK_Float && rightKind == AVK_Integer) {
         m_il.conv_r8();
         return emit_compare_floats(compareType);
+    } else {
+        assert(false);
     }
 }
 
@@ -2287,7 +2299,9 @@ void PythonCompiler::emit_guard_exception(const char* expected){
 }
 
 void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
+#ifdef DEBUG
     assert(supportsEscaping(value->kind()));
+#endif
     switch(value->kind()) {
         case AVK_Float: {
             Local lcl = emit_define_local(LK_Pointer);
@@ -2429,7 +2443,7 @@ void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
         emit_load_and_free_local(stack[i-1]);
         switch(edges[i-1].escaped){
             case Unbox:
-                emit_unbox(edges[i - 1].value, success);
+                emit_unbox(edges[i-1].value, success);
                 break;
             case Box:
                 emit_box(edges[i-1].value);
