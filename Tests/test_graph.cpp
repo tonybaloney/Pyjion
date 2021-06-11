@@ -160,4 +160,16 @@ TEST_CASE("Test instruction graphs"){
         CHECK(t.size() == 12);
         CHECK(t.assertInstruction(20, COMPARE_OP, 2, false)); // == should be boxed
     }
+
+    SECTION("test COMPARE_OP doesn't get optimized with a POP_JUMP") {
+        auto t = InstructionGraphTest("def f(x):\n"
+                                      "  x = len('help')\n"
+                                      "  y = len('me')\n"
+                                      "  if x == y:\n"
+                                      "     return False\n",
+                                      "assert_deopt_binary_pop");
+        CHECK(t.size() == 16);
+        CHECK(t.assertInstruction(20, COMPARE_OP, 2, false)); // == should be boxed
+        CHECK(t.assertInstruction(22, POP_JUMP_IF_FALSE, 28, false)); // JUMP should be boxed
+    }
 }

@@ -184,6 +184,21 @@ void InstructionGraph::deoptimizeInstructions() {
                 continue;
             }
         }
+
+        // If none of the previous instructions are boxed and the next is a pop operation
+        if (!edgesIn.empty() && !edgesOut.empty() && edgesOut.size() == 1){
+            auto previousOperationsBoxed = false;
+            for (auto &edge: edgesIn){
+                if (this->instructions[edge.from].escape)
+                    previousOperationsBoxed = true;
+            }
+
+            if (!previousOperationsBoxed && getEdgesFrom(edgesOut[0].to).empty()){
+                instruction.second.escape = false;
+                this->instructions[edgesOut[0].to].escape = false;
+                continue;
+            }
+        }
     }
 }
 
