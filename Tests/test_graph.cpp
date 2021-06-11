@@ -98,11 +98,11 @@ public:
     }
 };
 
-TEST_CASE("Test unsupported instructions"){
+TEST_CASE("Test instruction graphs"){
     SECTION("return parameters"){
         auto t = InstructionGraphTest("def f(x):\n"
                                       "  return x\n",
-                                      "return parameters");
+                                      "return_parameters");
         CHECK(t.size() == 2);
         CHECK(t.assertInstruction(0, LOAD_FAST, 0, false));
         CHECK(t.assertEdgesIn(0, 0));
@@ -149,5 +149,15 @@ TEST_CASE("Test unsupported instructions"){
         CHECK(t.assertEdgesIn(6, 1));
         CHECK(t.assertEdgeInIs(6, 0, Unboxed));
         CHECK(t.assertEdgesOut(6, 0));
+    }
+
+    SECTION("test simple local graph isn't optimized") {
+        auto t = InstructionGraphTest("def f(x):\n"
+                                      "  x = len('help')\n"
+                                      "  y = len('me')\n"
+                                      "  return x == y\n",
+                                      "assert_deopt_binary");
+        CHECK(t.size() == 12);
+        CHECK(t.assertInstruction(20, COMPARE_OP, 2, false)); // == should be boxed
     }
 }

@@ -164,6 +164,26 @@ void InstructionGraph::deoptimizeInstructions() {
                 continue;
             }
         }
+
+        // If none of the previous instructions are boxed and the next one's aren't either
+        if (!edgesIn.empty() && !edgesOut.empty()){
+            auto previousOperationsBoxed = false;
+            for (auto &edge: edgesIn){
+                if (this->instructions[edge.from].escape)
+                    previousOperationsBoxed = true;
+            }
+
+            auto nextOperationsBoxed = false;
+            for (auto &edge: edgesOut){
+                if (this->instructions[edge.to].escape)
+                    nextOperationsBoxed = true;
+            }
+
+            if (!previousOperationsBoxed && !nextOperationsBoxed){
+                instruction.second.escape = false;
+                continue;
+            }
+        }
     }
 }
 
