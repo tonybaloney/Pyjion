@@ -122,7 +122,7 @@ TEST_CASE("Test unsupported instructions"){
         CHECK(t.assertEdgesIn(0, 0));
         CHECK(t.assertEdgesOut(0, 1));
 
-        CHECK(t.assertInstruction(6, POP_JUMP_IF_TRUE, 0, false));
+        CHECK(t.assertInstruction(6, POP_JUMP_IF_TRUE, 12, false));
         CHECK(t.assertEdgesIn(6, 1));
         CHECK(t.assertEdgeInIs(6, 0, NoEscape));
         CHECK(t.assertEdgesOut(6, 0));
@@ -133,19 +133,19 @@ TEST_CASE("Test unsupported instructions"){
                                       "  assert 1000 == 2000\n",
                                       "assert_boxable_consts");
         CHECK(t.size() == 8);
-        CHECK(t.assertInstruction(0, LOAD_CONST, 1, true));
+        CHECK(t.assertInstruction(0, LOAD_CONST, 1, true)); // 1000 should be unboxed
         CHECK(t.assertEdgesIn(0, 0));
         CHECK(t.assertEdgesOut(0, 1));
-        CHECK(t.assertInstruction(2, LOAD_CONST, 2, true));
+        CHECK(t.assertInstruction(2, LOAD_CONST, 2, true)); // 2000 should be unboxed
         CHECK(t.assertEdgesIn(2, 0));
         CHECK(t.assertEdgesOut(2, 1));
-        CHECK(t.assertInstruction(4, COMPARE_OP, 2, true));
+        CHECK(t.assertInstruction(4, COMPARE_OP, 2, true)); // == should be unboxed
         CHECK(t.assertEdgesIn(4, 2));
         CHECK(t.assertEdgeInIs(4, 0, Unboxed));
         CHECK(t.assertEdgeInIs(4, 1, Unboxed));
         CHECK(t.assertEdgeOutIs(4, 0, Unboxed));
         CHECK(t.assertEdgesOut(4, 1));
-        CHECK(t.assertInstruction(6, POP_JUMP_IF_TRUE, 12, true));
+        CHECK(t.assertInstruction(6, POP_JUMP_IF_TRUE, 12, true)); // should be unboxed
         CHECK(t.assertEdgesIn(6, 1));
         CHECK(t.assertEdgeInIs(6, 0, Unboxed));
         CHECK(t.assertEdgesOut(6, 0));

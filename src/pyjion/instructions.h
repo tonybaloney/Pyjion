@@ -77,6 +77,7 @@ private:
     vector<Edge> edges;
     void fixEdges();
     void fixInstructions();
+    void deoptimizeInstructions();
     void fixLocals();
 public:
     InstructionGraph(PyCodeObject* code, unordered_map<py_opindex, const InterpreterStack*> stacks) ;

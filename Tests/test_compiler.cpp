@@ -216,6 +216,7 @@ TEST_CASE("Conditional returns") {
         CHECK(t.returns() == "1");
     }
     SECTION("test7") {
+        // TODO: Work out why this creates an invalid instruction graph.
         auto t = EmissionTest(
                 "def f():\n    x = 4611686018427387903\n    x += 1\n    x -= 1\n    x -= 4611686018427387903\n    return x or 1"
         );

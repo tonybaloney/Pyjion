@@ -76,6 +76,7 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
         };
     }
     fixInstructions();
+    deoptimizeInstructions();
     fixLocals();
     fixEdges();
 }
@@ -127,6 +128,42 @@ void InstructionGraph::fixInstructions(){
 
         // Otherwise, we can escape this instruction..
         instruction.second.escape = true;
+    }
+}
+
+void InstructionGraph::deoptimizeInstructions() {
+    for (auto & instruction: this->instructions) {
+        if (!instruction.second.escape)
+            continue;
+
+        auto edgesIn = getEdges(instruction.first);
+        auto edgesOut = getEdgesFrom(instruction.first);
+        // If the stack effect is wrong..
+        if (PyCompile_OpcodeStackEffect(instruction.second.opcode, instruction.second.oparg) != (edgesOut.size() - edgesIn.size())) {
+#ifdef DEBUG
+            printf("Warning, instruction has invalid stack effect %s %d\n", opcodeName(instruction.second.opcode), instruction.second.index);
+#endif
+            instruction.second.escape = false;
+            continue;
+        }
+
+        // If op has no inputs and only 1 output edge and the next instruction is not escaped.. dont
+        if (edgesIn.empty() && edgesOut.size() == 1){
+            // Get next instruction
+            if (!this->instructions[edgesOut[0].to].escape){
+                instruction.second.escape = false;
+                continue;
+            }
+        }
+
+        // If op has no outputs and only 1 input edge and the previous instruction is not escaped.. dont
+        if (edgesIn.size() == 1 && edgesOut.empty()){
+            // Get previous instruction
+            if (!this->instructions[edgesIn[0].from].escape){
+                instruction.second.escape = false;
+                continue;
+            }
+        }
     }
 }
 
