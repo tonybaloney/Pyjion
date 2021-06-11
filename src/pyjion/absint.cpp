@@ -1671,21 +1671,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             emitPgcProbes(curByte, pgcProbeSize(curByte));
         }
 
-        if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() >= (1 + oparg)){
-            bool optimized ;
-            if (oparg == 3) {
-                optimized = m_comp->emit_binary_subscr_slice(stackInfo.fourth(), stackInfo.third(), stackInfo.second(), stackInfo.top());
-            } else {
-                optimized = m_comp->emit_binary_subscr_slice(stackInfo.third(), stackInfo.second(), stackInfo.top());
-            }
-            if (optimized) {
-                decStack(oparg + 1);
-                errorCheck("subscr slice failed", curByte);
-                incStack();
-                curByte += SIZEOF_CODEUNIT;
-                continue;
-            } // Else, use normal compilation path.
-        }
         if (OPT_ENABLED(unboxing)) {
             escapeEdges(edges, curByte);
         }

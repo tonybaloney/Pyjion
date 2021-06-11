@@ -52,7 +52,6 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(knownBinarySubscr, level, 1);
     SET_OPT(inlineIterators, level, 1);
     SET_OPT(hashedNames, level, 1);
-    SET_OPT(subscrSlice, level, 1);
     SET_OPT(builtinMethods, level, 1);
     SET_OPT(typeSlotLookups, level, 1);
     SET_OPT(functionCalls, level, 1);
