@@ -110,7 +110,7 @@ void InstructionGraph::fixInstructions(){
         // Check that all inbound edges can be escaped.
         bool allEdgesEscapable = true;
         for (auto & edgeIn: getEdges(instruction.first)){
-            if (!supportsEscaping(edgeIn.second.kind))
+            if (!supportsEscaping(edgeIn.kind))
                 allEdgesEscapable = false;
         }
         if (!allEdgesEscapable)
@@ -119,7 +119,7 @@ void InstructionGraph::fixInstructions(){
         // Check that all inbound edges can be escaped.
         bool allOutputsEscapable = true;
         for (auto & edgeOut: getEdgesFrom(instruction.first)){
-            if (!supportsEscaping(edgeOut.second.kind))
+            if (!supportsEscaping(edgeOut.kind))
                 allOutputsEscapable = false;
         }
         if (!allOutputsEscapable)
