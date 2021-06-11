@@ -54,30 +54,13 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
                 if (si.hasSource()){
                     ssize_t stackPosition = si.Sources->isConsumedBy(index);
                     if (stackPosition != -1) {
-                        EscapeTransition transition;
-                        if (!si.hasValue() || !supportsEscaping(si.Value->kind())){
-                            transition = NoEscape;
-                        } else {
-                            if (supportsUnboxing(GET_OPCODE(si.Sources->producer())) &&
-                                supportsUnboxing(opcode))
-                                transition = Unboxed;
-                            else if (!supportsUnboxing(GET_OPCODE(si.Sources->producer())) &&
-                                supportsUnboxing(opcode))
-                                transition = Unbox;
-                            else if (supportsUnboxing(GET_OPCODE(si.Sources->producer())) &&
-                                !supportsUnboxing(opcode))
-                                transition = Box;
-                            else
-                                transition = NoEscape;
-                        }
-
                         edges.push_back({
                             .from = si.Sources->producer(),
                             .to = index,
                             .label = si.Sources->describe(),
                             .value = si.Value,
                             .source = si.Sources,
-                            .escaped = transition,
+                            .escaped = NoEscape,
                             .kind = si.hasValue() ? si.Value->kind() : AVK_Any,
                             .position = static_cast<py_opindex>(stackPosition)
                         });
@@ -85,24 +68,20 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
                 }
             }
         }
-        // Go back through the edges to this operation and inspect those that make no
-        // sense to escape because the inputs are unknown.
-        bool allEscaped = true;
-        auto edgesForOperation = getEdges(index);
-        for (auto & e: edgesForOperation){
-            if (e.second.escaped == NoEscape)
-                allEscaped = false;
-        }
         instructions[index] = {
             .index = index,
             .opcode = opcode,
             .oparg = oparg,
-            .escape = supportsUnboxing(opcode) && allEscaped
+            .escape = false
         };
     }
-    // Correct any edges (pass 1)
+    fixInstructions();
+    fixLocals();
+    fixEdges();
+}
+
+void InstructionGraph::fixEdges(){
     for (auto & edge: this->edges){
-        // If the instruction is no longer escaped, dont box the output
         if (!this->instructions[edge.from].escape) {
             // From non-escaped operation
             if (this->instructions[edge.to].escape){
@@ -119,56 +98,43 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
             }
         }
     }
+}
 
-    // Inspect all instructions for escape cost and potential escape leaks
-    for (auto & instruction: this->instructions){
-        auto edgesIn = getEdges(instruction.first);
-        auto edgesOut = getEdgesFrom(instruction.first);
-        // If the instruction is escaped but has no output edge (POP_BLOCK or basic frame pop)
-        if (edgesOut.empty() && instruction.second.escape && !allowNoOutputs(instruction.second.opcode)){
-            instruction.second.escape = false;
+void InstructionGraph::fixInstructions(){
+    for (auto & instruction: this->instructions) {
+        if (!supportsUnboxing(instruction.second.opcode))
             continue;
+        if (instruction.second.opcode == LOAD_FAST || instruction.second.opcode == STORE_FAST )
+            continue; // handled in fixLocals();
+
+        // Check that all inbound edges can be escaped.
+        bool allEdgesEscapable = true;
+        for (auto & edgeIn: getEdges(instruction.first)){
+            if (!supportsEscaping(edgeIn.second.kind))
+                allEdgesEscapable = false;
         }
-        // If the instruction is the only one boxed and not part of a chain, dont bother.
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && !edgesOut.empty() && edgesOut[0].escaped == Box)  // outbound are box
-        {
-            instruction.second.escape = false;
+        if (!allEdgesEscapable)
             continue;
+
+        // Check that all inbound edges can be escaped.
+        bool allOutputsEscapable = true;
+        for (auto & edgeOut: getEdgesFrom(instruction.first)){
+            if (!supportsEscaping(edgeOut.second.kind))
+                allOutputsEscapable = false;
         }
-        // If the instruction has no output edges.. this is probably a bug
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && edgesOut.empty())
-        {
-            instruction.second.escape = false;
+        if (!allOutputsEscapable)
             continue;
-        }
-        // If the edge only goes to an instruction like POP_JUMP_IF_FALSE, dont optimize this aggressively.
-        if (!edgesIn.empty() && edgesIn[0].escaped == Unbox && allowNoOutputs(instructions[edgesOut[0].to].opcode))
-        {
-            instruction.second.escape = false;
-            instructions[edgesOut[0].to].escape = false;
-            edgesOut[0].escaped = NoEscape;
-            continue;
-        }
+
+        // Otherwise, we can escape this instruction..
+        instruction.second.escape = true;
     }
+}
 
-    // Correct any edges (pass 2)
-    for (auto & edge: this->edges){
-        // If the instruction is no longer escaped, dont box the output
-        if (!this->instructions[edge.from].escape) {
-            // From non-escaped operation
-            if (this->instructions[edge.to].escape){
-                edge.escaped = Unbox;
-            } else {
-                edge.escaped = NoEscape;
-            }
-        } else {
-            // From escaped operation
-            if (this->instructions[edge.to].escape){
-                edge.escaped = Unboxed;
-            } else {
-                edge.escaped = Box;
-            }
-        }
+void InstructionGraph::fixLocals(){
+    for (auto & instruction: this->instructions) {
+        if (instruction.second.opcode != LOAD_FAST && instruction.second.opcode != STORE_FAST )
+            continue;
+        // TODO : Decide which locals can be escaped.
     }
 }
 

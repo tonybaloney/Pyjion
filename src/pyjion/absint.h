@@ -341,7 +341,7 @@ public:
     void disableTracing();
     void enableProfiling();
     void disableProfiling();
-
+    InstructionGraph* buildInstructionGraph();
 private:
     AbstractValue* toAbstract(PyObject* obj);
 
@@ -425,7 +425,6 @@ private:
     void decExcVars(size_t count);
     void incExcVars(size_t count);
     void updateIntermediateSources();
-    InstructionGraph* buildInstructionGraph();
     void escapeEdges(const EdgeMap& edges, py_opindex curByte);
 };
 bool canReturnInfinity(py_opcode opcode);

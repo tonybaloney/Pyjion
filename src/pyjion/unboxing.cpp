@@ -44,6 +44,9 @@ bool supportsUnboxing(py_opcode opcode){
         case BINARY_TRUE_DIVIDE:
         case INPLACE_SUBTRACT:
         case BINARY_SUBTRACT:
+        case LOAD_CONST:
+        case STORE_FAST:
+        case LOAD_FAST:
             return true;
         default:
             return false;
