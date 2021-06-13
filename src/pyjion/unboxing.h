@@ -34,6 +34,4 @@ bool supportsUnboxing(py_opcode opcode);
 
 bool supportsEscaping(AbstractValueKind kind);
 
-bool allowNoOutputs(py_opcode opcode);
-
 #endif //PYJION_UNBOXING_H

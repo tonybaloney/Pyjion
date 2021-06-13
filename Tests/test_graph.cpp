@@ -72,29 +72,32 @@ public:
         return m_graph->operator[](n);
     }
 
-    bool assertInstruction(size_t n, py_opcode opcode, py_oparg oparg, bool escaped){
+    void assertInstruction(size_t n, py_opcode opcode, py_oparg oparg, bool escaped){
         auto i = instruction(n);
-        return (i.escape == escaped && i.opcode == opcode && i.index == n && i.oparg == oparg);
+        CHECK(i.escape == escaped);
+        CHECK(i.opcode == opcode);
+        CHECK(i.index == n);
+        CHECK(i.oparg == oparg);
     }
 
-    bool assertEdgesIn(py_opindex idx, size_t count){
+    size_t edgesIn(py_opindex idx){
         auto edges = m_graph->getEdges(idx);
-        return (edges.size() == count);
+        return edges.size();
     }
 
-    bool assertEdgeInIs(py_opindex idx, size_t position, EscapeTransition transition){
+    EscapeTransition edgeInIs(py_opindex idx, size_t position){
         auto edges = m_graph->getEdges(idx);
-        return edges[position].escaped == transition;
+        return edges[position].escaped;
     }
 
-    bool assertEdgesOut(py_opindex idx, size_t count){
+    size_t edgesOut(py_opindex idx){
         auto edges = m_graph->getEdgesFrom(idx);
-        return (edges.size() == count);
+        return edges.size();
     }
 
-    bool assertEdgeOutIs(py_opindex idx, size_t position, EscapeTransition transition){
+    EscapeTransition edgeOutIs(py_opindex idx, size_t position){
         auto edges = m_graph->getEdgesFrom(idx);
-        return edges[position].escaped == transition;
+        return edges[position].escaped;
     }
 };
 
@@ -104,13 +107,13 @@ TEST_CASE("Test instruction graphs"){
                                       "  return x\n",
                                       "return_parameters");
         CHECK(t.size() == 2);
-        CHECK(t.assertInstruction(0, LOAD_FAST, 0, false));
-        CHECK(t.assertEdgesIn(0, 0));
-        CHECK(t.assertEdgesOut(0, 1));
+        t.assertInstruction(0, LOAD_FAST, 0, false);
+        CHECK(t.edgesIn(0) == 0);
+        CHECK(t.edgesOut(0) == 1);
 
-        CHECK(t.assertInstruction(2, RETURN_VALUE, 0, false));
-        CHECK(t.assertEdgesIn(2, 1));
-        CHECK(t.assertEdgesOut(2, 0));
+        t.assertInstruction(2, RETURN_VALUE, 0, false);
+        CHECK(t.edgesIn(2) == 1);
+        CHECK(t.edgesOut(2) == 0);
     }
 
     SECTION("assert unboxable"){
@@ -118,14 +121,14 @@ TEST_CASE("Test instruction graphs"){
                                       "  assert '1' == '2'\n",
                                       "assert_unboxable");
         CHECK(t.size() == 8);
-        CHECK(t.assertInstruction(0, LOAD_CONST, 1, false));
-        CHECK(t.assertEdgesIn(0, 0));
-        CHECK(t.assertEdgesOut(0, 1));
+        t.assertInstruction(0, LOAD_CONST, 1, false);
+        CHECK(t.edgesIn(0) == 0);
+        CHECK(t.edgesOut(0) == 1);
 
-        CHECK(t.assertInstruction(6, POP_JUMP_IF_TRUE, 12, false));
-        CHECK(t.assertEdgesIn(6, 1));
-        CHECK(t.assertEdgeInIs(6, 0, NoEscape));
-        CHECK(t.assertEdgesOut(6, 0));
+        t.assertInstruction(6, POP_JUMP_IF_TRUE, 12, false);
+        CHECK(t.edgesIn(6) == 1);
+        CHECK(t.edgeInIs(6, 0) == NoEscape);
+        CHECK(t.edgesOut(6) == 0);
     }
 
     SECTION("assert boxable consts"){
@@ -133,22 +136,22 @@ TEST_CASE("Test instruction graphs"){
                                       "  assert 1000 == 2000\n",
                                       "assert_boxable_consts");
         CHECK(t.size() == 8);
-        CHECK(t.assertInstruction(0, LOAD_CONST, 1, true)); // 1000 should be unboxed
-        CHECK(t.assertEdgesIn(0, 0));
-        CHECK(t.assertEdgesOut(0, 1));
-        CHECK(t.assertInstruction(2, LOAD_CONST, 2, true)); // 2000 should be unboxed
-        CHECK(t.assertEdgesIn(2, 0));
-        CHECK(t.assertEdgesOut(2, 1));
-        CHECK(t.assertInstruction(4, COMPARE_OP, 2, true)); // == should be unboxed
-        CHECK(t.assertEdgesIn(4, 2));
-        CHECK(t.assertEdgeInIs(4, 0, Unboxed));
-        CHECK(t.assertEdgeInIs(4, 1, Unboxed));
-        CHECK(t.assertEdgeOutIs(4, 0, Unboxed));
-        CHECK(t.assertEdgesOut(4, 1));
-        CHECK(t.assertInstruction(6, POP_JUMP_IF_TRUE, 12, true)); // should be unboxed
-        CHECK(t.assertEdgesIn(6, 1));
-        CHECK(t.assertEdgeInIs(6, 0, Unboxed));
-        CHECK(t.assertEdgesOut(6, 0));
+        t.assertInstruction(0, LOAD_CONST, 1, true); // 1000 should be unboxed
+        CHECK(t.edgesIn(0) == 0);
+        CHECK(t.edgesOut(0) == 1);
+        t.assertInstruction(2, LOAD_CONST, 2, true); // 2000 should be unboxed
+        CHECK(t.edgesIn(2) == 0);
+        CHECK(t.edgesOut(2) == 1);
+        t.assertInstruction(4, COMPARE_OP, 2, true); // == should be unboxed
+        CHECK(t.edgesIn(4) == 2);
+        CHECK(t.edgeInIs(4, 0) == Unboxed);
+        CHECK(t.edgeInIs(4, 1) == Unboxed);
+        CHECK(t.edgeOutIs(4, 0) == Unboxed);
+        CHECK(t.edgesOut(4) == 1);
+        t.assertInstruction(6, POP_JUMP_IF_TRUE, 12, true); // should be unboxed
+        CHECK(t.edgesIn(6) == 1);
+        CHECK(t.edgeInIs(6, 0) == Unboxed);
+        CHECK(t.edgesOut(6) == 0);
     }
 
     SECTION("test simple local graph isn't optimized") {
@@ -158,7 +161,7 @@ TEST_CASE("Test instruction graphs"){
                                       "  return x == y\n",
                                       "assert_deopt_binary");
         CHECK(t.size() == 12);
-        CHECK(t.assertInstruction(20, COMPARE_OP, 2, false)); // == should be boxed
+        t.assertInstruction(20, COMPARE_OP, 2, false); // == should be boxed
     }
 
     SECTION("test COMPARE_OP doesn't get optimized with a POP_JUMP") {
@@ -169,7 +172,18 @@ TEST_CASE("Test instruction graphs"){
                                       "     return False\n",
                                       "assert_deopt_binary_pop");
         CHECK(t.size() == 16);
-        CHECK(t.assertInstruction(20, COMPARE_OP, 2, false)); // == should be boxed
-        CHECK(t.assertInstruction(22, POP_JUMP_IF_FALSE, 28, false)); // JUMP should be boxed
+        t.assertInstruction(20, COMPARE_OP, 2, false); // == should be boxed
+        t.assertInstruction(22, POP_JUMP_IF_FALSE, 28, false); // JUMP should be boxed
+    }
+
+    SECTION("test JUMP_IF_FALSE_OR_POP doesn't get optimized and a confused graph") {
+        auto t = InstructionGraphTest("def f(x):\n"
+                                      "  return (len(name) > 2 and\n"
+                                      "     name[0] == name[-1])\n",
+                                      "assert_deopt_binary_pop");
+        CHECK(t.size() == 14);
+        t.assertInstruction(24, COMPARE_OP, 2, false); // == should be boxed
+        CHECK(t.edgesOut(8) == 1);
+        t.assertInstruction(10, JUMP_IF_FALSE_OR_POP, 26, false); // JUMP should be boxed
     }
 }

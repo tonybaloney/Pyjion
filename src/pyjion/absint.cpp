@@ -442,6 +442,9 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 }
                 case JUMP_IF_TRUE_OR_POP: {
                     auto curState = lastState;
+                    auto top = POP_VALUE();
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    lastState.push(top);
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
                     }
@@ -454,6 +457,9 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 case JUMP_IF_FALSE_OR_POP: {
                     auto curState = lastState;
+                    auto top = POP_VALUE();
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    lastState.push(top);
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
                     }
