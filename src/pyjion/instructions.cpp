@@ -218,7 +218,7 @@ void InstructionGraph::fixLocals(py_oparg startIdx, py_oparg endIdx){
         AbstractValueKind localAvk = AVK_Undefined;
         bool hasStores = false;
         for (auto & instruction : this->instructions){
-            if (instruction.second.opcode == LOAD_FAST) {
+            if (instruction.second.opcode == LOAD_FAST && instruction.second.oparg == localNumber) {
                 // if load doesn't have output edge, dont trust this graph
                 auto loadEdges = getEdgesFrom(instruction.first);
                 if (loadEdges.size() != 1 || !supportsEscaping(loadEdges[0].kind))
@@ -227,13 +227,13 @@ void InstructionGraph::fixLocals(py_oparg startIdx, py_oparg endIdx){
                     if (localAvk != AVK_Undefined  && localAvk != loadEdges[0].kind) {
                         abstractTypesMatch = false;
 #ifdef DEBUG
-                        printf("Local %d has mixed types, ignoring from escapes", localNumber);
+                        printf("At %d, local %d has mixed types, ignoring from escapes. Was %u, then %u\n", instruction.first, localNumber, localAvk, loadEdges[0].kind);
 #endif
                     }
                     localAvk = loadEdges[0].kind;
                 }
             }
-            if (instruction.second.opcode == STORE_FAST) {
+            if (instruction.second.opcode == STORE_FAST && instruction.second.oparg == localNumber) {
                 hasStores = true;
                 // if load doesn't have output edge, dont trust this graph
                 auto storeEdges = getEdges(instruction.first);
@@ -243,7 +243,7 @@ void InstructionGraph::fixLocals(py_oparg startIdx, py_oparg endIdx){
                     if (localAvk != AVK_Undefined  && localAvk != storeEdges[0].kind) {
                         abstractTypesMatch = false;
 #ifdef DEBUG
-                        printf("Local %d has mixed types, ignoring from escapes", localNumber);
+                        printf("At %d, local %d has mixed types, ignoring from escapes. Was %u, then %u\n", instruction.first, localNumber, localAvk, storeEdges[0].kind);
 #endif
                     }
                     localAvk = storeEdges[0].kind;
@@ -253,10 +253,10 @@ void InstructionGraph::fixLocals(py_oparg startIdx, py_oparg endIdx){
         if (loadsCanBeEscaped && storesCanBeEscaped && hasStores && abstractTypesMatch){
             unboxedFastLocals.insert({localNumber, localAvk});
             for (auto & instruction : this->instructions){
-                if (instruction.second.opcode == LOAD_FAST) {
+                if (instruction.second.opcode == LOAD_FAST && instruction.second.oparg == localNumber) {
                     instruction.second.escape = true;
                 }
-                if (instruction.second.opcode == STORE_FAST) {
+                if (instruction.second.opcode == STORE_FAST && instruction.second.oparg == localNumber) {
                     instruction.second.escape = true;
                 }
             }
