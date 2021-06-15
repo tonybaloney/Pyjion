@@ -173,8 +173,8 @@ public:
 
     std::string returns() {
         auto res = PyObject_ptr(run());
-        REQUIRE(res.get() != nullptr);
-        if (PyErr_Occurred()){
+        CHECK(res.get() != nullptr);
+        if (res.get() == nullptr || PyErr_Occurred()){
             PyErr_PrintEx(-1);
             FAIL("Error on Python execution");
             return nullptr;
@@ -193,7 +193,10 @@ public:
 
     PyObject* raises() {
         auto res = run();
-        REQUIRE(res == nullptr);
+        if(res != nullptr){
+            FAIL(PyUnicode_AsUTF8(PyObject_Repr(res)));
+            return nullptr;
+        }
         auto excType = PyErr_Occurred();
         PyErr_Clear();
         return excType;

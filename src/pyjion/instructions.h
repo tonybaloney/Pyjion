@@ -54,7 +54,8 @@ struct Instruction {
     py_opindex index;
     py_opcode opcode;
     py_oparg oparg;
-    bool escape;
+    bool escape = false;
+    bool deoptimized = false;
 };
 
 struct Edge {
@@ -78,7 +79,7 @@ private:
     void fixEdges();
     void fixInstructions();
     void deoptimizeInstructions();
-    void fixLocals();
+    void fixLocals(py_oparg startIdx, py_oparg endIdx);
 public:
     InstructionGraph(PyCodeObject* code, unordered_map<py_opindex, const InterpreterStack*> stacks) ;
     Instruction & operator [](py_opindex i) {return instructions[i];}

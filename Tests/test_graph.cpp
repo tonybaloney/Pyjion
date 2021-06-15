@@ -161,7 +161,7 @@ TEST_CASE("Test instruction graphs"){
                                       "  return x == y\n",
                                       "assert_deopt_binary");
         CHECK(t.size() == 12);
-        t.assertInstruction(20, COMPARE_OP, 2, false); // == should be boxed
+        t.assertInstruction(20, COMPARE_OP, 2, true); // == should be unboxed, len is know
     }
 
     SECTION("test COMPARE_OP doesn't get optimized with a POP_JUMP") {
@@ -172,8 +172,8 @@ TEST_CASE("Test instruction graphs"){
                                       "     return False\n",
                                       "assert_deopt_binary_pop");
         CHECK(t.size() == 16);
-        t.assertInstruction(20, COMPARE_OP, 2, false); // == should be boxed
-        t.assertInstruction(22, POP_JUMP_IF_FALSE, 28, false); // JUMP should be boxed
+        t.assertInstruction(20, COMPARE_OP, 2, true); // == should be unboxed
+        t.assertInstruction(22, POP_JUMP_IF_FALSE, 28, true); // JUMP should be unboxed
     }
 
     SECTION("test JUMP_IF_FALSE_OR_POP doesn't get optimized and a confused graph") {
@@ -185,5 +185,34 @@ TEST_CASE("Test instruction graphs"){
         t.assertInstruction(24, COMPARE_OP, 2, false); // == should be boxed
         CHECK(t.edgesOut(8) == 1);
         t.assertInstruction(10, JUMP_IF_FALSE_OR_POP, 26, false); // JUMP should be boxed
+    }
+
+    SECTION("assert boxable consts to locals"){
+        auto t = InstructionGraphTest("def f(x):\n"
+                                      "  a = 1000\n"
+                                      "  b = 2000\n"
+                                      "  return a == b",
+                                      "assert_boxable_consts_with_locals");
+        CHECK(t.size() == 8);
+        t.assertInstruction(0, LOAD_CONST, 1, true); // 1000 should be unboxed
+        CHECK(t.edgesIn(0) == 0);
+        CHECK(t.edgesOut(0) == 1);
+        t.assertInstruction(2, STORE_FAST, 1, true); // 1000 should be unboxed
+        CHECK(t.edgesIn(2) == 1);
+        CHECK(t.edgesOut(2) == 0);
+        t.assertInstruction(4, LOAD_CONST, 2, true); // 2000 should be unboxed
+        CHECK(t.edgesIn(4) == 0);
+        CHECK(t.edgesOut(4) == 1);
+        t.assertInstruction(6, STORE_FAST, 2, true); // 1000 should be unboxed
+        CHECK(t.edgesIn(6) == 1);
+        CHECK(t.edgesOut(6) == 0);
+        t.assertInstruction(12, COMPARE_OP, 2, true); // == should be unboxed
+        CHECK(t.edgesIn(12) == 2);
+        CHECK(t.edgeInIs(12, 0) == Unboxed);
+        CHECK(t.edgeInIs(12, 1) == Unboxed);
+        CHECK(t.edgeOutIs(12, 0) == Box);
+        CHECK(t.edgesOut(4) == 1);
+        t.assertInstruction(8, LOAD_FAST, 1, true);
+        t.assertInstruction(10, LOAD_FAST, 2, true);
     }
 }

@@ -1126,7 +1126,7 @@ TEST_CASE("Test math operations") {
         );
         CHECK(t.raises() == PyExc_ZeroDivisionError);
     }
-    SECTION("test modulus floats by zero" , "[!mayfail]") {
+    SECTION("test modulus floats by zero") {
         auto t = EmissionTest(
                 "def f():\n    return 5.0 % 0.0"
         );

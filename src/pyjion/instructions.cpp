@@ -76,8 +76,8 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
         };
     }
     fixInstructions();
+    fixLocals(code->co_argcount, code->co_nlocals);
     deoptimizeInstructions();
-    fixLocals();
     fixEdges();
 }
 
@@ -135,6 +135,8 @@ void InstructionGraph::deoptimizeInstructions() {
     for (auto & instruction: this->instructions) {
         if (!instruction.second.escape)
             continue;
+        if (instruction.second.opcode == LOAD_FAST || instruction.second.opcode == STORE_FAST )
+            continue; // handled in fixLocals();
 
         auto edgesIn = getEdges(instruction.first);
         auto edgesOut = getEdgesFrom(instruction.first);
@@ -144,6 +146,7 @@ void InstructionGraph::deoptimizeInstructions() {
             printf("Warning, instruction has invalid stack effect %s %d\n", opcodeName(instruction.second.opcode), instruction.second.index);
 #endif
             instruction.second.escape = false;
+            instruction.second.deoptimized = true;
             continue;
         }
 
@@ -152,6 +155,7 @@ void InstructionGraph::deoptimizeInstructions() {
             // Get next instruction
             if (!this->instructions[edgesOut[0].to].escape){
                 instruction.second.escape = false;
+                instruction.second.deoptimized = true;
                 continue;
             }
         }
@@ -161,6 +165,7 @@ void InstructionGraph::deoptimizeInstructions() {
             // Get previous instruction
             if (!this->instructions[edgesIn[0].from].escape){
                 instruction.second.escape = false;
+                instruction.second.deoptimized = true;
                 continue;
             }
         }
@@ -181,6 +186,7 @@ void InstructionGraph::deoptimizeInstructions() {
 
             if (!previousOperationsBoxed && !nextOperationsBoxed){
                 instruction.second.escape = false;
+                instruction.second.deoptimized = true;
                 continue;
             }
         }
@@ -196,17 +202,65 @@ void InstructionGraph::deoptimizeInstructions() {
             if (!previousOperationsBoxed && getEdgesFrom(edgesOut[0].to).empty()){
                 instruction.second.escape = false;
                 this->instructions[edgesOut[0].to].escape = false;
+                this->instructions[edgesOut[0].to].deoptimized = true;
                 continue;
             }
         }
     }
 }
 
-void InstructionGraph::fixLocals(){
-    for (auto & instruction: this->instructions) {
-        if (instruction.second.opcode != LOAD_FAST && instruction.second.opcode != STORE_FAST )
-            continue;
-        // TODO : Decide which locals can be escaped.
+void InstructionGraph::fixLocals(py_oparg startIdx, py_oparg endIdx){
+    for (py_oparg localNumber = startIdx; localNumber <= endIdx; localNumber++){
+        // get all LOAD_FAST instructions
+        bool loadsCanBeEscaped = true;
+        bool storesCanBeEscaped = true;
+        bool abstractTypesMatch = true;
+        AbstractValueKind localAvk = AVK_Undefined;
+        bool hasStores = false;
+        for (auto & instruction : this->instructions){
+            if (instruction.second.opcode == LOAD_FAST) {
+                // if load doesn't have output edge, dont trust this graph
+                auto loadEdges = getEdgesFrom(instruction.first);
+                if (loadEdges.size() != 1 || !supportsEscaping(loadEdges[0].kind))
+                    loadsCanBeEscaped = false;
+                else {
+                    if (localAvk != AVK_Undefined  && localAvk != loadEdges[0].kind) {
+                        abstractTypesMatch = false;
+#ifdef DEBUG
+                        printf("Local %d has mixed types, ignoring from escapes", localNumber);
+#endif
+                    }
+                    localAvk = loadEdges[0].kind;
+                }
+            }
+            if (instruction.second.opcode == STORE_FAST) {
+                hasStores = true;
+                // if load doesn't have output edge, dont trust this graph
+                auto storeEdges = getEdges(instruction.first);
+                if (storeEdges.size() != 1 || !supportsEscaping(storeEdges[0].kind))
+                    storesCanBeEscaped = false;
+                else {
+                    if (localAvk != AVK_Undefined  && localAvk != storeEdges[0].kind) {
+                        abstractTypesMatch = false;
+#ifdef DEBUG
+                        printf("Local %d has mixed types, ignoring from escapes", localNumber);
+#endif
+                    }
+                    localAvk = storeEdges[0].kind;
+                }
+            }
+        }
+        if (loadsCanBeEscaped && storesCanBeEscaped && hasStores && abstractTypesMatch){
+            unboxedFastLocals.insert({localNumber, localAvk});
+            for (auto & instruction : this->instructions){
+                if (instruction.second.opcode == LOAD_FAST) {
+                    instruction.second.escape = true;
+                }
+                if (instruction.second.opcode == STORE_FAST) {
+                    instruction.second.escape = true;
+                }
+            }
+        }
     }
 }
 
@@ -216,9 +270,13 @@ void InstructionGraph::printGraph(const char* name) {
     printf("\tFRAME [label=FRAME];\n");
     for (const auto & node: instructions){
         if (node.second.escape)
-            printf("\tOP%u [label=\"%s (%d)\" color=blue];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
-        else
-            printf("\tOP%u [label=\"%s (%d)\"];\n", node.first, opcodeName(node.second.opcode), node.second.oparg);
+            printf("\tOP%u [label=\"%d %s (%d)\" color=blue];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg);
+        else {
+            if (node.second.deoptimized)
+                printf("\tOP%u [label=\"%d %s (%d)\" color=red];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg);
+            else
+                printf("\tOP%u [label=\"%d %s (%d)\"];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg);
+        }
         switch(node.second.opcode){
             case JUMP_FORWARD:
                 printf("\tOP%u -> OP%u [label=\"Jump\" color=yellow];\n", node.second.index, node.second.index + node.second.oparg);
