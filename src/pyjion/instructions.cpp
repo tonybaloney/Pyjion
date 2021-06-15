@@ -201,8 +201,10 @@ void InstructionGraph::deoptimizeInstructions() {
 
             if (!previousOperationsBoxed && getEdgesFrom(edgesOut[0].to).empty()){
                 instruction.second.escape = false;
-                this->instructions[edgesOut[0].to].escape = false;
-                this->instructions[edgesOut[0].to].deoptimized = true;
+                if (this->instructions[edgesOut[0].to].opcode != STORE_FAST) {
+                    this->instructions[edgesOut[0].to].escape = false;
+                    this->instructions[edgesOut[0].to].deoptimized = true;
+                }
                 continue;
             }
         }
