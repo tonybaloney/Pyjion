@@ -73,6 +73,7 @@ typedef unordered_map<py_opindex, Edge> EdgeMap;
 
 class InstructionGraph {
 private:
+    bool invalid = false;
     unordered_map<py_opindex, Instruction> instructions;
     unordered_map<py_oparg, AbstractValueKind> unboxedFastLocals ;
     vector<Edge> edges;
@@ -88,6 +89,7 @@ public:
     vector<Edge> getEdges(py_opindex i);
     vector<Edge> getEdgesFrom(py_opindex i);
     unordered_map<py_oparg, AbstractValueKind> getUnboxedFastLocals();
+    bool isValid();
 };
 
 #endif //PYJION_INSTRUCTIONS_H

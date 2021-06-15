@@ -145,6 +145,7 @@ void InstructionGraph::deoptimizeInstructions() {
 #ifdef DEBUG
             printf("Warning, instruction has invalid stack effect %s %d\n", opcodeName(instruction.second.opcode), instruction.second.index);
 #endif
+            invalid = true;
             instruction.second.escape = false;
             instruction.second.deoptimized = true;
             continue;
@@ -357,4 +358,8 @@ vector<Edge> InstructionGraph::getEdgesFrom(py_opindex idx){
 
 unordered_map<py_oparg, AbstractValueKind> InstructionGraph::getUnboxedFastLocals(){
     return unboxedFastLocals;
+}
+
+bool InstructionGraph::isValid() {
+    return !invalid;
 }

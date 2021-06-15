@@ -523,3 +523,35 @@ TEST_CASE("test equivalent with isinstance") {
         CHECK(t.returns() == "True");
     }
 }
+
+TEST_CASE("test ternary expressions"){
+    SECTION("test expression assignment"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "   bits = 'roar'\n"
+                "   is_reversed = bits[-1] == 'r'\n"
+                "   return is_reversed\n"
+        );
+        CHECK(t.returns() == "True");
+    }
+    SECTION("test ternary"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "   count = 3\n"
+                "   is_three = 4 if count == 3 else 1\n"
+                "   return is_three\n"
+        );
+        CHECK(t.returns() == "4");
+    }
+    SECTION("test sliced ternary"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "   bits = ('whats', 'this', 'in', 'reversed')\n"
+                "   is_reversed = bits[-1] == 'reversed'\n"
+                "   in_index = -3 if is_reversed else -2\n"
+                "   if bits[in_index] != 'in':\n"
+                "       return True"
+                );
+        CHECK(t.returns() == "True");
+    }
+}

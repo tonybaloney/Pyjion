@@ -47,9 +47,10 @@
                                 profile->getValue(curByte, pos)));          \
         mStartStates[curByte] = lastState; \
     }
+
+#define CAN_UNBOX() OPT_ENABLED(unboxing) && graph->isValid()
 #define POP_VALUE() \
     lastState.pop(curByte, stackPosition); stackPosition++;
-
 #define PUSH_INTERMEDIATE(ty) \
     lastState.push(AbstractValueWithSources((ty), newSource(new IntermediateSource(curByte))));
 #define PUSH_INTERMEDIATE_TO(ty, to) \
@@ -1603,9 +1604,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
     m_comp->emit_init_instr_counter();
 
-    for(auto &fastLocal : graph->getUnboxedFastLocals()){
-        m_fastNativeLocals[fastLocal.first] = m_comp->emit_define_local(fastLocal.second);
-        m_fastNativeLocalKinds[fastLocal.first] = avkAsStackEntryKind(fastLocal.second);
+    if (graph->isValid()) {
+        for (auto &fastLocal : graph->getUnboxedFastLocals()) {
+            m_fastNativeLocals[fastLocal.first] = m_comp->emit_define_local(fastLocal.second);
+            m_fastNativeLocalKinds[fastLocal.first] = avkAsStackEntryKind(fastLocal.second);
+        }
     }
 
     if (mTracingEnabled){
@@ -1672,11 +1675,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         bool skipEffect = false;
 
         auto edges = graph->getEdges(curByte);
-        if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status) && !(OPT_ENABLED(unboxing) && op.escape)){
+        if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status) && !(CAN_UNBOX() && op.escape)){
             emitPgcProbes(curByte, pgcProbeSize(curByte));
         }
 
-        if (OPT_ENABLED(unboxing)) {
+        if (CAN_UNBOX()) {
             escapeEdges(edges, curByte);
         }
 
@@ -1712,7 +1715,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case COMPARE_OP: {
                 if (stackInfo.size() >= 2){
-                    if (OPT_ENABLED(unboxing) && op.escape) {
+                    if (CAN_UNBOX() && op.escape) {
                         m_comp->emit_compare_unboxed(oparg, stackInfo.second(), stackInfo.top());
                         decStack(2);
                         incStack(1, STACK_KIND_VALUE_INT);
@@ -1758,7 +1761,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case POP_JUMP_IF_TRUE:
             case POP_JUMP_IF_FALSE:
-                if (OPT_ENABLED(unboxing) && op.escape) {
+                if (CAN_UNBOX() && op.escape) {
                     unboxedPopJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
                 } else {
                     popJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
@@ -1812,7 +1815,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 incStack();
                 break;
             case LOAD_CONST:
-                if (OPT_ENABLED(unboxing) && op.escape){
+                if (CAN_UNBOX() && op.escape){
                     loadUnboxedConst(oparg, opcodeIndex);
                 } else {
                     loadConst(oparg, opcodeIndex);
@@ -1834,7 +1837,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_assignmentState[oparg] = false;
                 break;
             case STORE_FAST:
-                if (OPT_ENABLED(unboxing) && op.escape){
+                if (CAN_UNBOX() && op.escape){
                     storeFastUnboxed(oparg);
                 } else {
                     m_comp->emit_store_fast(oparg);
@@ -1843,7 +1846,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_assignmentState[oparg] = true;
                 break;
             case LOAD_FAST:
-                if (OPT_ENABLED(unboxing) && op.escape){
+                if (CAN_UNBOX() && op.escape){
                     loadFastUnboxed(oparg, opcodeIndex);
                 } else {
                     loadFast(oparg, opcodeIndex);
@@ -2019,7 +2022,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case INPLACE_XOR:
             case INPLACE_OR:
                 if (stackInfo.size() >= 2) {
-                    if (OPT_ENABLED(unboxing) && op.escape) {
+                    if (CAN_UNBOX() && op.escape) {
                         auto retKind = m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
                         if (canReturnInfinity(byte)) {
