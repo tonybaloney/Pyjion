@@ -320,7 +320,9 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     POP_VALUE();
                     break;
                 case DUP_TOP: {
-                    auto top = lastState[lastState.stackSize() - 1];
+                    auto top = POP_VALUE();
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    lastState.push(top);
                     top.Sources = newSource(new IntermediateSource(curByte));
                     lastState.push(top);
                     break;
