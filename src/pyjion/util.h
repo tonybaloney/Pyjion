@@ -47,7 +47,9 @@ public:
     }
 
     ~py_ptr() {
+#ifndef WINDOWS
         Py_XDECREF(m_ptr);
+#endif
     }
 
     void reset(T* ptr) {
