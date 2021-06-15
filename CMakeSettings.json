@@ -1,28 +1,43 @@
 ﻿{
-    "configurations": [
+  "configurations": [
+    {
+      "name": "Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "variables": [
         {
-            "name": "Debug",
-            "generator": "Ninja",
-            "configurationType": "Debug",
-            "inheritEnvironments": [ "msvc_x64_x64" ],
-            "buildRoot": "${projectDir}\\out\\build\\${name}",
-            "installRoot": "${projectDir}\\out\\install\\${name}",
-            "cmakeCommandArgs": "",
-            "buildCommandArgs": "",
-            "ctestCommandArgs": "",
+          "name": "DUMP_SEQUENCE_POINTS",
+          "value": "True",
+          "type": "BOOL"
         },
         {
-            "name": "Release",
-            "generator": "Ninja",
-            "configurationType": "Release",
-            "buildRoot": "${projectDir}\\out\\build\\${name}",
-            "installRoot": "${projectDir}\\out\\install\\${name}",
-            "cmakeCommandArgs": "",
-            "buildCommandArgs": "",
-            "ctestCommandArgs": "",
-            "inheritEnvironments": [ "msvc_x64_x64" ],
-            "variables": [
-            ]
+          "name": "DUMP_JIT_TRACES",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "EE_DEBUG_CODE",
+          "value": "True",
+          "type": "BOOL"
         }
-    ]
+      ]
+    },
+    {
+      "name": "Release",
+      "generator": "Ninja",
+      "configurationType": "Release",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ]
+    }
+  ]
 }
