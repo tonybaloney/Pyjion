@@ -105,7 +105,7 @@ void InstructionGraph::fixInstructions(){
     for (auto & instruction: this->instructions) {
         if (!supportsUnboxing(instruction.second.opcode))
             continue;
-        if (instruction.second.opcode == LOAD_FAST || instruction.second.opcode == STORE_FAST )
+        if (instruction.second.opcode == LOAD_FAST || instruction.second.opcode == STORE_FAST || instruction.second.opcode == DELETE_FAST )
             continue; // handled in fixLocals();
 
         // Check that all inbound edges can be escaped.
@@ -135,7 +135,7 @@ void InstructionGraph::deoptimizeInstructions() {
     for (auto & instruction: this->instructions) {
         if (!instruction.second.escape)
             continue;
-        if (instruction.second.opcode == LOAD_FAST || instruction.second.opcode == STORE_FAST )
+        if (instruction.second.opcode == LOAD_FAST || instruction.second.opcode == STORE_FAST || instruction.second.opcode == DELETE_FAST )
             continue; // handled in fixLocals();
 
         auto edgesIn = getEdges(instruction.first);
@@ -260,6 +260,9 @@ void InstructionGraph::fixLocals(py_oparg startIdx, py_oparg endIdx){
                     instruction.second.escape = true;
                 }
                 if (instruction.second.opcode == STORE_FAST && instruction.second.oparg == localNumber) {
+                    instruction.second.escape = true;
+                }
+                if (instruction.second.opcode == DELETE_FAST && instruction.second.oparg == localNumber) {
                     instruction.second.escape = true;
                 }
             }

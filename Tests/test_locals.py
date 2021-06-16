@@ -39,5 +39,6 @@ class LocalsTestCase(unittest.TestCase):
             return False
         self.assertOptimized(test_f)
 
+
 if __name__ == "__main__":
     unittest.main()

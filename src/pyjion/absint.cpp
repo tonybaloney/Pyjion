@@ -1832,9 +1832,13 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 intErrorCheck("delete name failed", curByte);
                 break;
             case DELETE_FAST:
-                loadFastWorker(oparg, true, curByte);
-                m_comp->emit_pop_top();
-                m_comp->emit_delete_fast(oparg);
+                if (CAN_UNBOX() && op.escape){
+                    // TODO : Decide if we need to store some junk value in the local?
+                } else {
+                    loadFastWorker(oparg, true, curByte);
+                    m_comp->emit_pop_top();
+                    m_comp->emit_delete_fast(oparg);
+                }
                 m_assignmentState[oparg] = false;
                 break;
             case STORE_FAST:

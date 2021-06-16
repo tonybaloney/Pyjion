@@ -47,6 +47,7 @@ bool supportsUnboxing(py_opcode opcode){
         case LOAD_CONST:
         case STORE_FAST:
         case LOAD_FAST:
+        case DELETE_FAST:
             return true;
         default:
             return false;
