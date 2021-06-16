@@ -555,3 +555,21 @@ TEST_CASE("test ternary expressions"){
         CHECK(t.returns() == "True");
     }
 }
+
+TEST_CASE("Test classmethods"){
+    SECTION("Test classmethods with a shared name"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "        class F:\n"
+                "            @classmethod\n"
+                "            def arg15(cls, e, f, g, h, i, j, k, l, m, n, o, p ,q ,r,s):\n"
+                "                a = 1\n"
+                "                b = 2\n"
+                "                c = 3\n"
+                "                d = 4\n"
+                "                return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p + q + r + s\n"
+                "        a = 10000\n"
+                "        return F.arg15(a, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19)");
+        CHECK(t.returns() == "10185");
+    }
+}
