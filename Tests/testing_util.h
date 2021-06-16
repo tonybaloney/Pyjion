@@ -54,15 +54,6 @@ public:
     virtual void verify(AbstractInterpreter& interpreter) = 0;
 };
 
-class StackVerifier : public AIVerifier {
-    size_t m_byteCodeIndex, m_stackIndex;
-    AbstractValueKind m_kind;
-public:
-    StackVerifier(size_t byteCodeIndex, size_t stackIndex, AbstractValueKind kind);
-
-    void verify(AbstractInterpreter& interpreter) override;
-};
-
 /* Verify the inferred type stored in the locals array before a specified bytecode executes. */
 class VariableVerifier : public AIVerifier {
 private:
@@ -86,13 +77,6 @@ public:
     explicit ReturnVerifier(AbstractValueKind kind);
 
     void verify(AbstractInterpreter& interpreter) override;
-};
-
-class BoxVerifier : public AIVerifier {
-public:
-    BoxVerifier(size_t byteCodeIndex, bool shouldBox);
-
-    void verify(AbstractInterpreter& interpreter) override {};
 };
 
 class AITestCase {
@@ -131,12 +115,10 @@ public:
 
 void VerifyOldTest(AITestCase testCase);
 
-PyObject* Incremented(PyObject*o);
-
 class EmissionTest {
 private:
     py_ptr<PyCodeObject> m_code;
-    py_ptr<PyjionJittedCode> m_jittedcode;
+    PyjionJittedCode* m_jittedcode;
 
     PyObject* run() {
         auto sysModule = PyObject_ptr(PyImport_ImportModule("sys"));
@@ -150,7 +132,7 @@ private:
         auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
-        auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode.get(), frame, tstate, profile);
+        auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode, frame, tstate, profile);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
 
         size_t collected = PyGC_Collect();
@@ -168,7 +150,7 @@ public:
             FAIL("failed to compile in JIT code");
         }
         auto jitted = PyJit_EnsureExtra((PyObject*)*m_code);
-        m_jittedcode.reset(jitted);
+        m_jittedcode = jitted;
     }
 
     std::string returns() {
@@ -242,7 +224,7 @@ public:
 class PgcProfilingTest {
 private:
     py_ptr <PyCodeObject> m_code;
-    py_ptr <PyjionJittedCode> m_jittedcode;
+    PyjionJittedCode* m_jittedcode;
     PyjionCodeProfile* profile;
 
     PyObject *run() {
@@ -277,7 +259,7 @@ public:
             FAIL("failed to compile code");
         }
         auto jitted = PyJit_EnsureExtra((PyObject *) *m_code);
-        m_jittedcode.reset(jitted);
+        m_jittedcode = jitted;
     }
 
     ~PgcProfilingTest(){

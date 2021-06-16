@@ -572,7 +572,7 @@ class ClassMethodCallsTestCase(unittest.TestCase):
                 b = 2
                 c = 3
                 d = 4
-                return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o
+                return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p + q + r + s
 
         a = 10000
         pre_ref_cnt = sys.getrefcount(a)
