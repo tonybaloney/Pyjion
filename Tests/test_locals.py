@@ -19,7 +19,7 @@ class LocalsTestCase(unittest.TestCase):
             b = 2
             return a == b
 
-        self.assertTrue(test_f())
+        self.assertFalse(test_f())
 
     def test_simple_delete(self):
         def test_f():

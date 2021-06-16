@@ -593,5 +593,4 @@ TEST_CASE("Test builtins") {
         auto t = EmissionTest("def f(): args=('a', 'aaa', 'aaaaa'); return max(map(len, args))");
         CHECK(t.returns() == "5");
     }
-
 }
