@@ -360,6 +360,6 @@ unordered_map<py_oparg, AbstractValueKind> InstructionGraph::getUnboxedFastLocal
     return unboxedFastLocals;
 }
 
-bool InstructionGraph::isValid() {
+bool InstructionGraph::isValid() const {
     return !invalid;
 }

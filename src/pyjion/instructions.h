@@ -89,7 +89,7 @@ public:
     vector<Edge> getEdges(py_opindex i);
     vector<Edge> getEdgesFrom(py_opindex i);
     unordered_map<py_oparg, AbstractValueKind> getUnboxedFastLocals();
-    bool isValid();
+    bool isValid() const;
 };
 
 #endif //PYJION_INSTRUCTIONS_H

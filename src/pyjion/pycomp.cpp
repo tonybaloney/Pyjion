@@ -1056,7 +1056,7 @@ void PythonCompiler::emit_delete_fast(size_t index) {
 
 void PythonCompiler::emit_new_tuple(size_t size) {
     if (size == 0) {
-        m_il.ld_i(PyTuple_New(0));
+        emit_ptr(g_emptyTuple);
         m_il.dup();
         // incref 0-tuple so it never gets freed
         emit_incref();

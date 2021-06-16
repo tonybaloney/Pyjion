@@ -577,7 +577,7 @@ class ClassMethodCallsTestCase(unittest.TestCase):
         a = 10000
         pre_ref_cnt = sys.getrefcount(a)
         pre_target_cnt = sys.getrefcount(F.arg15)
-        self.assertEqual(F.arg15(a, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19), 10115)
+        self.assertEqual(F.arg15(a, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19), 10185)
         self.assertEqual(sys.getrefcount(a), pre_ref_cnt)
         self.assertEqual(sys.getrefcount(F.arg15), pre_target_cnt)
         info = pyjion.info(F.arg15.__code__)
