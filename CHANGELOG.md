@@ -3,6 +3,7 @@
 ## 1.0.0 (beta2)
 
 * Fast locals can store unboxed values
+* Method calls are optimized for known types by asserting the return type, e.g. `str.upper()` returns a string
 
 ## 1.0.0 (beta1)
 
