@@ -197,18 +197,11 @@ public:
     }
 
     void allocMem(
-        uint32_t               hotCodeSize,    /* IN */
-        uint32_t               coldCodeSize,   /* IN */
-        uint32_t               roDataSize,     /* IN */
-        uint32_t               xcptnsCount,    /* IN */
-        CorJitAllocMemFlag  flag,           /* IN */
-        void **             hotCodeBlock,   /* OUT */
-        void **             coldCodeBlock,  /* OUT */
-        void **             roDataBlock     /* OUT */
+        AllocMemArgs *pArgs
         ) override {
         // NB: Not honouring flag alignment requested in <flag>, but it is "optional"
 #ifdef WINDOWS
-        *hotCodeBlock = m_codeAddr = HeapAlloc(m_winHeap, 0 , hotCodeSize);
+        pArgs->hotCodeBlock = m_codeAddr = HeapAlloc(m_winHeap, 0 , pArgs->hotCodeSize);
 #else
 #if defined(__APPLE__) && defined(MAP_JIT)
         const int mode = MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT;
@@ -219,20 +212,20 @@ public:
 #else
 		#error "not supported"
 #endif
-        *hotCodeBlock = m_codeAddr = mmap(
+        pArgs->hotCodeBlock = m_codeAddr = mmap(
                 nullptr,
-                hotCodeSize,
+                pArgs->hotCodeSize,
                 PROT_READ | PROT_WRITE | PROT_EXEC,
                 mode,
                 -1,
                 0);
-        assert (hotCodeBlock != MAP_FAILED);
+        assert (pArgs->hotCodeBlock != MAP_FAILED);
 #endif
 
-        if (coldCodeSize>0) // PyMem_Malloc passes with 0 but it confuses the JIT
-            *coldCodeBlock = PyMem_Malloc(coldCodeSize);
-        if (roDataSize>0) // Same as above
-            *roDataBlock = PyMem_Malloc(roDataSize);
+        if (pArgs->coldCodeSize>0) // PyMem_Malloc passes with 0 but it confuses the JIT
+            pArgs->coldCodeBlock = PyMem_Malloc(pArgs->coldCodeSize);
+        if (pArgs->roDataSize>0) // Same as above
+            pArgs->roDataBlock = PyMem_Malloc(pArgs->roDataSize);
     }
 
     bool logMsg(unsigned level, const char* fmt, va_list args) override {
@@ -260,6 +253,7 @@ public:
 
     void recordRelocation(
         void *                 location,   /* IN  */
+        void *                 locationRW, /* IN  */
         void *                 target,     /* IN  */
         uint16_t                   fRelocType, /* IN  */
         uint16_t                   slotNum,  /* IN  */
