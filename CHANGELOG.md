@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.0.0 (beta2)
+
+* Fast locals can store unboxed values
+
 ## 1.0.0 (beta1)
 
 * Added unboxing for integers (OPT-16)
