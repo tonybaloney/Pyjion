@@ -99,7 +99,6 @@ else()
     endif(MSVC)
 endif(NOT WIN32)
 
-
 add_definitions(-DPROFILING_SUPPORTED -DUNICODE)
 
 if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
@@ -190,7 +189,6 @@ endif()
 if(NET_SRC_LIB)  # use the libraries compiled from source
     set(DOTNETPATH ${CMAKE_SOURCE_DIR}/CoreCLR/artifacts/bin/coreclr/${CLR_OS_BUILD})
     message(STATUS "Using .NET builds " ${DOTNETPATH})
-
 endif()
 
 set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/codemodel.cpp src/pyjion/binarycomp.cpp src/pyjion/instructions.cpp src/pyjion/unboxing.cpp)
