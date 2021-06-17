@@ -875,7 +875,8 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     auto method = AbstractValueWithSources(
                             &Method,
                             newSource(new MethodSource(utf8_names[oparg], curByte)));
-                    PUSH_INTERMEDIATE(&Any);
+                    object.Sources = newSource(new IntermediateSource(curByte));
+                    lastState.push(object);
                     lastState.push(method);
                     break;
                 }
@@ -932,13 +933,6 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                        return value.
                     */
                     return IncompatibleOpcode_WithExcept; // not implemented
-//                    auto top = POP_VALUE(); // exc
-//                    auto second = POP_VALUE(); // val
-//                    auto third = POP_VALUE(); // tb
-//                    auto seventh = lastState[lastState.stackSize() - 7]; // exit_func
-//                    // TODO : Vectorcall (exit_func, stack+1, 3, ..)
-//                    lastState.push(&Any); // res
-//                    break;
                 }
                 case LIST_EXTEND:
                 {
