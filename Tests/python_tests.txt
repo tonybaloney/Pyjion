@@ -27,7 +27,7 @@ test_aifc
 test_argparse
 test_array
 test_asdl_parser
-test_ast
+##test_ast
 # TODO: https://github.com/Microsoft/Pyjion/issues/86
 ##test_asyncgen
 test_asynchat
