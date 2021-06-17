@@ -54,7 +54,8 @@ struct Instruction {
     py_opindex index;
     py_opcode opcode;
     py_oparg oparg;
-    bool escape;
+    bool escape = false;
+    bool deoptimized = false;
 };
 
 struct Edge {
@@ -72,18 +73,24 @@ typedef unordered_map<py_opindex, Edge> EdgeMap;
 
 class InstructionGraph {
 private:
+    PyCodeObject * code;
+    bool invalid = false;
     unordered_map<py_opindex, Instruction> instructions;
+    unordered_map<py_oparg, AbstractValueKind> unboxedFastLocals ;
     vector<Edge> edges;
     void fixEdges();
     void fixInstructions();
-    void fixLocals();
+    void deoptimizeInstructions();
+    void fixLocals(py_oparg startIdx, py_oparg endIdx);
 public:
     InstructionGraph(PyCodeObject* code, unordered_map<py_opindex, const InterpreterStack*> stacks) ;
     Instruction & operator [](py_opindex i) {return instructions[i];}
     size_t size() {return instructions.size();}
     void printGraph(const char* name) ;
-    EdgeMap getEdges(py_opindex i);
-    EdgeMap getEdgesFrom(py_opindex i);
+    vector<Edge> getEdges(py_opindex i);
+    vector<Edge> getEdgesFrom(py_opindex i);
+    unordered_map<py_oparg, AbstractValueKind> getUnboxedFastLocals();
+    bool isValid() const;
 };
 
 #endif //PYJION_INSTRUCTIONS_H

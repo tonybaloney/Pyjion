@@ -10,7 +10,7 @@ option(CODE_COVERAGE "Enable coverage reporting" OFF)
 
 add_definitions(-DDEFAULT_RECURSION_LIMIT=1000)
 add_definitions(-DDEFAULT_CODEOBJECT_SIZE_LIMIT=10000)
-
+option(COMPILER_DEBUG "Emit debug messages in the compiler" OFF)
 option(BUILD_TESTS "Build the unit tests" OFF)
 option(GENERATE_PROFILE "Enable Profile Generation" OFF)
 option(DUMP_JIT_TRACES "Dump .net JIT traces on compilation" OFF)
@@ -48,12 +48,12 @@ set (CLR_DIR CoreCLR/src/coreclr)
 
 add_definitions(-DUSE_STL)
 
-IF(CMAKE_BUILD_TYPE MATCHES Debug)
+IF(CMAKE_BUILD_TYPE MATCHES Debug OR COMPILER_DEBUG)
     message(STATUS "Enabling verbose messages")
     add_definitions(-DDEBUG)
     set(BUILD_TESTS ON)
     set(REPORT_CLR_FAULTS ON)
-ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR COMPILER_DEBUG)
 
 IF(CMAKE_BUILD_TYPE MATCHES Release)
     add_definitions(-DNDEBUG)
@@ -247,6 +247,7 @@ if (BUILD_TESTS)
     if (NOT WIN32)
         target_link_libraries(unit_tests ${DOTNETPATH}/${CLR_JIT_LIB})
     endif()
+    include(CTest)
 endif(BUILD_TESTS)
 
 # Code Coverage Configuration

@@ -1056,7 +1056,7 @@ void PythonCompiler::emit_delete_fast(size_t index) {
 
 void PythonCompiler::emit_new_tuple(size_t size) {
     if (size == 0) {
-        m_il.ld_i(PyTuple_New(0));
+        emit_ptr(g_emptyTuple);
         m_il.dup();
         // incref 0-tuple so it never gets freed
         emit_incref();
@@ -2263,21 +2263,33 @@ void PythonCompiler::emit_box(AbstractValue* value) {
     }
 };
 void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources left, AbstractValueWithSources right){
+#ifdef DEBUG
     assert(supportsEscaping(left.Value->kind()) && supportsEscaping(right.Value->kind()));
+#endif
+    AbstractValueKind leftKind = left.Value->kind();
+    AbstractValueKind rightKind = right.Value->kind();
 
-    if (left.Value->kind() == AVK_Float && right.Value->kind() == AVK_Float){
+    // Treat bools as integers
+    if (leftKind == AVK_Bool)
+        leftKind = AVK_Integer;
+    if (rightKind == AVK_Bool)
+        rightKind = AVK_Integer;
+
+    if (leftKind == AVK_Float && rightKind == AVK_Float){
         return emit_compare_floats(compareType);
-    } else if (left.Value->kind() == AVK_Integer && right.Value->kind() == AVK_Integer){
+    } else if (leftKind == AVK_Integer && rightKind == AVK_Integer){
         return emit_compare_ints(compareType);
-    } else if (left.Value->kind() == AVK_Integer && right.Value->kind() == AVK_Float) {
+    } else if (leftKind == AVK_Integer && rightKind == AVK_Float) {
         Local right_l = emit_define_local(LK_Float);
         emit_store_local(right_l);
         m_il.conv_r8();
         emit_load_and_free_local(right_l);
         return emit_compare_floats(compareType);
-    } else if (left.Value->kind() == AVK_Float && right.Value->kind() == AVK_Integer) {
+    } else if (leftKind == AVK_Float && rightKind == AVK_Integer) {
         m_il.conv_r8();
         return emit_compare_floats(compareType);
+    } else {
+        assert(false);
     }
 }
 
@@ -2287,7 +2299,9 @@ void PythonCompiler::emit_guard_exception(const char* expected){
 }
 
 void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
+#ifdef DEBUG
     assert(supportsEscaping(value->kind()));
+#endif
     switch(value->kind()) {
         case AVK_Float: {
             Local lcl = emit_define_local(LK_Pointer);
@@ -2351,6 +2365,44 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             emit_free_local(lcl);
             break;
         }
+        case AVK_Bool: {
+            Local lcl = emit_define_local(LK_Pointer);
+            Label guard_pass = emit_define_label();
+            Label guard_fail = emit_define_label();
+            emit_store_local(lcl);
+            if (value->needsGuard()) {
+                emit_load_local(lcl);
+                LD_FIELDI(PyObject, ob_type);
+                emit_ptr(&PyBool_Type);
+                emit_branch(BranchNotEqual, guard_fail);
+            }
+
+            Label isFalse = emit_define_label();
+            Label decref_out = emit_define_label();
+            emit_load_local(lcl);
+            emit_ptr(Py_True);
+            emit_branch(BranchNotEqual, isFalse);
+            emit_int(1);
+            emit_branch(BranchAlways, decref_out);
+            emit_mark_label(isFalse);
+            emit_int(0);
+            emit_mark_label(decref_out);
+            emit_load_local(lcl);
+            decref();
+
+            if (value->needsGuard()) {
+                emit_branch(BranchAlways, guard_pass);
+                emit_mark_label(guard_fail);
+                emit_int(1);
+                emit_store_local(success);
+                emit_load_local(lcl);
+                emit_guard_exception("bool");
+                emit_int(1); // keep the stack effect equivalent, this value is never used.
+                emit_mark_label(guard_pass);
+            }
+            emit_free_local(lcl);
+            break;
+        }
     }
 };
 
@@ -2370,24 +2422,7 @@ void PythonCompiler::emit_nan_long() {
     m_il.ld_i8(MAXLONG);
 }
 
-void PythonCompiler::emit_unbox_const(ConstSource *source, AbstractValue *value) {
-    switch(value->kind()) {
-        case AVK_Float: {
-            decref();
-            m_il.ld_r8(PyFloat_AsDouble(source->getValue())) ;
-        }
-            break;
-        case AVK_Integer: {
-            decref();
-            m_il.ld_i8(PyLong_AsLongLong(source->getValue())) ;
-        }
-        break;
-        default:
-            assert(false);
-    }
-}
-
-void PythonCompiler::emit_escape_edges(EdgeMap edges, Local success){
+void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
     emit_int(0);
     emit_store_local(success); // Will get set to 1 on unbox failures.
 
@@ -2408,11 +2443,7 @@ void PythonCompiler::emit_escape_edges(EdgeMap edges, Local success){
         emit_load_and_free_local(stack[i-1]);
         switch(edges[i-1].escaped){
             case Unbox:
-                if (OPT_ENABLED(unboxConsts) && edges[i-1].source->hasConstValue()) {
-                    emit_unbox_const(reinterpret_cast<ConstSource *>(edges[i - 1].source), edges[i - 1].value);
-                } else {
-                    emit_unbox(edges[i - 1].value, success);
-                }
+                emit_unbox(edges[i-1].value, success);
                 break;
             case Box:
                 emit_box(edges[i-1].value);

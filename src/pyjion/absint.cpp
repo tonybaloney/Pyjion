@@ -47,9 +47,10 @@
                                 profile->getValue(curByte, pos)));          \
         mStartStates[curByte] = lastState; \
     }
+
+#define CAN_UNBOX() OPT_ENABLED(unboxing) && graph->isValid()
 #define POP_VALUE() \
     lastState.pop(curByte, stackPosition); stackPosition++;
-
 #define PUSH_INTERMEDIATE(ty) \
     lastState.push(AbstractValueWithSources((ty), newSource(new IntermediateSource(curByte))));
 #define PUSH_INTERMEDIATE_TO(ty, to) \
@@ -320,7 +321,9 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     POP_VALUE();
                     break;
                 case DUP_TOP: {
-                    auto top = lastState[lastState.stackSize() - 1];
+                    auto top = POP_VALUE();
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    lastState.push(top);
                     top.Sources = newSource(new IntermediateSource(curByte));
                     lastState.push(top);
                     break;
@@ -442,6 +445,9 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 }
                 case JUMP_IF_TRUE_OR_POP: {
                     auto curState = lastState;
+                    auto top = POP_VALUE();
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    lastState.push(top);
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
                     }
@@ -454,6 +460,9 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     break;
                 case JUMP_IF_FALSE_OR_POP: {
                     auto curState = lastState;
+                    auto top = POP_VALUE();
+                    top.Sources = newSource(new IntermediateSource(curByte));
+                    lastState.push(top);
                     if (updateStartState(lastState, oparg)) {
                         queue.push_back(oparg);
                     }
@@ -768,7 +777,7 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case FOR_ITER: {
                     // For branches out with the value consumed
                     auto leaveState = lastState;
-                    leaveState.pop(curByte, 0); // Iterator
+                    auto iterator = leaveState.pop(curByte, 0); // Iterator
                     if (updateStartState(leaveState, (size_t) oparg + curByte + SIZEOF_CODEUNIT)) {
                         queue.push_back((size_t) oparg + curByte + SIZEOF_CODEUNIT);
                     }
@@ -862,9 +871,11 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     PUSH_INTERMEDIATE(&Dict);
                     break;
                 case LOAD_METHOD: {
+                    auto object = POP_VALUE();
                     auto method = AbstractValueWithSources(
                             &Method,
                             newSource(new MethodSource(utf8_names[oparg], curByte)));
+                    PUSH_INTERMEDIATE(&Any);
                     lastState.push(method);
                     break;
                 }
@@ -889,10 +900,12 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         PGC_PROBE(1 + oparg);
                         PGC_UPDATE_STACK(1 + oparg);
                     }
+                    for (int i = 0 ; i < oparg; i++) {
+                        POP_VALUE();
+                    }
                     auto method = POP_VALUE();
                     auto self = POP_VALUE();
-                    for (int i = 0 ; i < oparg; i++)
-                        POP_VALUE();
+
                     if (method.hasValue() && method.Value->kind() == AVK_Method && self.Value->known()){
                         auto meth_source = dynamic_cast<MethodSource*>(method.Sources);
                         lastState.push(AbstractValueWithSources(avkToAbstractValue(avkToAbstractValue(self.Value->kind())->resolveMethod(meth_source->name())),
@@ -1499,12 +1512,12 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
     m_comp->emit_load_local(handler->ExVars.FinallyExc);
 }
 
-void AbstractInterpreter::escapeEdges(const EdgeMap& edges, py_opindex curByte) {
+void AbstractInterpreter::escapeEdges(const vector<Edge>& edges, py_opindex curByte) {
     // Check if edges need boxing/unboxing
     // If none of the edges need escaping, skip
     bool needsEscapes = false;
     for (auto & edge : edges){
-        if (edge.second.escaped == Unbox || edge.second.escaped == Box)
+        if (edge.escaped == Unbox || edge.escaped == Box)
             needsEscapes = true;
     }
     if (!needsEscapes)
@@ -1595,6 +1608,13 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
 
     m_comp->emit_init_instr_counter();
 
+    if (graph->isValid()) {
+        for (auto &fastLocal : graph->getUnboxedFastLocals()) {
+            m_fastNativeLocals[fastLocal.first] = m_comp->emit_define_local(fastLocal.second);
+            m_fastNativeLocalKinds[fastLocal.first] = avkAsStackEntryKind(fastLocal.second);
+        }
+    }
+
     if (mTracingEnabled){
         // push initial trace on entry to frame
         m_comp->emit_trace_frame_entry();
@@ -1653,35 +1673,17 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
             }
         }
-
         auto stackInfo = getStackInfo(curByte);
-        py_opindex next_byte = (curByte + SIZEOF_CODEUNIT) < mSize ? GET_OPCODE(curByte + SIZEOF_CODEUNIT) : -1;
-        auto nextStackInfo = getStackInfo(next_byte);
 
         size_t curStackSize = m_stack.size();
         bool skipEffect = false;
 
         auto edges = graph->getEdges(curByte);
-        if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status)){
+        if (g_pyjionSettings.pgc && pgcProbeRequired(curByte, pgc_status) && !(CAN_UNBOX() && op.escape)){
             emitPgcProbes(curByte, pgcProbeSize(curByte));
         }
 
-        if (OPT_ENABLED(subscrSlice) && byte == BUILD_SLICE && next_byte == BINARY_SUBSCR && stackInfo.size() >= (1 + oparg)){
-            bool optimized ;
-            if (oparg == 3) {
-                optimized = m_comp->emit_binary_subscr_slice(stackInfo.fourth(), stackInfo.third(), stackInfo.second(), stackInfo.top());
-            } else {
-                optimized = m_comp->emit_binary_subscr_slice(stackInfo.third(), stackInfo.second(), stackInfo.top());
-            }
-            if (optimized) {
-                decStack(oparg + 1);
-                errorCheck("subscr slice failed", curByte);
-                incStack();
-                curByte += SIZEOF_CODEUNIT;
-                continue;
-            } // Else, use normal compilation path.
-        }
-        if (OPT_ENABLED(unboxing)) {
+        if (CAN_UNBOX()) {
             escapeEdges(edges, curByte);
         }
 
@@ -1717,7 +1719,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case COMPARE_OP: {
                 if (stackInfo.size() >= 2){
-                    if (OPT_ENABLED(unboxing) && op.escape) {
+                    if (CAN_UNBOX() && op.escape) {
                         m_comp->emit_compare_unboxed(oparg, stackInfo.second(), stackInfo.top());
                         decStack(2);
                         incStack(1, STACK_KIND_VALUE_INT);
@@ -1763,7 +1765,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             case POP_JUMP_IF_TRUE:
             case POP_JUMP_IF_FALSE:
-                if (OPT_ENABLED(unboxing) && op.escape) {
+                if (CAN_UNBOX() && op.escape) {
                     unboxedPopJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
                 } else {
                     popJumpIf(byte != POP_JUMP_IF_FALSE, opcodeIndex, oparg);
@@ -1817,7 +1819,12 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 incStack();
                 break;
             case LOAD_CONST:
-                loadConst(oparg, opcodeIndex); break;
+                if (CAN_UNBOX() && op.escape){
+                    loadUnboxedConst(oparg, opcodeIndex);
+                } else {
+                    loadConst(oparg, opcodeIndex);
+                }
+                break;
             case STORE_NAME:
                 m_comp->emit_store_name(PyTuple_GetItem(mCode->co_names, oparg));
                 decStack();
@@ -1828,18 +1835,31 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 intErrorCheck("delete name failed", curByte);
                 break;
             case DELETE_FAST:
-                loadFastWorker(oparg, true, curByte);
-                m_comp->emit_pop_top();
-                m_comp->emit_delete_fast(oparg);
+                if (CAN_UNBOX() && op.escape){
+                    // TODO : Decide if we need to store some junk value in the local?
+                } else {
+                    loadFastWorker(oparg, true, curByte);
+                    m_comp->emit_pop_top();
+                    m_comp->emit_delete_fast(oparg);
+                }
                 m_assignmentState[oparg] = false;
                 break;
             case STORE_FAST:
-                m_comp->emit_store_fast(oparg);
-                decStack();
+                if (CAN_UNBOX() && op.escape){
+                    storeFastUnboxed(oparg);
+                } else {
+                    m_comp->emit_store_fast(oparg);
+                    decStack();
+                }
                 m_assignmentState[oparg] = true;
                 break;
             case LOAD_FAST:
-                loadFast(oparg, opcodeIndex); break;
+                if (CAN_UNBOX() && op.escape){
+                    loadFastUnboxed(oparg, opcodeIndex);
+                } else {
+                    loadFast(oparg, opcodeIndex);
+                }
+                break;
             case UNPACK_SEQUENCE:
                 m_comp->emit_unpack_sequence(oparg, stackInfo.top());
                 decStack();
@@ -2010,7 +2030,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case INPLACE_XOR:
             case INPLACE_OR:
                 if (stackInfo.size() >= 2) {
-                    if (OPT_ENABLED(unboxing) && op.escape) {
+                    if (CAN_UNBOX() && op.escape) {
                         auto retKind = m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
                         if (canReturnInfinity(byte)) {
@@ -2540,6 +2560,28 @@ void AbstractInterpreter::loadConst(py_oparg constIndex, py_opindex opcodeIndex)
     incStack();
 }
 
+void AbstractInterpreter::loadUnboxedConst(py_oparg constIndex, py_opindex opcodeIndex) {
+    auto constValue = PyTuple_GetItem(mCode->co_consts, constIndex);
+    auto abstractT = GetAbstractType(constValue->ob_type);
+    switch(abstractT){
+        case AVK_Float:
+            m_comp->emit_float(PyFloat_AS_DOUBLE(constValue));
+            incStack(1, STACK_KIND_VALUE_FLOAT);
+            break;
+        case AVK_Integer:
+            m_comp->emit_long_long(PyLong_AsLongLong(constValue));
+            incStack(1, STACK_KIND_VALUE_INT);
+            break;
+        case AVK_Bool:
+            if (constValue == Py_True)
+                m_comp->emit_int(1);
+            else
+                m_comp->emit_int(0);
+            incStack(1, STACK_KIND_VALUE_INT);
+            break;
+    }
+}
+
 void AbstractInterpreter::unwindHandlers(){
     // for each exception handler we need to load the exception
     // information onto the stack, and then branch to the correct
@@ -2620,6 +2662,17 @@ void AbstractInterpreter::loadFast(py_oparg local, py_opindex opcodeIndex) {
     bool checkUnbound = m_assignmentState.find(local) == m_assignmentState.end() || !m_assignmentState.find(local)->second;
     loadFastWorker(local, checkUnbound, opcodeIndex);
     incStack();
+}
+
+void AbstractInterpreter::loadFastUnboxed(py_oparg local, py_opindex opcodeIndex) {
+    bool checkUnbound = m_assignmentState.find(local) == m_assignmentState.end() || !m_assignmentState.find(local)->second;
+    assert(!checkUnbound);
+    m_comp->emit_load_local(m_fastNativeLocals[local]);
+    incStack(1, m_fastNativeLocalKinds[local]);
+}
+void AbstractInterpreter::storeFastUnboxed(py_oparg local) {
+    m_comp->emit_store_local(m_fastNativeLocals[local]);
+    decStack();
 }
 
 void AbstractInterpreter::loadFastWorker(size_t local, bool checkUnbound, py_opindex curByte) {

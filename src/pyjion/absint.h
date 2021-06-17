@@ -283,6 +283,8 @@ class AbstractInterpreter {
     vector<AbstractValue*> m_values;
     vector<AbstractSource*> m_sources;
     vector<Local> m_raiseAndFreeLocals;
+    unordered_map<py_oparg, Local> m_fastNativeLocals;
+    unordered_map<py_oparg, StackEntryKind> m_fastNativeLocalKinds;
     IPythonCompiler* m_comp;
     // m_blockStack is like Python's f_blockstack which lives on the frame object, except we only maintain
     // it at compile time.  Blocks are pushed onto the stack when we enter a loop, the start of a try block,
@@ -404,10 +406,13 @@ private:
     AbstactInterpreterCompileResult compileWorker(PgcStatus status, InstructionGraph* graph);
 
     void loadConst(py_oparg constIndex, py_opindex opcodeIndex);
+    void loadUnboxedConst(py_oparg constIndex, py_opindex opcodeIndex);
 
     void returnValue(py_opindex opcodeIndex);
 
+    void storeFastUnboxed(py_oparg local);
     void loadFast(py_oparg local, py_opindex opcodeIndex);
+    void loadFastUnboxed(py_oparg local, py_opindex opcodeIndex);
     void loadFastWorker(size_t local, bool checkUnbound, py_opindex curByte);
 
     void popExcept();
@@ -425,7 +430,7 @@ private:
     void decExcVars(size_t count);
     void incExcVars(size_t count);
     void updateIntermediateSources();
-    void escapeEdges(const EdgeMap& edges, py_opindex curByte);
+    void escapeEdges(const vector<Edge>& edges, py_opindex curByte);
 };
 bool canReturnInfinity(py_opcode opcode);
 

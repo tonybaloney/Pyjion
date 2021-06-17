@@ -38,7 +38,7 @@ int TestTraceFunc(PyObject * state, PyFrameObject *frame, int type, PyObject * a
 class TracingTest {
 private:
     py_ptr <PyCodeObject> m_code;
-    py_ptr <PyjionJittedCode> m_jittedcode;
+    PyjionJittedCode* m_jittedcode;
 
     PyObject *run() {
         auto sysModule = PyObject_ptr(PyImport_ImportModule("sys"));
@@ -53,7 +53,7 @@ private:
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
         _PyEval_SetTrace(tstate, &TestTraceFunc, nullptr);
-        auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode.get(), frame, tstate, nullptr);
+        auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode, frame, tstate, nullptr);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
         //Py_DECREF(frame);
         size_t collected = PyGC_Collect();
@@ -70,7 +70,7 @@ public:
             FAIL("failed to compile code");
         }
         auto jitted = PyJit_EnsureExtra((PyObject *) *m_code);
-        m_jittedcode.reset(jitted);
+        m_jittedcode = jitted;
     }
 
     std::string returns() {

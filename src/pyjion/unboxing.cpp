@@ -47,6 +47,7 @@ bool supportsUnboxing(py_opcode opcode){
         case LOAD_CONST:
         case STORE_FAST:
         case LOAD_FAST:
+        case DELETE_FAST:
             return true;
         default:
             return false;
@@ -60,18 +61,6 @@ bool supportsEscaping(AbstractValueKind kind){
         case AVK_Integer:
             return true;
         case AVK_Bool:
-            return true;
-        default:
-            return false;
-    }
-}
-
-bool allowNoOutputs(py_opcode opcode) {
-    switch(opcode){
-        case POP_JUMP_IF_FALSE:
-        case POP_JUMP_IF_TRUE:
-        case POP_TOP:
-        case STORE_FAST:
             return true;
         default:
             return false;

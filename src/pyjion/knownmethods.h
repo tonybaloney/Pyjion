@@ -51,7 +51,7 @@ unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
         {"ord",         AVK_Integer},
         {"pow",         AVK_Any},
         {"print",       AVK_None},
-        {"range",       AVK_Iterable},
+        {"range",       AVK_RangeIterator},
         {"repr",        AVK_String},
         {"reversed",    AVK_Any},
         {"round",       AVK_Any},

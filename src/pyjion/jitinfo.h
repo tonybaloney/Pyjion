@@ -181,7 +181,10 @@ public:
     }
 
     SequencePoint* get_sequence_points() override {
-        return &m_sequencePoints[0];
+        if (!m_sequencePoints.empty())
+            return &m_sequencePoints[0];
+        else
+            return nullptr;
     }
 
     size_t get_sequence_points_length() override {

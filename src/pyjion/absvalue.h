@@ -63,7 +63,8 @@ enum AbstractValueKind {
     AVK_Type,
     AVK_Module,
     AVK_Method,
-    AVK_BigInteger
+    AVK_BigInteger,
+    AVK_RangeIterator
 };
 
 static bool isKnownType(AbstractValueKind kind) {

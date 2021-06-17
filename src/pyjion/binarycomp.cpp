@@ -679,17 +679,26 @@ void PythonCompiler::emit_known_binary_op_power(AbstractValueWithSources &left, 
 }
 
 LocalKind PythonCompiler::emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
-    if (left.Value->kind() == AVK_Float && right.Value->kind() == AVK_Float){
+    AbstractValueKind leftKind = left.Value->kind();
+    AbstractValueKind rightKind = right.Value->kind();
+
+    // Treat bools as integers
+    if (leftKind == AVK_Bool)
+        leftKind = AVK_Integer;
+    if (rightKind == AVK_Bool)
+        rightKind = AVK_Integer;
+
+    if (leftKind == AVK_Float && rightKind == AVK_Float){
         return emit_binary_float(opcode);
-    } else if (left.Value->kind() == AVK_Integer && right.Value->kind() == AVK_Integer){
+    } else if (leftKind == AVK_Integer && rightKind == AVK_Integer){
         return emit_binary_int(opcode);
-    } else if (left.Value->kind() == AVK_Integer && right.Value->kind() == AVK_Float) {
+    } else if (leftKind == AVK_Integer && rightKind == AVK_Float) {
         Local right_l = emit_define_local(LK_Float);
         emit_store_local(right_l);
         m_il.conv_r8();
         emit_load_and_free_local(right_l);
         return emit_binary_float(opcode);
-    } else if (left.Value->kind() == AVK_Float && right.Value->kind() == AVK_Integer) {
+    } else if (leftKind == AVK_Float && rightKind == AVK_Integer) {
         m_il.conv_r8();
         return emit_binary_float(opcode);
     } else {

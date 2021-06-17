@@ -114,12 +114,6 @@ void VerifyOldTest(AITestCase testCase) {
     Py_DECREF(codeObj);
 }
 
-void StackVerifier::verify(AbstractInterpreter& interpreter) {
-    auto info = interpreter.getStackInfo(m_byteCodeIndex);
-    CHECK(m_kind == info[info.size() - m_stackIndex - 1].Value->kind());
-};
-
-
 /* Verify the inferred type stored in the locals array before a specified bytecode executes. */
 VariableVerifier::VariableVerifier(size_t byteCodeIndex, size_t localIndex, AbstractValueKind kind, bool undefined) {
     m_byteCodeIndex = byteCodeIndex;
