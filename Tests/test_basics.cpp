@@ -530,12 +530,29 @@ TEST_CASE("Type object methods") {
         auto t = EmissionTest("def f(): return int.__format__(2, '%')");
         CHECK(t.returns() == "'200.000000%'");
     }
+    SECTION("assert pow with mixed locals"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "   f = 12\n"
+                "   x = 'test'\n"
+                "   x = 4\n"
+                "   return pow(f, x, 100)");
+        CHECK(t.returns() == "36");
+    }
+
+    SECTION("assert int from_bytes instance"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "   f = 12\n"
+                "   return f.from_bytes(b'1234', 'little')");
+        CHECK(t.returns() == "875770417");
+    }
     SECTION("assert const instance"){
         auto t = EmissionTest(
                 "def f():\n"
                 "   f = 1.1234e90\n"
                 "   return f.__format__('f')");
-        CHECK(t.returns() == "'200.000000%'");
+        CHECK(t.returns() == "'1123400000000000059889518021533541968680969201463305742225773447091302986902992418794110976.000000'");
     }
 }
 

@@ -871,9 +871,11 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                     PUSH_INTERMEDIATE(&Dict);
                     break;
                 case LOAD_METHOD: {
+                    auto object = POP_VALUE();
                     auto method = AbstractValueWithSources(
                             &Method,
                             newSource(new MethodSource(utf8_names[oparg], curByte)));
+                    PUSH_INTERMEDIATE(&Any);
                     lastState.push(method);
                     break;
                 }
