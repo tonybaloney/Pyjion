@@ -87,7 +87,6 @@ typedef struct PyjionSettings {
     bool opt_inlineIs = OPTIMIZE_IS; // OPT-1
     bool opt_inlineDecref = OPTIMIZE_DECREF; // OPT-2
     bool opt_internRichCompare = OPTIMIZE_INTERN_COMPARE; // OPT-3
-	bool opt_nativeLocals = OPTIMIZE_NATIVE_LOCALS; // OPT-4
 	bool opt_inlineFramePushPop = OPTIMIZE_PUSH_FRAME; // OPT-5
     bool opt_knownStoreSubscr = OPTIMIZE_KNOWN_STORE_SUBSCR; // OPT-6
     bool opt_knownBinarySubscr = OPTIMIZE_KNOWN_BINARY_SUBSCR; // OPT-7

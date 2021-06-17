@@ -44,7 +44,6 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(inlineIs, level, 1);
     SET_OPT(inlineDecref, level, 1);
     SET_OPT(internRichCompare, level, 1);
-    SET_OPT(nativeLocals, level, 2);
     SET_OPT(inlineFramePushPop, level, 1);
     SET_OPT(knownStoreSubscr, level, 1);
     SET_OPT(knownBinarySubscr, level, 1);
