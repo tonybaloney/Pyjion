@@ -900,11 +900,12 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         PGC_PROBE(1 + oparg);
                         PGC_UPDATE_STACK(1 + oparg);
                     }
-                    auto method = POP_VALUE();
-                    auto self = POP_VALUE();
                     for (int i = 0 ; i < oparg; i++) {
                         POP_VALUE();
                     }
+                    auto method = POP_VALUE();
+                    auto self = POP_VALUE();
+
                     if (method.hasValue() && method.Value->kind() == AVK_Method && self.Value->known()){
                         auto meth_source = dynamic_cast<MethodSource*>(method.Sources);
                         lastState.push(AbstractValueWithSources(avkToAbstractValue(avkToAbstractValue(self.Value->kind())->resolveMethod(meth_source->name())),
