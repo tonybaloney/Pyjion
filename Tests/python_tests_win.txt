@@ -33,7 +33,8 @@ test_asdl_parser
 ##test_ast
 # TODO: https://github.com/Microsoft/Pyjion/issues/86
 ##test_asyncgen
-test_asynchat
+# Takes too long
+##test_asynchat
 # TODO: https://github.com/Microsoft/Pyjion/issues/135
 ##test_asyncio
 test_asyncore
