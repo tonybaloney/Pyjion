@@ -73,6 +73,7 @@ typedef unordered_map<py_opindex, Edge> EdgeMap;
 
 class InstructionGraph {
 private:
+    PyCodeObject * code;
     bool invalid = false;
     unordered_map<py_opindex, Instruction> instructions;
     unordered_map<py_oparg, AbstractValueKind> unboxedFastLocals ;

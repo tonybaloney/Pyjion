@@ -29,6 +29,7 @@
 
 
 InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex , const InterpreterStack*> stacks) {
+    this->code = code;
     auto mByteCode = (_Py_CODEUNIT *)PyBytes_AS_STRING(code->co_code);
     auto size = PyBytes_Size(code->co_code);
     for (py_opindex curByte = 0; curByte < size; curByte += SIZEOF_CODEUNIT) {
@@ -275,13 +276,37 @@ void InstructionGraph::printGraph(const char* name) {
     printf("\tnode [shape=box];\n");
     printf("\tFRAME [label=FRAME];\n");
     for (const auto & node: instructions){
-        if (node.second.escape)
-            printf("\tOP%u [label=\"%d %s (%d)\" color=blue];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg);
-        else {
-            if (node.second.deoptimized)
-                printf("\tOP%u [label=\"%d %s (%d)\" color=red];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg);
-            else
-                printf("\tOP%u [label=\"%d %s (%d)\"];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg);
+        const char* blockColor;
+        if (node.second.escape) {
+            blockColor = "blue";
+        } else if (node.second.deoptimized) {
+            blockColor = "red";
+        } else {
+            blockColor = "black";
+        }
+        switch(node.second.opcode){
+            case LOAD_ATTR:
+            case STORE_ATTR:
+            case DELETE_ATTR:
+            case LOAD_GLOBAL:
+            case STORE_GLOBAL:
+            case DELETE_GLOBAL:
+            case STORE_NAME:
+            case DELETE_NAME:
+            case LOAD_NAME:
+            case IMPORT_FROM:
+            case IMPORT_NAME:
+            case LOAD_METHOD:
+                printf("\tOP%u [label=\"%d %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
+                       PyUnicode_AsUTF8(PyTuple_GetItem(this->code->co_names, node.second.oparg)), blockColor);
+                break;
+            case LOAD_CONST:
+                printf("\tOP%u [label=\"%d %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
+                       PyUnicode_AsUTF8(PyObject_Repr(PyTuple_GetItem(this->code->co_consts, node.second.oparg))), blockColor);
+                break;
+            default:
+                printf("\tOP%u [label=\"%d %s (%d)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg, blockColor);
+                break;
         }
         switch(node.second.opcode){
             case JUMP_FORWARD:
@@ -336,7 +361,6 @@ vector<Edge> InstructionGraph::getEdges(py_opindex idx){
         if (filteredEdges.find(i) != filteredEdges.end())
             result.push_back(filteredEdges[i]);
     }
-
     return result;
 }
 
@@ -355,7 +379,6 @@ vector<Edge> InstructionGraph::getEdgesFrom(py_opindex idx){
         if (filteredEdges.find(i) != filteredEdges.end())
             result.push_back(filteredEdges[i]);
     }
-
     return result;
 }
 

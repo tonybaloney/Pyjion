@@ -530,6 +530,13 @@ TEST_CASE("Type object methods") {
         auto t = EmissionTest("def f(): return int.__format__(2, '%')");
         CHECK(t.returns() == "'200.000000%'");
     }
+    SECTION("assert const instance"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "   f = 1.1234e90\n"
+                "   return f.__format__('f')");
+        CHECK(t.returns() == "'200.000000%'");
+    }
 }
 
 TEST_CASE("Sequence binary operations") {
