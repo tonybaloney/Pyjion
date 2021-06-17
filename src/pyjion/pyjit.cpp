@@ -27,8 +27,6 @@
 #include "pyjit.h"
 #include "pycomp.h"
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "UnusedParameter"
 #ifdef WINDOWS
 #define BUFSIZE 65535
 #include <libloaderapi.h>
@@ -52,7 +50,6 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(knownBinarySubscr, level, 1);
     SET_OPT(inlineIterators, level, 1);
     SET_OPT(hashedNames, level, 1);
-    SET_OPT(subscrSlice, level, 1);
     SET_OPT(builtinMethods, level, 1);
     SET_OPT(typeSlotLookups, level, 1);
     SET_OPT(functionCalls, level, 1);
@@ -241,13 +238,14 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_sequencePoints = res.compiledCode->get_sequence_points();
     state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
 
-#ifdef DUMP_JIT_TRACES
+#ifdef DUMP_SEQUENCE_POINTS
     printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
     auto code = (_Py_CODEUNIT *)PyBytes_AS_STRING(frame->f_code->co_code);
     for (size_t i = 0; i < state->j_sequencePointsLen; i ++){
-        printf(" %016llX (IL_%04X): %s %d\n",
+        printf(" %016llX (IL_%04X): %d %s %d\n",
             ((uint64_t)state->j_addr + (uint64_t)state->j_sequencePoints[i].nativeOffset),
             state->j_sequencePoints[i].ilOffset,
+            state->j_sequencePoints[i].pythonOpcodeIndex,
             opcodeName(_Py_OPCODE(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])),
             _Py_OPARG(code[(state->j_sequencePoints[i].pythonOpcodeIndex)/sizeof(_Py_CODEUNIT)])
         );
@@ -377,7 +375,7 @@ static PyObject *pyjion_info(PyObject *self, PyObject* func) {
     PyDict_SetItemString(res, "compiled", jitted->j_addr != nullptr ? Py_True : Py_False);
     PyDict_SetItemString(res, "pgc", PyLong_FromLong(jitted->j_pgc_status));
 
-    auto runCount = PyLong_FromLongLong(jitted->j_run_count);
+    auto runCount = PyLong_FromUnsignedLongLong(jitted->j_run_count);
 	PyDict_SetItemString(res, "run_count", runCount);
 	Py_DECREF(runCount);
 	
@@ -495,13 +493,13 @@ static PyObject* pyjion_set_threshold(PyObject *self, PyObject* args) {
 		return nullptr;
 	}
 
-	auto prev = PyLong_FromLongLong(HOT_CODE);
+	auto prev = PyLong_FromUnsignedLongLong(HOT_CODE);
 	HOT_CODE = PyLong_AsLongLong(args);
 	return prev;
 }
 
 static PyObject* pyjion_get_threshold(PyObject *self, PyObject* args) {
-	return PyLong_FromLongLong(HOT_CODE);
+	return PyLong_FromUnsignedLongLong(HOT_CODE);
 }
 
 static PyObject* pyjion_enable_tracing(PyObject *self, PyObject* args) {
@@ -684,10 +682,9 @@ static struct PyModuleDef pyjionmodule = {
 PyMODINIT_FUNC PyInit__pyjion(void)
 {
 	// Install our frame evaluation function
-	if (JitInit())
-	    return PyModule_Create(&pyjionmodule);
-	else
-	    return nullptr;
+	if (JitInit()) {
+        return PyModule_Create(&pyjionmodule);
+    } else {
+        return nullptr;
+    }
 }
-
-#pragma clang diagnostic pop

@@ -216,6 +216,7 @@ TEST_CASE("Conditional returns") {
         CHECK(t.returns() == "1");
     }
     SECTION("test7") {
+        // TODO: Work out why this creates an invalid instruction graph.
         auto t = EmissionTest(
                 "def f():\n    x = 4611686018427387903\n    x += 1\n    x -= 1\n    x -= 4611686018427387903\n    return x or 1"
         );
@@ -509,5 +510,66 @@ TEST_CASE("byte arrays") {
                 "    del b\n"
         );
         CHECK(t.returns() == "None");
+    }
+}
+
+TEST_CASE("test equivalent with isinstance") {
+    SECTION("test is string") {
+        auto t = EmissionTest(
+                "def f():\n"
+                "    b = str('hello')\n"
+                "    return isinstance(b, str)\n"
+        );
+        CHECK(t.returns() == "True");
+    }
+}
+
+TEST_CASE("test ternary expressions"){
+    SECTION("test expression assignment"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "   bits = 'roar'\n"
+                "   is_reversed = bits[-1] == 'r'\n"
+                "   return is_reversed\n"
+        );
+        CHECK(t.returns() == "True");
+    }
+    SECTION("test ternary"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "   count = 3\n"
+                "   is_three = 4 if count == 3 else 1\n"
+                "   return is_three\n"
+        );
+        CHECK(t.returns() == "4");
+    }
+    SECTION("test sliced ternary"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "   bits = ('whats', 'this', 'in', 'reversed')\n"
+                "   is_reversed = bits[-1] == 'reversed'\n"
+                "   in_index = -3 if is_reversed else -2\n"
+                "   if bits[in_index] != 'in':\n"
+                "       return True"
+                );
+        CHECK(t.returns() == "True");
+    }
+}
+
+TEST_CASE("Test classmethods"){
+    SECTION("Test classmethods with a shared name"){
+        auto t = EmissionTest(
+                "def f():\n"
+                "        class F:\n"
+                "            @classmethod\n"
+                "            def arg15(cls, e, f, g, h, i, j, k, l, m, n, o, p ,q ,r,s):\n"
+                "                a = 1\n"
+                "                b = 2\n"
+                "                c = 3\n"
+                "                d = 4\n"
+                "                return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p + q + r + s\n"
+                "        a = 10000\n"
+                "        return F.arg15(a, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19)");
+        CHECK(t.returns() == "10185");
     }
 }

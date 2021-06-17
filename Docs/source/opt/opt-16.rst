@@ -1,7 +1,7 @@
 .. _OPT-16:
 
-OPT-16 Optimize floating point arithmetic by unboxing float values
-==================================================================
+OPT-16 Optimize arithmetic by unboxing float, int and bool values
+=================================================================
 
 Background
 ----------
@@ -27,11 +27,15 @@ I've found this initial prototype to be unstable so the boxing and unboxing has 
 Solution
 --------
 
-Pyjion's escape analysis is acheived using an instruction graph to traverse supported unboxed types and opcodes then to tag transition stack variables as unboxed.
+Pyjion's escape analysis is achieved using an instruction graph to traverse supported unboxed types and opcodes then to tag transition stack variables as unboxed.
 This functionality complements PGC.
 
-Pyjion uses the .NET JIT compiler's value stack instead of CPython's value stack. In this optimization, floating point values are "unboxed" by loading the address of ``ob_fval`` (the double of the ``PyFloatObject``) onto the stack
+Pyjion uses the .NET JIT compiler's value stack instead of CPython's value stack. In this optimization:
+
+- floating point values are "unboxed" by loading the address of ``ob_fval`` (the double of the ``PyFloatObject``) onto the stack
 and boxed where the value needs to be escaped using ``PyFloat_FromDouble()``.
+- integer values are converted to ``int64_t`` using ``PyLong_AsLongLong``
+- boolean values are converted to ``int32_t`` using a pointer comparison with ``PyTrue`` and ``PyFalse``
 
 The optimization's efficiency is from its escape analysis, which is crude compared with PyPy, but a start nonetheless.
 
@@ -72,17 +76,20 @@ Gains
 -----
 
 * Floating point arithmetic is significantly faster (2-10x)
+* Integer arithmetic is significantly faster (2-10x)
+* Mixed arithmetic (float and int) is faster
 
 Edge-cases
 ----------
 
 * Pyjion will throw a ``ValueError`` saying that the PGC guard failed when an assertion was made from type data and the type changed at runtime.
+* Pyjion will try very hard to detect values that would overflow a ``int64_t``, but in some cases it could throw an Overflow error as a Python exception
 
 Further Enhancements
 --------------------
 
 * Instead of raising a runtime exception, Pyjion could compile a parallel call graph for which to execute the "generic" sequence of instructions.
-* Support other types
+* Support other types (array)
 
 Configuration
 -------------

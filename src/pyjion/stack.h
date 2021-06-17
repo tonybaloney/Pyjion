@@ -38,6 +38,10 @@ enum StackEntryKind {
     STACK_KIND_OBJECT = 2 // A Python object, or a tagged int which might be an object
 };
 
+StackEntryKind avkAsStackEntryKind(AbstractValueKind k);
+StackEntryKind lkAsStackEntryKind(LocalKind k);
+LocalKind stackEntryKindAsLocalKind(StackEntryKind k);
+
 class StackUnderflowException: public std::exception {
 public:
     StackUnderflowException() : std::exception() {};
@@ -109,10 +113,10 @@ public:
          return vector<BlockInfo>::push_back(block);
      }
 
-     bool beyond(int curByte){
+     bool beyond(py_opindex curByte){
          return (size() > 1 &&
              curByte >= back().EndOffset &&
-             back().EndOffset != -1);
+             !back().Root);
      }
 
      size_t size() const{

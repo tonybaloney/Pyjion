@@ -123,13 +123,8 @@
 #define METHOD_BOOL_FROM_LONG                    0x00000054
 #define METHOD_PYERR_SETSTRING                   0x00000055
 #define METHOD_NUMBER_AS_SSIZET                  0x00000056
-
-#define METHOD_EQUALS_INT_TOKEN                  0x00000065
-#define METHOD_LESS_THAN_INT_TOKEN               0x00000066
-#define METHOD_LESS_THAN_EQUALS_INT_TOKEN        0x00000067
-#define METHOD_NOT_EQUALS_INT_TOKEN              0x00000068
-#define METHOD_GREATER_THAN_INT_TOKEN            0x00000069
-#define METHOD_GREATER_THAN_EQUALS_INT_TOKEN     0x0000006A
+#define METHOD_PYLONG_AS_LONGLONG                0x00000057
+#define METHOD_PYLONG_FROM_LONGLONG              0x00000058
 
 #define METHOD_EXTENDLIST_TOKEN                  0x0000006C
 #define METHOD_LISTTOTUPLE_TOKEN                 0x0000006D
@@ -224,12 +219,17 @@
 #define METHOD_PROFILE_FRAME_ENTRY   0x00030014
 #define METHOD_PROFILE_FRAME_EXIT    0x00030015
 #define METHOD_PGC_PROBE             0x00030016
+#define METHOD_PGC_GUARD_EXCEPTION   0x00030017
 
 #define METHOD_ITERNEXT_TOKEN        0x00040000
 
 #define METHOD_FLOAT_POWER_TOKEN    0x00050000
 #define METHOD_FLOAT_FLOOR_TOKEN    0x00050001
 #define METHOD_FLOAT_MODULUS_TOKEN  0x00050002
+#define METHOD_INT_POWER            0x00050003
+#define METHOD_INT_FLOOR_DIVIDE     0x00050004
+#define METHOD_INT_TRUE_DIVIDE      0x00050005
+#define METHOD_INT_MOD              0x00050006
 
 #define METHOD_STORE_SUBSCR_OBJ       0x00060000
 #define METHOD_STORE_SUBSCR_OBJ_I     0x00060001
@@ -411,10 +411,11 @@ public:
     void emit_for_next() override;
     void emit_for_next(AbstractValueWithSources) override;
 
-    void emit_binary_float(uint16_t opcode) override;
+    LocalKind emit_binary_float(uint16_t opcode) override;
+    LocalKind emit_binary_int(uint16_t opcode) override;
     void emit_binary_object(uint16_t opcode) override;
     void emit_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
-    void emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
+    LocalKind emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) override;
@@ -429,7 +430,7 @@ public:
     void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
     void emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) override;
     void emit_compare_floats(uint16_t compareType) override;
-    void emit_compare_tagged_int(uint16_t compareType) override;
+    void emit_compare_ints(uint16_t compareType) override;
 
     void emit_store_fast(size_t local) override;
     void emit_unbound_local_check() override;
@@ -488,7 +489,6 @@ public:
     void emit_profile_frame_entry() override;
     void emit_profile_frame_exit() override;
     void emit_pgc_profile_capture(Local value, size_t ipos, size_t istack) override;
-    void emit_load_frame_locals() override;
     JittedCode* emit_compile() override;
     void lift_n_to_top(uint16_t pos) override;
     void lift_n_to_second(uint16_t pos) override;
@@ -496,10 +496,13 @@ public:
     void sink_top_to_n(uint16_t pos) override;
     void mark_sequence_point(size_t idx) override;
     void emit_box(AbstractValue* value) override;
-    void emit_unbox(AbstractValue* value) override;
-    void emit_escape_edges(EdgeMap edges) override;
+    void emit_unbox(AbstractValue* value, Local success) override;
+    void emit_escape_edges(vector<Edge> edges, Local success) override;
     void emit_infinity() override;
     void emit_nan() override;
+    void emit_infinity_long() override;
+    void emit_nan_long() override;
+    void emit_guard_exception(const char* expected) override;
 private:
     void load_frame();
     void load_tstate();

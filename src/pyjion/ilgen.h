@@ -26,8 +26,6 @@
 #ifndef PYJION_ILGEN_H
 #define PYJION_ILGEN_H
 
-#define FEATURE_NO_HOST
-
 #include <cstdint>
 #include <windows.h>
 #include <cwchar>
@@ -199,7 +197,7 @@ public:
         }
     }
 
-    void new_array(size_t len){
+    void new_array(int32_t len){
         /*Stack Transition:
 
         …, numElems → …, array
@@ -505,6 +503,10 @@ public:
         compare_eq();
     }
 
+    void conv_r8(){
+        m_il.push_back(CEE_CONV_R8);
+    }
+
     void ld_i(int32_t i) {
         m_il.push_back(CEE_LDC_I4);
         emit_int(i);
@@ -584,7 +586,7 @@ public:
             default:
                 if (index < 256) {
                     m_il.push_back(CEE_LDLOC_S); 
-                    m_il.push_back(index);
+                    m_il.push_back((BYTE)index);
                 }
                 else {
                     m_il.push_back(CEE_PREFIX1); // NIL

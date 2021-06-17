@@ -170,7 +170,6 @@ public:
     virtual Local emit_define_local(bool cache) = 0;
     // Defines a local of a specific type
     virtual Local emit_define_local(LocalKind kind = LK_Pointer) = 0;
-
     virtual Local emit_define_local(AbstractValueKind kind) = 0;
     // Frees a local making it available for re-use
     virtual void emit_free_local(Local local) = 0;
@@ -379,11 +378,12 @@ public:
     virtual void emit_unary_negative_float() = 0;
 
     // Performans a binary operation for values on the stack which are unboxed floating points
-    virtual void emit_binary_float(uint16_t opcode) = 0;
+    virtual LocalKind emit_binary_float(uint16_t opcode) = 0;
+    virtual LocalKind emit_binary_int(uint16_t opcode) = 0;
     // Performs a binary operation for values on the stack which are boxed objects
     virtual void emit_binary_object(uint16_t opcode) = 0;
     virtual void emit_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
-    virtual void emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
+    virtual LocalKind emit_unboxed_binary_object(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) = 0;
@@ -400,12 +400,11 @@ public:
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
     virtual void emit_compare_object(uint16_t compareType) = 0;
     virtual void emit_compare_floats(uint16_t compareType) = 0;
+    virtual void emit_compare_ints(uint16_t compareType) = 0 ;
+
     virtual void emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) = 0;
     // Performs a comparison for values on the stack which are objects, keeping a boxed Python object as the result.
     virtual void emit_compare_known_object(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs) = 0;
-    // Performs a comparison of two tagged integers
-    virtual void emit_compare_tagged_int(uint16_t compareType) = 0;
-
     /*****************************************************
      * Exception handling */
      // Raises an exception taking the exception, type, and cause
@@ -463,16 +462,17 @@ public:
     virtual void emit_inc_local(Local local, size_t value) = 0;
     virtual void emit_dec_local(Local local, size_t value) = 0;
 
-    virtual void emit_load_frame_locals() = 0;
-
     virtual void mark_sequence_point(size_t idx) = 0;
 
     // New boxing operations
     virtual void emit_box(AbstractValue* value) = 0;
-    virtual void emit_unbox(AbstractValue* value) = 0;
-    virtual void emit_escape_edges(EdgeMap edges) = 0;
+    virtual void emit_unbox(AbstractValue* value, Local success) = 0;
+    virtual void emit_escape_edges(vector<Edge> edges, Local success) = 0;
     virtual void emit_infinity() = 0;
     virtual void emit_nan() = 0;
+    virtual void emit_infinity_long() = 0;
+    virtual void emit_nan_long() = 0;
+    virtual void emit_guard_exception(const char* expected) = 0;
 };
 
 #endif

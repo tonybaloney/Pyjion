@@ -45,5 +45,59 @@ class StringFormattingTestCase(unittest.TestCase):
         self.assertEqual(c, "...Hello world!")
 
 
+class FStringFormattingTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        pyjion.enable()
+        pyjion.disable_pgc()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+        gc.collect()
+
+    def test_perc_format(self):
+        place = "world"
+        message = f"Hello {place}!"
+        self.assertEqual(message, "Hello world!")
+
+
+def _is_dunder(name):
+    """Returns True if a __dunder__ name, False otherwise."""
+    return (len(name) > 4 and
+            name[:2] == name[-2:] == '__' and
+            name[2] != '_' and
+            name[-3] != '_')
+
+
+def _is_sunder(name):
+    """Returns True if a _sunder_ name, False otherwise."""
+    return (len(name) > 2 and
+            name[0] == name[-1] == '_' and
+            name[1:2] != '_' and
+            name[-2:-1] != '_')
+
+class StringIfsTestCase(unittest.TestCase):
+    def setUp(self) -> None:
+        pyjion.enable()
+        pyjion.enable_pgc()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+        pyjion.disable_pgc()
+        gc.collect()
+
+    def test_sunder(self):
+        self.assertTrue(_is_sunder("_hello_"))
+        self.assertFalse(_is_sunder("helloooo!!_"))
+        self.assertTrue(_is_sunder("_hello_"))
+        self.assertFalse(_is_sunder("helloooo!!_"))
+
+    def test_dunder(self):
+        self.assertTrue(_is_dunder("__hello__"))
+        self.assertFalse(_is_dunder("_hello_"))
+        self.assertTrue(_is_dunder("__hello__"))
+        self.assertFalse(_is_dunder("_hello_"))
+
+
 if __name__ == "__main__":
     unittest.main()

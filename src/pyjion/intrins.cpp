@@ -2594,3 +2594,58 @@ void PyJit_TraceFrameException(PyFrameObject* f){
 PyObject* PyJit_GetListItemReversed(PyObject* list, size_t index){
     return PyList_GET_ITEM(list, PyList_GET_SIZE(list) - index - 1);
 }
+
+double PyJit_LongTrueDivide(long long x, long long y){
+    if (y == 0){
+        PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
+        return INFINITY;
+    }
+    return (double)x / (double)y;
+}
+
+long long PyJit_LongFloorDivide(long long x, long long y) {
+    if (y == 0){
+        PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
+        return MAXLONG;
+    }
+    // C++ handles -ve divisors weirdly, use normal long division for +ve
+    if (0 < (x^y)){
+        return x / y;
+    } else {
+        lldiv_t res = lldiv(x,y);
+        return (res.rem)? res.quot-1 : res.quot;
+    }
+}
+
+long long PyJit_LongMod(long long x, long long y) {
+    if (y == 0){
+        PyErr_SetString(PyExc_ZeroDivisionError, "Divide by zero");
+        return MAXLONG;
+    }
+    // C++ handles -ve divisors weirdly, use normal long division for +ve
+    if (0 < (x^y)){
+        return x % y;
+    } else {
+        return (y + (x%y)) % y;
+    }
+}
+
+long long PyJit_LongPow(long long base, long long exp) {
+    long long result = 1;
+    for (;;)
+    {
+        if (exp & 1) result *= base;
+        exp >>= 1;
+        if (!exp) break;
+        base *= base;
+    }
+    return result;
+}
+
+void PyJit_PgcGuardException(PyObject* obj, const char* expected) {
+    PyErr_Format(PyExc_ValueError,
+                 "Pyjion PGC expected %s, but %s is a %s.",
+                 expected,
+                 PyUnicode_AsUTF8(PyObject_Repr(obj)),
+                 obj->ob_type->tp_name);
+}

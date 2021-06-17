@@ -44,6 +44,10 @@ bool supportsUnboxing(py_opcode opcode){
         case BINARY_TRUE_DIVIDE:
         case INPLACE_SUBTRACT:
         case BINARY_SUBTRACT:
+        case LOAD_CONST:
+        case STORE_FAST:
+        case LOAD_FAST:
+        case DELETE_FAST:
             return true;
         default:
             return false;
@@ -53,6 +57,10 @@ bool supportsUnboxing(py_opcode opcode){
 bool supportsEscaping(AbstractValueKind kind){
     switch (kind){
         case AVK_Float:
+            return true;
+        case AVK_Integer:
+            return true;
+        case AVK_Bool:
             return true;
         default:
             return false;

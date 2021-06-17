@@ -30,6 +30,7 @@
 #include <opcode.h>
 #include <unordered_map>
 #include "cowvector.h"
+#include "types.h"
 
 class AbstractValue;
 struct AbstractValueWithSources;
@@ -61,7 +62,9 @@ enum AbstractValueKind {
     AVK_File,
     AVK_Type,
     AVK_Module,
-    AVK_Method
+    AVK_Method,
+    AVK_BigInteger,
+    AVK_RangeIterator
 };
 
 static bool isKnownType(AbstractValueKind kind) {
@@ -75,13 +78,13 @@ static bool isKnownType(AbstractValueKind kind) {
 }
 
 class AbstractSource {
-    vector<pair<size_t, size_t>> _consumers;
+    vector<pair<py_opindex, size_t>> _consumers;
     bool single_use = false;
-    size_t _producer;
+    py_opindex _producer;
 public:
     shared_ptr<AbstractSources> Sources;
 
-    explicit AbstractSource(size_t producer);
+    explicit AbstractSource(py_opindex producer);
 
     virtual bool hasConstValue() { return false; }
 
@@ -95,34 +98,34 @@ public:
         return "unknown source";
     }
 
-    void addConsumer(size_t opcode, size_t position){
-        _consumers.push_back({opcode, position});
+    void addConsumer(py_opindex index, size_t position){
+        _consumers.emplace_back(index, position);
     }
 
-    ssize_t isConsumedBy(size_t idx){
-        for (size_t i = 0 ; i < _consumers.size(); i++){
-            if (_consumers[i].first == idx)
-                return _consumers[i].second;
+    ssize_t isConsumedBy(py_opindex idx){
+        for (auto & _consumer : _consumers){
+            if (_consumer.first == idx)
+                return _consumer.second;
         };
         return -1;
     }
 
     bool markForSingleUse(){
-        if (_consumers.size() == 1 || _consumers.size() == 0){
+        if (_consumers.size() == 1 || _consumers.empty()){
             single_use = true;
         }
         return single_use;
     }
 
-    bool singleUse() {
+    bool singleUse() const {
         return single_use;
     }
 
-    size_t producer(){
+    py_opindex producer() const{
         return _producer;
     }
 
-    void setProducer(size_t i){
+    void setProducer(py_opindex i){
         _producer = i;
     }
 
@@ -138,12 +141,14 @@ struct AbstractSources {
 };
 
 class ConstSource : public AbstractSource {
+    PyObject* value;
     Py_hash_t hash;
     bool hasHashValueSet = false;
     bool hasNumericValueSet = false;
     Py_ssize_t numericValue = -1;
 public:
-    explicit ConstSource(PyObject* value, size_t producer): AbstractSource(producer) {
+    explicit ConstSource(PyObject* value, py_opindex producer): AbstractSource(producer) {
+        this->value = value;
         this->hash = PyObject_Hash(value);
         if (PyErr_Occurred()){
             PyErr_Clear();
@@ -161,6 +166,8 @@ public:
         }
     }
 
+    PyObject* getValue() { return value; }
+
     bool hasConstValue() override { return true; }
 
     bool hasHashValue() const { return hasHashValueSet; }
@@ -174,7 +181,7 @@ public:
     }
 
     const char* describe() override {
-        return "Source: Const";
+        return "Const";
     }
 };
 
@@ -182,13 +189,13 @@ class GlobalSource : public AbstractSource {
     const char* _name;
     PyObject* _value;
 public:
-    explicit GlobalSource(const char* name, PyObject* value, size_t producer) : AbstractSource(producer) {
+    explicit GlobalSource(const char* name, PyObject* value, py_opindex producer) : AbstractSource(producer) {
         _name = name;
         _value = value;
     }
 
     const char* describe() override {
-        return "Source: Global";
+        return "Global";
     }
 
     const char* getName() {
@@ -200,13 +207,13 @@ class BuiltinSource : public AbstractSource {
     const char* _name;
     PyObject* _value;
 public:
-    explicit BuiltinSource(const char* name, PyObject* value, size_t producer) : AbstractSource(producer)  {
+    explicit BuiltinSource(const char* name, PyObject* value, py_opindex producer) : AbstractSource(producer)  {
         _name = name;
         _value = value;
     };
 
     const char* describe() override {
-        return "Source: Builtin";
+        return "Builtin";
     }
 
     bool isBuiltin() override {
@@ -224,19 +231,19 @@ public:
 
 class LocalSource : public AbstractSource {
 public:
-    explicit LocalSource(size_t producer): AbstractSource(producer) { } ;
+    explicit LocalSource(py_opindex producer): AbstractSource(producer) { } ;
 
     const char* describe() override {
-        return "Source: Local";
+        return "Local";
     }
 };
 
 class IntermediateSource : public AbstractSource {
 public:
-    explicit IntermediateSource(size_t producer): AbstractSource(producer) { } ;
+    explicit IntermediateSource(py_opindex producer): AbstractSource(producer) { } ;
 
     const char* describe() override {
-        return "Source: Intermediate";
+        return "Intermediate";
     }
 
     bool isIntermediate() override {
@@ -247,12 +254,12 @@ public:
 class IteratorSource : public AbstractSource {
     AbstractValueKind _kind;
 public:
-    IteratorSource(AbstractValueKind iterableKind, size_t producer) : AbstractSource(producer){
+    IteratorSource(AbstractValueKind iterableKind, py_opindex producer) : AbstractSource(producer){
         _kind = iterableKind;
     }
 
     const char* describe() override {
-        return "Source: Iterator";
+        return "Iterator";
     }
 
     AbstractValueKind kind() { return _kind; }
@@ -261,12 +268,12 @@ public:
 class MethodSource : public AbstractSource {
     const char* _name = "";
 public:
-    explicit MethodSource(const char* name, size_t producer) : AbstractSource(producer){
+    explicit MethodSource(const char* name, py_opindex producer) : AbstractSource(producer){
         _name = name;
     }
 
     const char* describe() override {
-        return "Source: Method";
+        return "Method";
     }
 
     const char* name() {
@@ -419,6 +426,17 @@ class InternIntegerValue : public IntegerValue {
 
 public:
     InternIntegerValue() = default;
+};
+
+class BigIntegerValue : public IntegerValue {
+public:
+    BigIntegerValue() = default;
+    AbstractValueKind kind() override {
+        return AVK_BigInteger;
+    }
+    const char * describe() override{
+        return "big int";
+    }
 };
 
 class StringValue : public AbstractValue {
@@ -597,6 +615,7 @@ extern AnyValue Any;
 extern BoolValue Bool;
 extern IntegerValue Integer;
 extern InternIntegerValue InternInteger;
+extern BigIntegerValue BigInteger;
 extern FloatValue Float;
 extern ListValue List;
 extern TupleValue Tuple;

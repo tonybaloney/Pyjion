@@ -10,12 +10,13 @@ option(CODE_COVERAGE "Enable coverage reporting" OFF)
 
 add_definitions(-DDEFAULT_RECURSION_LIMIT=1000)
 add_definitions(-DDEFAULT_CODEOBJECT_SIZE_LIMIT=10000)
-
+option(COMPILER_DEBUG "Emit debug messages in the compiler" OFF)
 option(BUILD_TESTS "Build the unit tests" OFF)
 option(GENERATE_PROFILE "Enable Profile Generation" OFF)
 option(DUMP_JIT_TRACES "Dump .net JIT traces on compilation" OFF)
 option(DUMP_INSTRUCTION_GRAPHS "Dump .dot graphs" OFF)
-
+option(REPORT_CLR_FAULTS "Report .NET CLR faults" OFF)
+option(DUMP_SEQUENCE_POINTS "Dump IL and native sequence points after compiling" OFF)
 include(eng/CMakeOptimizations.txt)
 include(eng/CMakeProfiling.txt)
 
@@ -47,11 +48,12 @@ set (CLR_DIR CoreCLR/src/coreclr)
 
 add_definitions(-DUSE_STL)
 
-IF(CMAKE_BUILD_TYPE MATCHES Debug)
+IF(CMAKE_BUILD_TYPE MATCHES Debug OR COMPILER_DEBUG)
     message(STATUS "Enabling verbose messages")
     add_definitions(-DDEBUG)
     set(BUILD_TESTS ON)
-ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
+    set(REPORT_CLR_FAULTS ON)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Debug OR COMPILER_DEBUG)
 
 IF(CMAKE_BUILD_TYPE MATCHES Release)
     add_definitions(-DNDEBUG)
@@ -64,6 +66,14 @@ endif()
 if(DUMP_INSTRUCTION_GRAPHS)
     message(STATUS "Enabling instruction graph dumps")
     add_definitions(-DDUMP_INSTRUCTION_GRAPHS)
+endif()
+if(DUMP_SEQUENCE_POINTS)
+    message(STATUS "Enabling sequence point IL dumps")
+    add_definitions(-DDUMP_SEQUENCE_POINTS)
+endif()
+if(REPORT_CLR_FAULTS)
+    message(STATUS "Enabling CLR fault reporting")
+    add_definitions(-DREPORT_CLR_FAULTS)
 endif()
 if(NOT WIN32)
     set(CMAKE_CXX_STANDARD 17)
@@ -183,7 +193,7 @@ if(NET_SRC_LIB)  # use the libraries compiled from source
 
 endif()
 
-set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/block.cpp src/pyjion/codemodel.cpp src/pyjion/binarycomp.cpp src/pyjion/instructions.cpp src/pyjion/unboxing.cpp)
+set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/codemodel.cpp src/pyjion/binarycomp.cpp src/pyjion/instructions.cpp src/pyjion/unboxing.cpp)
 
 if (WIN32)
     enable_language(ASM_MASM)
@@ -224,7 +234,7 @@ endif()
 if (BUILD_TESTS)
     # Testing
     add_subdirectory(Tests/Catch)
-    set(TEST_SOURCES Tests/testing_util.cpp Tests/test_basics.cpp Tests/test_compiler.cpp Tests/test_absint.cpp Tests/Tests.cpp Tests/test_wrappers.cpp Tests/test_exceptions.cpp Tests/test_scopes.cpp Tests/test_tracing.cpp Tests/test_inference.cpp Tests/test_math.cpp Tests/test_pgc.cpp Tests/test_unpack.cpp Tests/test_class.cpp Tests/test_coro.cpp)
+    set(TEST_SOURCES Tests/testing_util.cpp Tests/test_basics.cpp Tests/test_compiler.cpp Tests/test_absint.cpp Tests/Tests.cpp Tests/test_wrappers.cpp Tests/test_exceptions.cpp Tests/test_scopes.cpp Tests/test_tracing.cpp Tests/test_inference.cpp Tests/test_math.cpp Tests/test_pgc.cpp Tests/test_unpack.cpp Tests/test_class.cpp Tests/test_coro.cpp Tests/test_graph.cpp)
     add_executable(unit_tests ${TEST_SOURCES} $<TARGET_OBJECTS:pyjionlib>)
     if (NOT WIN32)
         set_property(TARGET unit_tests PROPERTY CXX_STANDARD 17)
@@ -237,6 +247,7 @@ if (BUILD_TESTS)
     if (NOT WIN32)
         target_link_libraries(unit_tests ${DOTNETPATH}/${CLR_JIT_LIB})
     endif()
+    include(CTest)
 endif(BUILD_TESTS)
 
 # Code Coverage Configuration

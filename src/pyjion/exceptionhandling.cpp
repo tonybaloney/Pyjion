@@ -42,7 +42,7 @@ ExceptionHandler* ExceptionHandlerManager::SetRootHandler(Label handlerLabel, Ex
 
 ExceptionHandler * ExceptionHandlerManager::AddSetupFinallyHandler(Label handlerLabel, ValueStack stack,
                                                                    ExceptionHandler *currentHandler, ExceptionVars vars,
-                                                                   unsigned long handlerIndex) {
+                                                                   py_opindex handlerIndex) {
     auto newHandler = new ExceptionHandler(
             m_exceptionHandlers.size(),
             vars,
@@ -66,11 +66,11 @@ bool ExceptionHandlerManager::Empty() {
     return m_exceptionHandlers.empty();
 }
 
-bool ExceptionHandlerManager::IsHandlerAtOffset(size_t offset) {
+bool ExceptionHandlerManager::IsHandlerAtOffset(py_opindex offset) {
     return m_handlerIndexes.find(offset) != m_handlerIndexes.end();
 }
 
-ExceptionHandler* ExceptionHandlerManager::HandlerAtOffset(size_t offset) {
+ExceptionHandler* ExceptionHandlerManager::HandlerAtOffset(py_opindex offset) {
     return m_handlerIndexes.find(offset)->second;
 }
 

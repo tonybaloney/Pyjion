@@ -95,17 +95,6 @@ void PythonCompiler::load_tstate() {
     m_il.ld_arg(2);
 }
 
-void PythonCompiler::emit_load_frame_locals(){
-    for (size_t i = 0 ; i < this->m_code->co_nlocals; i++){
-        m_frameLocals[i] = m_il.define_local_no_cache(Parameter(CORINFO_TYPE_NATIVEINT));
-        load_frame();
-        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + i * sizeof(size_t));
-        m_il.add();
-        m_il.ld_ind_i();
-        m_il.st_loc(m_frameLocals[i]);
-    }
-}
-
 void PythonCompiler::emit_push_frame() {
     if (OPT_ENABLED(inlineFramePushPop)) {
         load_tstate();
@@ -538,7 +527,7 @@ void PythonCompiler::emit_load_fast(size_t local) {
 CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
     switch (kind) {
         case LK_Float: return CORINFO_TYPE_DOUBLE;
-        case LK_Int: return CORINFO_TYPE_INT;
+        case LK_Int: return CORINFO_TYPE_LONG;
         case LK_Bool: return CORINFO_TYPE_BOOL;
         case LK_Pointer: return CORINFO_TYPE_PTR;
         case LK_NativeInt: return CORINFO_TYPE_NATIVEINT;
@@ -1067,7 +1056,7 @@ void PythonCompiler::emit_delete_fast(size_t index) {
 
 void PythonCompiler::emit_new_tuple(size_t size) {
     if (size == 0) {
-        m_il.ld_i(PyTuple_New(0));
+        emit_ptr(g_emptyTuple);
         m_il.dup();
         // incref 0-tuple so it never gets freed
         emit_incref();
@@ -1420,6 +1409,8 @@ Local PythonCompiler::emit_define_local(AbstractValueKind kind) {
             return m_il.define_local(Parameter(CORINFO_TYPE_INT));
         case AVK_Float:
             return m_il.define_local(Parameter(CORINFO_TYPE_DOUBLE));
+        case AVK_Integer:
+            return m_il.define_local(Parameter(CORINFO_TYPE_LONG));
         default:
             return m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     }
@@ -1849,7 +1840,7 @@ void PythonCompiler::emit_debug_pyobject() {
     m_il.emit_call(METHOD_DEBUG_PYOBJECT);
 }
 
-void PythonCompiler::emit_binary_float(uint16_t opcode) {
+LocalKind PythonCompiler::emit_binary_float(uint16_t opcode) {
     switch (opcode) {
         case BINARY_ADD:
         case INPLACE_ADD:
@@ -1881,6 +1872,40 @@ void PythonCompiler::emit_binary_float(uint16_t opcode) {
             m_il.emit_call(METHOD_FLOAT_FLOOR_TOKEN);
             break;
     }
+    return LK_Float;
+}
+LocalKind PythonCompiler::emit_binary_int(uint16_t opcode) {
+    switch (opcode) {
+        case BINARY_ADD:
+        case INPLACE_ADD:
+            m_il.add();
+            return LK_Int;
+        case INPLACE_TRUE_DIVIDE:
+        case BINARY_TRUE_DIVIDE:
+            m_il.emit_call(METHOD_INT_TRUE_DIVIDE);
+            return LK_Float;
+        case INPLACE_MODULO:
+        case BINARY_MODULO:
+            m_il.emit_call(METHOD_INT_MOD);
+            return LK_Int;
+        case INPLACE_MULTIPLY:
+        case BINARY_MULTIPLY:
+            m_il.mul();
+            return LK_Int;
+        case INPLACE_SUBTRACT:
+        case BINARY_SUBTRACT:
+            m_il.sub();
+            return LK_Int;
+        case BINARY_POWER:
+        case INPLACE_POWER:
+            m_il.emit_call(METHOD_INT_POWER);
+            return LK_Int;
+        case BINARY_FLOOR_DIVIDE:
+        case INPLACE_FLOOR_DIVIDE:
+            m_il.emit_call(METHOD_INT_FLOOR_DIVIDE);
+            return LK_Int;
+    }
+    return LK_Int;
 }
 
 void PythonCompiler::emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) {
@@ -1935,23 +1960,6 @@ void PythonCompiler::emit_not_in() {
     m_il.emit_call(METHOD_NOTCONTAINS_TOKEN);
 }
 
-void PythonCompiler::emit_compare_tagged_int(uint16_t compareType) {
-    switch (compareType) {
-        case Py_EQ:
-            m_il.emit_call(METHOD_EQUALS_INT_TOKEN); break;
-        case Py_LT:
-            m_il.emit_call(METHOD_LESS_THAN_INT_TOKEN); break;
-        case Py_LE:
-            m_il.emit_call(METHOD_LESS_THAN_EQUALS_INT_TOKEN); break;
-        case Py_NE:
-            m_il.emit_call(METHOD_NOT_EQUALS_INT_TOKEN); break;
-        case Py_GT:
-            m_il.emit_call(METHOD_GREATER_THAN_INT_TOKEN); break;
-        case Py_GE:
-            m_il.emit_call(METHOD_GREATER_THAN_EQUALS_INT_TOKEN); break;
-    }
-}
-
 void PythonCompiler::emit_compare_object(uint16_t compareType) {
     m_il.ld_i4(compareType);
     m_il.emit_call(METHOD_RICHCMP_TOKEN);
@@ -1986,6 +1994,31 @@ void PythonCompiler::emit_compare_floats(uint16_t compareType) {
             break;
         case Py_LE:
             m_il.compare_le_float();
+            break;
+        case Py_LT:
+            m_il.compare_lt();
+            break;
+        case Py_GT:
+            m_il.compare_gt();
+            break;
+        default:
+            assert(false);
+    };
+}
+
+void PythonCompiler::emit_compare_ints(uint16_t compareType) {
+    switch (compareType){
+        case Py_EQ:
+            m_il.compare_eq();
+            break;
+        case Py_NE:
+            m_il.compare_ne();
+            break;
+        case Py_GE:
+            m_il.compare_ge();
+            break;
+        case Py_LE:
+            m_il.compare_le();
             break;
         case Py_LT:
             m_il.compare_lt();
@@ -2224,24 +2257,58 @@ void PythonCompiler::emit_box(AbstractValue* value) {
         case AVK_Bool:
             m_il.emit_call(METHOD_BOOL_FROM_LONG);
             break;
+        case AVK_Integer:
+            m_il.emit_call(METHOD_PYLONG_FROM_LONGLONG);
+            break;
     }
 };
-void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources lhs, AbstractValueWithSources rhs){
-    assert(supportsEscaping(lhs.Value->kind()) && supportsEscaping(rhs.Value->kind()));
-    switch(lhs.Value->kind()){
-        case AVK_Float:
-            return emit_compare_floats(compareType);
+void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWithSources left, AbstractValueWithSources right){
+#ifdef DEBUG
+    assert(supportsEscaping(left.Value->kind()) && supportsEscaping(right.Value->kind()));
+#endif
+    AbstractValueKind leftKind = left.Value->kind();
+    AbstractValueKind rightKind = right.Value->kind();
+
+    // Treat bools as integers
+    if (leftKind == AVK_Bool)
+        leftKind = AVK_Integer;
+    if (rightKind == AVK_Bool)
+        rightKind = AVK_Integer;
+
+    if (leftKind == AVK_Float && rightKind == AVK_Float){
+        return emit_compare_floats(compareType);
+    } else if (leftKind == AVK_Integer && rightKind == AVK_Integer){
+        return emit_compare_ints(compareType);
+    } else if (leftKind == AVK_Integer && rightKind == AVK_Float) {
+        Local right_l = emit_define_local(LK_Float);
+        emit_store_local(right_l);
+        m_il.conv_r8();
+        emit_load_and_free_local(right_l);
+        return emit_compare_floats(compareType);
+    } else if (leftKind == AVK_Float && rightKind == AVK_Integer) {
+        m_il.conv_r8();
+        return emit_compare_floats(compareType);
+    } else {
+        assert(false);
     }
 }
-void PythonCompiler::emit_unbox(AbstractValue* value) {
+
+void PythonCompiler::emit_guard_exception(const char* expected){
+    m_il.ld_i((void*)expected);
+    m_il.emit_call(METHOD_PGC_GUARD_EXCEPTION);
+}
+
+void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
+#ifdef DEBUG
     assert(supportsEscaping(value->kind()));
-    switch(value->kind()){
-        case AVK_Float:
+#endif
+    switch(value->kind()) {
+        case AVK_Float: {
             Local lcl = emit_define_local(LK_Pointer);
             Label guard_pass = emit_define_label();
             Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard() || true){
+            if (value->needsGuard()) {
                 emit_load_local(lcl);
                 LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyFloat_Type);
@@ -2249,20 +2316,93 @@ void PythonCompiler::emit_unbox(AbstractValue* value) {
             }
 
             emit_load_local(lcl);
-            decref();
-            emit_load_and_free_local(lcl);
             m_il.ld_i(offsetof(PyFloatObject, ob_fval));
             m_il.add();
             m_il.ld_ind_r8();
+            emit_load_local(lcl);
+            decref();
 
-            if (value->needsGuard() || true){
+            if (value->needsGuard()) {
                 emit_branch(BranchAlways, guard_pass);
-                    emit_mark_label(guard_fail);
-                    emit_nan();
-                    emit_pyerr_setstring(PyExc_ValueError, "Failed PGC Guard on unboxing");
+                emit_mark_label(guard_fail);
+                emit_int(1);
+                emit_store_local(success);
+                emit_load_local(lcl);
+                emit_guard_exception("float");
+                emit_nan(); // keep the stack effect equivalent, this value is never used.
                 emit_mark_label(guard_pass);
             }
+            emit_free_local(lcl);
             break;
+        }
+        case AVK_Integer: {
+            Local lcl = emit_define_local(LK_Pointer);
+            Label guard_pass = emit_define_label();
+            Label guard_fail = emit_define_label();
+            emit_store_local(lcl);
+            if (value->needsGuard()) {
+                emit_load_local(lcl);
+                LD_FIELDI(PyObject, ob_type);
+                emit_ptr(&PyLong_Type);
+                emit_branch(BranchNotEqual, guard_fail);
+            }
+
+            emit_load_local(lcl);
+            m_il.emit_call(METHOD_PYLONG_AS_LONGLONG);
+            emit_load_local(lcl);
+            decref();
+
+            if (value->needsGuard()) {
+                emit_branch(BranchAlways, guard_pass);
+                emit_mark_label(guard_fail);
+                emit_int(1);
+                emit_store_local(success);
+                emit_load_local(lcl);
+                emit_guard_exception("int");
+                emit_nan_long(); // keep the stack effect equivalent, this value is never used.
+                emit_mark_label(guard_pass);
+            }
+            emit_free_local(lcl);
+            break;
+        }
+        case AVK_Bool: {
+            Local lcl = emit_define_local(LK_Pointer);
+            Label guard_pass = emit_define_label();
+            Label guard_fail = emit_define_label();
+            emit_store_local(lcl);
+            if (value->needsGuard()) {
+                emit_load_local(lcl);
+                LD_FIELDI(PyObject, ob_type);
+                emit_ptr(&PyBool_Type);
+                emit_branch(BranchNotEqual, guard_fail);
+            }
+
+            Label isFalse = emit_define_label();
+            Label decref_out = emit_define_label();
+            emit_load_local(lcl);
+            emit_ptr(Py_True);
+            emit_branch(BranchNotEqual, isFalse);
+            emit_int(1);
+            emit_branch(BranchAlways, decref_out);
+            emit_mark_label(isFalse);
+            emit_int(0);
+            emit_mark_label(decref_out);
+            emit_load_local(lcl);
+            decref();
+
+            if (value->needsGuard()) {
+                emit_branch(BranchAlways, guard_pass);
+                emit_mark_label(guard_fail);
+                emit_int(1);
+                emit_store_local(success);
+                emit_load_local(lcl);
+                emit_guard_exception("bool");
+                emit_int(1); // keep the stack effect equivalent, this value is never used.
+                emit_mark_label(guard_pass);
+            }
+            emit_free_local(lcl);
+            break;
+        }
     }
 };
 
@@ -2274,22 +2414,24 @@ void PythonCompiler::emit_nan() {
     m_il.ld_r8(NAN);
 }
 
-void PythonCompiler::emit_escape_edges(EdgeMap edges){
-    // If none of the edges need escaping, skip
-    bool needsEscapes = false;
-    for (size_t i = 0; i < edges.size(); i++){
-        if (edges[i].escaped == Unbox || edges[i].escaped == Box)
-            needsEscapes = true;
-    }
-    if (!needsEscapes)
-        return;
+void PythonCompiler::emit_infinity_long() {
+    m_il.ld_i8(MAXLONG);
+}
+
+void PythonCompiler::emit_nan_long() {
+    m_il.ld_i8(MAXLONG);
+}
+
+void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
+    emit_int(0);
+    emit_store_local(success); // Will get set to 1 on unbox failures.
 
     // Push the values onto temporary locals, box/unbox them then push
     // them back onto the stack in the same order
     vector<Local> stack = vector<Local>(edges.size());
+
     for (size_t i = 0; i < stack.size(); i++){
         if (edges[i].escaped == Unboxed || edges[i].escaped == Box){
-            // IF
             stack[i] = emit_define_local(edges[i].value->kind());
         } else {
             stack[i] = emit_define_local(LK_Pointer);
@@ -2301,7 +2443,7 @@ void PythonCompiler::emit_escape_edges(EdgeMap edges){
         emit_load_and_free_local(stack[i-1]);
         switch(edges[i-1].escaped){
             case Unbox:
-                emit_unbox(edges[i-1].value);
+                emit_unbox(edges[i-1].value, success);
                 break;
             case Box:
                 emit_box(edges[i-1].value);
@@ -2311,6 +2453,8 @@ void PythonCompiler::emit_escape_edges(EdgeMap edges){
         }
     }
 }
+
+
 /************************************************************************
 * End Compiler interface implementation
 */
@@ -2511,10 +2655,17 @@ GLOBAL_METHOD(METHOD_ISNOT_BOOL, &PyJit_IsNot_Bool, CORINFO_TYPE_INT, Parameter(
 
 GLOBAL_METHOD(METHOD_FLOAT_POWER_TOKEN, static_cast<double(*)(double, double)>(pow), CORINFO_TYPE_DOUBLE, Parameter(CORINFO_TYPE_DOUBLE), Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_FLOAT_FLOOR_TOKEN, static_cast<double(*)(double)>(floor), CORINFO_TYPE_DOUBLE, Parameter(CORINFO_TYPE_DOUBLE));
+GLOBAL_METHOD(METHOD_INT_POWER, PyJit_LongPow, CORINFO_TYPE_LONG, Parameter(CORINFO_TYPE_LONG), Parameter(CORINFO_TYPE_LONG));
+GLOBAL_METHOD(METHOD_INT_FLOOR_DIVIDE, PyJit_LongFloorDivide, CORINFO_TYPE_LONG, Parameter(CORINFO_TYPE_LONG), Parameter(CORINFO_TYPE_LONG));
+GLOBAL_METHOD(METHOD_INT_TRUE_DIVIDE, PyJit_LongTrueDivide, CORINFO_TYPE_DOUBLE, Parameter(CORINFO_TYPE_LONG), Parameter(CORINFO_TYPE_LONG));
+GLOBAL_METHOD(METHOD_INT_MOD, PyJit_LongMod, CORINFO_TYPE_LONG, Parameter(CORINFO_TYPE_LONG), Parameter(CORINFO_TYPE_LONG));
+
 GLOBAL_METHOD(METHOD_FLOAT_MODULUS_TOKEN, static_cast<double(*)(double, double)>(fmod), CORINFO_TYPE_DOUBLE, Parameter(CORINFO_TYPE_DOUBLE), Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_FLOAT_FROM_DOUBLE, PyFloat_FromDouble, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_DOUBLE));
 GLOBAL_METHOD(METHOD_BOOL_FROM_LONG, PyBool_FromLong, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_NUMBER_AS_SSIZET, PyNumber_AsSsize_t, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_PYLONG_AS_LONGLONG, PyLong_AsLongLong, CORINFO_TYPE_LONG, Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_PYLONG_FROM_LONGLONG, PyLong_FromLongLong, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_LONG));
 
 GLOBAL_METHOD(METHOD_PYERR_SETSTRING, PyErr_SetString, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
@@ -2556,6 +2707,7 @@ GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, P
 GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );
 
 GLOBAL_METHOD(METHOD_PGC_PROBE, &capturePgcStackValue, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
+GLOBAL_METHOD(METHOD_PGC_GUARD_EXCEPTION, &PyJit_PgcGuardException, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SEQUENCE_AS_LIST, &PySequence_List, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_LIST_ITEM_FROM_BACK, &PyJit_GetListItemReversed, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 

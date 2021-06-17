@@ -26,8 +26,6 @@
 #ifndef PYJION_CODEMODEL_H
 #define PYJION_CODEMODEL_H
 
-#define FEATURE_NO_HOST
-
 #include <stdint.h>
 #include <windows.h>
 #include <wchar.h>
@@ -173,7 +171,7 @@ public:
     }
 
     unsigned int getSequencePointCount() override {
-        return m_sequencePoints.size();
+        return static_cast<unsigned int>(m_sequencePoints.size());
     }
 
     uint32_t * getSequencePointOffsets() override {

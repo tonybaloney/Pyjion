@@ -51,35 +51,46 @@ enum EscapeTransition {
 };
 
 struct Instruction {
-    size_t index;
+    py_opindex index;
     py_opcode opcode;
     py_oparg oparg;
-    bool escape;
+    bool escape = false;
+    bool deoptimized = false;
 };
 
 struct Edge {
-    ssize_t from;
-    size_t to;
+    py_opindex from;
+    py_opindex to;
     const char* label;
     AbstractValue* value;
     AbstractSource* source;
     EscapeTransition escaped;
     AbstractValueKind kind;
-    size_t position;
+    py_opindex position;
 };
 
-typedef unordered_map<size_t, Edge> EdgeMap;
+typedef unordered_map<py_opindex, Edge> EdgeMap;
 
 class InstructionGraph {
 private:
-    unordered_map<size_t, Instruction> instructions;
+    PyCodeObject * code;
+    bool invalid = false;
+    unordered_map<py_opindex, Instruction> instructions;
+    unordered_map<py_oparg, AbstractValueKind> unboxedFastLocals ;
     vector<Edge> edges;
+    void fixEdges();
+    void fixInstructions();
+    void deoptimizeInstructions();
+    void fixLocals(py_oparg startIdx, py_oparg endIdx);
 public:
-    InstructionGraph(PyCodeObject* code, unordered_map<size_t, const InterpreterStack*> stacks) ;
-    Instruction & operator [](size_t i) {return instructions[i];}
+    InstructionGraph(PyCodeObject* code, unordered_map<py_opindex, const InterpreterStack*> stacks) ;
+    Instruction & operator [](py_opindex i) {return instructions[i];}
     size_t size() {return instructions.size();}
     void printGraph(const char* name) ;
-    EdgeMap getEdges(size_t i);
+    vector<Edge> getEdges(py_opindex i);
+    vector<Edge> getEdgesFrom(py_opindex i);
+    unordered_map<py_oparg, AbstractValueKind> getUnboxedFastLocals();
+    bool isValid() const;
 };
 
 #endif //PYJION_INSTRUCTIONS_H
