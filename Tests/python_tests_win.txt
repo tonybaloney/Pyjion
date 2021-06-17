@@ -37,7 +37,7 @@ test_asdl_parser
 ##test_asynchat
 # TODO: https://github.com/Microsoft/Pyjion/issues/135
 ##test_asyncio
-test_asyncore
+##test_asyncore
 test_atexit
 test_audioop
 test_audit
