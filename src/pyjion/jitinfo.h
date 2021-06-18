@@ -226,6 +226,10 @@ public:
             pArgs->coldCodeBlock = PyMem_Malloc(pArgs->coldCodeSize);
         if (pArgs->roDataSize>0) // Same as above
             pArgs->roDataBlock = PyMem_Malloc(pArgs->roDataSize);
+
+        pArgs->hotCodeBlockRW = pArgs->hotCodeBlock;
+        pArgs->coldCodeBlockRW = pArgs->coldCodeBlock;
+        pArgs->roDataBlockRW = pArgs->roDataBlock;
     }
 
     bool logMsg(unsigned level, const char* fmt, va_list args) override {
@@ -293,7 +297,6 @@ public:
     // different value than if it was compiling for the host architecture.
     // 
     uint32_t getExpectedTargetArchitecture() override {
-        //printf("getExpectedTargetArchitecture\r\n");
 #ifdef _TARGET_AMD64_
         return IMAGE_FILE_MACHINE_AMD64;
 #elif defined(_TARGET_X86_)
