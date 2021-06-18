@@ -5,6 +5,7 @@
 * Fast locals can store unboxed values
 * Method calls are optimized for known types by asserting the return type, e.g. `str.upper()` returns a string
 * Updated to .NET 6 preview 5
+* Pyjion can be run using `python -m pyjion <command>`, e.g. `python -m pyjion script.py` or `python -m pyjion -m unittest`
 
 ## 1.0.0 (beta1)
 

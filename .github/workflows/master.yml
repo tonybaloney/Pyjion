@@ -85,6 +85,13 @@ jobs:
           pip install ipython
           python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
 
+      - name: Test mod
+        shell: bash
+        run: |
+          python -m pyjion -m calendar
+          python -m pyjion Tests/hello.py
+
+
       - name: Install scikit-build for wheel
         shell: bash
         run: |
@@ -159,6 +166,11 @@ jobs:
         run: |
           pip install -r Tests/requirements_test.txt
           python -X dev -m unittest discover Tests/ -v
+
+      - name: Test mod
+        shell: bash
+        run: |
+          python -m pyjion -m calendar
 
       - name: Run smoke tests
         shell: bash
@@ -264,6 +276,11 @@ jobs:
         run: |
           pip install -r Tests/requirements_test.txt
           python -X dev -m unittest discover Tests/ -v
+
+      - name: Test mod
+        shell: bash
+        run: |
+          python -m pyjion -m calendar
 
       - name: Run smoke tests
         shell: bash
