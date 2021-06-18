@@ -66,4 +66,14 @@ def _which_dotnet():
 
 _which_dotnet()
 
-from ._pyjion import *  # NOQA
+try:
+    from ._pyjion import *  # NOQA
+except ImportError:
+    print(
+"""
+Failed to import the compiled Pyjion module. This normally means something went wrong during pip install
+and the binaries weren't compiled. Make sure you update pip before installing to get the right wheel.
+If that doesn't work, run pip in verbose mode, or file an issue at https://github.com/tonybaloney/pyjion/.
+"""
+    )
+    exit(1)
