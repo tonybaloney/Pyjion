@@ -73,12 +73,6 @@ jobs:
           python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
 
-      - name: Run full test suite
-        shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests.txt -v
-        continue-on-error: true
-        timeout-minutes: 30
-
       - name: Test IPython REPL
         shell: bash
         run: |
@@ -110,6 +104,12 @@ jobs:
         with:
           name: dist
           path: dist
+          
+      - name: Run full test suite
+        shell: bash
+        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests.txt -v
+        continue-on-error: true
+        timeout-minutes: 30
 
   build-macos-11:
     runs-on: macos-11.0
@@ -181,12 +181,6 @@ jobs:
           python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
 
-      - name: Run full test suite
-        shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos11.txt -v
-        continue-on-error: true
-        timeout-minutes: 30
-
       - name: Test IPython REPL
         shell: bash
         run: |
@@ -203,6 +197,11 @@ jobs:
         with:
           name: dist
           path: dist
+      - name: Run full test suite
+        shell: bash
+        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos11.txt -v
+        continue-on-error: true
+        timeout-minutes: 30
 
   build-windows:
     runs-on: windows-latest
