@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
-        dot-net-version: [6.0.100-preview.4.21255.9]
+        dot-net-version: [6.0.100-preview.5.21302.13]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -109,7 +109,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
-        dot-net-version: [ 6.0.100-preview.4.21255.9 ]
+        dot-net-version: [ 6.0.100-preview.5.21302.13 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -197,7 +197,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
-        dot-net-version: [ 6.0.100-preview.4.21255.9 ]
+        dot-net-version: [ 6.0.100-preview.5.21302.13 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -256,7 +256,7 @@ jobs:
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build/Release
         run: |
-          cp c:\Users\runneradmin\AppData\Local\Microsoft\dotnet\shared\Microsoft.NETCore.App\6.0.0-preview.4.21253.7\clrjit.dll .
+          cp c:\Users\runneradmin\AppData\Local\Microsoft\dotnet\shared\Microsoft.NETCore.App\6.0.0-preview.5.21301.5\clrjit.dll .
           .\unit_tests.exe
 
       - name: Run Python tests

@@ -4,6 +4,7 @@
 
 * Fast locals can store unboxed values
 * Method calls are optimized for known types by asserting the return type, e.g. `str.upper()` returns a string
+* Updated to .NET 6 preview 5
 
 ## 1.0.0 (beta1)
 
