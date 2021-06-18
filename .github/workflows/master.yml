@@ -89,6 +89,7 @@ jobs:
         shell: bash
         run: |
           python -m pyjion -m calendar
+          python -m pyjion Tests/hello.py
 
 
       - name: Install scikit-build for wheel
