@@ -30,6 +30,8 @@ You can see some basic stats by running `pyjion.info(f)`, where `f` is the funct
     >>> pyjion.info(half)
     {'failed': False, 'compiled': True, 'run_count': 1}
 
+Disassembly
+-----------
 
 You can see the machine code for the compiled function by disassembling it in the Python REPL.
 Pyjion has essentially compiled your small Python function into a small, standalone application.
@@ -75,3 +77,20 @@ All Python code executed after the JIT is enabled will be compiled into native m
 
     app.run()
 
+
+Instruction Graphs
+------------------
+
+Pyjion can create .dot graphs for any function during the compilation process:
+
+.. code-block:: python
+
+    import pyjion
+    pyjion.enable()
+    pyjion.enable_graphs()
+
+Once this is enabled and functions have been compiled, you can get the graph using the ``get_graph()`` function:
+
+.. code-block:: python
+
+    pyjion.get_graph(f)
