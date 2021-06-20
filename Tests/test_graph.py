@@ -20,6 +20,6 @@ class GraphTestCase(unittest.TestCase):
             b = 2
             return a + b
         f()
-        self.assertNotNone(pyjion.get_graph(f))
+        self.assertIsNotNone(pyjion.get_graph(f))
         f()
-        self.assertNotNone(pyjion.get_graph(f))
+        self.assertIsNotNone(pyjion.get_graph(f))
