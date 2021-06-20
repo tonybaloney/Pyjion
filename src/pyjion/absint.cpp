@@ -2503,10 +2503,10 @@ AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins,
     }
     try {
         auto instructionGraph = buildInstructionGraph();
-#ifdef DUMP_INSTRUCTION_GRAPHS
-        instructionGraph->printGraph(PyUnicode_AsUTF8(mCode->co_name));
-#endif
         auto result = compileWorker(pgc_status, instructionGraph);
+        if (g_pyjionSettings.graph)
+            result.instructionGraph = instructionGraph->makeGraph(PyUnicode_AsUTF8(mCode->co_name));
+
         delete instructionGraph;
         return result;
     } catch (const exception& e){

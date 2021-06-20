@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.0.0 (master)
+
+* Instruction graphs can be enabled with `pyjion.enable_graphs()` and then exported by `pyjion.get_graph(f)`
+
 ## 1.0.0 (beta2)
 
 * Fast locals can store unboxed values

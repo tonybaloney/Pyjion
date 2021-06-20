@@ -271,10 +271,10 @@ void InstructionGraph::fixLocals(py_oparg startIdx, py_oparg endIdx){
     }
 }
 
-void InstructionGraph::printGraph(const char* name) {
-    printf("digraph %s { \n", name);
-    printf("\tnode [shape=box];\n");
-    printf("\tFRAME [label=FRAME];\n");
+PyObject* InstructionGraph::makeGraph(const char* name) {
+    PyObject* g = PyUnicode_FromFormat("digraph %s { \n", name);
+    PyUnicode_AppendAndDel(&g, PyUnicode_FromString("\tnode [shape=box];\n\tFRAME [label=FRAME];\n"));
+
     for (const auto & node: instructions){
         const char* blockColor;
         if (node.second.escape) {
@@ -284,6 +284,7 @@ void InstructionGraph::printGraph(const char* name) {
         } else {
             blockColor = "black";
         }
+        PyObject* op;
         switch(node.second.opcode){
             case LOAD_ATTR:
             case STORE_ATTR:
@@ -297,20 +298,22 @@ void InstructionGraph::printGraph(const char* name) {
             case IMPORT_FROM:
             case IMPORT_NAME:
             case LOAD_METHOD:
-                printf("\tOP%u [label=\"%d %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
+                op = PyUnicode_FromFormat("\tOP%u [label=\"%d %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
                        PyUnicode_AsUTF8(PyTuple_GetItem(this->code->co_names, node.second.oparg)), blockColor);
                 break;
             case LOAD_CONST:
-                printf("\tOP%u [label=\"%d %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
+                op = PyUnicode_FromFormat("\tOP%u [label=\"%d %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
                        PyUnicode_AsUTF8(PyObject_Repr(PyTuple_GetItem(this->code->co_consts, node.second.oparg))), blockColor);
                 break;
             default:
-                printf("\tOP%u [label=\"%d %s (%d)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg, blockColor);
+                op = PyUnicode_FromFormat("\tOP%u [label=\"%d %s (%d)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg, blockColor);
                 break;
         }
+        PyUnicode_AppendAndDel(&g, op);
+
         switch(node.second.opcode){
             case JUMP_FORWARD:
-                printf("\tOP%u -> OP%u [label=\"Jump\" color=yellow];\n", node.second.index, node.second.index + node.second.oparg);
+                PyUnicode_AppendAndDel(&g,PyUnicode_FromFormat("\tOP%u -> OP%u [label=\"Jump\" color=yellow];\n", node.second.index, node.second.index + node.second.oparg));
                 break;
             case JUMP_ABSOLUTE:
             case JUMP_IF_FALSE_OR_POP:
@@ -318,32 +321,33 @@ void InstructionGraph::printGraph(const char* name) {
             case JUMP_IF_NOT_EXC_MATCH:
             case POP_JUMP_IF_TRUE:
             case POP_JUMP_IF_FALSE:
-                printf("\tOP%u -> OP%u [label=\"Jump\" color=yellow];\n", node.second.index, node.second.oparg);
+                PyUnicode_AppendAndDel(&g,PyUnicode_FromFormat("\tOP%u -> OP%u [label=\"Jump\" color=yellow];\n", node.second.index, node.second.oparg));
                 break;
         }
     }
 
     for (const auto & edge: edges){
         if (edge.from == -1) {
-            printf("\tFRAME -> OP%u [label=\"%s (%s)\"];\n", edge.to, edge.label, edge.value->describe());
+            PyUnicode_AppendAndDel(&g,PyUnicode_FromFormat("\tFRAME -> OP%u [label=\"%s (%s)\"];\n", edge.to, edge.label, edge.value->describe()));
         } else {
             switch (edge.escaped) {
                 case NoEscape:
-                    printf("\tOP%u -> OP%u [label=\"%s (%s) -%u\" color=black];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    PyUnicode_AppendAndDel(&g,PyUnicode_FromFormat("\tOP%u -> OP%u [label=\"%s (%s) -%u\" color=black];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position));
                     break;
                 case Unbox:
-                    printf("\tOP%u -> OP%u [label=\"%s (%s) U%u\" color=red];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    PyUnicode_AppendAndDel(&g,PyUnicode_FromFormat("\tOP%u -> OP%u [label=\"%s (%s) U%u\" color=red];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position));
                     break;
                 case Box:
-                    printf("\tOP%u -> OP%u [label=\"%s (%s) B%u\" color=green];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    PyUnicode_AppendAndDel(&g,PyUnicode_FromFormat("\tOP%u -> OP%u [label=\"%s (%s) B%u\" color=green];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position));
                     break;
                 case Unboxed:
-                    printf("\tOP%u -> OP%u [label=\"%s (%s) UN%u\" color=purple];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position);
+                    PyUnicode_AppendAndDel(&g,PyUnicode_FromFormat("\tOP%u -> OP%u [label=\"%s (%s) UN%u\" color=purple];\n", edge.from, edge.to, edge.label, edge.value->describe(), edge.position));
                     break;
             }
         }
     }
-    printf("}\n");
+    PyUnicode_AppendAndDel(&g, PyUnicode_FromString("}\n"));
+    return g;
 }
 
 vector<Edge> InstructionGraph::getEdges(py_opindex idx){
