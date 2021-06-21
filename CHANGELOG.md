@@ -1,8 +1,9 @@
 # Release notes
 
-## 1.0.0 (master)
+## 1.0.0 (beta3)
 
 * Instruction graphs can be enabled with `pyjion.enable_graphs()` and then exported by `pyjion.get_graph(f)`
+* Pyjion will raise an ImportError if .NET is missing instead of a system exit
 
 ## 1.0.0 (beta2)
 
