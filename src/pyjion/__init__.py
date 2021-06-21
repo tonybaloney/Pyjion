@@ -3,16 +3,15 @@ import pathlib
 import os
 import platform
 
-__version__ = '1.0.0b2'
+__version__ = '1.0.0b3'
 
 
 def _no_dotnet(path):
-    print(f"Can't find a .NET 6 installation in {path}, "
-          "provide the DOTNET_ROOT environment variable "
-          "if its installed somewhere unusual")
-    exit(1)
+    raise ImportError(f"Can't find a .NET 6 installation in {path}, "
+                      "provide the DOTNET_ROOT environment variable "
+                      "if its installed somewhere unusual")
 
-# try and locate .Net 5
+# try and locate .NET
 def _which_dotnet():
     _dotnet_root = None
     if 'DOTNET_ROOT' in os.environ:
@@ -69,11 +68,10 @@ _which_dotnet()
 try:
     from ._pyjion import *  # NOQA
 except ImportError:
-    print(
+    raise ImportError(
 """
 Failed to import the compiled Pyjion module. This normally means something went wrong during pip install
 and the binaries weren't compiled. Make sure you update pip before installing to get the right wheel.
 If that doesn't work, run pip in verbose mode, or file an issue at https://github.com/tonybaloney/pyjion/.
 """
     )
-    exit(1)
