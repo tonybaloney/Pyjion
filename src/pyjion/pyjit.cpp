@@ -222,8 +222,12 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
 
     auto res = interp.compile(frame->f_builtins, frame->f_globals, profile, state->j_pgc_status);
     state->j_compile_result = res.result;
+
+    if (g_pyjionSettings.graph && res.instructionGraph != nullptr){
+        state->j_graph = res.instructionGraph;
+    }
+
     if (res.compiledCode == nullptr || res.result != Success) {
-        static int failCount;
         state->j_failed = true;
         return _PyEval_EvalFrameDefault(tstate, frame, 0);
     }
@@ -237,9 +241,6 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_profile = profile;
     state->j_sequencePoints = res.compiledCode->get_sequence_points();
     state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
-    if (g_pyjionSettings.graph){
-        state->j_graph = res.instructionGraph;
-    }
 
 #ifdef DUMP_SEQUENCE_POINTS
     printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
