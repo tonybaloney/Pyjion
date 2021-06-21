@@ -1258,9 +1258,6 @@ void AbstractInterpreter::branchRaise(const char *reason, py_opindex curByte, bo
         }
     }
 
-    if (!ehBlock->IsRootHandler())
-        incExcVars(6);
-
     if (!count || count < 0) {
         // No values on the stack, we can just branch directly to the raise label
         m_comp->emit_branch(BranchAlways, ehBlock->ErrorTarget);
@@ -1527,28 +1524,6 @@ void AbstractInterpreter::escapeEdges(const vector<Edge>& edges, py_opindex curB
     m_comp->emit_mark_label(noError);
 }
 
-void AbstractInterpreter::decExcVars(size_t count){
-    m_comp->emit_dec_local(mExcVarsOnStack, count);
-}
-
-void AbstractInterpreter::incExcVars(size_t count) {
-    m_comp->emit_inc_local(mExcVarsOnStack, count);
-}
-
-void AbstractInterpreter::popExcVars(){
-    auto nothing_to_pop = m_comp->emit_define_label();
-    auto loop = m_comp->emit_define_label();
-
-    m_comp->emit_mark_label(loop);
-    m_comp->emit_load_local(mExcVarsOnStack);
-    m_comp->emit_branch(BranchFalse, nothing_to_pop);
-    m_comp->emit_pop();
-    m_comp->emit_dec_local(mExcVarsOnStack, 1);
-    m_comp->emit_branch(BranchAlways, loop);
-
-    m_comp->emit_mark_label(nothing_to_pop);
-}
-
 void AbstractInterpreter::emitPgcProbes(py_opindex curByte, size_t stackSize) {
     vector<Local> stack;
     stack.resize(stackSize);
@@ -1595,10 +1570,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
     m_comp->emit_push_frame();
 
     auto rootHandlerLabel = m_comp->emit_define_label();
-
-    mExcVarsOnStack = m_comp->emit_define_local(LK_Int);
-    m_comp->emit_int(0);
-    m_comp->emit_store_local(mExcVarsOnStack);
 
     m_comp->emit_init_instr_counter();
 
@@ -2204,7 +2175,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             break;
             case RERAISE:{
                 m_comp->emit_restore_err();
-                decExcVars(3);
                 unwindHandlers();
                 skipEffect = true;
                 break;
@@ -2215,7 +2185,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_comp->pop_top();
                 m_comp->pop_top();
                 decStack(3);
-                decExcVars(3);
                 skipEffect = true;
                 break;
             case POP_BLOCK:
@@ -2433,8 +2402,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             static_cast<size_t>(PyCompile_OpcodeStackEffect(byte, oparg)) == (m_stack.size() - curStackSize));
 #endif
     }
-
-    popExcVars();
 
     // label branch for error handling when we have no EH handlers, (return NULL).
     m_comp->emit_branch(BranchAlways, rootHandlerLabel);
@@ -2791,6 +2758,7 @@ void AbstractInterpreter::jumpAbsolute(py_opindex index, py_opindex from) {
 }
 
 void AbstractInterpreter::jumpIfNotExact(py_opindex opcodeIndex, py_oparg jumpTo) {
+    Label handle = m_comp->emit_define_label();
     if (jumpTo <= opcodeIndex){
         m_comp->emit_pending_calls();
     }
@@ -2798,9 +2766,12 @@ void AbstractInterpreter::jumpIfNotExact(py_opindex opcodeIndex, py_oparg jumpTo
     m_comp->emit_compare_exceptions();
     decStack(2);
     errorCheck("failed to compare exceptions", opcodeIndex);
-    m_comp->emit_ptr(Py_False);
-    m_comp->emit_branch(BranchEqual, target);
+    m_comp->emit_ptr(Py_True);
+    m_comp->emit_branch(BranchEqual, handle);
 
+    // TODO: Handle leftovers.
+    m_comp->emit_branch(BranchAlways, target);
+    m_comp->emit_mark_label(handle);
     m_offsetStack[jumpTo] = ValueStack(m_stack);
 }
 

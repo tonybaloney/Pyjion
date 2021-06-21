@@ -264,10 +264,9 @@ class AbstractInterpreter {
     AbstractValue* mReturnValue;
     // ** Inputs:
     PyCodeObject* mCode;
-    _Py_CODEUNIT *mByteCode;
+    _Py_CODEUNIT *mByteCode; // Used by macros
     size_t mSize;
     Local mErrorCheckLocal;
-    Local mExcVarsOnStack; // Counter of the number of exception variables on the stack.
     bool mTracingEnabled;
     bool mProfilingEnabled;
     Local mTracingInstrLowerBound;
@@ -427,9 +426,6 @@ private:
     void unwindHandlers();
 
     void emitRaise(ExceptionHandler *handler);
-    void popExcVars();
-    void decExcVars(size_t count);
-    void incExcVars(size_t count);
     void updateIntermediateSources();
     void escapeEdges(const vector<Edge>& edges, py_opindex curByte);
 };
