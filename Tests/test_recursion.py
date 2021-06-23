@@ -25,6 +25,18 @@ class RecursionTestCase(unittest.TestCase):
         info = pyjion.info(_f)
         self.assertTrue(info['compiled'])
 
+    def test_recursive_listcomp(self):
+        def _f(t):
+            print("-")
+            if isinstance(t, list):
+                return [_f(e) for e in t]
+            else:
+                return t
+
+        self.assertEqual(_f([[0,2], 2, 3]), [[0, 2], 2, 3])
+        info = pyjion.info(_f)
+        self.assertTrue(info['compiled'])
+
 
 if __name__ == "__main__":
     unittest.main()
