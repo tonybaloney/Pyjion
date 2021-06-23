@@ -121,11 +121,11 @@ struct AbstractLocalInfo {
             };
     }
 
-    bool operator== (AbstractLocalInfo other) {
+    bool operator== (AbstractLocalInfo other) const {
         return other.ValueInfo == ValueInfo &&
             other.IsMaybeUndefined == IsMaybeUndefined;
     }
-    bool operator!= (AbstractLocalInfo other) {
+    bool operator!= (AbstractLocalInfo other) const {
         return other.ValueInfo != ValueInfo ||
             other.IsMaybeUndefined != IsMaybeUndefined;
     }
@@ -425,7 +425,6 @@ private:
 
     void unwindHandlers();
 
-    void emitRaise(ExceptionHandler *handler);
     void updateIntermediateSources();
     void escapeEdges(const vector<Edge>& edges, py_opindex curByte);
 };

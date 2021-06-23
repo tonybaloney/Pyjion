@@ -101,7 +101,8 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
         oparg = GET_OPARG(curByte);
     processOpCode:
         while (!blockStarts.empty() &&
-            opcodeIndex >= blockStarts[blockStarts.size() - 1].BlockEnd) {
+                opcodeIndex >= blockStarts[blockStarts.size() - 1].BlockEnd)
+        {
             auto blockStart = blockStarts.back();
             blockStarts.pop_back();
             m_blockStarts[opcodeIndex] = blockStart.BlockStart;
@@ -135,9 +136,9 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
                     m_assignmentState[oparg] = false;
                 }
                 break;
+            case SETUP_FINALLY:
             case SETUP_WITH:
             case SETUP_ASYNC_WITH:
-            case SETUP_FINALLY:
             case FOR_ITER:
                 blockStarts.emplace_back(opcodeIndex, oparg + curByte + SIZEOF_CODEUNIT);
                 ehKind.push_back(true);
@@ -1494,15 +1495,6 @@ void AbstractInterpreter::raiseOnNegativeOne(py_opindex curByte) {
     m_comp->emit_mark_label(noErr);
 }
 
-void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
-    m_comp->emit_load_local(handler->ExVars.PrevTraceback);
-    m_comp->emit_load_local(handler->ExVars.PrevExcVal);
-    m_comp->emit_load_local(handler->ExVars.PrevExc);
-    m_comp->emit_load_local(handler->ExVars.FinallyTb);
-    m_comp->emit_load_local(handler->ExVars.FinallyValue);
-    m_comp->emit_load_local(handler->ExVars.FinallyExc);
-}
-
 void AbstractInterpreter::escapeEdges(const vector<Edge>& edges, py_opindex curByte) {
     // Check if edges need boxing/unboxing
     // If none of the edges need escaping, skip
@@ -1630,7 +1622,12 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         if (m_exceptionHandler.IsHandlerAtOffset(curByte)){
             ExceptionHandler* handler = m_exceptionHandler.HandlerAtOffset(curByte);
             m_comp->emit_mark_label(handler->ErrorTarget);
-            emitRaise(handler);
+            m_comp->emit_fetch_err(handler->ExVars.FinallyExc,
+                                   handler->ExVars.FinallyValue,
+                                   handler->ExVars.FinallyTb,
+                                   handler->ExVars.PrevExc,
+                                   handler->ExVars.PrevExcVal,
+                                   handler->ExVars.PrevTraceback);
         }
 
         if (!canSkipLastiUpdate(curByte)) {
@@ -2126,11 +2123,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                     case 1: m_comp->emit_null();
                     case 2:
                         decStack(oparg);
-                        // raise exc
-                        m_comp->emit_raise_varargs();
                         // returns 1 if we're doing a re-raise in which case we don't need
                         // to update the traceback.  Otherwise returns 0.
                         auto curHandler = currentHandler();
+                        // raise exc
+                        m_comp->emit_raise_varargs();
                         if (oparg == 0) {
                                 // The stack actually ended up being empty - either because we didn't
                                 // have any values, or the values were all non-objects that we could
@@ -2175,8 +2172,9 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             break;
             case RERAISE:{
                 m_comp->emit_restore_err();
+                //decStack(3);
                 unwindHandlers();
-                skipEffect = true;
+                skipEffect=true;
                 break;
             }
             case POP_EXCEPT:
@@ -2185,7 +2183,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 m_comp->pop_top();
                 m_comp->pop_top();
                 decStack(3);
-                skipEffect = true;
                 break;
             case POP_BLOCK:
                 m_blockStack.pop_back();
@@ -2768,8 +2765,9 @@ void AbstractInterpreter::jumpIfNotExact(py_opindex opcodeIndex, py_oparg jumpTo
     errorCheck("failed to compare exceptions", opcodeIndex);
     m_comp->emit_ptr(Py_True);
     m_comp->emit_branch(BranchEqual, handle);
-
-    // TODO: Handle leftovers.
+    m_comp->emit_pop();
+    m_comp->emit_pop();
+    m_comp->emit_pop();
     m_comp->emit_branch(BranchAlways, target);
     m_comp->emit_mark_label(handle);
     m_offsetStack[jumpTo] = ValueStack(m_stack);
@@ -2816,7 +2814,6 @@ void AbstractInterpreter::popExcept() {
     // we made it to the end of an EH block w/o throwing,
     // clear the exception.
     auto block = m_blockStack.back();
-    assert (block.CurrentHandler);
     unwindEh(block.CurrentHandler, block.CurrentHandler->BackHandler);
 }
 

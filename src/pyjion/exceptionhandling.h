@@ -32,6 +32,7 @@
 #include "ipycomp.h"
 #include "flags.h"
 #include "stack.h"
+#include "absvalue.h"
 
 using namespace std;
 
