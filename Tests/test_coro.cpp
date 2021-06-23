@@ -41,4 +41,19 @@ TEST_CASE("Test simple yield") {
             "  return next(gen), next(gen), next(gen)\n");
         CHECK(t.returns() == "(1, 2, 3)");
     }
+
+    SECTION("test preservation of variables") {
+        auto t = EmissionTest("def f():\n"
+                              "  def cr():\n"
+                              "     x = 1\n"
+                              "     yield x\n"
+                              "     x = 2\n"
+                              "     yield x\n"
+                              "     x = 3\n"
+                              "     yield x\n"
+                              "  gen = cr()\n"
+                              "  return next(gen), next(gen), next(gen)\n");
+        CHECK(t.returns() == "(1, 2, 3)");
+    }
+
 }

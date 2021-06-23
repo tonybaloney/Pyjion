@@ -32,6 +32,8 @@
 int main(int argc, char* const argv[]) {
     Py_Initialize();
     JitInit();
+    g_pyjionSettings.graph = true;
+
 
     int result = Catch::Session().run(argc, argv);
 

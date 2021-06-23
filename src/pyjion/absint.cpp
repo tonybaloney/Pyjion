@@ -968,6 +968,8 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case SETUP_ANNOTATIONS:
                     break;  // No stack effect
                 case YIELD_VALUE:
+                    POP_VALUE();
+                    PUSH_INTERMEDIATE(&Any);
                     break;  // No stack effect
                 default:
                     PyErr_Format(PyExc_ValueError,
@@ -2513,7 +2515,7 @@ InstructionGraph* AbstractInterpreter::buildInstructionGraph() {
     for (const auto &state: mStartStates){
         stacks[state.first] = &state.second.mStack;
     }
-    InstructionGraph* graph = new InstructionGraph(mCode, stacks);
+    auto* graph = new InstructionGraph(mCode, stacks);
     updateIntermediateSources();
     return graph;
 }
@@ -2526,8 +2528,13 @@ AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins,
     try {
         auto instructionGraph = buildInstructionGraph();
         auto result = compileWorker(pgc_status, instructionGraph);
-        if (g_pyjionSettings.graph)
+        if (g_pyjionSettings.graph) {
             result.instructionGraph = instructionGraph->makeGraph(PyUnicode_AsUTF8(mCode->co_name));
+
+#ifdef DUMP_INSTRUCTION_GRAPHS
+            printf("%s", PyUnicode_AsUTF8(result.instructionGraph));
+#endif
+        }
 
         delete instructionGraph;
         return result;
