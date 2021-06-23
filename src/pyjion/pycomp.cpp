@@ -129,15 +129,19 @@ void PythonCompiler::emit_eh_trace() {
 
 void PythonCompiler::emit_lasti_init() {
     load_frame();
-    m_il.ld_i(offsetof(PyFrameObject, f_lasti));
-    m_il.add();
+    LD_FIELDA(PyFrameObject, f_lasti);
     m_il.st_loc(m_lasti);
 }
 
-void PythonCompiler::emit_lasti_update(uint16_t index) {
+void PythonCompiler::emit_lasti_update(py_opindex index) {
     m_il.ld_loc(m_lasti);
-    m_il.ld_i4(index);
+    m_il.ld_u4(index);
     m_il.st_ind_i4();
+}
+
+void PythonCompiler::emit_lasti(){
+    m_il.ld_loc(m_lasti);
+    m_il.ld_ind_i4();
 }
 
 void PythonCompiler::load_local(uint16_t oparg) {

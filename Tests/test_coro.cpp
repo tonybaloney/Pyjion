@@ -33,11 +33,12 @@
 TEST_CASE("Test simple yield") {
     SECTION("common case") {
         auto t = EmissionTest("def f():\n"
-        "  def cr():\n"
-        "     yield 1\n"
-        "     yield 2\n"
-        "  gen = cr()\n"
-        "  return next(gen), next(gen)\n");
-        CHECK(t.returns() == "(1, 2)");
+            "  def cr():\n"
+            "     yield 1\n"
+            "     yield 2\n"
+            "     yield 3\n"
+            "  gen = cr()\n"
+            "  return next(gen), next(gen), next(gen)\n");
+        CHECK(t.returns() == "(1, 2, 3)");
     }
 }

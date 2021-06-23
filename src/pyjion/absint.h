@@ -319,6 +319,7 @@ class AbstractInterpreter {
     Local m_retValue;
     unordered_map<py_opindex, bool> m_assignmentState;
     unordered_map<py_opindex, bool> m_unboxableProducers;
+    unordered_map<py_opindex, Label> m_yieldOffsets;
 
 #pragma warning (default:4251)
 
@@ -396,11 +397,9 @@ private:
     ExceptionHandler * currentHandler();
 
     void markOffsetLabel(py_opindex index);
-
     void jumpAbsolute(py_opindex index, py_opindex from);
 
     void decStack(size_t size = 1);
-
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
     void incStack(size_t size, LocalKind kind);
 
@@ -432,6 +431,8 @@ private:
     void incExcVars(size_t count);
     void updateIntermediateSources();
     void escapeEdges(const vector<Edge>& edges, py_opindex curByte);
+
+    void yieldJumps();
 };
 bool canReturnInfinity(py_opcode opcode);
 

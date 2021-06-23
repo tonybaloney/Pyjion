@@ -503,6 +503,10 @@ public:
         compare_eq();
     }
 
+    void conv_i4(){
+        m_il.push_back(CEE_CONV_I4);
+    }
+
     void conv_r8(){
         m_il.push_back(CEE_CONV_R8);
     }

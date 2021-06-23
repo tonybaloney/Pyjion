@@ -262,6 +262,7 @@ class PythonCompiler : public IPythonCompiler {
     // pre-calculate some information...
     ILGenerator m_il;
     UserModule* m_module;
+    // This is the ADDRESS of the int f_lasti inside the PyFrameObject
     Local m_lasti;
     Local m_instrCount;
     unordered_map<size_t, Local> m_frameLocals;
@@ -292,7 +293,8 @@ public:
     void emit_eh_trace() override;
 
     void emit_lasti_init() override;
-    void emit_lasti_update(uint16_t index) override;
+    void emit_lasti_update(py_opindex index) override;
+    void emit_lasti() override;
 
     void emit_ret() override;
 

@@ -187,8 +187,8 @@ public:
     // Initializes state associated with updating the frames lasti value
     virtual void emit_lasti_init() = 0;
     // Updates the current value of last
-    virtual void emit_lasti_update(uint16_t index) = 0;
-
+    virtual void emit_lasti_update(py_opindex index) = 0;
+    virtual void emit_lasti() = 0;
     /*****************************************************
      * Loads/Stores to/from various places */
 

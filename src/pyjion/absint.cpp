@@ -125,6 +125,9 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
                 byte = GET_OPCODE(curByte);
                 goto processOpCode;
             }
+            case YIELD_VALUE:
+                m_yieldOffsets[opcodeIndex] = m_comp->emit_define_label();
+                break;
             case YIELD_FROM:
                 return IncompatibleOpcode_Yield;
             case DELETE_FAST:
@@ -1588,13 +1591,22 @@ bool canReturnInfinity(py_opcode opcode){
     return false;
 }
 
+void AbstractInterpreter::yieldJumps(){
+    for (auto &pair: m_yieldOffsets){
+        m_comp->emit_lasti();
+        m_comp->emit_int(pair.first);
+        m_comp->emit_branch(BranchEqual, pair.second);
+    }
+    m_comp->emit_debug_msg("No matching coro skips");
+}
+
 AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status, InstructionGraph* graph) {
     Label ok;
 
     m_comp->emit_lasti_init();
     m_comp->emit_push_frame();
     if (mCode->co_flags & CO_GENERATOR){
-        // TODO : Jump to last instruction
+        yieldJumps();
     }
 
     auto rootHandlerLabel = m_comp->emit_define_label();
@@ -2427,9 +2439,12 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             }
             case YIELD_VALUE:
+                m_comp->emit_lasti_update(op.index);
                 m_comp->emit_store_local(m_retValue);
                 m_comp->emit_branch(BranchAlways, m_retLabel);
-                //decStack();
+                m_comp->emit_mark_label(m_yieldOffsets[op.index]);
+                m_comp->emit_debug_msg("Jumped from generator/yield");
+                m_comp->emit_ptr(Py_None);
                 skipEffect = true;
                 break;
             default:
