@@ -677,7 +677,7 @@ def print_il(il, offsets=None, bytecodes=None):
                 pc += 3
                 continue
             else:
-                raise NotImplementedError(f"Haven't implemented IL Opcode with size {op.size}")
+                raise NotImplementedError(f"Haven't implemented IL Opcode {op.name} with size {op.size}")
 
     except StopIteration:
         pass

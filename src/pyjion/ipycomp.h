@@ -418,6 +418,7 @@ public:
     virtual void emit_prepare_exception(Local prevExc, Local prevExcVal, Local prevTraceback) = 0;
     // Restores the previous exception for nested exception handling
     virtual void emit_restore_err() = 0;
+    virtual void emit_fetch_err(Local Exc, Local ExcVal, Local Traceback, Local prevExc, Local prevExcVal, Local prevTraceback) = 0;
     // Restores the previous exception from the top 3 values on the stack
     virtual void emit_reraise() = 0;
     // Compares to see if an exception is handled, pushing a Python bool onto the stack

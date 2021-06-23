@@ -1530,6 +1530,23 @@ void PythonCompiler::emit_restore_err() {
     m_il.emit_call(METHOD_PYERR_RESTORE);
 }
 
+void PythonCompiler::emit_fetch_err(Local Exc, Local ExcVal, Local Traceback, Local PrevExc, Local PrevExcVal, Local PrevTraceback) {
+    emit_load_local_addr(Exc);
+    emit_load_local_addr(ExcVal);
+    emit_load_local_addr(Traceback);
+    emit_load_local_addr(PrevExc);
+    emit_load_local_addr(PrevExcVal);
+    emit_load_local_addr(PrevTraceback);
+
+    m_il.emit_call(METHOD_PREPARE_EXCEPTION);
+    emit_load_local(PrevTraceback);
+    emit_load_local(PrevExcVal);
+    emit_load_local(PrevExc);
+    emit_load_local(Traceback);
+    emit_load_local(ExcVal);
+    emit_load_local(Exc);
+}
+
 void PythonCompiler::emit_compare_exceptions() {
     m_il.emit_call(METHOD_COMPARE_EXCEPTIONS);
 }
@@ -1560,9 +1577,6 @@ void PythonCompiler::emit_prepare_exception(Local prevExc, Local prevExcVal, Loc
     m_il.ld_loca(prevTraceback);
 
     m_il.emit_call(METHOD_PREPARE_EXCEPTION);
-    m_il.ld_loc(tb);
-    m_il.ld_loc(ehVal);
-    m_il.ld_loc(excType);
 
     m_il.free_local(excType);
     m_il.free_local(ehVal);
@@ -1696,7 +1710,6 @@ void PythonCompiler::emit_null() {
 }
 
 void PythonCompiler::emit_raise_varargs() {
-    // raise exc
     m_il.emit_call(METHOD_DO_RAISE);
 }
 
