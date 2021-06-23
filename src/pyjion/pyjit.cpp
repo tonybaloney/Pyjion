@@ -236,6 +236,9 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_profile = profile;
     state->j_sequencePoints = res.compiledCode->get_sequence_points();
     state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
+    if (g_pyjionSettings.graph){
+        state->j_graph = res.instructionGraph;
+    }
 
 #ifdef DUMP_SEQUENCE_POINTS
     printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
@@ -541,6 +544,34 @@ static PyObject* pyjion_disable_pgc(PyObject *self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* pyjion_enable_graphs(PyObject *self, PyObject* args) {
+    g_pyjionSettings.graph = true;
+    Py_RETURN_NONE;
+}
+
+static PyObject* pyjion_disable_graphs(PyObject *self, PyObject* args) {
+    g_pyjionSettings.graph = false;
+    Py_RETURN_NONE;
+}
+
+static PyObject *pyjion_get_graph(PyObject *self, PyObject* func) {
+    PyObject* code;
+    if (PyFunction_Check(func)) {
+        code = ((PyFunctionObject*)func)->func_code;
+    }
+    else if (PyCode_Check(func)) {
+        code = func;
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Expected function or code");
+        return nullptr;
+    }
+
+    PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
+    Py_INCREF(jitted->j_graph);
+    return jitted->j_graph;
+}
+
 static PyObject* pyjion_set_optimization_level(PyObject *self, PyObject* args) {
     if (!PyLong_Check(args)) {
         PyErr_SetString(PyExc_TypeError, "Expected int for new threshold");
@@ -631,16 +662,16 @@ static PyMethodDef PyjionMethods[] = {
         "Enable tracing for generated code."
     },
     {
-            "enable_debug",
-            pyjion_enable_debug,
-            METH_NOARGS,
-            "Enable debug symbols for generated code."
+        "enable_debug",
+        pyjion_enable_debug,
+        METH_NOARGS,
+        "Enable debug symbols for generated code."
     },
     {
-            "disable_debug",
-            pyjion_disable_debug,
-            METH_NOARGS,
-            "Enable debug symbols for generated code."
+        "disable_debug",
+        pyjion_disable_debug,
+        METH_NOARGS,
+        "Enable debug symbols for generated code."
     },
     {
         "enable_profiling",
@@ -649,7 +680,7 @@ static PyMethodDef PyjionMethods[] = {
         "Enable Python profiling for generated code."
     },
     {
-    "disable_profiling",
+        "disable_profiling",
         pyjion_disable_profiling,
         METH_NOARGS,
         "Disable Python profiling for generated code."
@@ -665,6 +696,24 @@ static PyMethodDef PyjionMethods[] = {
         pyjion_disable_pgc,
         METH_NOARGS,
         "Disable profile-guided-compilation."
+    },
+    {
+        "enable_graphs",
+        pyjion_enable_graphs,
+        METH_NOARGS,
+        "Enable generating instruction graphs."
+    },
+    {
+        "disable_graphs",
+        pyjion_disable_graphs,
+        METH_NOARGS,
+        "Disable generating instruction graphs."
+    },
+    {
+        "get_graph",
+        pyjion_get_graph,
+        METH_O,
+        "Fetch instruction graph for code object."
     },
 	{nullptr, nullptr, 0, nullptr}        /* Sentinel */
 };

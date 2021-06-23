@@ -86,7 +86,7 @@ public:
     InstructionGraph(PyCodeObject* code, unordered_map<py_opindex, const InterpreterStack*> stacks) ;
     Instruction & operator [](py_opindex i) {return instructions[i];}
     size_t size() {return instructions.size();}
-    void printGraph(const char* name) ;
+    PyObject* makeGraph(const char* name) ;
     vector<Edge> getEdges(py_opindex i);
     vector<Edge> getEdgesFrom(py_opindex i);
     unordered_map<py_oparg, AbstractValueKind> getUnboxedFastLocals();

@@ -57,7 +57,8 @@ public:
             FAIL("Failed to interpret code");
         }
         m_graph = m_absint->buildInstructionGraph();
-        m_graph->printGraph(name);
+        auto result = m_graph->makeGraph(name);
+        printf("%s", PyUnicode_AsUTF8(result));
     }
 
     ~InstructionGraphTest(){

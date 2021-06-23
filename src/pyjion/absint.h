@@ -240,6 +240,7 @@ enum AbstractInterpreterResult {
 struct AbstactInterpreterCompileResult {
     JittedCode* compiledCode = nullptr;
     AbstractInterpreterResult result = NoResult;
+    PyObject* instructionGraph = nullptr;
 };
 
 class StackImbalanceException: public std::exception {

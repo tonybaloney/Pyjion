@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
-        dot-net-version: [6.0.100-preview.4.21255.9]
+        dot-net-version: [6.0.100-preview.5.21302.13]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -73,17 +73,18 @@ jobs:
           python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
 
-      - name: Run full test suite
-        shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests.txt -v
-        continue-on-error: true
-        timeout-minutes: 30
-
       - name: Test IPython REPL
         shell: bash
         run: |
           pip install ipython
           python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
+
+      - name: Test mod
+        shell: bash
+        run: |
+          python -m pyjion -m calendar
+          python -m pyjion Tests/hello.py
+
 
       - name: Install scikit-build for wheel
         shell: bash
@@ -103,13 +104,19 @@ jobs:
         with:
           name: dist
           path: dist
+          
+      - name: Run full test suite
+        shell: bash
+        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests.txt -v
+        continue-on-error: true
+        timeout-minutes: 30
 
   build-macos-11:
     runs-on: macos-11.0
     strategy:
       matrix:
         python-version: [3.9]
-        dot-net-version: [ 6.0.100-preview.4.21255.9 ]
+        dot-net-version: [ 6.0.100-preview.5.21302.13 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -160,6 +167,11 @@ jobs:
           pip install -r Tests/requirements_test.txt
           python -X dev -m unittest discover Tests/ -v
 
+      - name: Test mod
+        shell: bash
+        run: |
+          python -m pyjion -m calendar
+
       - name: Run smoke tests
         shell: bash
         run: |
@@ -168,12 +180,6 @@ jobs:
           python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1 --pgc
           python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
-
-      - name: Run full test suite
-        shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos11.txt -v
-        continue-on-error: true
-        timeout-minutes: 30
 
       - name: Test IPython REPL
         shell: bash
@@ -191,13 +197,18 @@ jobs:
         with:
           name: dist
           path: dist
+      - name: Run full test suite
+        shell: bash
+        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos11.txt -v
+        continue-on-error: true
+        timeout-minutes: 30
 
   build-windows:
     runs-on: windows-latest
     strategy:
       matrix:
         python-version: [3.9]
-        dot-net-version: [ 6.0.100-preview.4.21255.9 ]
+        dot-net-version: [ 6.0.100-preview.5.21302.13 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -256,7 +267,7 @@ jobs:
       - name: Run unit tests
         working-directory: ${{runner.workspace}}/build/Release
         run: |
-          cp c:\Users\runneradmin\AppData\Local\Microsoft\dotnet\shared\Microsoft.NETCore.App\6.0.0-preview.4.21253.7\clrjit.dll .
+          cp c:\Users\runneradmin\AppData\Local\Microsoft\dotnet\shared\Microsoft.NETCore.App\6.0.0-preview.5.21301.5\clrjit.dll .
           .\unit_tests.exe
 
       - name: Run Python tests
@@ -264,6 +275,11 @@ jobs:
         run: |
           pip install -r Tests/requirements_test.txt
           python -X dev -m unittest discover Tests/ -v
+
+      - name: Test mod
+        shell: bash
+        run: |
+          python -m pyjion -m calendar
 
       - name: Run smoke tests
         shell: bash

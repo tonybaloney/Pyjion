@@ -74,6 +74,7 @@ typedef struct PyjionSettings {
     bool tracing = false;
     bool profiling = false;
     bool pgc = true; // Profile-guided-compilation
+    bool graph = false; // Generate instruction graphs
     unsigned short optimizationLevel = 1;
     int recursionLimit = DEFAULT_RECURSION_LIMIT;
     size_t codeObjectSizeLimit = DEFAULT_CODEOBJECT_SIZE_LIMIT;
@@ -137,6 +138,7 @@ public:
     PgcStatus j_pgc_status;
     SequencePoint* j_sequencePoints;
     unsigned int j_sequencePointsLen;
+    PyObject* j_graph;
 
 	explicit PyjionJittedCode(PyObject* code) {
         j_compile_result = 0;
@@ -149,6 +151,7 @@ public:
 		j_ilLen = 0;
 		j_nativeSize = 0;
 		j_profile = new PyjionCodeProfile();
+		j_graph = Py_None;
 		j_pgc_status = Uncompiled;
 		j_sequencePoints = nullptr;
 		j_sequencePointsLen = 0;
