@@ -413,7 +413,7 @@ private:
     void storeFastUnboxed(py_oparg local);
     void loadFast(py_oparg local, py_opindex opcodeIndex);
     void loadFastUnboxed(py_oparg local, py_opindex opcodeIndex);
-    void loadFastWorker(size_t local, bool checkUnbound, py_opindex curByte);
+    void loadFastWorker(py_oparg local, bool checkUnbound, py_opindex curByte);
 
     void popExcept();
 

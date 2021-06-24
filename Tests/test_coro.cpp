@@ -108,12 +108,31 @@ TEST_CASE("Test yield/generators with YIELD_VALUE") {
                               "  return next(gen), next(gen), next(gen)\n");
         CHECK(t.returns() == "('a', 'c', 'd')");
     }
+    SECTION("test yield within branches for boxable vars as iter.") {
+        auto t = EmissionTest("def f():\n"
+                              "  def cr():\n"
+                              "     x = 2\n"
+                              "     if x == 2:\n"
+                              "         yield 'a'\n"
+                              "     else:\n"
+                              "         yield 'b'\n"
+                              "     yield 'c'\n"
+                              "     x = x + 2\n"
+                              "     if x == 4:\n"
+                              "         yield 'd'\n"
+                              "     else:\n"
+                              "         yield x\n"
+                              "     yield 'c'\n"
+                              "  return [x for x in cr()]\n");
+        CHECK(t.returns() == "['a', 'c', 'd', 'c']");
+    }
+
     SECTION("test range generator.") {
         auto t = EmissionTest("def f():\n"
                               "  def cr():\n"
                               "     for n in range(10):\n"
-                              "         yield n ** 2\n"
+                              "         yield f'{n}!'\n"
                               "  return [x for x in cr()]\n");
-        CHECK(t.returns() == "[0, 1, 4, 9, 16, 25, 36, 49, 64, 81]");
+        CHECK(t.returns() == "['0!', '1!', '2!', '3!', '4!', '5!', '6!', '7!', '8!', '9!']");
     }
 }

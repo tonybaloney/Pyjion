@@ -655,7 +655,7 @@ public:
                 break;
             default:
                 if (index < 256) {
-                    push_back(CEE_LDARG_3);  // Pop0, Push1
+                    push_back(CEE_LDARG_S);  // Pop0, Push1
                     m_il.push_back(index);
                 } else {
                     m_il.push_back(CEE_PREFIX1); // NIL

@@ -80,7 +80,9 @@ PythonCompiler::PythonCompiler(PyCodeObject *code) :
         Parameter(CORINFO_TYPE_NATIVEINT), // PyjionJittedCode*
         Parameter(CORINFO_TYPE_NATIVEINT), // struct _frame*
         Parameter(CORINFO_TYPE_NATIVEINT), // PyThreadState*
-        Parameter(CORINFO_TYPE_NATIVEINT),}) // PyjionCodeProfile*
+        Parameter(CORINFO_TYPE_NATIVEINT), // PyjionCodeProfile*
+        Parameter(CORINFO_TYPE_NATIVEINT), // PyObject**
+        })
 {
     this->m_code = code;
     m_lasti = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
@@ -1594,6 +1596,13 @@ void PythonCompiler::emit_load_from_frame_value_stack(size_t index) {
     m_il.ld_i((int32_t)(index * sizeof(size_t)));
     m_il.add();
     m_il.ld_ind_i();
+}
+
+void PythonCompiler::emit_set_stacktop() {
+    load_frame();
+    LD_FIELDA(PyFrameObject, f_stacktop);
+    m_il.ld_arg(4);
+    m_il.st_ind_i();
 }
 
 // Emits a call to create a new function, consuming the code object and

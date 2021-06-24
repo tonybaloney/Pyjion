@@ -149,10 +149,12 @@ static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*fram
     if (Pyjit_EnterRecursiveCall("")) {
         return nullptr;
     }
-
+    PyObject ** stack_pointer = frame->f_stacktop;
+    assert(stack_pointer != nullptr);
+    frame->f_stacktop = nullptr;       /* remains NULL unless yield suspends frame */
 	frame->f_executing = 1;
     try {
-        auto res = ((Py_EvalFunc)state)(nullptr, frame, tstate, profile);
+        auto res = ((Py_EvalFunc)state)(nullptr, frame, tstate, profile, stack_pointer);
         Pyjit_LeaveRecursiveCall();
         frame->f_executing = 0;
         return res;

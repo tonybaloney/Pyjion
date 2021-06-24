@@ -68,7 +68,7 @@ static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*fram
 PyObject* PyJit_EvalFrame(PyThreadState *, PyFrameObject *, int);
 PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject);
 
-typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*, PyThreadState*, PyjionCodeProfile*);
+typedef PyObject* (*Py_EvalFunc)(PyjionJittedCode*, struct _frame*, PyThreadState*, PyjionCodeProfile*, PyObject**);
 
 typedef struct PyjionSettings {
     bool tracing = false;
