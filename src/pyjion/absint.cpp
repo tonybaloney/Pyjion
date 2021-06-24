@@ -1519,6 +1519,15 @@ void AbstractInterpreter::dumpEscapedLocalsToFrame(const unordered_map<py_oparg,
     }
 }
 
+void AbstractInterpreter::loadEscapedLocalsFromFrame(const unordered_map<py_oparg, AbstractValueKind>& locals, py_opindex at){
+    Local failFlag = m_comp->emit_define_local();
+    for (auto &loc: locals){
+        m_comp->emit_load_fast(loc.first);
+        m_comp->emit_unbox(loc.second, false, failFlag);
+        m_comp->emit_store_local(m_fastNativeLocals[loc.first]);
+    }
+}
+
 void AbstractInterpreter::escapeEdges(const vector<Edge>& edges, py_opindex curByte) {
     // Check if edges need boxing/unboxing
     // If none of the edges need escaping, skip
@@ -1707,8 +1716,9 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         }
 
         switch (byte) {
-            case NOP: break;
-            case EXTENDED_ARG: break;
+            case NOP:
+            case EXTENDED_ARG:
+                break;
             case ROT_TWO:
             {
                 m_comp->emit_rot_two();
@@ -1810,7 +1820,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 intErrorCheck("delete attr failed", curByte);
                 break;
             case LOAD_ATTR:
-                if (OPT_ENABLED(loadAttr) && stackInfo.size() > 0){
+                if (OPT_ENABLED(loadAttr) && !stackInfo.empty()){
                     m_comp->emit_load_attr(PyTuple_GetItem(mCode->co_names, oparg), stackInfo.top());
                 } else {
                     m_comp->emit_load_attr(PyTuple_GetItem(mCode->co_names, oparg));
@@ -2460,6 +2470,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 // ^ Exit Frame || 🔽 Enter frame from next()
                 m_comp->emit_mark_label(m_yieldOffsets[op.index]);
                 m_comp->emit_debug_msg("Jumped from generator/yield");
+                loadEscapedLocalsFromFrame(graph->getUnboxedFastLocals(), op.index);
                 for (size_t i = 0; i < stackAt; i++)
                     m_comp->emit_load_from_frame_value_stack(i);
                 skipEffect = true;

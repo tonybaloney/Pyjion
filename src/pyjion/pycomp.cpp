@@ -2301,17 +2301,17 @@ void PythonCompiler::emit_guard_exception(const char* expected){
     m_il.emit_call(METHOD_PGC_GUARD_EXCEPTION);
 }
 
-void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
+void PythonCompiler::emit_unbox(AbstractValueKind kind, bool guard, Local success) {
 #ifdef DEBUG
-    assert(supportsEscaping(value->kind()));
+    assert(supportsEscaping(kind));
 #endif
-    switch(value->kind()) {
+    switch(kind) {
         case AVK_Float: {
             Local lcl = emit_define_local(LK_Pointer);
             Label guard_pass = emit_define_label();
             Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_load_local(lcl);
                 LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyFloat_Type);
@@ -2325,7 +2325,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             emit_load_local(lcl);
             decref();
 
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_branch(BranchAlways, guard_pass);
                 emit_mark_label(guard_fail);
                 emit_int(1);
@@ -2343,7 +2343,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             Label guard_pass = emit_define_label();
             Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_load_local(lcl);
                 LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyLong_Type);
@@ -2355,7 +2355,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             emit_load_local(lcl);
             decref();
 
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_branch(BranchAlways, guard_pass);
                 emit_mark_label(guard_fail);
                 emit_int(1);
@@ -2373,7 +2373,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             Label guard_pass = emit_define_label();
             Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_load_local(lcl);
                 LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyBool_Type);
@@ -2393,7 +2393,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             emit_load_local(lcl);
             decref();
 
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_branch(BranchAlways, guard_pass);
                 emit_mark_label(guard_fail);
                 emit_int(1);
@@ -2446,7 +2446,7 @@ void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
         emit_load_and_free_local(stack[i-1]);
         switch(edges[i-1].escaped){
             case Unbox:
-                emit_unbox(edges[i-1].value, success);
+                emit_unbox(edges[i-1].value->kind(), edges[i-1].value->needsGuard(), success);
                 break;
             case Box:
                 emit_box(edges[i-1].value->kind());
