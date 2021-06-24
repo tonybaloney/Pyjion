@@ -1511,6 +1511,14 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
     m_comp->emit_load_local(handler->ExVars.FinallyExc);
 }
 
+void AbstractInterpreter::dumpEscapedLocalsToFrame(const unordered_map<py_oparg, AbstractValueKind>& locals, py_opindex at){
+    for (auto &loc: locals){
+        m_comp->emit_load_local(m_fastNativeLocals[loc.first]);
+        m_comp->emit_box(loc.second);
+        m_comp->emit_store_fast(loc.first);
+    }
+}
+
 void AbstractInterpreter::escapeEdges(const vector<Edge>& edges, py_opindex curByte) {
     // Check if edges need boxing/unboxing
     // If none of the edges need escaping, skip
@@ -2440,15 +2448,23 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 incStack();
                 break;
             }
-            case YIELD_VALUE:
+            case YIELD_VALUE: {
                 m_comp->emit_lasti_update(op.index);
+                dumpEscapedLocalsToFrame(graph->getUnboxedFastLocals(), op.index);
+                size_t stackAt = curStackSize;
+                m_comp->emit_dup();
+                for (size_t i = 0; i < stackAt; i++)
+                    m_comp->emit_store_in_frame_value_stack(i);
                 m_comp->emit_store_local(m_retValue);
                 m_comp->emit_branch(BranchAlways, m_retLabel);
+                // ^ Exit Frame || 🔽 Enter frame from next()
                 m_comp->emit_mark_label(m_yieldOffsets[op.index]);
                 m_comp->emit_debug_msg("Jumped from generator/yield");
-                m_comp->emit_ptr(Py_None);
+                for (size_t i = 0; i < stackAt; i++)
+                    m_comp->emit_load_from_frame_value_stack(i);
                 skipEffect = true;
                 break;
+            }
             default:
                 return {nullptr, IncompatibleOpcode_Unknown};
         }

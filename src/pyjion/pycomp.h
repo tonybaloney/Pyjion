@@ -497,7 +497,7 @@ public:
     void lift_n_to_third(uint16_t pos) override;
     void sink_top_to_n(uint16_t pos) override;
     void mark_sequence_point(size_t idx) override;
-    void emit_box(AbstractValue* value) override;
+    void emit_box(AbstractValueKind kind) override;
     void emit_unbox(AbstractValue* value, Local success) override;
     void emit_escape_edges(vector<Edge> edges, Local success) override;
     void emit_infinity() override;
@@ -505,6 +505,8 @@ public:
     void emit_infinity_long() override;
     void emit_nan_long() override;
     void emit_guard_exception(const char* expected) override;
+    void emit_store_in_frame_value_stack(size_t index) override;
+    void emit_load_from_frame_value_stack(size_t index) override;
 private:
     void load_frame();
     void load_tstate();

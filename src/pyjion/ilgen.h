@@ -669,7 +669,10 @@ public:
     }
 
     void mark_sequence_point(size_t idx) {
-        m_sequencePoints.push_back(make_pair(m_il.size(), idx));
+#ifdef DUMP_SEQUENCE_POINTS
+        printf("Sequence Point: IL_%04lX <> %zu\n", m_il.size(), idx);
+#endif
+        m_sequencePoints.emplace_back(make_pair(m_il.size(), idx));
     }
 
     CORINFO_METHOD_INFO to_method(JITMethod* addr, size_t stackSize) {

@@ -465,7 +465,7 @@ public:
     virtual void mark_sequence_point(size_t idx) = 0;
 
     // New boxing operations
-    virtual void emit_box(AbstractValue* value) = 0;
+    virtual void emit_box(AbstractValueKind kind) = 0;
     virtual void emit_unbox(AbstractValue* value, Local success) = 0;
     virtual void emit_escape_edges(vector<Edge> edges, Local success) = 0;
     virtual void emit_infinity() = 0;
@@ -473,6 +473,9 @@ public:
     virtual void emit_infinity_long() = 0;
     virtual void emit_nan_long() = 0;
     virtual void emit_guard_exception(const char* expected) = 0;
+    virtual void emit_store_in_frame_value_stack(size_t index) = 0;
+    virtual void emit_load_from_frame_value_stack(size_t index) = 0;
+
 };
 
 #endif

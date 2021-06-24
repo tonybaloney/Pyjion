@@ -1579,6 +1579,23 @@ void PythonCompiler::emit_bool(bool value) {
     m_il.ld_i4(value);
 }
 
+void PythonCompiler::emit_store_in_frame_value_stack(size_t index) {
+    load_frame();
+    LD_FIELDA(PyFrameObject, f_valuestack);
+    m_il.ld_ind_i();
+    m_il.ld_i((int32_t)(index * sizeof(size_t)));
+    m_il.add();
+    m_il.st_ind_i();
+}
+void PythonCompiler::emit_load_from_frame_value_stack(size_t index) {
+    load_frame();
+    LD_FIELDA(PyFrameObject, f_valuestack);
+    m_il.ld_ind_i();
+    m_il.ld_i((int32_t)(index * sizeof(size_t)));
+    m_il.add();
+    m_il.ld_ind_i();
+}
+
 // Emits a call to create a new function, consuming the code object and
 // the qualified name.
 void PythonCompiler::emit_new_function() {
@@ -2235,8 +2252,8 @@ void PythonCompiler::emit_pgc_profile_capture(Local value, size_t ipos, size_t i
     m_il.emit_call(METHOD_PGC_PROBE);
 }
 
-void PythonCompiler::emit_box(AbstractValue* value) {
-    switch(value->kind()){
+void PythonCompiler::emit_box(AbstractValueKind kind) {
+    switch(kind){
         case AVK_Float:
             m_il.emit_call(METHOD_FLOAT_FROM_DOUBLE);
             break;
@@ -2432,7 +2449,7 @@ void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
                 emit_unbox(edges[i-1].value, success);
                 break;
             case Box:
-                emit_box(edges[i-1].value);
+                emit_box(edges[i-1].value->kind());
                 break;
             default:
                 break;
