@@ -134,7 +134,7 @@ private:
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), PyJit_EvalFrame);
         auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode, frame, tstate, profile);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
-
+        Py_DECREF(frame);
         size_t collected = PyGC_Collect();
         printf("Collected %zu values\n", collected);
         REQUIRE(!m_jittedcode->j_failed);
@@ -163,6 +163,7 @@ public:
         }
 
         auto repr = PyUnicode_AsUTF8(PyObject_Repr(res.get()));
+        printf("Returned: %s\n", repr);
         auto tstate = PyThreadState_GET();
         REQUIRE(tstate->curexc_value == nullptr);
         REQUIRE(tstate->curexc_traceback == nullptr);

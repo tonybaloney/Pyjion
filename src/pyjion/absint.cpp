@@ -2463,24 +2463,19 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 dumpEscapedLocalsToFrame(graph->getUnboxedFastLocals(), op.index);
                 size_t stackAt = curStackSize;
                 m_comp->emit_dup();
+                m_comp->emit_dup();
+                m_comp->emit_incref();
                 m_comp->emit_store_local(m_retValue);
-                for (size_t i = 0; i < stackAt; i++) {
-                    m_comp->emit_debug_msg("Storing value");
-                    m_comp->emit_dup();
-                    m_comp->emit_debug_pyobject();
-                    m_comp->emit_store_in_frame_value_stack(i);
+                for (size_t i = stackAt; i > 0 ; --i) {
+                    m_comp->emit_store_in_frame_value_stack(i-1);
                 }
-                m_comp->emit_set_stacktop();
+                m_comp->emit_set_stacktop(stackAt);
                 m_comp->emit_branch(BranchAlways, m_retLabel);
                 // ^ Exit Frame || 🔽 Enter frame from next()
                 m_comp->emit_mark_label(m_yieldOffsets[op.index]);
-                m_comp->emit_debug_msg("Jumped from generator/yield");
                 loadEscapedLocalsFromFrame(graph->getUnboxedFastLocals(), op.index);
                 for (size_t i = stackAt; i > 0 ; --i) {
-                    m_comp->emit_load_from_frame_value_stack(i - 1);
-                    m_comp->emit_debug_msg("Loading value");
-                    m_comp->emit_dup();
-                    m_comp->emit_debug_pyobject();
+                    m_comp->emit_load_from_frame_value_stack(i);
                 }
                 skipEffect = true;
                 break;
@@ -2707,6 +2702,7 @@ void AbstractInterpreter::forIter(py_opindex loopIndex, AbstractValueWithSources
     /* Start stop iter branch */
     m_comp->emit_pop(); // Pop the 0xff StopIter value
     m_comp->emit_pop_top(); // POP and DECREF iter
+    m_comp->emit_pyerr_clear();
     m_comp->emit_branch(BranchAlways, getOffsetLabel(loopIndex)); // Goto: post-stack
     /* End stop iter error branch */
 

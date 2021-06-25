@@ -424,7 +424,7 @@ public:
     virtual void emit_compare_exceptions() = 0;
     // Sets the current exception type and text
     virtual void emit_pyerr_setstring(void* exception, const char*msg) = 0;
-
+    virtual void emit_pyerr_clear() = 0;
     virtual void emit_incref() = 0;
 
     virtual void emit_debug_msg(const char* msg) = 0;
@@ -475,7 +475,7 @@ public:
     virtual void emit_guard_exception(const char* expected) = 0;
     virtual void emit_store_in_frame_value_stack(size_t index) = 0;
     virtual void emit_load_from_frame_value_stack(size_t index) = 0;
-    virtual void emit_set_stacktop() = 0;
+    virtual void emit_set_stacktop(size_t height) = 0;
 };
 
 #endif

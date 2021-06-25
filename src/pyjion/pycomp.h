@@ -110,7 +110,7 @@
 #define METHOD_PY_PUSHFRAME                      0x00000041
 #define METHOD_PY_POPFRAME                       0x00000042
 #define METHOD_PY_IMPORTNAME                     0x00000043
-
+#define METHOD_PYERR_CLEAR                       0x00000044
 #define METHOD_PY_IMPORTFROM                     0x00000045
 #define METHOD_PY_IMPORTSTAR                     0x00000046
 #define METHOD_IS                                0x00000049
@@ -453,6 +453,7 @@ public:
     void emit_reraise() override;
     void emit_restore_err() override;
     void emit_pyerr_setstring(void* exception, const char*msg) override;
+    void emit_pyerr_clear() override;
 
     void emit_compare_exceptions() override;
 
@@ -507,7 +508,7 @@ public:
     void emit_guard_exception(const char* expected) override;
     void emit_store_in_frame_value_stack(size_t index) override;
     void emit_load_from_frame_value_stack(size_t index) override;
-    void emit_set_stacktop() override;
+    void emit_set_stacktop(size_t height) override;
 private:
     void load_frame();
     void load_tstate();

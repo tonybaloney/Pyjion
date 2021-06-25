@@ -49,7 +49,6 @@ PyCodeObject* CompileCode(const char* code) {
     }
     auto func = PyObject_ptr(PyObject_GetItem(locals.get(), PyUnicode_FromString("f")));
     auto codeObj = (PyCodeObject*)PyObject_GetAttrString(func.get(), "__code__");
-
     return codeObj;
 }
 
