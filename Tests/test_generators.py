@@ -55,5 +55,15 @@ class GeneratorsTestCase(unittest.TestCase):
             for n in range(10):
                 yield f'{n}!'
 
+        result = []
+        for x in gen():
+            result.append(x)
+        self.assertEqual(result, ['0!', '1!', '2!', '3!', '4!', '5!', '6!', '7!', '8!', '9!'])
+
+    def test_yields_from_range_gen_listcomp(self):
+        def gen():
+            for n in range(10):
+                yield f'{n}!'
+
         result = [x for x in gen()]
-        self.assertEqual(result, [1, 2, 3])
+        self.assertEqual(result, ['0!', '1!', '2!', '3!', '4!', '5!', '6!', '7!', '8!', '9!'])
