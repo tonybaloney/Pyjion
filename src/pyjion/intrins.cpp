@@ -1672,7 +1672,14 @@ PyObject* PyJit_IterNext(PyObject* iter) {
         return nullptr;
     }
 
+#ifdef GIL
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+#endif
     auto res = (*iter->ob_type->tp_iternext)(iter);
+#ifdef GIL
+    PyGILState_Release(gstate);
+#endif
     if (res == nullptr) {
         if (PyErr_Occurred()) {
             if (!PyErr_ExceptionMatches(PyExc_StopIteration)) {

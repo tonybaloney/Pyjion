@@ -298,15 +298,15 @@ PyObject* InstructionGraph::makeGraph(const char* name) {
             case IMPORT_FROM:
             case IMPORT_NAME:
             case LOAD_METHOD:
-                op = PyUnicode_FromFormat("\tOP%u [label=\"%d %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
+                op = PyUnicode_FromFormat("\tOP%u [label=\"%u %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
                        PyUnicode_AsUTF8(PyTuple_GetItem(this->code->co_names, node.second.oparg)), blockColor);
                 break;
             case LOAD_CONST:
-                op = PyUnicode_FromFormat("\tOP%u [label=\"%d %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
+                op = PyUnicode_FromFormat("\tOP%u [label=\"%u %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
                        PyUnicode_AsUTF8(PyObject_Repr(PyTuple_GetItem(this->code->co_consts, node.second.oparg))), blockColor);
                 break;
             default:
-                op = PyUnicode_FromFormat("\tOP%u [label=\"%d %s (%d)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg, blockColor);
+                op = PyUnicode_FromFormat("\tOP%u [label=\"%u %s (%d)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode), node.second.oparg, blockColor);
                 break;
         }
         PyUnicode_AppendAndDel(&g, op);

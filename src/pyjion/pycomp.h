@@ -265,7 +265,6 @@ class PythonCompiler : public IPythonCompiler {
     // This is the ADDRESS of the int f_lasti inside the PyFrameObject
     Local m_lasti;
     Local m_instrCount;
-    unordered_map<size_t, Local> m_frameLocals;
     bool m_compileDebug;
 
 public:
@@ -530,15 +529,6 @@ private:
     void fill_local_vector(vector<Local> & vec, size_t len);
 
 };
-
-// Copies of internal CPython structures
-
-typedef struct {
-    PyObject_HEAD
-    Py_ssize_t it_index;
-    PyTupleObject *it_seq; /* Set to NULL when iterator is exhausted */
-} _tupleiterobject;
-
 
 const char* opcodeName(py_opcode opcode) ;
 

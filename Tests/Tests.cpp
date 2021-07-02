@@ -30,11 +30,13 @@
 #include <pyjit.h>
 
 int main(int argc, char* const argv[]) {
+    PyMem_SetupDebugHooks();
+    PySys_AddXOption(L"tracemalloc");
     Py_Initialize();
     JitInit();
     g_pyjionSettings.graph = true;
-
-
+    g_pyjionSettings.debug = true;
+    g_pyjionSettings.tracing = true;
     int result = Catch::Session().run(argc, argv);
 
     Py_Finalize();
