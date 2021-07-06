@@ -47,7 +47,6 @@ private:
         PyDict_SetItemString(globals.get(), "__builtins__", builtins);
         PyDict_SetItemString(globals.get(), "sys", sysModule.get());
 
-        // Don't DECREF as frames are recycled.
         auto tstate = PyThreadState_Get();
         auto frame = PyFrame_New(tstate, m_code.get(), globals.get(), PyObject_ptr(PyDict_New()).get());
         auto prev = _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState_Main());
@@ -55,7 +54,7 @@ private:
         _PyEval_SetTrace(tstate, &TestTraceFunc, nullptr);
         auto res = PyJit_ExecuteAndCompileFrame(m_jittedcode, frame, tstate, nullptr);
         _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState_Main(), prev);
-        //Py_DECREF(frame);
+        Py_DECREF(frame);
         size_t collected = PyGC_Collect();
         printf("Collected %zu values\n", collected);
         REQUIRE(!m_jittedcode->j_failed);

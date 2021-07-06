@@ -78,7 +78,7 @@ AbstractInterpreter::~AbstractInterpreter() {
 }
 
 AbstractInterpreterResult AbstractInterpreter::preprocess() {
-    if (mCode->co_flags & (CO_COROUTINE | CO_GENERATOR | CO_ITERABLE_COROUTINE | CO_ASYNC_GENERATOR)) {
+    if (mCode->co_flags & (CO_COROUTINE | CO_ITERABLE_COROUTINE | CO_ASYNC_GENERATOR)) {
         // Don't compile co-routines or generators.  We can't rely on
         // detecting yields because they could be optimized out.
         return IncompatibleCompilerFlags;
@@ -125,10 +125,11 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
                 byte = GET_OPCODE(curByte);
                 goto processOpCode;
             }
-            case YIELD_FROM:
             case YIELD_VALUE:
+                m_yieldOffsets[opcodeIndex] = m_comp->emit_define_label();
+                break;
+            case YIELD_FROM:
                 return IncompatibleOpcode_Yield;
-
             case DELETE_FAST:
                 if (oparg < mCode->co_argcount) {
                     // this local is deleted, so we need to check for assignment
@@ -966,6 +967,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                 case DELETE_GLOBAL:
                 case SETUP_ANNOTATIONS:
                     break;  // No stack effect
+                case YIELD_VALUE:
+                    POP_VALUE();
+                    PUSH_INTERMEDIATE(&Any);
+                    break;  // No stack effect
                 default:
                     PyErr_Format(PyExc_ValueError,
                                  "Unknown unsupported opcode: %d", opcode);
@@ -1235,9 +1240,6 @@ void AbstractInterpreter::branchRaise(const char *reason, py_opindex curByte, bo
         m_comp->emit_debug_msg(reason);
     }
 #endif
-    if (!canSkipLastiUpdate(curByte)) {
-        m_comp->emit_lasti_update(curByte);
-    }
 
     m_comp->emit_eh_trace();
 
@@ -1506,6 +1508,23 @@ void AbstractInterpreter::emitRaise(ExceptionHandler * handler) {
     m_comp->emit_load_local(handler->ExVars.FinallyExc);
 }
 
+void AbstractInterpreter::dumpEscapedLocalsToFrame(const unordered_map<py_oparg, AbstractValueKind>& locals, py_opindex at){
+    for (auto &loc: locals){
+        m_comp->emit_load_local(m_fastNativeLocals[loc.first]);
+        m_comp->emit_box(loc.second);
+        m_comp->emit_store_fast(loc.first);
+    }
+}
+
+void AbstractInterpreter::loadEscapedLocalsFromFrame(const unordered_map<py_oparg, AbstractValueKind>& locals, py_opindex at){
+    Local failFlag = m_comp->emit_define_local();
+    for (auto &loc: locals){
+        m_comp->emit_load_fast(loc.first);
+        m_comp->emit_unbox(loc.second, false, failFlag);
+        m_comp->emit_store_local(m_fastNativeLocals[loc.first]);
+    }
+}
+
 void AbstractInterpreter::escapeEdges(const vector<Edge>& edges, py_opindex curByte) {
     // Check if edges need boxing/unboxing
     // If none of the edges need escaping, skip
@@ -1588,11 +1607,46 @@ bool canReturnInfinity(py_opcode opcode){
     return false;
 }
 
+void AbstractInterpreter::yieldJumps(){
+    for (auto &pair: m_yieldOffsets){
+        m_comp->emit_lasti();
+        m_comp->emit_int(pair.first);
+        m_comp->emit_branch(BranchEqual, pair.second);
+    }
+}
+
+void AbstractInterpreter::yieldValue(py_opindex index, size_t stackSize, InstructionGraph* graph) {
+    m_comp->emit_lasti_update(index);
+    dumpEscapedLocalsToFrame(graph->getUnboxedFastLocals(), index);
+
+    // incref and send top of stack
+    m_comp->emit_dup();
+    m_comp->emit_incref();
+    m_comp->emit_store_local(m_retValue);
+    // Stack has submitted result back. Store any other variables
+    for (size_t i = (stackSize - 1); i > 0 ; --i) {
+        m_comp->emit_store_in_frame_value_stack(i-1);
+    }
+    m_comp->emit_set_stacktop(stackSize-1);
+    m_comp->emit_branch(BranchAlways, m_retLabel);
+    // ^ Exit Frame || 🔽 Enter frame from next()
+    m_comp->emit_mark_label(m_yieldOffsets[index]);
+    loadEscapedLocalsFromFrame(graph->getUnboxedFastLocals(), index);
+    for (size_t i = stackSize; i > 0 ; --i) {
+        m_comp->emit_load_from_frame_value_stack(i);
+    }
+    m_comp->emit_shrink_stacktop_local(stackSize);
+}
+
 AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status, InstructionGraph* graph) {
     Label ok;
-
     m_comp->emit_lasti_init();
     m_comp->emit_push_frame();
+    m_comp->emit_init_stacktop_local();
+
+    if (mCode->co_flags & CO_GENERATOR){
+        yieldJumps();
+    }
 
     auto rootHandlerLabel = m_comp->emit_define_label();
 
@@ -1663,6 +1717,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         }
 
         if (!canSkipLastiUpdate(curByte)) {
+            m_comp->emit_lasti_update(curByte);
             if (mTracingEnabled){
                 m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
             }
@@ -1682,8 +1737,9 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         }
 
         switch (byte) {
-            case NOP: break;
-            case EXTENDED_ARG: break;
+            case NOP:
+            case EXTENDED_ARG:
+                break;
             case ROT_TWO:
             {
                 m_comp->emit_rot_two();
@@ -1785,7 +1841,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 intErrorCheck("delete attr failed", curByte);
                 break;
             case LOAD_ATTR:
-                if (OPT_ENABLED(loadAttr) && stackInfo.size() > 0){
+                if (OPT_ENABLED(loadAttr) && !stackInfo.empty()){
                     m_comp->emit_load_attr(PyTuple_GetItem(mCode->co_names, oparg), stackInfo.top());
                 } else {
                     m_comp->emit_load_attr(PyTuple_GetItem(mCode->co_names, oparg));
@@ -2224,9 +2280,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case SETUP_WITH:
                 return {nullptr, IncompatibleOpcode_With};
             case YIELD_FROM:
-            case YIELD_VALUE:
                 return {nullptr, IncompatibleOpcode_Yield};
-
             case IMPORT_NAME:
                 m_comp->emit_import_name(PyTuple_GetItem(mCode->co_names, oparg));
                 decStack(2);
@@ -2425,6 +2479,11 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 incStack();
                 break;
             }
+            case YIELD_VALUE: {
+                yieldValue(op.index, curStackSize, graph);
+                skipEffect = true;
+                break;
+            }
             default:
                 return {nullptr, IncompatibleOpcode_Unknown};
         }
@@ -2491,7 +2550,7 @@ InstructionGraph* AbstractInterpreter::buildInstructionGraph() {
     for (const auto &state: mStartStates){
         stacks[state.first] = &state.second.mStack;
     }
-    InstructionGraph* graph = new InstructionGraph(mCode, stacks);
+    auto* graph = new InstructionGraph(mCode, stacks);
     updateIntermediateSources();
     return graph;
 }
@@ -2504,8 +2563,13 @@ AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins,
     try {
         auto instructionGraph = buildInstructionGraph();
         auto result = compileWorker(pgc_status, instructionGraph);
-        if (g_pyjionSettings.graph)
+        if (g_pyjionSettings.graph) {
             result.instructionGraph = instructionGraph->makeGraph(PyUnicode_AsUTF8(mCode->co_name));
+
+#ifdef DUMP_INSTRUCTION_GRAPHS
+            printf("%s", PyUnicode_AsUTF8(result.instructionGraph));
+#endif
+        }
 
         delete instructionGraph;
         return result;
@@ -2642,6 +2706,7 @@ void AbstractInterpreter::forIter(py_opindex loopIndex, AbstractValueWithSources
     /* Start stop iter branch */
     m_comp->emit_pop(); // Pop the 0xff StopIter value
     m_comp->emit_pop_top(); // POP and DECREF iter
+    m_comp->emit_pyerr_clear();
     m_comp->emit_branch(BranchAlways, getOffsetLabel(loopIndex)); // Goto: post-stack
     /* End stop iter error branch */
 
@@ -2669,7 +2734,7 @@ void AbstractInterpreter::storeFastUnboxed(py_oparg local) {
     decStack();
 }
 
-void AbstractInterpreter::loadFastWorker(size_t local, bool checkUnbound, py_opindex curByte) {
+void AbstractInterpreter::loadFastWorker(py_oparg local, bool checkUnbound, py_opindex curByte) {
     m_comp->emit_load_fast(local);
 
     // Check if arg is unbound, raises UnboundLocalError

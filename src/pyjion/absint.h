@@ -319,6 +319,7 @@ class AbstractInterpreter {
     Local m_retValue;
     unordered_map<py_opindex, bool> m_assignmentState;
     unordered_map<py_opindex, bool> m_unboxableProducers;
+    unordered_map<py_opindex, Label> m_yieldOffsets;
 
 #pragma warning (default:4251)
 
@@ -376,6 +377,8 @@ private:
     void forIter(py_opindex loopIndex);
     void forIter(py_opindex loopIndex, AbstractValueWithSources* iterator);
 
+    void yieldValue(py_opindex idx, size_t stackSize, InstructionGraph* graph);
+
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
     void errorCheck(const char* reason = nullptr, py_opindex curByte = 0);
@@ -396,11 +399,9 @@ private:
     ExceptionHandler * currentHandler();
 
     void markOffsetLabel(py_opindex index);
-
     void jumpAbsolute(py_opindex index, py_opindex from);
 
     void decStack(size_t size = 1);
-
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
     void incStack(size_t size, LocalKind kind);
 
@@ -414,7 +415,7 @@ private:
     void storeFastUnboxed(py_oparg local);
     void loadFast(py_oparg local, py_opindex opcodeIndex);
     void loadFastUnboxed(py_oparg local, py_opindex opcodeIndex);
-    void loadFastWorker(size_t local, bool checkUnbound, py_opindex curByte);
+    void loadFastWorker(py_oparg local, bool checkUnbound, py_opindex curByte);
 
     void popExcept();
 
@@ -432,6 +433,9 @@ private:
     void incExcVars(size_t count);
     void updateIntermediateSources();
     void escapeEdges(const vector<Edge>& edges, py_opindex curByte);
+    void dumpEscapedLocalsToFrame(const unordered_map<py_oparg, AbstractValueKind>& locals, py_opindex at);
+    void loadEscapedLocalsFromFrame(const unordered_map<py_oparg, AbstractValueKind>& locals, py_opindex at);
+    void yieldJumps();
 };
 bool canReturnInfinity(py_opcode opcode);
 

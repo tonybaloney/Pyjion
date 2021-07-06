@@ -187,8 +187,8 @@ public:
     // Initializes state associated with updating the frames lasti value
     virtual void emit_lasti_init() = 0;
     // Updates the current value of last
-    virtual void emit_lasti_update(uint16_t index) = 0;
-
+    virtual void emit_lasti_update(py_opindex index) = 0;
+    virtual void emit_lasti() = 0;
     /*****************************************************
      * Loads/Stores to/from various places */
 
@@ -424,7 +424,7 @@ public:
     virtual void emit_compare_exceptions() = 0;
     // Sets the current exception type and text
     virtual void emit_pyerr_setstring(void* exception, const char*msg) = 0;
-
+    virtual void emit_pyerr_clear() = 0;
     virtual void emit_incref() = 0;
 
     virtual void emit_debug_msg(const char* msg) = 0;
@@ -465,14 +465,19 @@ public:
     virtual void mark_sequence_point(size_t idx) = 0;
 
     // New boxing operations
-    virtual void emit_box(AbstractValue* value) = 0;
-    virtual void emit_unbox(AbstractValue* value, Local success) = 0;
+    virtual void emit_box(AbstractValueKind kind) = 0;
+    virtual void emit_unbox(AbstractValueKind kind, bool guard, Local success) = 0;
     virtual void emit_escape_edges(vector<Edge> edges, Local success) = 0;
     virtual void emit_infinity() = 0;
     virtual void emit_nan() = 0;
     virtual void emit_infinity_long() = 0;
     virtual void emit_nan_long() = 0;
     virtual void emit_guard_exception(const char* expected) = 0;
+    virtual void emit_store_in_frame_value_stack(size_t index) = 0;
+    virtual void emit_load_from_frame_value_stack(size_t index) = 0;
+    virtual void emit_set_stacktop(size_t height) = 0;
+    virtual void emit_init_stacktop_local() = 0;
+    virtual void emit_shrink_stacktop_local(size_t height) = 0;
 };
 
 #endif

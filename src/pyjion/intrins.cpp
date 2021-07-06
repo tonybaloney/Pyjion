@@ -1661,13 +1661,25 @@ PyObject* PyJit_GetIter(PyObject* iterable) {
 }
 
 PyObject* PyJit_IterNext(PyObject* iter) {
-    if (iter == nullptr || !PyIter_Check(iter)){
+    if (iter == nullptr) {
         PyErr_Format(PyExc_TypeError,
-                     "Unable to iterate, this type is not iterable.");
+                     "Unable to iterate, iterator is null.");
+        return nullptr;
+    } else if (!PyIter_Check(iter)){
+        PyErr_Format(PyExc_TypeError,
+                     "Unable to iterate, %s is not iterable.",
+                     PyObject_Repr(iter));
         return nullptr;
     }
 
+#ifdef GIL
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+#endif
     auto res = (*iter->ob_type->tp_iternext)(iter);
+#ifdef GIL
+    PyGILState_Release(gstate);
+#endif
     if (res == nullptr) {
         if (PyErr_Occurred()) {
             if (!PyErr_ExceptionMatches(PyExc_StopIteration)) {

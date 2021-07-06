@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.0.0 (beta4)
+
+* Support for the `yield` keyword and Python generators
+
 ## 1.0.0 (beta3)
 
 * Instruction graphs can be enabled with `pyjion.enable_graphs()` and then exported by `pyjion.get_graph(f)`

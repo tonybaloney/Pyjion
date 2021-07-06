@@ -503,6 +503,10 @@ public:
         compare_eq();
     }
 
+    void conv_i4(){
+        m_il.push_back(CEE_CONV_I4);
+    }
+
     void conv_r8(){
         m_il.push_back(CEE_CONV_R8);
     }
@@ -651,7 +655,7 @@ public:
                 break;
             default:
                 if (index < 256) {
-                    push_back(CEE_LDARG_3);  // Pop0, Push1
+                    push_back(CEE_LDARG_S);  // Pop0, Push1
                     m_il.push_back(index);
                 } else {
                     m_il.push_back(CEE_PREFIX1); // NIL
@@ -665,7 +669,10 @@ public:
     }
 
     void mark_sequence_point(size_t idx) {
-        m_sequencePoints.push_back(make_pair(m_il.size(), idx));
+#ifdef DUMP_SEQUENCE_POINTS
+        printf("Sequence Point: IL_%04lX <> %zu\n", m_il.size(), idx);
+#endif
+        m_sequencePoints.emplace_back(make_pair(m_il.size(), idx));
     }
 
     CORINFO_METHOD_INFO to_method(JITMethod* addr, size_t stackSize) {

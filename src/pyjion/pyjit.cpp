@@ -44,7 +44,6 @@ void setOptimizationLevel(unsigned short level){
     SET_OPT(inlineIs, level, 1);
     SET_OPT(inlineDecref, level, 1);
     SET_OPT(internRichCompare, level, 1);
-    SET_OPT(nativeLocals, level, 2);
     SET_OPT(inlineFramePushPop, level, 1);
     SET_OPT(knownStoreSubscr, level, 1);
     SET_OPT(knownBinarySubscr, level, 1);
@@ -85,6 +84,8 @@ PyjionCodeProfile::~PyjionCodeProfile() {
 }
 
 void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyObject* value){
+    if (PyGen_CheckExact(value) || PyCoro_CheckExact(value))
+        return;
     if (this->stackTypes[opcodePosition][stackPosition] == nullptr) {
         this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
         Py_INCREF(Py_TYPE(value));
@@ -150,10 +151,12 @@ static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*fram
     if (Pyjit_EnterRecursiveCall("")) {
         return nullptr;
     }
-
+    PyObject ** stack_pointer = frame->f_stacktop;
+    assert(stack_pointer != nullptr);
+    frame->f_stacktop = nullptr;       /* remains NULL unless yield suspends frame */
 	frame->f_executing = 1;
     try {
-        auto res = ((Py_EvalFunc)state)(nullptr, frame, tstate, profile);
+        auto res = ((Py_EvalFunc)state)(nullptr, frame, tstate, profile, stack_pointer);
         Pyjit_LeaveRecursiveCall();
         frame->f_executing = 0;
         return res;
@@ -222,8 +225,10 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
 
     auto res = interp.compile(frame->f_builtins, frame->f_globals, profile, state->j_pgc_status);
     state->j_compile_result = res.result;
+    if (g_pyjionSettings.graph){
+        state->j_graph = res.instructionGraph;
+    }
     if (res.compiledCode == nullptr || res.result != Success) {
-        static int failCount;
         state->j_failed = true;
         return _PyEval_EvalFrameDefault(tstate, frame, 0);
     }
@@ -237,9 +242,6 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_profile = profile;
     state->j_sequencePoints = res.compiledCode->get_sequence_points();
     state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
-    if (g_pyjionSettings.graph){
-        state->j_graph = res.instructionGraph;
-    }
 
 #ifdef DUMP_SEQUENCE_POINTS
     printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));

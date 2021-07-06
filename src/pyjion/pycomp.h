@@ -110,7 +110,7 @@
 #define METHOD_PY_PUSHFRAME                      0x00000041
 #define METHOD_PY_POPFRAME                       0x00000042
 #define METHOD_PY_IMPORTNAME                     0x00000043
-
+#define METHOD_PYERR_CLEAR                       0x00000044
 #define METHOD_PY_IMPORTFROM                     0x00000045
 #define METHOD_PY_IMPORTSTAR                     0x00000046
 #define METHOD_IS                                0x00000049
@@ -262,9 +262,10 @@ class PythonCompiler : public IPythonCompiler {
     // pre-calculate some information...
     ILGenerator m_il;
     UserModule* m_module;
+    // This is the ADDRESS of the int f_lasti inside the PyFrameObject
     Local m_lasti;
     Local m_instrCount;
-    unordered_map<size_t, Local> m_frameLocals;
+    Local m_stacktop;
     bool m_compileDebug;
 
 public:
@@ -292,7 +293,8 @@ public:
     void emit_eh_trace() override;
 
     void emit_lasti_init() override;
-    void emit_lasti_update(uint16_t index) override;
+    void emit_lasti_update(py_opindex index) override;
+    void emit_lasti() override;
 
     void emit_ret() override;
 
@@ -451,6 +453,7 @@ public:
     void emit_reraise() override;
     void emit_restore_err() override;
     void emit_pyerr_setstring(void* exception, const char*msg) override;
+    void emit_pyerr_clear() override;
 
     void emit_compare_exceptions() override;
 
@@ -495,14 +498,20 @@ public:
     void lift_n_to_third(uint16_t pos) override;
     void sink_top_to_n(uint16_t pos) override;
     void mark_sequence_point(size_t idx) override;
-    void emit_box(AbstractValue* value) override;
-    void emit_unbox(AbstractValue* value, Local success) override;
+    void emit_box(AbstractValueKind kind) override;
+    void emit_unbox(AbstractValueKind kind, bool guard, Local success) override;
     void emit_escape_edges(vector<Edge> edges, Local success) override;
     void emit_infinity() override;
     void emit_nan() override;
     void emit_infinity_long() override;
     void emit_nan_long() override;
     void emit_guard_exception(const char* expected) override;
+    void emit_store_in_frame_value_stack(size_t index) override;
+    void emit_load_from_frame_value_stack(size_t index) override;
+    void emit_set_stacktop(size_t height) override;
+    void emit_init_stacktop_local() override;
+    void emit_shrink_stacktop_local(size_t height) override;
+
 private:
     void load_frame();
     void load_tstate();
@@ -524,15 +533,6 @@ private:
     void fill_local_vector(vector<Local> & vec, size_t len);
 
 };
-
-// Copies of internal CPython structures
-
-typedef struct {
-    PyObject_HEAD
-    Py_ssize_t it_index;
-    PyTupleObject *it_seq; /* Set to NULL when iterator is exhausted */
-} _tupleiterobject;
-
 
 const char* opcodeName(py_opcode opcode) ;
 

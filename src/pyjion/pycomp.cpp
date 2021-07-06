@@ -80,10 +80,13 @@ PythonCompiler::PythonCompiler(PyCodeObject *code) :
         Parameter(CORINFO_TYPE_NATIVEINT), // PyjionJittedCode*
         Parameter(CORINFO_TYPE_NATIVEINT), // struct _frame*
         Parameter(CORINFO_TYPE_NATIVEINT), // PyThreadState*
-        Parameter(CORINFO_TYPE_NATIVEINT),}) // PyjionCodeProfile*
+        Parameter(CORINFO_TYPE_NATIVEINT), // PyjionCodeProfile*
+        Parameter(CORINFO_TYPE_NATIVEINT), // PyObject**
+        })
 {
     this->m_code = code;
     m_lasti = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+    m_stacktop = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     m_compileDebug = g_pyjionSettings.debug;
 }
 
@@ -129,26 +132,26 @@ void PythonCompiler::emit_eh_trace() {
 
 void PythonCompiler::emit_lasti_init() {
     load_frame();
-    m_il.ld_i(offsetof(PyFrameObject, f_lasti));
-    m_il.add();
+    LD_FIELDA(PyFrameObject, f_lasti);
     m_il.st_loc(m_lasti);
 }
 
-void PythonCompiler::emit_lasti_update(uint16_t index) {
+void PythonCompiler::emit_lasti_update(py_opindex index) {
     m_il.ld_loc(m_lasti);
-    m_il.ld_i4(index);
+    m_il.ld_u4(index);
     m_il.st_ind_i4();
 }
 
+void PythonCompiler::emit_lasti(){
+    m_il.ld_loc(m_lasti);
+    m_il.ld_ind_i4();
+}
+
 void PythonCompiler::load_local(uint16_t oparg) {
-    if (OPT_ENABLED(nativeLocals)) {
-        m_il.ld_loc(m_frameLocals[oparg]);
-    } else {
-        load_frame();
-        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + oparg * sizeof(size_t));
-        m_il.add();
-        m_il.ld_ind_i();
-    }
+    load_frame();
+    m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + oparg * sizeof(size_t));
+    m_il.add();
+    m_il.ld_ind_i();
 }
 
 void PythonCompiler::emit_breakpoint(){
@@ -536,33 +539,26 @@ CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
 }
 
 void PythonCompiler::emit_store_fast(size_t local) {
-    if (OPT_ENABLED(nativeLocals)){
-        // decref old value and store new value.
-        m_il.ld_loc(m_frameLocals[local]);
-        decref();
-        m_il.st_loc(m_frameLocals[local]);
-    } else {
-        auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
-        m_il.st_loc(valueTmp);
+    auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+    m_il.st_loc(valueTmp);
 
-        // load the value onto the IL stack, we'll decref it after we replace the
-        // value in the frame object so that we never have a freed object in the
-        // frame object.
-        load_local(local);
+    // load the value onto the IL stack, we'll decref it after we replace the
+    // value in the frame object so that we never have a freed object in the
+    // frame object.
+    load_local(local);
 
-        load_frame();
-        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + local * sizeof(size_t));
-        m_il.add();
+    load_frame();
+    m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + local * sizeof(size_t));
+    m_il.add();
 
-        m_il.ld_loc(valueTmp);
+    m_il.ld_loc(valueTmp);
 
-        m_il.st_ind_i();
+    m_il.st_ind_i();
 
-        m_il.free_local(valueTmp);
+    m_il.free_local(valueTmp);
 
-        // now dec ref the old value potentially freeing it.
-        decref();
-    }
+    // now dec ref the old value potentially freeing it.
+    decref();
 }
 
 void PythonCompiler::emit_rot_two(LocalKind kind) {
@@ -1038,20 +1034,13 @@ void PythonCompiler::emit_load_global_hashed(PyObject* name, ssize_t name_hash) 
 }
 
 void PythonCompiler::emit_delete_fast(size_t index) {
-    if (OPT_ENABLED(nativeLocals)) {
-        m_il.ld_loc(m_frameLocals[index]);
-        decref();
-        m_il.load_null();
-        m_il.st_loc(m_frameLocals[index]);
-    } else {
-        load_local(index);
-        load_frame();
-        m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + index * sizeof(size_t));
-        m_il.add();
-        m_il.load_null();
-        m_il.st_ind_i();
-        decref();
-    }
+    load_local(index);
+    load_frame();
+    m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + index * sizeof(size_t));
+    m_il.add();
+    m_il.load_null();
+    m_il.st_ind_i();
+    decref();
 }
 
 void PythonCompiler::emit_new_tuple(size_t size) {
@@ -1534,6 +1523,10 @@ void PythonCompiler::emit_compare_exceptions() {
     m_il.emit_call(METHOD_COMPARE_EXCEPTIONS);
 }
 
+void PythonCompiler::emit_pyerr_clear(){
+    m_il.emit_call(METHOD_PYERR_CLEAR);
+}
+
 void PythonCompiler::emit_pyerr_setstring(void* exception, const char*msg) {
     emit_ptr(exception);
     emit_ptr((void*)msg);
@@ -1591,6 +1584,46 @@ void PythonCompiler::emit_ptr(void* value) {
 
 void PythonCompiler::emit_bool(bool value) {
     m_il.ld_i4(value);
+}
+
+void PythonCompiler::emit_init_stacktop_local() {
+    m_il.ld_arg(4);
+    m_il.st_loc(m_stacktop);
+}
+
+void PythonCompiler::emit_store_in_frame_value_stack(size_t index) {
+    // Equivalent of PUSH() macro in ceval
+    auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+    m_il.st_loc(valueTmp);
+    m_il.ld_loc(m_stacktop);
+    m_il.ld_i((int32_t)(index * sizeof(size_t)));
+    m_il.add();
+    m_il.ld_loc(valueTmp);
+    m_il.st_ind_i();
+    m_il.free_local(valueTmp);
+}
+void PythonCompiler::emit_load_from_frame_value_stack(size_t index) {
+    // Equivalent of POP() macro in ceval
+    m_il.ld_loc(m_stacktop);
+    m_il.ld_i((int32_t)(index * sizeof(size_t)));
+    m_il.sub();
+    m_il.ld_ind_i();
+}
+
+void PythonCompiler::emit_set_stacktop(size_t height) {
+    load_frame();
+    LD_FIELDA(PyFrameObject, f_stacktop);
+    m_il.ld_loc(m_stacktop);
+    m_il.ld_i((int32_t)(height * sizeof(size_t)));
+    m_il.add();
+    m_il.st_ind_i();
+}
+
+void PythonCompiler::emit_shrink_stacktop_local(size_t height) {
+    m_il.ld_loc(m_stacktop);
+    m_il.ld_i((int32_t)(height * sizeof(size_t)));
+    m_il.sub();
+    m_il.st_loc(m_stacktop);
 }
 
 // Emits a call to create a new function, consuming the code object and
@@ -2249,8 +2282,8 @@ void PythonCompiler::emit_pgc_profile_capture(Local value, size_t ipos, size_t i
     m_il.emit_call(METHOD_PGC_PROBE);
 }
 
-void PythonCompiler::emit_box(AbstractValue* value) {
-    switch(value->kind()){
+void PythonCompiler::emit_box(AbstractValueKind kind) {
+    switch(kind){
         case AVK_Float:
             m_il.emit_call(METHOD_FLOAT_FROM_DOUBLE);
             break;
@@ -2298,17 +2331,17 @@ void PythonCompiler::emit_guard_exception(const char* expected){
     m_il.emit_call(METHOD_PGC_GUARD_EXCEPTION);
 }
 
-void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
+void PythonCompiler::emit_unbox(AbstractValueKind kind, bool guard, Local success) {
 #ifdef DEBUG
-    assert(supportsEscaping(value->kind()));
+    assert(supportsEscaping(kind));
 #endif
-    switch(value->kind()) {
+    switch(kind) {
         case AVK_Float: {
             Local lcl = emit_define_local(LK_Pointer);
             Label guard_pass = emit_define_label();
             Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_load_local(lcl);
                 LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyFloat_Type);
@@ -2322,7 +2355,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             emit_load_local(lcl);
             decref();
 
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_branch(BranchAlways, guard_pass);
                 emit_mark_label(guard_fail);
                 emit_int(1);
@@ -2340,7 +2373,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             Label guard_pass = emit_define_label();
             Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_load_local(lcl);
                 LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyLong_Type);
@@ -2352,7 +2385,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             emit_load_local(lcl);
             decref();
 
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_branch(BranchAlways, guard_pass);
                 emit_mark_label(guard_fail);
                 emit_int(1);
@@ -2370,7 +2403,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             Label guard_pass = emit_define_label();
             Label guard_fail = emit_define_label();
             emit_store_local(lcl);
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_load_local(lcl);
                 LD_FIELDI(PyObject, ob_type);
                 emit_ptr(&PyBool_Type);
@@ -2390,7 +2423,7 @@ void PythonCompiler::emit_unbox(AbstractValue* value, Local success) {
             emit_load_local(lcl);
             decref();
 
-            if (value->needsGuard()) {
+            if (guard) {
                 emit_branch(BranchAlways, guard_pass);
                 emit_mark_label(guard_fail);
                 emit_int(1);
@@ -2443,10 +2476,10 @@ void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
         emit_load_and_free_local(stack[i-1]);
         switch(edges[i-1].escaped){
             case Unbox:
-                emit_unbox(edges[i-1].value, success);
+                emit_unbox(edges[i-1].value->kind(), edges[i-1].value->needsGuard(), success);
                 break;
             case Box:
-                emit_box(edges[i-1].value);
+                emit_box(edges[i-1].value->kind());
                 break;
             default:
                 break;
@@ -2629,7 +2662,7 @@ GLOBAL_METHOD(METHOD_COMPARE_EXCEPTIONS, &PyJit_CompareExceptions, CORINFO_TYPE_
 
 GLOBAL_METHOD(METHOD_UNBOUND_LOCAL, &PyJit_UnboundLocal, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_PYERR_RESTORE, &PyJit_PyErrRestore, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
-
+GLOBAL_METHOD(METHOD_PYERR_CLEAR, &PyErr_Clear, CORINFO_TYPE_VOID);
 GLOBAL_METHOD(METHOD_DEBUG_TRACE, &PyJit_DebugTrace, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DEBUG_PTR, &PyJit_DebugPtr, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_DEBUG_TYPE, &PyJit_DebugType, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT));

@@ -1,7 +1,4 @@
 """Simple, brute-force N-Queens solver."""
-"""
-Will be slower because of the use of (unsupported) yield statement.
-"""
 import pyjion
 import timeit
 
@@ -62,5 +59,6 @@ if __name__ == "__main__":
     print("N-Queens took {0} without Pyjion".format(timeit.repeat(bench_n_queens, repeat=5, number=1)))
     pyjion.enable()
     pyjion.set_optimization_level(1)
+    pyjion.enable_graphs()
     print("N-Queens took {0} with Pyjion".format(timeit.repeat(bench_n_queens, repeat=5, number=1)))
     pyjion.disable()
