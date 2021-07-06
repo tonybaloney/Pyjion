@@ -84,6 +84,8 @@ PyjionCodeProfile::~PyjionCodeProfile() {
 }
 
 void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyObject* value){
+    if (PyGen_CheckExact(value) || PyCoro_CheckExact(value))
+        return;
     if (this->stackTypes[opcodePosition][stackPosition] == nullptr) {
         this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
         Py_INCREF(Py_TYPE(value));

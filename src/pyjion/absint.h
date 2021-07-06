@@ -377,6 +377,8 @@ private:
     void forIter(py_opindex loopIndex);
     void forIter(py_opindex loopIndex, AbstractValueWithSources* iterator);
 
+    void yieldValue(py_opindex idx, size_t stackSize, InstructionGraph* graph);
+
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
     void errorCheck(const char* reason = nullptr, py_opindex curByte = 0);

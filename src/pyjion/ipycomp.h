@@ -476,6 +476,8 @@ public:
     virtual void emit_store_in_frame_value_stack(size_t index) = 0;
     virtual void emit_load_from_frame_value_stack(size_t index) = 0;
     virtual void emit_set_stacktop(size_t height) = 0;
+    virtual void emit_init_stacktop_local() = 0;
+    virtual void emit_shrink_stacktop_local(size_t height) = 0;
 };
 
 #endif

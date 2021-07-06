@@ -86,6 +86,7 @@ PythonCompiler::PythonCompiler(PyCodeObject *code) :
 {
     this->m_code = code;
     m_lasti = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
+    m_stacktop = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     m_compileDebug = g_pyjionSettings.debug;
 }
 
@@ -1585,11 +1586,16 @@ void PythonCompiler::emit_bool(bool value) {
     m_il.ld_i4(value);
 }
 
+void PythonCompiler::emit_init_stacktop_local() {
+    m_il.ld_arg(4);
+    m_il.st_loc(m_stacktop);
+}
+
 void PythonCompiler::emit_store_in_frame_value_stack(size_t index) {
     // Equivalent of PUSH() macro in ceval
     auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     m_il.st_loc(valueTmp);
-    m_il.ld_arg(4);
+    m_il.ld_loc(m_stacktop);
     m_il.ld_i((int32_t)(index * sizeof(size_t)));
     m_il.add();
     m_il.ld_loc(valueTmp);
@@ -1598,8 +1604,8 @@ void PythonCompiler::emit_store_in_frame_value_stack(size_t index) {
 }
 void PythonCompiler::emit_load_from_frame_value_stack(size_t index) {
     // Equivalent of POP() macro in ceval
-    m_il.ld_arg(4);
-    m_il.ld_i((int32_t)((index+1) * sizeof(size_t)));
+    m_il.ld_loc(m_stacktop);
+    m_il.ld_i((int32_t)(index * sizeof(size_t)));
     m_il.sub();
     m_il.ld_ind_i();
 }
@@ -1607,10 +1613,17 @@ void PythonCompiler::emit_load_from_frame_value_stack(size_t index) {
 void PythonCompiler::emit_set_stacktop(size_t height) {
     load_frame();
     LD_FIELDA(PyFrameObject, f_stacktop);
-    m_il.ld_arg(4);
+    m_il.ld_loc(m_stacktop);
     m_il.ld_i((int32_t)(height * sizeof(size_t)));
     m_il.add();
     m_il.st_ind_i();
+}
+
+void PythonCompiler::emit_shrink_stacktop_local(size_t height) {
+    m_il.ld_loc(m_stacktop);
+    m_il.ld_i((int32_t)(height * sizeof(size_t)));
+    m_il.sub();
+    m_il.st_loc(m_stacktop);
 }
 
 // Emits a call to create a new function, consuming the code object and

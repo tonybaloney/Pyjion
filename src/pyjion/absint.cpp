@@ -1240,9 +1240,6 @@ void AbstractInterpreter::branchRaise(const char *reason, py_opindex curByte, bo
         m_comp->emit_debug_msg(reason);
     }
 #endif
-    if (!canSkipLastiUpdate(curByte)) {
-        m_comp->emit_lasti_update(curByte);
-    }
 
     m_comp->emit_eh_trace();
 
@@ -1616,12 +1613,34 @@ void AbstractInterpreter::yieldJumps(){
         m_comp->emit_int(pair.first);
         m_comp->emit_branch(BranchEqual, pair.second);
     }
-    m_comp->emit_debug_msg("No matching coro skips");
+}
+
+void AbstractInterpreter::yieldValue(py_opindex index, size_t stackSize, InstructionGraph* graph) {
+    m_comp->emit_lasti_update(index);
+    dumpEscapedLocalsToFrame(graph->getUnboxedFastLocals(), index);
+
+    // incref and send top of stack
+    m_comp->emit_dup();
+    m_comp->emit_incref();
+    m_comp->emit_store_local(m_retValue);
+    // Stack has submitted result back. Store any other variables
+    for (size_t i = (stackSize - 1); i > 0 ; --i) {
+        m_comp->emit_store_in_frame_value_stack(i-1);
+    }
+    m_comp->emit_set_stacktop(stackSize-1);
+    m_comp->emit_branch(BranchAlways, m_retLabel);
+    // ^ Exit Frame || 🔽 Enter frame from next()
+    m_comp->emit_mark_label(m_yieldOffsets[index]);
+    loadEscapedLocalsFromFrame(graph->getUnboxedFastLocals(), index);
+    for (size_t i = stackSize; i > 0 ; --i) {
+        m_comp->emit_load_from_frame_value_stack(i);
+    }
+    m_comp->emit_shrink_stacktop_local(stackSize);
 }
 
 AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status, InstructionGraph* graph) {
     Label ok;
-
+    m_comp->emit_init_stacktop_local();
     m_comp->emit_lasti_init();
     m_comp->emit_push_frame();
     if (mCode->co_flags & CO_GENERATOR){
@@ -1697,6 +1716,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
         }
 
         if (!canSkipLastiUpdate(curByte)) {
+            m_comp->emit_lasti_update(curByte);
             if (mTracingEnabled){
                 m_comp->emit_trace_line(mTracingInstrLowerBound, mTracingInstrUpperBound, mTracingLastInstr);
             }
@@ -2459,24 +2479,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 break;
             }
             case YIELD_VALUE: {
-                m_comp->emit_lasti_update(op.index);
-                dumpEscapedLocalsToFrame(graph->getUnboxedFastLocals(), op.index);
-                size_t stackAt = curStackSize;
-                m_comp->emit_dup();
-                m_comp->emit_dup();
-                m_comp->emit_incref();
-                m_comp->emit_store_local(m_retValue);
-                for (size_t i = stackAt; i > 0 ; --i) {
-                    m_comp->emit_store_in_frame_value_stack(i-1);
-                }
-                m_comp->emit_set_stacktop(stackAt);
-                m_comp->emit_branch(BranchAlways, m_retLabel);
-                // ^ Exit Frame || 🔽 Enter frame from next()
-                m_comp->emit_mark_label(m_yieldOffsets[op.index]);
-                loadEscapedLocalsFromFrame(graph->getUnboxedFastLocals(), op.index);
-                for (size_t i = stackAt; i > 0 ; --i) {
-                    m_comp->emit_load_from_frame_value_stack(i);
-                }
+                yieldValue(op.index, curStackSize, graph);
                 skipEffect = true;
                 break;
             }

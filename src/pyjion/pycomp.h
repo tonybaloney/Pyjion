@@ -265,6 +265,7 @@ class PythonCompiler : public IPythonCompiler {
     // This is the ADDRESS of the int f_lasti inside the PyFrameObject
     Local m_lasti;
     Local m_instrCount;
+    Local m_stacktop;
     bool m_compileDebug;
 
 public:
@@ -508,6 +509,9 @@ public:
     void emit_store_in_frame_value_stack(size_t index) override;
     void emit_load_from_frame_value_stack(size_t index) override;
     void emit_set_stacktop(size_t height) override;
+    void emit_init_stacktop_local() override;
+    void emit_shrink_stacktop_local(size_t height) override;
+
 private:
     void load_frame();
     void load_tstate();
