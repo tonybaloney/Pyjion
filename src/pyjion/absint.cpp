@@ -1640,9 +1640,10 @@ void AbstractInterpreter::yieldValue(py_opindex index, size_t stackSize, Instruc
 
 AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc_status, InstructionGraph* graph) {
     Label ok;
-    m_comp->emit_init_stacktop_local();
     m_comp->emit_lasti_init();
     m_comp->emit_push_frame();
+    m_comp->emit_init_stacktop_local();
+
     if (mCode->co_flags & CO_GENERATOR){
         yieldJumps();
     }
