@@ -135,4 +135,18 @@ TEST_CASE("Test yield/generators with YIELD_VALUE") {
                               "  return [x for x in cr()]\n");
         CHECK(t.returns() == "['0!', '1!', '2!', '3!', '4!', '5!', '6!', '7!', '8!', '9!']");
     }
+
+    SECTION("test generator within generator.") {
+        auto t = EmissionTest("def f():\n"
+                              "  def evens(i):\n"
+                              "     for n in range(10):\n"
+                              "         if n % 2:\n"
+                              "             yield n\n"
+                              "  def tens():\n"
+                              "     for n in evens(range(100)):\n"
+                              "         if n % 10:\n"
+                              "             yield f'{n}!'\n"
+                              "  return [x for x in tens()]\n");
+        CHECK(t.returns() == "['1!', '3!', '5!', '7!', '9!']");
+    }
 }
