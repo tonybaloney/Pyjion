@@ -19,9 +19,9 @@ with open("CHANGELOG.md", "r") as fh:
 
 setup(
     name='pyjion',
-    version='1.0.0b3',
+    version='1.0.0b4',
     description='A JIT compiler wrapper for CPython',
-    author='Anthony Shaw and Microsoft',
+    author='Anthony Shaw',
     author_email='anthonyshaw@apache.org',
     url='https://github.com/tonybaloney/Pyjion',
     project_urls={
