@@ -468,8 +468,7 @@ TEST_CASE("Test and return"){
         CHECK(t.returns() == "True");
     }
 }
-
-TEST_CASE("Test locals propagation", "[!mayfail]") {
+TEST_CASE("Test locals propagation with no frame globals") {
     SECTION("test precomputed hash on dict") {
         auto t = EmissionTest(
                 "def f():\n"
@@ -479,6 +478,8 @@ TEST_CASE("Test locals propagation", "[!mayfail]") {
         );
         CHECK(t.returns() == "3");
     }
+}
+TEST_CASE("Test locals propagation", "[!mayfail]") {
     SECTION("test precomputed hash on dict within exec") {
         auto t = EmissionTest(
                 "def f():\n"

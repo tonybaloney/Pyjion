@@ -392,7 +392,7 @@ PyObject* PyJit_NewFunction(PyObject* code, PyObject* qualname, PyFrameObject* f
     return res;
 }
 
-PyObject* PyJit_LoadClosure(PyFrameObject* frame, size_t index) {
+PyObject* PyJit_LoadClosure(PyFrameObject* frame, py_oparg index) {
     PyObject** cells = frame->f_localsplus + frame->f_code->co_nlocals;
     PyObject *value = cells[index];
 
@@ -448,16 +448,6 @@ PyObject* PyJit_UnaryNot(PyObject* value) {
     return nullptr;
 }
 
-int PyJit_UnaryNot_Int(PyObject* value) {
-    ASSERT_ARG_INT(value);
-    int err = PyObject_IsTrue(value);
-    Py_DECREF(value);
-    if (err < 0) {
-        return -1;
-    }
-    return err ? 0 : 1;
-}
-
 PyObject* PyJit_UnaryInvert(PyObject* value) {
     ASSERT_ARG(value);
     auto res = PyNumber_Invert(value);
@@ -465,7 +455,7 @@ PyObject* PyJit_UnaryInvert(PyObject* value) {
     return res;
 }
 
-PyObject* PyJit_NewList(size_t size){
+PyObject* PyJit_NewList(py_oparg size){
     auto list = PyList_New(size);
     return list;
 }
@@ -1240,7 +1230,7 @@ raise_error:
     return 0;
 }
 
-PyObject* PyJit_LoadClassDeref(PyFrameObject* frame, size_t oparg) {
+PyObject* PyJit_LoadClassDeref(PyFrameObject* frame, py_oparg oparg) {
     PyObject* value;
     PyCodeObject* co = frame->f_code;
     size_t idx = oparg - PyTuple_GET_SIZE(co->co_cellvars);
@@ -1694,7 +1684,7 @@ PyObject* PyJit_IterNext(PyObject* iter) {
     return res;
 }
 
-PyObject* PyJit_CellGet(PyFrameObject* frame, size_t index) {
+PyObject* PyJit_CellGet(PyFrameObject* frame, py_oparg index) {
     PyObject** cells = frame->f_localsplus + frame->f_code->co_nlocals;
     PyObject *value = PyCell_GET(cells[index]);
 
@@ -1707,7 +1697,7 @@ PyObject* PyJit_CellGet(PyFrameObject* frame, size_t index) {
     return value;
 }
 
-void PyJit_CellSet(PyObject* value, PyFrameObject* frame, size_t index) {
+void PyJit_CellSet(PyObject* value, PyFrameObject* frame, py_oparg index) {
     PyObject** cells = frame->f_localsplus + frame->f_code->co_nlocals;
     auto cell = cells[index];
     if (cell == nullptr){
@@ -2381,7 +2371,7 @@ error:
 	return result;
 }
 
-PyObject* PyJit_PyTuple_New(ssize_t len){
+PyObject* PyJit_PyTuple_New(py_oparg len){
     auto t = PyTuple_New(len);
     return t;
 }
