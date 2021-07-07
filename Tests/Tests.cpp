@@ -37,6 +37,7 @@ int main(int argc, char* const argv[]) {
     g_pyjionSettings.graph = false;
     g_pyjionSettings.debug = true;
     g_pyjionSettings.tracing = false;
+    g_pyjionSettings.codeObjectSizeLimit = 1000000;
     int result = Catch::Session().run(argc, argv);
 
     Py_Finalize();

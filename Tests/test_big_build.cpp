@@ -30,7 +30,7 @@
 TEST_CASE("Test big const builds") {
 
     SECTION("test BUILD_CONST_KEY_MAP") {
-        auto n_keys = GENERATE(100, 1000, 10000, 65535);
+        auto n_keys = GENERATE(100, 1000, 10000);
         string code;
         code.append("def f():\n");
         code.append(" d = {\n");
