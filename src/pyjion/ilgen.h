@@ -178,8 +178,10 @@ public:
                 }
                 else {
                     push_back(CEE_LDC_I4);
-                    m_il.push_back((BYTE)CEE_STLOC); // TODO : Work out why this opcode is here?!
-                    emit_int(i);
+                    m_il.push_back(i & 0xff);
+                    m_il.push_back((i >> 8) & 0xff);
+                    m_il.push_back((i >> 16) & 0xff);
+                    m_il.push_back((i >> 24) & 0xff);
                 }
         }
     }

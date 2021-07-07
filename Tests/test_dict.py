@@ -75,5 +75,6 @@ class DictTestCase(unittest.TestCase):
         import sysconfig
         self.assertEqual(sysconfig.get_config_var('PYTHON'), 'python')
 
+
 if __name__ == "__main__":
     unittest.main()

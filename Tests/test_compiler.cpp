@@ -381,7 +381,6 @@ TEST_CASE("test slicing"){
     }
 }
 
-
 TEST_CASE("test language features") {
     SECTION("test basic iter") {
         auto t = EmissionTest(

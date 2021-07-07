@@ -1326,11 +1326,13 @@ PyObject * PyJit_BuildDictFromTuples(PyObject *keys_and_values) {
     auto len = PyTuple_GET_SIZE(keys_and_values) - 1;
     PyObject* keys = PyTuple_GET_ITEM(keys_and_values, len);
     if (keys == nullptr){
-        PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are null.");
+        if (!PyErr_Occurred())
+            PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are null.");
         return nullptr;
     }
     if (!PyTuple_Check(keys)){
-        PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are %s,not tuple type.", keys->ob_type->tp_name);
+        if (!PyErr_Occurred())
+            PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are %s,not tuple type.", keys->ob_type->tp_name);
         return nullptr;
     }
     auto map = _PyDict_NewPresized(len);

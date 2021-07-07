@@ -2357,7 +2357,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                     // Otherwise we need to convert
                     m_comp->emit_format_value();
                 }
-
                 incStack();
                 break;
             }
