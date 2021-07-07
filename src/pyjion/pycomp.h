@@ -307,9 +307,9 @@ public:
     void emit_load_global_hashed(PyObject* name, Py_hash_t name_hash) override;
 
     void emit_new_tuple(py_oparg size) override;
-    void emit_tuple_store(size_t size) override;
-    void emit_tuple_load(size_t index) override;
-    void emit_list_load(size_t index) override;
+    void emit_tuple_store(py_oparg size) override;
+    void emit_tuple_load(py_oparg index) override;
+    void emit_list_load(py_oparg index) override;
     void emit_tuple_length() override;
     void emit_list_length() override;
 
@@ -353,15 +353,15 @@ public:
 
     void emit_load_build_class() override;
 
-    void emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) override;
-    void emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) override;
-    void emit_unpack_list(size_t size, AbstractValueWithSources iterable) override;
-    void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) override;
+    void emit_unpack_sequence(py_oparg size, AbstractValueWithSources iterable) override;
+    void emit_unpack_tuple(py_oparg size, AbstractValueWithSources iterable) override;
+    void emit_unpack_list(py_oparg size, AbstractValueWithSources iterable) override;
+    void emit_unpack_generic(py_oparg size, AbstractValueWithSources iterable) override;
     void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) override;
     void emit_list_shrink(size_t by) override;
     void emit_builtin_method(PyObject* name, AbstractValue* typeValue) override;
     void emit_call_function_inline(py_oparg n_args, AbstractValueWithSources func) override;
-    bool emit_call_function(size_t argCnt) override;
+    bool emit_call_function(py_oparg argCnt) override;
     void emit_call_with_tuple() override;
 
     void emit_kwcall_with_tuple() override;
@@ -461,7 +461,7 @@ public:
     void emit_debug_pyobject() override;
 
     void emit_load_method(void* name) override;
-    bool emit_method_call(size_t argCnt) override;
+    bool emit_method_call(py_oparg argCnt) override;
     void emit_method_call_n() override;
 
     void emit_dict_merge() override;

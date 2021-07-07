@@ -240,9 +240,9 @@ public:
      // Creates a new tuple of the specified size
     virtual void emit_new_tuple(py_oparg size) = 0;
     // Stores all of the values on the stack into a tuple
-    virtual void emit_tuple_store(size_t size) = 0;
-	virtual void emit_tuple_load(size_t index) = 0;
-    virtual void emit_list_load(size_t index) = 0;
+    virtual void emit_tuple_store(py_oparg size) = 0;
+	virtual void emit_tuple_load(py_oparg index) = 0;
+    virtual void emit_list_load(py_oparg index) = 0;
     virtual void emit_tuple_length() = 0;
     virtual void emit_list_length() = 0;
 
@@ -311,20 +311,20 @@ public:
     virtual void emit_load_build_class() = 0;
 
     // Unpacks the sequence onto the stack
-    virtual void emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) = 0;
-    virtual void emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) = 0;
-    virtual void emit_unpack_list(size_t size, AbstractValueWithSources iterable) = 0;
-    virtual void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_sequence(py_oparg size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_tuple(py_oparg size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_list(py_oparg size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_generic(py_oparg size, AbstractValueWithSources iterable) = 0;
     // Unpacks the sequence onto the stack, supporting a remainder list
     virtual void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) = 0;
     virtual void emit_list_shrink(size_t by) = 0;
 
     virtual void emit_builtin_method(PyObject* name, AbstractValue* typeValue) = 0;
     virtual void emit_call_function_inline(py_oparg n_args, AbstractValueWithSources func) = 0;
-    virtual bool emit_call_function(size_t argCnt) = 0;
+    virtual bool emit_call_function(py_oparg argCnt) = 0;
 
     // Emits a call for the specified argument count.
-    virtual bool emit_method_call(size_t argCnt) = 0;
+    virtual bool emit_method_call(py_oparg argCnt) = 0;
     virtual void emit_method_call_n() = 0;
 
     // Emits a call with the arguments to be invoked in a tuple object
