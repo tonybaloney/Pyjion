@@ -34,9 +34,9 @@ int main(int argc, char* const argv[]) {
     PySys_AddXOption(L"tracemalloc");
     Py_Initialize();
     JitInit();
-    g_pyjionSettings.graph = false;
+    g_pyjionSettings.graph = true;
     g_pyjionSettings.debug = true;
-    g_pyjionSettings.tracing = false;
+    g_pyjionSettings.tracing = true;
     g_pyjionSettings.codeObjectSizeLimit = 1000000;
     int result = Catch::Session().run(argc, argv);
 
