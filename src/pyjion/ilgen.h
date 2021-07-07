@@ -174,14 +174,11 @@ public:
             default:
                 if (i < 256) {
                     push_back(CEE_LDC_I4_S);
-                    push_back(i);
+                    push_back((BYTE)i);
                 }
                 else {
                     push_back(CEE_LDC_I4);
-                    m_il.push_back(i & 0xff);
-                    m_il.push_back((i >> 8) & 0xff);
-                    m_il.push_back((i >> 16) & 0xff);
-                    m_il.push_back((i >> 24) & 0xff);
+                    emit_int(i);
                 }
         }
     }

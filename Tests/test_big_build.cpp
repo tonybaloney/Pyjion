@@ -47,6 +47,24 @@ TEST_CASE("Test big const builds") {
         CHECK(stoi(t.returns()) == n_keys);
     }
 
+    SECTION("test BUILD_CONST_KEY_MAP int values") {
+        auto n_keys = GENERATE(100, 204);
+        string code;
+        code.append("def f():\n");
+        code.append(" d = {\n");
+        for (size_t i = 0 ; i < n_keys; i++){
+            char snip[30];
+            snprintf(snip, 30, " 'x%zu': %zu,", i, i);
+            code.append(snip);
+        }
+        code.append(" }\n");
+        code.append(" return len(d)\n");
+        auto t = EmissionTest(
+                code.c_str()
+        );
+        CHECK(stoi(t.returns()) == n_keys);
+    }
+
     SECTION("test BUILD_TUPLE") {
         auto n_keys = GENERATE(100, 1000, 10000, 65535);
         string code;
