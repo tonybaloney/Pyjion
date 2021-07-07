@@ -71,6 +71,9 @@ class DictTestCase(unittest.TestCase):
         self.assertEqual(before_e, sys.getrefcount(e))
         self.assertEqual(before_f, sys.getrefcount(f))
 
+    def test_big_dict(self):
+        import sysconfig
+        self.assertEqual(sysconfig.get_config_var('PYTHON'), 'python')
 
 if __name__ == "__main__":
     unittest.main()
