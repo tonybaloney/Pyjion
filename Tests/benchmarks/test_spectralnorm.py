@@ -63,6 +63,7 @@ if __name__ == "__main__":
     without_result = timeit.repeat(bench_spectral_norm, repeat=5, number=10)
     print("{0} took {1} min, {2} max, {3} mean without Pyjion".format("spectralnorm", min(without_result), max(without_result), fmean(without_result)))
     pyjion.enable()
+    pyjion.disable_pgc()
     pyjion.set_optimization_level(1)
     with_result = timeit.repeat(bench_spectral_norm, repeat=5, number=10)
     pyjion.disable()
