@@ -18,7 +18,15 @@ class DictTypeTestCase(unittest.TestCase):
 
         self.assertTrue('foo' in out)
 
+
 class BaseClassTestCase(unittest.TestCase):
+    def setUp(self) -> None:
+        pyjion.enable()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+        gc.collect()
+
     def test_resolve_bases(self):
         import types
 
