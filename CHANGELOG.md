@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.0.0 (beta5)
+
+* Fixed a bug on large dictionary literals (>100 keys)
+* Improved the efficiency of the BUILD_TUPLE, BUILD_LIST, BUILD_CONST_KEY_MAP, and BUILD_SET opcodes
+
 ## 1.0.0 (beta4)
 
 * Support for the `yield` keyword and Python generators
