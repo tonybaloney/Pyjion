@@ -117,6 +117,7 @@
 #define METHOD_ISNOT                             0x0000004A
 #define METHOD_IS_BOOL                           0x0000004B
 #define METHOD_ISNOT_BOOL                        0x0000004C
+#define METHOD_WRAP_ASYNC_GENERATOR              0x0000004D
 
 #define METHOD_FLOAT_FROM_DOUBLE                 0x00000053
 #define METHOD_BOOL_FROM_LONG                    0x00000054
@@ -504,7 +505,7 @@ public:
     void emit_set_stacktop(size_t height) override;
     void emit_init_stacktop_local() override;
     void emit_shrink_stacktop_local(size_t height) override;
-
+    void emit_wrap_async_generator() override;
 private:
     void load_frame();
     void load_tstate();

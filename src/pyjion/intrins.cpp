@@ -2652,3 +2652,7 @@ void PyJit_PgcGuardException(PyObject* obj, const char* expected) {
                  PyUnicode_AsUTF8(PyObject_Repr(obj)),
                  obj->ob_type->tp_name);
 }
+
+PyObject* PyJit_WrapAsyncGenerator(PyObject *val){
+    // TODO: implement
+}

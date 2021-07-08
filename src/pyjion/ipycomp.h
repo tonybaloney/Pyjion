@@ -422,6 +422,8 @@ public:
     virtual void emit_debug_msg(const char* msg) = 0;
     virtual void emit_debug_pyobject() = 0;
 
+    virtual void emit_wrap_async_generator() = 0;
+
     // Python 3.7 method calls
     virtual void emit_load_method(void* name) = 0;
 
