@@ -2082,6 +2082,8 @@ inline PyObject* Call(PyObject *target, Args...args) {
 
 PyObject* Call0(PyObject *target) {
     PyObject* res = nullptr;
+    if (PyErr_Occurred())
+        return nullptr;
     if (target == nullptr){
         if (!PyErr_Occurred())
             PyErr_Format(PyExc_TypeError,

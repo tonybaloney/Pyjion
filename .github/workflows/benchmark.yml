@@ -49,6 +49,7 @@ jobs:
           python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
           python Tests/benchmarks/test_deltablue.py
+          python Tests/benchmarks/test_spectralnorm.py
 
   bench-macos-11:
     runs-on: macos-11.0
@@ -87,6 +88,7 @@ jobs:
           python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
           python Tests/benchmarks/test_deltablue.py
+          python Tests/benchmarks/test_spectralnorm.py
 
   bench-windows:
     runs-on: windows-latest
@@ -148,3 +150,4 @@ jobs:
           python Tests/benchmarks/test_float.py
           python Tests/benchmarks/test_django_template.py
           python Tests/benchmarks/test_deltablue.py
+          python Tests/benchmarks/test_spectralnorm.py

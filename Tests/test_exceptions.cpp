@@ -200,8 +200,7 @@ TEST_CASE("Test exception handling", "[!mayfail]") {
         auto t = CompilerTest(
                 "def f():\n    try:\n        raise Exception()\n    finally:\n        try:\n            raise Exception()\n        finally:\n            try:\n                return 42\n            finally:\n                pass\n    return 23"
         );
-        // TODO : Fix this test
-        //CHECK(t.returns() == "42");
+        CHECK(t.returns() == "42");
     }
 
     SECTION("Break from a nested exception handler needs to unwind all exception handlers") {
@@ -229,8 +228,7 @@ TEST_CASE("Test exception handling", "[!mayfail]") {
         auto t = CompilerTest(
                 "def f():\n    try:\n         raise Exception()\n    finally:\n        raise Exception()"
         );
-        // TODO: Fix test assertion on Python side.
-        //CHECK(t.raises() == PyExc_SystemError);
+        CHECK(t.raises() == PyExc_SystemError);
     }
 
     SECTION("test raise in finally causes runtime error") {
