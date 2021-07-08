@@ -64,7 +64,8 @@ const CORINFO_CLASS_HANDLE PYOBJECT_PTR_TYPE = (CORINFO_CLASS_HANDLE)0x11;
 class CorJitInfo : public ICorJitInfo, public JittedCode {
     void* m_codeAddr;
     void* m_dataAddr;
-    PyCodeObject *m_code;
+    const char* m_moduleName;
+    const char* m_methodName;
     UserModule* m_module;
     vector<uint8_t> m_il;
     uint32_t m_nativeSize;
@@ -80,9 +81,10 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
 
 public:
 
-    CorJitInfo(PyCodeObject* code, UserModule* module, bool compileDebug) {
+    CorJitInfo(const char * moduleName, const char * methodName, UserModule* module, bool compileDebug) {
         m_codeAddr = m_dataAddr = nullptr;
-        m_code = code;
+        m_methodName = methodName;
+        m_moduleName = moduleName;
         m_module = module;
         m_il = vector<uint8_t>(0);
         m_nativeSize = 0;
@@ -1481,8 +1483,8 @@ public:
         CORINFO_METHOD_HANDLE       ftn,        /* IN */
         const char                **moduleName  /* OUT */
         ) override {
-        *moduleName = PyUnicode_AsUTF8(m_code->co_filename);
-        return PyUnicode_AsUTF8(m_code->co_name);
+        *moduleName = m_moduleName;
+        return m_methodName;
     }
 
     // this function is for debugging only.  It returns a value that

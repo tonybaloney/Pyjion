@@ -172,7 +172,7 @@ public:
             case 7: push_back(CEE_LDC_I4_7); break;
             case 8: push_back(CEE_LDC_I4_8); break;
             default:
-                if (i < 256) {
+                if (i > -128 && i < 128) {
                     push_back(CEE_LDC_I4_S);
                     push_back((BYTE)i);
                 }
@@ -567,7 +567,7 @@ public:
             case 2: m_il.push_back(CEE_STLOC_2); break;
             case 3: m_il.push_back(CEE_STLOC_3); break;
             default:
-                if (index < 256) {
+                if (index > -128 && index < 128) {
                     m_il.push_back(CEE_STLOC_S); 
                     m_il.push_back(index);
                 }
@@ -587,7 +587,7 @@ public:
             case 2: m_il.push_back(CEE_LDLOC_2); break;
             case 3: m_il.push_back(CEE_LDLOC_3); break;
             default:
-                if (index < 256) {
+                if (index > -128 && index < 128) {
                     m_il.push_back(CEE_LDLOC_S); 
                     m_il.push_back((BYTE)index);
                 }
@@ -601,7 +601,7 @@ public:
     }
 
     void ld_loca(ssize_t index) {
-        if (index < 256) {
+        if (index > -128 && index < 128) {
             m_il.push_back(CEE_LDLOCA_S); // Pop0, PushI
             m_il.push_back(index);
         }
@@ -653,7 +653,7 @@ public:
                 push_back(CEE_LDARG_3);  // Pop0, Push1
                 break;
             default:
-                if (index < 256) {
+                if (index > -128 && index < 128) {
                     push_back(CEE_LDARG_S);  // Pop0, Push1
                     m_il.push_back(index);
                 } else {

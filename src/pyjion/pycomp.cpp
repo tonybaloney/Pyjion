@@ -2166,7 +2166,7 @@ void PythonCompiler::emit_call_function_inline(py_oparg n_args, AbstractValueWit
 }
 
 JittedCode* PythonCompiler::emit_compile() {
-    auto* jitInfo = new CorJitInfo(m_code, m_module, m_compileDebug);
+    auto* jitInfo = new CorJitInfo(PyUnicode_AsUTF8(m_code->co_filename), PyUnicode_AsUTF8(m_code->co_name), m_module, m_compileDebug);
     auto addr = m_il.compile(jitInfo, g_jit, m_code->co_stacksize + 100).m_addr;
     if (addr == nullptr) {
 #ifdef DEBUG
