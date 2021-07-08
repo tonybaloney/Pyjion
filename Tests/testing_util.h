@@ -136,6 +136,9 @@ private:
         Py_DECREF(frame);
         size_t collected = PyGC_Collect();
         printf("Collected %zu values\n", collected);
+        if (m_jittedcode->j_failed){
+            printf("Failure code : %d \n", m_jittedcode->j_compile_result);
+        }
         REQUIRE(!m_jittedcode->j_failed);
         delete profile;
         return res;

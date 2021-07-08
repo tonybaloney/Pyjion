@@ -1595,7 +1595,7 @@ void AbstractInterpreter::emitPgcProbes(py_opindex curByte, size_t stackSize) {
 }
 
 bool canReturnInfinity(py_opcode opcode){
-    switch(opcode){
+    switch(opcode){ // NOLINT(hicpp-multiway-paths-covered)
         case BINARY_TRUE_DIVIDE:
         case BINARY_FLOOR_DIVIDE:
         case INPLACE_TRUE_DIVIDE:
@@ -2357,7 +2357,6 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                     // Otherwise we need to convert
                     m_comp->emit_format_value();
                 }
-
                 incStack();
                 break;
             }

@@ -29,6 +29,7 @@
 #include <Python.h>
 #include <frameobject.h>
 #include <vector>
+#include "types.h"
 
 #define NAME_ERROR_MSG \
     "name '%.200s' is not defined"
@@ -111,15 +112,15 @@ PyObject* PyJit_SubscrTupleIndex(PyObject *o, PyObject *key, Py_ssize_t index);
 
 PyObject* PyJit_RichCompare(PyObject *left, PyObject *right, size_t op);
 
-PyObject* PyJit_CellGet(PyFrameObject* frame, size_t index);
-void PyJit_CellSet(PyObject* value, PyFrameObject* frame, size_t index);
+PyObject* PyJit_CellGet(PyFrameObject* frame, int32_t index);
+void PyJit_CellSet(PyObject* value, PyFrameObject* frame, int32_t index);
 
 PyObject* PyJit_Contains(PyObject *left, PyObject *right);
 PyObject* PyJit_NotContains(PyObject *left, PyObject *right);
 
 PyObject* PyJit_NewFunction(PyObject* code, PyObject* qualname, PyFrameObject* frame);
 
-PyObject* PyJit_LoadClosure(PyFrameObject* frame, size_t index);
+PyObject* PyJit_LoadClosure(PyFrameObject* frame, int32_t index);
 PyObject* PyJit_SetClosure(PyObject* closure, PyObject* func);
 
 PyObject* PyJit_BuildSlice(PyObject* start, PyObject* stop, PyObject* step);
@@ -130,7 +131,7 @@ PyObject* PyJit_UnaryNot(PyObject* value);
 int PyJit_UnaryNot_Int(PyObject* value);
 PyObject* PyJit_UnaryInvert(PyObject* value);
 
-PyObject* PyJit_NewList(size_t size);
+PyObject* PyJit_NewList(int32_t size);
 PyObject* PyJit_ListAppend(PyObject* list, PyObject* value);
 PyObject* PyJit_SetAdd(PyObject* set, PyObject* value);
 PyObject* PyJit_UpdateSet(PyObject* iterable, PyObject* set);
@@ -202,7 +203,7 @@ void PyJit_EhTrace(PyFrameObject *f);
 
 int PyJit_Raise(PyObject *exc, PyObject *cause);
 
-PyObject* PyJit_LoadClassDeref(PyFrameObject* frame, size_t oparg);
+PyObject* PyJit_LoadClassDeref(PyFrameObject* frame, int32_t oparg);
 
 PyObject* PyJit_ExtendList(PyObject *iterable, PyObject *list);
 
@@ -242,7 +243,7 @@ PyObject* PyJit_GetIter(PyObject* iterable);
 
 PyObject* PyJit_IterNext(PyObject* iter);
 
-PyObject* PyJit_PyTuple_New(ssize_t len);
+PyObject* PyJit_PyTuple_New(int32_t len);
 
 PyObject* PyJit_BuildClass(PyFrameObject *f);
 

@@ -34,8 +34,8 @@ InstructionGraph::InstructionGraph(PyCodeObject *code, unordered_map<py_opindex 
     auto size = PyBytes_Size(code->co_code);
     for (py_opindex curByte = 0; curByte < size; curByte += SIZEOF_CODEUNIT) {
         py_opindex index = curByte;
-        py_opcode opcode = GET_OPCODE(curByte);
-        py_oparg oparg = GET_OPARG(curByte);
+        auto opcode = GET_OPCODE(curByte);
+        auto oparg = GET_OPARG(curByte);
 
         if (opcode == EXTENDED_ARG)
         {

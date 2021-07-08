@@ -147,7 +147,7 @@ void PythonCompiler::emit_lasti(){
     m_il.ld_ind_i4();
 }
 
-void PythonCompiler::load_local(uint16_t oparg) {
+void PythonCompiler::load_local(py_oparg oparg) {
     load_frame();
     m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + oparg * sizeof(size_t));
     m_il.add();
@@ -205,7 +205,7 @@ void PythonCompiler::emit_list_shrink(size_t by) {
     LD_FIELDA(PyVarObject, ob_size);
     m_il.dup();
     m_il.ld_ind_i();
-    emit_int(by);
+    emit_sizet(by);
     m_il.sub();
     m_il.st_ind_i();
 }
@@ -245,7 +245,7 @@ void PythonCompiler::decref(bool noopt) {
     }
 }
 
-void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) {
+void PythonCompiler::emit_unpack_tuple(py_oparg size, AbstractValueWithSources iterable) {
     Label passedGuard, failedGuard;
     if (iterable.Value->needsGuard()){
         passedGuard = emit_define_label(), failedGuard = emit_define_label();
@@ -261,12 +261,12 @@ void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources ite
     Local t_value = emit_define_local(LK_NativeInt);
     Label raiseValueError = emit_define_label();
     Label returnValues = emit_define_label();
-    size_t idx = size, idx2 = size;
+    py_oparg idx = size, idx2 = size;
     emit_store_local(t_value);
 
     emit_load_local(t_value);
     emit_tuple_length();
-    emit_int(size);
+    emit_sizet(size);
     emit_branch(BranchNotEqual,raiseValueError);
 
         while (idx--) {
@@ -296,7 +296,7 @@ void PythonCompiler::emit_unpack_tuple(size_t size, AbstractValueWithSources ite
     }
 }
 
-void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iterable) {
+void PythonCompiler::emit_unpack_list(py_oparg size, AbstractValueWithSources iterable) {
     Label passedGuard, failedGuard;
     if (iterable.Value->needsGuard()){
         passedGuard = emit_define_label(), failedGuard = emit_define_label();
@@ -311,13 +311,13 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
     Local t_value = emit_define_local(LK_NativeInt);
     Label raiseValueError = emit_define_label();
     Label returnValues = emit_define_label();
-    size_t idx = size, idx2 = size;
+    py_oparg idx = size, idx2 = size;
 
     emit_store_local(t_value);
 
     emit_load_local(t_value);
     emit_list_length();
-    emit_int(size);
+    emit_sizet(size);
     emit_branch(BranchNotEqual,raiseValueError);
 
         while (idx--) {
@@ -346,7 +346,7 @@ void PythonCompiler::emit_unpack_list(size_t size, AbstractValueWithSources iter
     }
 }
 
-void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources iterable) {
+void PythonCompiler::emit_unpack_generic(py_oparg size, AbstractValueWithSources iterable) {
     vector<Local> iterated(size);
     Local t_iter = emit_define_local(LK_NativeInt), t_object = emit_define_local(LK_NativeInt);
     Local result = emit_define_local(LK_Int);
@@ -395,7 +395,7 @@ void PythonCompiler::emit_unpack_generic(size_t size, AbstractValueWithSources i
     emit_load_and_free_local(result);
 }
 
-void PythonCompiler::emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) {
+void PythonCompiler::emit_unpack_sequence(py_oparg size, AbstractValueWithSources iterable) {
     if (iterable.Value->known()) {
         switch (iterable.Value->kind()) {
             case AVK_Tuple:
@@ -479,12 +479,12 @@ void PythonCompiler::emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, 
     size_t j_idx = rightSize;
     emit_load_local(resultList);
     emit_list_length();
-    emit_int(rightSize);
+    emit_sizet(rightSize);
     emit_branch(BranchLessThan, raiseValueError);
 
         while (j_idx--) {
             emit_load_local(resultList);
-            emit_int(j_idx);
+            emit_sizet(j_idx);
             m_il.emit_call(METHOD_LIST_ITEM_FROM_BACK);
             emit_dup();
             emit_incref();
@@ -523,7 +523,7 @@ void PythonCompiler::emit_unbound_local_check() {
     m_il.emit_call(METHOD_UNBOUND_LOCAL);
 }
 
-void PythonCompiler::emit_load_fast(size_t local) {
+void PythonCompiler::emit_load_fast(py_oparg local) {
     load_local(local);
 }
 
@@ -538,7 +538,7 @@ CorInfoType PythonCompiler::to_clr_type(LocalKind kind) {
     return CORINFO_TYPE_NATIVEINT;
 }
 
-void PythonCompiler::emit_store_fast(size_t local) {
+void PythonCompiler::emit_store_fast(py_oparg local) {
     auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     m_il.st_loc(valueTmp);
 
@@ -782,7 +782,7 @@ void PythonCompiler::emit_dict_build_from_map() {
     m_il.emit_call(METHOD_BUILD_DICT_FROM_TUPLES);
 }
 
-void PythonCompiler::emit_new_list(size_t argCnt) {
+void PythonCompiler::emit_new_list(py_oparg argCnt) {
     m_il.ld_i4(argCnt);
     m_il.emit_call(METHOD_PYLIST_NEW);
 }
@@ -791,7 +791,7 @@ void PythonCompiler::emit_load_assertion_error() {
     m_il.emit_call(METHOD_LOAD_ASSERTION_ERROR);
 }
 
-void PythonCompiler::emit_list_store(size_t argCnt) {
+void PythonCompiler::emit_list_store(py_oparg argCnt) {
     auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     auto listTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     auto listItems = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
@@ -806,13 +806,13 @@ void PythonCompiler::emit_list_store(size_t argCnt) {
 
     m_il.st_loc(listItems);
 
-    for (size_t i = 0, arg = argCnt - 1; i < argCnt; i++, arg--) {
+    for (int32_t i = 0, arg = argCnt - 1; i < argCnt; i++, arg--) {
         // save the argument into a temporary...
         m_il.st_loc(valueTmp);
 
         // load the address of the list item...
         m_il.ld_loc(listItems);
-        m_il.ld_i(arg * sizeof(size_t));
+        emit_sizet(arg * sizeof(size_t));
         m_il.add();
 
         // reload the value
@@ -876,8 +876,8 @@ void PythonCompiler::emit_set_extend() {
     m_il.emit_call(METHOD_SETUPDATE_TOKEN);
 }
 
-void PythonCompiler::emit_new_dict(size_t size) {
-    m_il.ld_i4(size);
+void PythonCompiler::emit_new_dict(py_oparg size) {
+    m_il.ld_i(size);
     m_il.emit_call(METHOD_PYDICT_NEWPRESIZED);
 }
 
@@ -903,10 +903,10 @@ void PythonCompiler::emit_load_name(PyObject* name) {
     m_il.emit_call(METHOD_LOADNAME_TOKEN);
 }
 
-void PythonCompiler::emit_load_name_hashed(PyObject* name, ssize_t name_hash) {
+void PythonCompiler::emit_load_name_hashed(PyObject* name, Py_hash_t name_hash) {
     load_frame();
     m_il.ld_i(name);
-    m_il.ld_i((void*)name_hash);
+    emit_sizet(name_hash);
     m_il.emit_call(METHOD_LOADNAME_HASH);
 }
 
@@ -1026,14 +1026,14 @@ void PythonCompiler::emit_load_global(PyObject* name) {
     m_il.emit_call(METHOD_LOADGLOBAL_TOKEN);
 }
 
-void PythonCompiler::emit_load_global_hashed(PyObject* name, ssize_t name_hash) {
+void PythonCompiler::emit_load_global_hashed(PyObject* name, Py_hash_t name_hash) {
     load_frame();
     m_il.ld_i(name);
-    m_il.ld_i(name_hash);
+    emit_sizet(name_hash);
     m_il.emit_call(METHOD_LOADGLOBAL_HASH);
 }
 
-void PythonCompiler::emit_delete_fast(size_t index) {
+void PythonCompiler::emit_delete_fast(py_oparg index) {
     load_local(index);
     load_frame();
     m_il.ld_i(offsetof(PyFrameObject, f_localsplus) + index * sizeof(size_t));
@@ -1043,7 +1043,7 @@ void PythonCompiler::emit_delete_fast(size_t index) {
     decref();
 }
 
-void PythonCompiler::emit_new_tuple(size_t size) {
+void PythonCompiler::emit_new_tuple(py_oparg size) {
     if (size == 0) {
         emit_ptr(g_emptyTuple);
         m_il.dup();
@@ -1051,14 +1051,14 @@ void PythonCompiler::emit_new_tuple(size_t size) {
         emit_incref();
     }
     else {
-        m_il.ld_i8(size);
+        m_il.ld_i4(size);
         m_il.emit_call(METHOD_PYTUPLE_NEW);
     }
 }
 
 // Loads the specified index from a tuple that's already on the stack
-void PythonCompiler::emit_tuple_load(size_t index) {
-	m_il.ld_i(index * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
+void PythonCompiler::emit_tuple_load(py_oparg index) {
+	emit_sizet(index * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
 	m_il.add();
 	m_il.ld_ind_i();
 }
@@ -1069,10 +1069,10 @@ void PythonCompiler::emit_tuple_length(){
     m_il.ld_ind_i();
 }
 
-void PythonCompiler::emit_list_load(size_t index) {
+void PythonCompiler::emit_list_load(py_oparg index) {
     LD_FIELDI(PyListObject, ob_item);
     if (index > 0) {
-        m_il.ld_i(index * sizeof(size_t));
+        emit_sizet(index * sizeof(size_t));
         m_il.add();
     }
     m_il.ld_ind_i();
@@ -1084,7 +1084,7 @@ void PythonCompiler::emit_list_length(){
     m_il.ld_ind_i();
 }
 
-void PythonCompiler::emit_tuple_store(size_t argCnt) {
+void PythonCompiler::emit_tuple_store(py_oparg argCnt) {
     /// This function emits a tuple from the stack, only using borrowed references.
     auto valueTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
     auto tupleTmp = m_il.define_local(Parameter(CORINFO_TYPE_NATIVEINT));
@@ -1096,7 +1096,7 @@ void PythonCompiler::emit_tuple_store(size_t argCnt) {
 
         // load the address of the tuple item...
         m_il.ld_loc(tupleTmp);
-        m_il.ld_i(arg * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
+        emit_sizet(arg * sizeof(size_t) + offsetof(PyTupleObject, ob_item));
         m_il.add();
 
         // reload the value
@@ -1354,16 +1354,8 @@ void PythonCompiler::emit_unary_negative() {
     m_il.emit_call(METHOD_UNARY_NEGATIVE);
 }
 
-void PythonCompiler::emit_unary_not_push_int() {
-    m_il.emit_call(METHOD_UNARY_NOT_INT);
-}
-
 void PythonCompiler::emit_unary_not() {
     m_il.emit_call(METHOD_UNARY_NOT);
-}
-
-void PythonCompiler::emit_unary_negative_float() {
-    m_il.neg();
 }
 
 void PythonCompiler::emit_unary_invert() {
@@ -1426,7 +1418,7 @@ void PythonCompiler::emit_call_kwargs() {
     m_il.emit_call(METHOD_CALL_KWARGS);
 }
 
-bool PythonCompiler::emit_call_function(size_t argCnt) {
+bool PythonCompiler::emit_call_function(py_oparg argCnt) {
     switch (argCnt) {
         case 0: m_il.emit_call(METHOD_CALL_0_TOKEN); return true;
         case 1: m_il.emit_call(METHOD_CALL_1_TOKEN); return true;
@@ -1445,7 +1437,7 @@ bool PythonCompiler::emit_call_function(size_t argCnt) {
     return false;
 }
 
-bool PythonCompiler::emit_method_call(size_t argCnt) {
+bool PythonCompiler::emit_method_call(py_oparg argCnt) {
     switch (argCnt) {
         case 0: m_il.emit_call(METHOD_METHCALL_0_TOKEN); return true;
         case 1: m_il.emit_call(METHOD_METHCALL_1_TOKEN); return true;
@@ -1566,6 +1558,10 @@ void PythonCompiler::emit_int(int value) {
     m_il.ld_i4(value);
 }
 
+void PythonCompiler::emit_sizet(size_t value) {
+    m_il.ld_i((void*)value);
+}
+
 void PythonCompiler::emit_long_long(long long value) {
     m_il.ld_i8(value);
 }
@@ -1670,32 +1666,32 @@ void PythonCompiler::emit_set_defaults() {
 	m_il.st_ind_i();
 }
 
-void PythonCompiler::emit_load_deref(size_t index) {
+void PythonCompiler::emit_load_deref(py_oparg index) {
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_PYCELL_GET);
 }
 
-void PythonCompiler::emit_store_deref(size_t index) {
+void PythonCompiler::emit_store_deref(py_oparg index) {
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_PYCELL_SET_TOKEN);
 }
 
-void PythonCompiler::emit_delete_deref(size_t index) {
+void PythonCompiler::emit_delete_deref(py_oparg index) {
     m_il.load_null();
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_PYCELL_SET_TOKEN);
 }
 
-void PythonCompiler::emit_load_closure(size_t index) {
+void PythonCompiler::emit_load_closure(py_oparg index) {
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_LOAD_CLOSURE);
 }
 
-void PythonCompiler::emit_load_classderef(size_t index) {
+void PythonCompiler::emit_load_classderef(py_oparg index) {
     load_frame();
     m_il.ld_i4(index);
     m_il.emit_call(METHOD_LOAD_CLASSDEREF_TOKEN);
@@ -1750,7 +1746,7 @@ Label PythonCompiler::emit_define_label() {
 }
 
 void PythonCompiler::emit_inc_local(Local local, size_t value) {
-    emit_int(value);
+    emit_sizet(value);
     emit_load_local(local);
     m_il.add();
     emit_store_local(local);
@@ -1758,7 +1754,7 @@ void PythonCompiler::emit_inc_local(Local local, size_t value) {
 
 void PythonCompiler::emit_dec_local(Local local, size_t value) {
     emit_load_local(local);
-    emit_int(value);
+    emit_sizet(value);
     m_il.sub();
     emit_store_local(local);
 }
@@ -1773,81 +1769,6 @@ void PythonCompiler::emit_mark_label(Label label) {
 
 void PythonCompiler::emit_for_next() {
     m_il.emit_call(METHOD_ITERNEXT_TOKEN);
-}
-
-void PythonCompiler::emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset){
-    auto exhaust = emit_define_label();
-    auto exhausted = emit_define_label();
-    auto end = emit_define_label();
-    auto it_seq = emit_define_local(LK_NativeInt);
-    auto item = emit_define_local(LK_NativeInt);
-
-    auto it = emit_spill();
-
-    emit_load_local(it);
-    m_il.ld_i(seq_offset);
-    m_il.add();
-    m_il.ld_ind_i();
-    emit_dup();
-    emit_store_local(it_seq); // it_seq = it->it_seq
-
-    emit_null();
-    emit_branch(BranchEqual, exhausted); // if (it_seq ==nullptr) goto exhausted;
-
-    // Get next iteration
-    emit_load_local(it);
-    m_il.ld_i(index_offset);
-    m_il.add();
-    m_il.ld_ind_i();
-    emit_load_local(it_seq);
-    LD_FIELDI(PyVarObject, ob_size);
-    emit_branch(BranchGreaterThanEqual, exhaust); // if (it->it_index < it_seq->ob_size) goto exhaust;
-
-    emit_load_local(it_seq);
-    m_il.ld_i(ob_item_offset);
-    m_il.add();
-    m_il.ld_ind_i();
-    emit_load_local(it);
-    m_il.ld_i(index_offset);
-    m_il.add();
-    m_il.ld_ind_i();
-    m_il.ld_i(sizeof(PyObject*));
-    m_il.mul();
-    m_il.add();
-    m_il.ld_ind_i();
-    emit_store_local(item);
-
-    emit_load_local(it);
-    m_il.ld_i(index_offset);
-    m_il.add();
-    m_il.dup();
-    m_il.ld_ind_i();
-    m_il.load_one();
-    m_il.add();
-    m_il.st_ind_i(); // it->it_index++
-
-    emit_load_local(item);
-    emit_incref(); // Py_INCREF(item);
-
-    emit_load_and_free_local(item);
-    emit_branch(BranchAlways, end); // Return item
-
-    emit_mark_label(exhaust);
-    emit_load_local(it);
-    m_il.ld_i(seq_offset);
-    m_il.add();
-    emit_null();
-    m_il.st_ind_i();   // it->it_seq = nullptr;
-
-    emit_load_local(it_seq);
-    decref();             // Py_DECREF(it->it_seq); return 0xff
-
-    emit_mark_label(exhausted);
-    emit_ptr((void *) 0xff); // Return 0xff
-
-    emit_mark_label(end); // Clean-up
-    emit_free_local(it);
-    emit_free_local(it_seq);
 }
 
 void PythonCompiler::emit_for_next(AbstractValueWithSources iterator) {
@@ -1904,6 +1825,8 @@ LocalKind PythonCompiler::emit_binary_float(uint16_t opcode) {
             m_il.div();
             m_il.emit_call(METHOD_FLOAT_FLOOR_TOKEN);
             break;
+        default:
+            throw UnexpectedValueException();
     }
     return LK_Float;
 }
@@ -1937,6 +1860,8 @@ LocalKind PythonCompiler::emit_binary_int(uint16_t opcode) {
         case INPLACE_FLOOR_DIVIDE:
             m_il.emit_call(METHOD_INT_FLOOR_DIVIDE);
             return LK_Int;
+        default:
+            throw UnexpectedValueException();
     }
     return LK_Int;
 }
@@ -2035,7 +1960,7 @@ void PythonCompiler::emit_compare_floats(uint16_t compareType) {
             m_il.compare_gt();
             break;
         default:
-            assert(false);
+            throw UnexpectedValueException();
     };
 }
 
@@ -2060,7 +1985,7 @@ void PythonCompiler::emit_compare_ints(uint16_t compareType) {
             m_il.compare_gt();
             break;
         default:
-            assert(false);
+            throw UnexpectedValueException();
     };
 }
 
@@ -2137,7 +2062,7 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
     emit_load_and_free_local(meth_location);
 }
 
-void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithSources func) {
+void PythonCompiler::emit_call_function_inline(py_oparg n_args, AbstractValueWithSources func) {
     auto functionType = func.Value->pythonType();
     PyObject* functionObject = nullptr;
     Local argumentLocal = emit_define_local(LK_Pointer),
@@ -2241,7 +2166,7 @@ void PythonCompiler::emit_call_function_inline(size_t n_args, AbstractValueWithS
 }
 
 JittedCode* PythonCompiler::emit_compile() {
-    auto* jitInfo = new CorJitInfo(m_code, m_module, m_compileDebug);
+    auto* jitInfo = new CorJitInfo(PyUnicode_AsUTF8(m_code->co_filename), PyUnicode_AsUTF8(m_code->co_name), m_module, m_compileDebug);
     auto addr = m_il.compile(jitInfo, g_jit, m_code->co_stacksize + 100).m_addr;
     if (addr == nullptr) {
 #ifdef DEBUG
@@ -2266,10 +2191,6 @@ JittedCode* PythonCompiler::emit_compile() {
     return jitInfo;
 }
 
-void PythonCompiler::emit_tagged_int_to_float() {
-    m_il.emit_call(METHOD_INT_TO_FLOAT);
-}
-
 void PythonCompiler::mark_sequence_point(size_t idx) {
     m_il.mark_sequence_point(idx);
 }
@@ -2277,8 +2198,8 @@ void PythonCompiler::mark_sequence_point(size_t idx) {
 void PythonCompiler::emit_pgc_profile_capture(Local value, size_t ipos, size_t istack) {
     m_il.ld_arg(3);
     emit_load_local(value);
-    m_il.ld_i8(ipos);
-    emit_int(istack);
+    emit_sizet(ipos);
+    emit_sizet(istack);
     m_il.emit_call(METHOD_PGC_PROBE);
 }
 
@@ -2322,7 +2243,7 @@ void PythonCompiler::emit_compare_unboxed(uint16_t compareType, AbstractValueWit
         m_il.conv_r8();
         return emit_compare_floats(compareType);
     } else {
-        assert(false);
+        throw UnexpectedValueException();
     }
 }
 
@@ -2533,7 +2454,7 @@ GLOBAL_METHOD(METHOD_BINARY_AND_TOKEN, &PyJit_BinaryAnd, CORINFO_TYPE_NATIVEINT,
 GLOBAL_METHOD(METHOD_BINARY_XOR_TOKEN, &PyJit_BinaryXor, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_BINARY_OR_TOKEN, &PyJit_BinaryOr, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
-GLOBAL_METHOD(METHOD_PYLIST_NEW, &PyJit_NewList, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_PYLIST_NEW, &PyJit_NewList, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_EXTENDLIST_TOKEN, &PyJit_ExtendList, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_LISTTOTUPLE_TOKEN, &PyJit_ListToTuple, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_STOREMAP_TOKEN, &PyJit_StoreMap, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
@@ -2553,7 +2474,7 @@ GLOBAL_METHOD(METHOD_BUILD_DICT_FROM_TUPLES, &PyJit_BuildDictFromTuples, CORINFO
 GLOBAL_METHOD(METHOD_DICT_MERGE, &PyJit_DictMerge, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_PYDICT_NEWPRESIZED, &_PyDict_NewPresized, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
-GLOBAL_METHOD(METHOD_PYTUPLE_NEW, &PyJit_PyTuple_New, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
+GLOBAL_METHOD(METHOD_PYTUPLE_NEW, &PyJit_PyTuple_New, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_INT));
 GLOBAL_METHOD(METHOD_PYSET_NEW, &PySet_New, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_PYOBJECT_STR, &PyObject_Str, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
@@ -2623,7 +2544,6 @@ GLOBAL_METHOD(METHOD_BUILD_SLICE, &PyJit_BuildSlice, CORINFO_TYPE_NATIVEINT, Par
 GLOBAL_METHOD(METHOD_UNARY_POSITIVE, &PyJit_UnaryPositive, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_UNARY_NEGATIVE, &PyJit_UnaryNegative, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_UNARY_NOT, &PyJit_UnaryNot, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
-GLOBAL_METHOD(METHOD_UNARY_NOT_INT, &PyJit_UnaryNot_Int, CORINFO_TYPE_INT, Parameter(CORINFO_TYPE_NATIVEINT));
 
 GLOBAL_METHOD(METHOD_UNARY_INVERT, &PyJit_UnaryInvert, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 
@@ -2739,7 +2659,7 @@ GLOBAL_METHOD(METHOD_LOAD_CLOSURE, &PyJit_LoadClosure, CORINFO_TYPE_NATIVEINT, P
 
 GLOBAL_METHOD(METHOD_PENDING_CALLS, &Py_MakePendingCalls, CORINFO_TYPE_INT, );
 
-GLOBAL_METHOD(METHOD_PGC_PROBE, &capturePgcStackValue, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_INT));
+GLOBAL_METHOD(METHOD_PGC_PROBE, &capturePgcStackValue, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_PGC_GUARD_EXCEPTION, &PyJit_PgcGuardException, CORINFO_TYPE_VOID, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_SEQUENCE_AS_LIST, &PySequence_List, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT));
 GLOBAL_METHOD(METHOD_LIST_ITEM_FROM_BACK, &PyJit_GetListItemReversed, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));

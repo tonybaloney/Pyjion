@@ -114,4 +114,13 @@ public:
     }
 };
 
+
+class UnexpectedValueException: public PyjionJitRuntimeException {
+public:
+    UnexpectedValueException() : PyjionJitRuntimeException() {};
+    const char * what () const noexcept override
+    {
+        return "Unexpected value in compiler.";
+    }
+};
 #endif // PYJION_EXCEPTIONS_H

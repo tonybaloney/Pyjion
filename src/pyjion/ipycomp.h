@@ -41,21 +41,20 @@ public:
     }
 };
 
-
 class Local {
 public:
-    ssize_t m_index;
-
-    explicit Local(ssize_t index = -1) {
+    uint16_t m_index;
+    // TODO : use a bit flag instead of a max number to indicate undefined locals.
+    explicit Local(uint16_t index = 65535) {
         m_index = index;
     }
 
     bool is_valid() const {
-        return m_index != -1;
+        return m_index != 65535;
     }
 
-    void raiseOnInvalid(){
-        if (m_index == -1)
+    void raiseOnInvalid() const {
+        if (m_index == 65535)
             throw InvalidLocalException();
     }
 };
@@ -138,6 +137,7 @@ public:
 
     // Emits an unboxed integer value onto the stack
     virtual void emit_int(int value) = 0;
+    virtual void emit_sizet(size_t value) = 0;
     virtual void emit_long_long(long long value) = 0;
     // Emits an unboxed floating point value onto the stack
     virtual void emit_float(double value) = 0;
@@ -193,14 +193,14 @@ public:
      * Loads/Stores to/from various places */
 
      // Loads/stores/deletes from the frame objects fast local variables
-    virtual void emit_load_fast(size_t local) = 0;
-    virtual void emit_store_fast(size_t local) = 0;
-    virtual void emit_delete_fast(size_t index) = 0;
+    virtual void emit_load_fast(py_oparg local) = 0;
+    virtual void emit_store_fast(py_oparg local) = 0;
+    virtual void emit_delete_fast(py_oparg index) = 0;
     virtual void emit_unbound_local_check() = 0;
 
     // Loads/stores/deletes by name for values not known to be in fast locals
     virtual void emit_load_name(PyObject* name) = 0;
-    virtual void emit_load_name_hashed(PyObject* name, ssize_t name_hash) = 0;
+    virtual void emit_load_name_hashed(PyObject* name, Py_hash_t name_hash) = 0;
     virtual void emit_store_name(PyObject* name) = 0;
     virtual void emit_delete_name(PyObject* name) = 0;
 
@@ -212,17 +212,18 @@ public:
 
     // Loads/stores/deletes a global variable
     virtual void emit_load_global(PyObject* name) = 0;
-    virtual void emit_load_global_hashed(PyObject* name, ssize_t name_hash) = 0;
+    virtual void emit_load_global_hashed(PyObject* name, Py_hash_t name_hash) = 0;
 
     virtual void emit_store_global(PyObject* name) = 0;
     virtual void emit_delete_global(PyObject* name) = 0;
 
     // Loads/stores/deletes a cell variable for closures.
-    virtual void emit_load_deref(size_t index) = 0;
-    virtual void emit_store_deref(size_t index) = 0;
-    virtual void emit_delete_deref(size_t index) = 0;
+    virtual void emit_load_deref(py_oparg index) = 0;
+    virtual void emit_store_deref(py_oparg index) = 0;
+    virtual void emit_delete_deref(py_oparg index) = 0;
     // Loads the cell object for a variable
-    virtual void emit_load_closure(size_t index) = 0;
+    virtual void emit_load_closure(py_oparg index) = 0;
+    virtual void emit_load_classderef(py_oparg index) = 0;
 
     // Sets/deletes a subscript value
     virtual void emit_store_subscr() = 0;
@@ -236,11 +237,11 @@ public:
      * Collection operations */
 
      // Creates a new tuple of the specified size
-    virtual void emit_new_tuple(size_t size) = 0;
+    virtual void emit_new_tuple(py_oparg size) = 0;
     // Stores all of the values on the stack into a tuple
-    virtual void emit_tuple_store(size_t size) = 0;
-	virtual void emit_tuple_load(size_t index) = 0;
-    virtual void emit_list_load(size_t index) = 0;
+    virtual void emit_tuple_store(py_oparg size) = 0;
+	virtual void emit_tuple_load(py_oparg index) = 0;
+    virtual void emit_list_load(py_oparg index) = 0;
     virtual void emit_tuple_length() = 0;
     virtual void emit_list_length() = 0;
 
@@ -248,9 +249,9 @@ public:
     virtual void emit_list_to_tuple() = 0;
 
     // Creates a new list of the specified size
-    virtual void emit_new_list(size_t argCnt) = 0;
+    virtual void emit_new_list(py_oparg argCnt) = 0;
     // Stores all of the values on the stack into a list
-    virtual void emit_list_store(size_t argCnt) = 0;
+    virtual void emit_list_store(py_oparg argCnt) = 0;
     // Appends a single value to a list
     virtual void emit_list_append() = 0;
     // Extends a list with a single iterable
@@ -281,7 +282,7 @@ public:
 	virtual void emit_pyobject_format() = 0;
 
 	// Creates a new dictionary
-    virtual void emit_new_dict(size_t size) = 0;
+    virtual void emit_new_dict(py_oparg size) = 0;
     // Stores a key/value pair into a dict
     virtual void emit_dict_store() = 0;
 	// Stores a key/value pair into a dict w/o doing a decref on the key/value
@@ -309,20 +310,20 @@ public:
     virtual void emit_load_build_class() = 0;
 
     // Unpacks the sequence onto the stack
-    virtual void emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) = 0;
-    virtual void emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) = 0;
-    virtual void emit_unpack_list(size_t size, AbstractValueWithSources iterable) = 0;
-    virtual void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_sequence(py_oparg size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_tuple(py_oparg size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_list(py_oparg size, AbstractValueWithSources iterable) = 0;
+    virtual void emit_unpack_generic(py_oparg size, AbstractValueWithSources iterable) = 0;
     // Unpacks the sequence onto the stack, supporting a remainder list
     virtual void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) = 0;
     virtual void emit_list_shrink(size_t by) = 0;
 
     virtual void emit_builtin_method(PyObject* name, AbstractValue* typeValue) = 0;
-    virtual void emit_call_function_inline(size_t n_args, AbstractValueWithSources func) = 0;
-    virtual bool emit_call_function(size_t argCnt) = 0;
+    virtual void emit_call_function_inline(py_oparg n_args, AbstractValueWithSources func) = 0;
+    virtual bool emit_call_function(py_oparg argCnt) = 0;
 
     // Emits a call for the specified argument count.
-    virtual bool emit_method_call(size_t argCnt) = 0;
+    virtual bool emit_method_call(py_oparg argCnt) = 0;
     virtual void emit_method_call_n() = 0;
 
     // Emits a call with the arguments to be invoked in a tuple object
@@ -351,12 +352,10 @@ public:
 
     // Prints the current value on the stack
     virtual void emit_print_expr() = 0;
-    virtual void emit_load_classderef(size_t index) = 0;
 
     /*****************************************************
      * Iteration */
     virtual void emit_getiter() = 0;
-    //void emit_getiter_opt() = 0;
     virtual void emit_for_next() = 0;
     virtual void emit_for_next(AbstractValueWithSources) = 0;
 
@@ -368,14 +367,9 @@ public:
     virtual void emit_unary_negative() = 0;
     // Performs a unary not, pushing the Python object result onto the stack, or NULL if an error occurred
     virtual void emit_unary_not() = 0;
-    // Perform a unary not, pushing an unboxed int onto the stack indicating true (1), false (0), or error
-    virtual void emit_unary_not_push_int() = 0;
 
     // Performs a unary invert on the top value on the stack, pushing the result onto the stack or NULL if an error occurred
     virtual void emit_unary_invert() = 0;
-
-    // Peforms a unary negative on a unboxed floating value on the stack, pushing the unboxed result back to the stack
-    virtual void emit_unary_negative_float() = 0;
 
     // Performans a binary operation for values on the stack which are unboxed floating points
     virtual LocalKind emit_binary_float(uint16_t opcode) = 0;
@@ -387,8 +381,6 @@ public:
     virtual void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) = 0;
     virtual bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) = 0;
-
-    virtual void emit_tagged_int_to_float() = 0;
 
     // Does an in/contains check and pushes a Python object onto the stack as the result, or NULL if there was an error
     virtual void emit_in() = 0;

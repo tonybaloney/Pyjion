@@ -59,7 +59,7 @@ public:
     ~PyjionCodeProfile();
 };
 
-void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition);
+void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, size_t stackPosition);
 class PyjionJittedCode;
 
 bool JitInit();

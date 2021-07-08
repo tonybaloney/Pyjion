@@ -39,6 +39,7 @@
 #include <cstdlib>
 #include <intrin.h>
 
+#include <utility>
 #include <vector>
 #include <unordered_map>
 
@@ -75,7 +76,7 @@ class ILGenerator {
     vector<pair<size_t, uint32_t>> m_sequencePoints;
 public:
     vector<BYTE> m_il;
-    size_t m_localCount;
+    uint16_t m_localCount;
     vector<LabelInfo> m_labels;
 
 public:
@@ -83,7 +84,7 @@ public:
     ILGenerator(BaseModule* module, CorInfoType returnType, std::vector<Parameter> params) {
         m_module = module;
         m_retType = returnType;
-        m_params = params;
+        m_params = std::move(params);
         m_localCount = 0;
     }
 
@@ -172,13 +173,12 @@ public:
             case 7: push_back(CEE_LDC_I4_7); break;
             case 8: push_back(CEE_LDC_I4_8); break;
             default:
-                if (i < 256) {
+                if (i > -128 && i < 128) {
                     push_back(CEE_LDC_I4_S);
-                    push_back(i);
+                    push_back((BYTE)i);
                 }
                 else {
                     push_back(CEE_LDC_I4);
-                    m_il.push_back((BYTE)CEE_STLOC); // TODO : Work out why this opcode is here?!
                     emit_int(i);
                 }
         }
@@ -503,10 +503,6 @@ public:
         compare_eq();
     }
 
-    void conv_i4(){
-        m_il.push_back(CEE_CONV_I4);
-    }
-
     void conv_r8(){
         m_il.push_back(CEE_CONV_R8);
     }
@@ -561,7 +557,7 @@ public:
         ld_loca(param.m_index);
     }
 
-    void st_loc(ssize_t index) {
+    void st_loc(uint16_t index) {
         switch (index) {
             case 0: m_il.push_back(CEE_STLOC_0); break;
             case 1: m_il.push_back(CEE_STLOC_1); break;
@@ -581,7 +577,7 @@ public:
         }
     }
 
-    void ld_loc(ssize_t index) {
+    void ld_loc(uint16_t index) {
         switch (index) {
             case 0: m_il.push_back(CEE_LDLOC_0); break;
             case 1: m_il.push_back(CEE_LDLOC_1); break;
@@ -601,7 +597,7 @@ public:
         }
     }
 
-    void ld_loca(ssize_t index) {
+    void ld_loca(uint16_t index) {
         if (index < 256) {
             m_il.push_back(CEE_LDLOCA_S); // Pop0, PushI
             m_il.push_back(index);
@@ -638,8 +634,7 @@ public:
         push_back(CEE_MUL);   // Pop1+Pop1, Push1
     }
 
-    void ld_arg(int32_t index) {
-        assert(index != -1);
+    void ld_arg(uint16_t index) {
         switch (index) {
             case 0:
                 push_back(CEE_LDARG_0);  // Pop0, Push1

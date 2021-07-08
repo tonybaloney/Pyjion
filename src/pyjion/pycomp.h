@@ -118,7 +118,6 @@
 #define METHOD_IS_BOOL                           0x0000004B
 #define METHOD_ISNOT_BOOL                        0x0000004C
 
-#define METHOD_UNARY_NOT_INT                     0x00000051
 #define METHOD_FLOAT_FROM_DOUBLE                 0x00000053
 #define METHOD_BOOL_FROM_LONG                    0x00000054
 #define METHOD_PYERR_SETSTRING                   0x00000055
@@ -130,8 +129,6 @@
 #define METHOD_LISTTOTUPLE_TOKEN                 0x0000006D
 #define METHOD_SETUPDATE_TOKEN                   0x0000006E
 #define METHOD_DICTUPDATE_TOKEN                  0x0000006F
-
-#define METHOD_INT_TO_FLOAT                      0x00000072
 
 #define METHOD_STOREMAP_NO_DECREF_TOKEN          0x00000073
 #define METHOD_FORMAT_VALUE                      0x00000074
@@ -284,7 +281,7 @@ public:
     void emit_dup_top_two() override;
 
     void emit_load_name(PyObject* name) override;
-    void emit_load_name_hashed(PyObject* name, ssize_t name_hash) override;
+    void emit_load_name_hashed(PyObject* name, Py_hash_t name_hash) override;
 
     void emit_is_true() override;
 
@@ -307,18 +304,17 @@ public:
     void emit_store_global(PyObject* name) override;
     void emit_delete_global(PyObject* name) override;
     void emit_load_global(PyObject* name) override;
-    void emit_load_global_hashed(PyObject* name, ssize_t name_hash) override;
-    void emit_delete_fast(size_t index) override;
+    void emit_load_global_hashed(PyObject* name, Py_hash_t name_hash) override;
 
-    void emit_new_tuple(size_t size) override;
-    void emit_tuple_store(size_t size) override;
-    void emit_tuple_load(size_t index) override;
-    void emit_list_load(size_t index) override;
+    void emit_new_tuple(py_oparg size) override;
+    void emit_tuple_store(py_oparg size) override;
+    void emit_tuple_load(py_oparg index) override;
+    void emit_list_load(py_oparg index) override;
     void emit_tuple_length() override;
     void emit_list_length() override;
 
-    void emit_new_list(size_t argCnt) override;
-    void emit_list_store(size_t argCnt) override;
+    void emit_new_list(py_oparg argCnt) override;
+    void emit_list_store(py_oparg argCnt) override;
     void emit_list_extend() override;
     void emit_list_to_tuple() override;
 
@@ -337,7 +333,7 @@ public:
     void emit_pyobject_ascii() override;
     void emit_pyobject_format() override;
 
-    void emit_new_dict(size_t size) override;
+    void emit_new_dict(py_oparg size) override;
     void emit_map_extend() override;
 
     void emit_build_slice() override;
@@ -348,11 +344,7 @@ public:
 
     void emit_unary_positive() override;
     void emit_unary_negative() override;
-    void emit_unary_negative_float() override;
-
     void emit_unary_not() override;
-
-    void emit_unary_not_push_int() override;
     void emit_unary_invert() override;
 
     void emit_import_name(void* name) override;
@@ -361,15 +353,15 @@ public:
 
     void emit_load_build_class() override;
 
-    void emit_unpack_sequence(size_t size, AbstractValueWithSources iterable) override;
-    void emit_unpack_tuple(size_t size, AbstractValueWithSources iterable) override;
-    void emit_unpack_list(size_t size, AbstractValueWithSources iterable) override;
-    void emit_unpack_generic(size_t size, AbstractValueWithSources iterable) override;
+    void emit_unpack_sequence(py_oparg size, AbstractValueWithSources iterable) override;
+    void emit_unpack_tuple(py_oparg size, AbstractValueWithSources iterable) override;
+    void emit_unpack_list(py_oparg size, AbstractValueWithSources iterable) override;
+    void emit_unpack_generic(py_oparg size, AbstractValueWithSources iterable) override;
     void emit_unpack_sequence_ex(size_t leftSize, size_t rightSize, AbstractValueWithSources iterable) override;
     void emit_list_shrink(size_t by) override;
     void emit_builtin_method(PyObject* name, AbstractValue* typeValue) override;
-    void emit_call_function_inline(size_t n_args, AbstractValueWithSources func) override;
-    bool emit_call_function(size_t argCnt) override;
+    void emit_call_function_inline(py_oparg n_args, AbstractValueWithSources func) override;
+    bool emit_call_function(py_oparg argCnt) override;
     void emit_call_with_tuple() override;
 
     void emit_kwcall_with_tuple() override;
@@ -383,11 +375,11 @@ public:
     void emit_set_kw_defaults() override;
     void emit_set_defaults() override;
 
-    void emit_load_deref(size_t index) override;
-    void emit_store_deref(size_t index) override;
-    void emit_delete_deref(size_t index) override;
-    void emit_load_closure(size_t index) override;
-    void emit_load_classderef(size_t index) override;
+    void emit_load_deref(py_oparg index) override;
+    void emit_store_deref(py_oparg index) override;
+    void emit_delete_deref(py_oparg index) override;
+    void emit_load_closure(py_oparg index) override;
+    void emit_load_classderef(py_oparg index) override;
 
     Local emit_spill() override;
     void emit_store_local(Local local) override;
@@ -421,7 +413,6 @@ public:
     void emit_binary_subscr(uint16_t opcode, AbstractValueWithSources left, AbstractValueWithSources right) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop) override;
     bool emit_binary_subscr_slice(AbstractValueWithSources container, AbstractValueWithSources start, AbstractValueWithSources stop, AbstractValueWithSources step) override;
-    void emit_tagged_int_to_float() override;
 
     void emit_in() override;
     void emit_not_in() override;
@@ -434,15 +425,17 @@ public:
     void emit_compare_floats(uint16_t compareType) override;
     void emit_compare_ints(uint16_t compareType) override;
 
-    void emit_store_fast(size_t local) override;
+    void emit_store_fast(py_oparg local) override;
     void emit_unbound_local_check() override;
-    void emit_load_fast(size_t local) override;
+    void emit_load_fast(py_oparg local) override;
+    void emit_delete_fast(py_oparg index) override;
 
     Label emit_define_label() override;
     void emit_mark_label(Label label) override;
     void emit_branch(BranchType branchType, Label label) override;
 
     void emit_int(int value) override;
+    void emit_sizet(size_t value) override;
     void emit_long_long(long long value) override;
     void emit_float(double value) override;
     void emit_ptr(void *value) override;
@@ -468,7 +461,7 @@ public:
     void emit_debug_pyobject() override;
 
     void emit_load_method(void* name) override;
-    bool emit_method_call(size_t argCnt) override;
+    bool emit_method_call(py_oparg argCnt) override;
     void emit_method_call_n() override;
 
     void emit_dict_merge() override;
@@ -515,12 +508,11 @@ public:
 private:
     void load_frame();
     void load_tstate();
-    void load_local(uint16_t oparg);
+    void load_local(py_oparg oparg);
     void decref(bool noopt = false);
     CorInfoType to_clr_type(LocalKind kind);
     void pop_top() override;
     void emit_binary_subscr(AbstractValueWithSources container, AbstractValueWithSources index);
-    void emit_varobject_iter_next(int seq_offset, int index_offset, int ob_item_offset );
 
     void emit_known_binary_op(AbstractValueWithSources &left, AbstractValueWithSources &right, Local leftLocal, Local rightLocal, int nb_slot,
                               int sq_slot, int fallback_token);

@@ -104,7 +104,7 @@ PyObject* PyjionCodeProfile::getValue(size_t opcodePosition, size_t stackPositio
     return this->stackValues[opcodePosition][stackPosition];
 }
 
-void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, int stackPosition){
+void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, size_t stackPosition){
     if (value != nullptr && profile != nullptr){
         profile->record(opcodePosition, stackPosition, value);
     }

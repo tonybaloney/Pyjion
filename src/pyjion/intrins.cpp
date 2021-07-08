@@ -392,7 +392,7 @@ PyObject* PyJit_NewFunction(PyObject* code, PyObject* qualname, PyFrameObject* f
     return res;
 }
 
-PyObject* PyJit_LoadClosure(PyFrameObject* frame, size_t index) {
+PyObject* PyJit_LoadClosure(PyFrameObject* frame, int32_t index) {
     PyObject** cells = frame->f_localsplus + frame->f_code->co_nlocals;
     PyObject *value = cells[index];
 
@@ -448,16 +448,6 @@ PyObject* PyJit_UnaryNot(PyObject* value) {
     return nullptr;
 }
 
-int PyJit_UnaryNot_Int(PyObject* value) {
-    ASSERT_ARG_INT(value);
-    int err = PyObject_IsTrue(value);
-    Py_DECREF(value);
-    if (err < 0) {
-        return -1;
-    }
-    return err ? 0 : 1;
-}
-
 PyObject* PyJit_UnaryInvert(PyObject* value) {
     ASSERT_ARG(value);
     auto res = PyNumber_Invert(value);
@@ -465,7 +455,7 @@ PyObject* PyJit_UnaryInvert(PyObject* value) {
     return res;
 }
 
-PyObject* PyJit_NewList(size_t size){
+PyObject* PyJit_NewList(int32_t size){
     auto list = PyList_New(size);
     return list;
 }
@@ -1240,7 +1230,7 @@ raise_error:
     return 0;
 }
 
-PyObject* PyJit_LoadClassDeref(PyFrameObject* frame, size_t oparg) {
+PyObject* PyJit_LoadClassDeref(PyFrameObject* frame, int32_t oparg) {
     PyObject* value;
     PyCodeObject* co = frame->f_code;
     size_t idx = oparg - PyTuple_GET_SIZE(co->co_cellvars);
@@ -1336,11 +1326,13 @@ PyObject * PyJit_BuildDictFromTuples(PyObject *keys_and_values) {
     auto len = PyTuple_GET_SIZE(keys_and_values) - 1;
     PyObject* keys = PyTuple_GET_ITEM(keys_and_values, len);
     if (keys == nullptr){
-        PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are null.");
+        if (!PyErr_Occurred())
+            PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are null.");
         return nullptr;
     }
     if (!PyTuple_Check(keys)){
-        PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are %s,not tuple type.", keys->ob_type->tp_name);
+        if (!PyErr_Occurred())
+            PyErr_Format(PyExc_TypeError, "Cannot build dict, keys are %s,not tuple type.", keys->ob_type->tp_name);
         return nullptr;
     }
     auto map = _PyDict_NewPresized(len);
@@ -1694,7 +1686,7 @@ PyObject* PyJit_IterNext(PyObject* iter) {
     return res;
 }
 
-PyObject* PyJit_CellGet(PyFrameObject* frame, size_t index) {
+PyObject* PyJit_CellGet(PyFrameObject* frame, int32_t index) {
     PyObject** cells = frame->f_localsplus + frame->f_code->co_nlocals;
     PyObject *value = PyCell_GET(cells[index]);
 
@@ -1707,7 +1699,7 @@ PyObject* PyJit_CellGet(PyFrameObject* frame, size_t index) {
     return value;
 }
 
-void PyJit_CellSet(PyObject* value, PyFrameObject* frame, size_t index) {
+void PyJit_CellSet(PyObject* value, PyFrameObject* frame, int32_t index) {
     PyObject** cells = frame->f_localsplus + frame->f_code->co_nlocals;
     auto cell = cells[index];
     if (cell == nullptr){
@@ -2381,9 +2373,8 @@ error:
 	return result;
 }
 
-PyObject* PyJit_PyTuple_New(ssize_t len){
-    auto t = PyTuple_New(len);
-    return t;
+PyObject* PyJit_PyTuple_New(int32_t len){
+    return PyTuple_New(len);
 }
 
 PyObject* PyJit_Is(PyObject* lhs, PyObject* rhs) {
