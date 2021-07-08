@@ -71,11 +71,7 @@ class DictTestCase(unittest.TestCase):
         self.assertEqual(before_e, sys.getrefcount(e))
         self.assertEqual(before_f, sys.getrefcount(f))
 
-    def test_big_dict(self):
-        import sysconfig
-        self.assertEqual(sysconfig.get_config_var('PYTHON'), 'python')
-
-    def test_another_dict(self):
+    def test_large_const_dict(self):
         ANSI_COLOR_NAMES = {
             "black": 0,
             "red": 1,
