@@ -281,7 +281,7 @@ class DictTestCase(unittest.TestCase):
             "grey89": 254,
             "grey93": 255,
         }
-        self.assertEqual(ANSI_COLOR_NAMES['white'], 77)
+        self.assertEqual(ANSI_COLOR_NAMES['white'], 7)
 
 
 if __name__ == "__main__":

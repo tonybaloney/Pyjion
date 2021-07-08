@@ -41,21 +41,20 @@ public:
     }
 };
 
-
 class Local {
 public:
-    ssize_t m_index;
-
-    explicit Local(ssize_t index = -1) {
+    uint16_t m_index;
+    // TODO : use a bit flag instead of a max number to indicate undefined locals.
+    explicit Local(uint16_t index = 65535) {
         m_index = index;
     }
 
     bool is_valid() const {
-        return m_index != -1;
+        return m_index != 65535;
     }
 
-    void raiseOnInvalid(){
-        if (m_index == -1)
+    void raiseOnInvalid() const {
+        if (m_index == 65535)
             throw InvalidLocalException();
     }
 };

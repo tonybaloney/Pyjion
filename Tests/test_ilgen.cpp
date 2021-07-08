@@ -114,3 +114,26 @@ TEST_CASE("Test numerics") {
         CHECK(result == value);
     }
 }
+
+TEST_CASE("Test locals") {
+    SECTION("test ld_loc emitter") {
+        int32_t value = GENERATE(1, -1, 0, 100, 127, -127, 128, -128, 129, -129, -100, 1000, 202, -102, 65555,
+                                 2147483647, -2147483647);
+        auto test_module = new UserModule(g_module);
+        auto gen = new ILGenerator(
+                test_module,
+                CORINFO_TYPE_INT,
+                std::vector<Parameter>{
+                });
+        gen->ld_i4(value);
+        auto l = gen->define_local(Parameter(CORINFO_TYPE_INT));
+        gen->st_loc(l);
+        gen->ld_loc(l);
+        gen->ret();
+        auto *jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        JITMethod method = gen->compile(jitInfo, g_jit, 100);
+        REQUIRE(method.m_addr != nullptr);
+        int32_t result = ((Returns_int32) method.getAddr())();
+        CHECK(result == value);
+    }
+}
