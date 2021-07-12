@@ -6,7 +6,6 @@ import gc
 class NumpyTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
-        pyjion.set_optimization_level(0)
         pyjion.enable()
 
     def tearDown(self) -> None:
