@@ -2,3 +2,4 @@ flask
 distorm3
 rich
 pyyaml
+numpy

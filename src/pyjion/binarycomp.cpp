@@ -215,8 +215,11 @@ void PythonCompiler::emit_known_binary_op(AbstractValueWithSources &left, Abstra
         }
 
         auto rightType = right.Value->pythonType();
-        if (rightType->tp_as_number != nullptr){
+        if (rightType != leftType && rightType->tp_as_number != nullptr){
             binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
+            if (binaryfunc_left == binaryfunc_right){
+                binaryfunc_right = nullptr;
+            }
         }
     }
 
@@ -242,6 +245,8 @@ void PythonCompiler::emit_known_binary_op(AbstractValueWithSources &left, Abstra
                                                       Parameter(CORINFO_TYPE_NATIVEINT)},
                                               (void *) binaryfunc_right);
     }
+
+
 
     if (binaryfunc_left != nullptr){
         // Add the function signature for this binaryfunc.

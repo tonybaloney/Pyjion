@@ -173,3 +173,32 @@ TEST_CASE("Test methods"){
         CHECK(t.returns() == "'ham + eggs'");
     }
 }
+
+TEST_CASE("Test inheritance") {
+    SECTION("test simple staticmethod + argument") {
+        auto t = EmissionTest(
+                "def f():\n"
+                "  class Node(object):\n"
+                "    def __init__(self, a, b, c):\n"
+                "        self.a = a\n"
+                "        self.b = b\n"
+                "        self.c = c\n"
+                "    def __repr__(self):\n"
+                "        value = self.a\n"
+                "        value = repr(value)\n"
+                "        return '%s(tag=%r, value=%s)' % (self.__class__.__name__, self.b, value)\n"
+                "  class ChildNode(Node):\n"
+                "    def __init__(self, a, b, c):\n"
+                "        self.a = a\n"
+                "        self.b = b\n"
+                "        self.c = c\n"
+                "  class GrandchildNode(ChildNode):\n"
+                "    d = 1\n"
+                "  node = GrandchildNode('a', 'b', 'c')\n"
+                "  x = repr(node)\n"
+                "  del node\n"
+                "  return x\n"
+        );
+        CHECK(t.returns() == "\"GrandchildNode(tag='b', value='a')\"");
+    }
+}

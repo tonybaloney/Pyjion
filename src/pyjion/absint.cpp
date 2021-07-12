@@ -2079,7 +2079,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case INPLACE_AND:
             case INPLACE_XOR:
             case INPLACE_OR:
-                if (stackInfo.size() >= 2) {
+                if (OPT_ENABLED(typeSlotLookups) && stackInfo.size() >= 2) {
                     if (CAN_UNBOX() && op.escape) {
                         auto retKind = m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
@@ -2100,8 +2100,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                         errorCheck("optimized binary op failed", curByte);
                         incStack();
                     }
-                }
-                else {
+                } else {
                     m_comp->emit_binary_object(byte);
                     decStack(2);
                     errorCheck("binary op failed", curByte);
