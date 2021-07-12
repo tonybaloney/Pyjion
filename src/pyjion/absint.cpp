@@ -1776,18 +1776,18 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                     } else if (OPT_ENABLED(internRichCompare)){
                         m_comp->emit_compare_known_object(oparg, stackInfo.second(), stackInfo.top());
                         decStack(2);
-                        errorCheck("failed to compare", curByte);
+                        errorCheck("optimized compare failed", curByte);
                         incStack(1);
                     } else {
                         m_comp->emit_compare_object(oparg);
                         decStack(2);
-                        errorCheck("failed to compare", curByte);
+                        errorCheck("compare failed", curByte);
                         incStack(1);
                     }
                 } else {
                     m_comp->emit_compare_object(oparg);
                     decStack(2);
-                    errorCheck("failed to compare", curByte);
+                    errorCheck("compare failed", curByte);
                     incStack(1);
                 }
 
