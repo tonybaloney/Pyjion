@@ -596,9 +596,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         PGC_PROBE(2);
                         PGC_UPDATE_STACK(2);
                     }
-                    POP_VALUE();
-                    POP_VALUE();
-                    PUSH_INTERMEDIATE(&Bool);
+                    auto two = POP_VALUE();
+                    auto one = POP_VALUE();
+                    auto out = one.Value->compare(one.Sources, opcode, two);
+                    PUSH_INTERMEDIATE(out)
                 }
                 break;
                 case IMPORT_NAME: {

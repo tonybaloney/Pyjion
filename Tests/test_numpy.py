@@ -7,6 +7,7 @@ class NumpyTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.enable_graphs()
 
     def tearDown(self) -> None:
         pyjion.disable()
@@ -18,8 +19,16 @@ class NumpyTestCase(unittest.TestCase):
         v = 275.4
         x = 324.5
 
+        lte = (t <= v)
+        self.assertIsInstance(lte, np.ndarray)
         j = (t <= v) & (t >= x)
-        self.assertTrue((j == np.array([False, False, False, False])).all())
+        self.assertIsInstance(j, np.ndarray)
+        comp1 = j == np.array([False, False, False, False])
+        self.assertIsInstance(comp1, np.ndarray)
+        self.assertTrue(comp1.all())
 
         i = t <= v
-        self.assertTrue((i == np.array([True, False, False, False])).all())
+        self.assertIsInstance(i, np.ndarray)
+        comp2 = i == np.array([True, False, False, False])
+        self.assertIsInstance(comp2, np.ndarray)
+        self.assertTrue(comp2.all())
