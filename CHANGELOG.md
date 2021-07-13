@@ -4,6 +4,7 @@
 
 * Fixed a bug on large dictionary literals (>100 keys)
 * Improved the efficiency of the BUILD_TUPLE, BUILD_LIST, BUILD_CONST_KEY_MAP, and BUILD_SET opcodes
+* Fixed a bug with comparison of numpy arrays being unboxed into a boolean instead of staying as an array (#310)
 
 ## 1.0.0 (beta4)
 
