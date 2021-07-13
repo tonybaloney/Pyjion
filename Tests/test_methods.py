@@ -39,6 +39,7 @@ class RefCountTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        pyjion.disable_pgc()
 
     def tearDown(self) -> None:
         pyjion.disable()
@@ -52,6 +53,49 @@ class RefCountTestCase(unittest.TestCase):
         l.append((4, 5, 6))
         self.assertEqual(sys.getrefcount(l[0]), 3)
         self.assertEqual(sys.getrefcount(l[1]), 3)
+
+    def test_object_refs(self):
+        class Node(object):
+            def __init__(self, a, b, c):
+                self.a = a
+                self.b = b
+                self.c = c
+
+            def add_n(self, n):
+                self.a += n
+
+            def __repr__(self):
+                value = self.a
+                value = repr(value)
+                return '%s(tag=%r, value=%s)' % (self.__class__.__name__, self.b, value)
+
+        class ChildNode(Node):
+            def __init__(self, a, b, c):
+                self.a = a
+                self.b = b
+                self.c = c
+
+        class GrandchildNode(ChildNode):
+            d = 101000
+
+        node = GrandchildNode(101001, 101002, 101003)
+        self.assertEqual(sys.getrefcount(node), 2)
+        self.assertEqual(sys.getrefcount(node.a), 3)
+        self.assertEqual(sys.getrefcount(node.b), 3)
+        self.assertEqual(sys.getrefcount(node.c), 3)
+
+        x = repr(node)
+        self.assertEqual(x, "GrandchildNode(tag=101002, value=101001)")
+        self.assertEqual(sys.getrefcount(node), 2)
+        self.assertEqual(sys.getrefcount(node.a), 3)
+        self.assertEqual(sys.getrefcount(node.b), 3)
+        self.assertEqual(sys.getrefcount(node.c), 3)
+
+        node.add_n(10000)
+        self.assertEqual(sys.getrefcount(node), 2)
+        self.assertEqual(sys.getrefcount(node.a), 2)
+        self.assertEqual(sys.getrefcount(node.b), 3)
+        self.assertEqual(sys.getrefcount(node.c), 3)
 
 
 if __name__ == "__main__":
