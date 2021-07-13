@@ -215,8 +215,11 @@ void PythonCompiler::emit_known_binary_op(AbstractValueWithSources &left, Abstra
         }
 
         auto rightType = right.Value->pythonType();
-        if (rightType->tp_as_number != nullptr){
+        if (rightType != leftType && rightType->tp_as_number != nullptr){
             binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
+            if (binaryfunc_left == binaryfunc_right){
+                binaryfunc_right = nullptr;
+            }
         }
     }
 
@@ -330,6 +333,9 @@ void PythonCompiler::emit_known_binary_op_multiply(AbstractValueWithSources &lef
         if (binaryfunc_right == nullptr && rightType->tp_as_sequence != nullptr && sq_slot != -1){
             binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_sequence)[sq_slot]));
             right_sequence = true;
+        }
+        if (rightType == leftType && binaryfunc_left == binaryfunc_right){
+            binaryfunc_right = nullptr;
         }
     }
     /* Order operations are tried until either a valid result or error:
@@ -474,6 +480,9 @@ void PythonCompiler::emit_known_binary_op_add(AbstractValueWithSources &left, Ab
         if (binaryfunc_right == nullptr && rightType != nullptr && rightType->tp_as_sequence != nullptr && sq_slot != -1){
             binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_sequence)[sq_slot]));
         }
+        if (rightType == leftType && binaryfunc_left == binaryfunc_right){
+            binaryfunc_right = nullptr;
+        }
     }
     /* Order operations are tried until either a valid result or error:
     w.op(v,w)[*], v.op(v,w), w.op(v,w)
@@ -581,6 +590,9 @@ void PythonCompiler::emit_known_binary_op_power(AbstractValueWithSources &left, 
         auto rightType = right.Value->pythonType();
         if (rightType->tp_as_number != nullptr){
             binaryfunc_right = (*(binaryfunc*)(& ((char*)rightType->tp_as_number)[nb_slot]));
+        }
+        if (rightType == leftType && binaryfunc_left == binaryfunc_right){
+            binaryfunc_right = nullptr;
         }
     }
 

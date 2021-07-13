@@ -70,7 +70,7 @@ AbstractValue* AbstractValue::unary(AbstractSource* selfSources, int op) {
 }
 
 AbstractValue* AbstractValue::compare(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
-    if (isKnownType(kind()) && isKnownType(other.Value->kind()) && kind() == other.Value->kind()) {
+    if (isKnownType(kind()) && isKnownType(other.Value->kind())) {
         // We know all of the known types don't have fancy rich comparison
         // operations and will return true/false.  This is in contrast to
         // user defined types which can override the rich comparison methods

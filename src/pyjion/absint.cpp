@@ -596,9 +596,10 @@ AbstractInterpreter::interpret(PyObject *builtins, PyObject *globals, PyjionCode
                         PGC_PROBE(2);
                         PGC_UPDATE_STACK(2);
                     }
-                    POP_VALUE();
-                    POP_VALUE();
-                    PUSH_INTERMEDIATE(&Bool);
+                    auto two = POP_VALUE();
+                    auto one = POP_VALUE();
+                    auto out = one.Value->compare(one.Sources, opcode, two);
+                    PUSH_INTERMEDIATE(out)
                 }
                 break;
                 case IMPORT_NAME: {
@@ -1776,18 +1777,18 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                     } else if (OPT_ENABLED(internRichCompare)){
                         m_comp->emit_compare_known_object(oparg, stackInfo.second(), stackInfo.top());
                         decStack(2);
-                        errorCheck("failed to compare", curByte);
+                        errorCheck("optimized compare failed", curByte);
                         incStack(1);
                     } else {
                         m_comp->emit_compare_object(oparg);
                         decStack(2);
-                        errorCheck("failed to compare", curByte);
+                        errorCheck("compare failed", curByte);
                         incStack(1);
                     }
                 } else {
                     m_comp->emit_compare_object(oparg);
                     decStack(2);
-                    errorCheck("failed to compare", curByte);
+                    errorCheck("compare failed", curByte);
                     incStack(1);
                 }
 
@@ -2079,7 +2080,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
             case INPLACE_AND:
             case INPLACE_XOR:
             case INPLACE_OR:
-                if (stackInfo.size() >= 2) {
+                if (OPT_ENABLED(typeSlotLookups) && stackInfo.size() >= 2) {
                     if (CAN_UNBOX() && op.escape) {
                         auto retKind = m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
@@ -2100,8 +2101,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                         errorCheck("optimized binary op failed", curByte);
                         incStack();
                     }
-                }
-                else {
+                } else {
                     m_comp->emit_binary_object(byte);
                     decStack(2);
                     errorCheck("binary op failed", curByte);
