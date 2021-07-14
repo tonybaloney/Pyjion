@@ -1,17 +1,7 @@
-import pyjion
-import unittest
-import gc
+from base import PyjionTestCase
 
 
-class NumpyTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.enable_graphs()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class NumpyTestCase(PyjionTestCase):
 
     def test_array_math(self):
         import numpy as np

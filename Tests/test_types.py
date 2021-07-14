@@ -1,16 +1,9 @@
-import pyjion
 import unittest
 import os
-import gc
+from base import PyjionTestCase
 
-class DictTypeTestCase(unittest.TestCase):
 
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class DictTypeTestCase(PyjionTestCase):
 
     def test_subclassdict(self):
         """Test that a subclass of dict can be merged into a static dict"""
@@ -19,13 +12,7 @@ class DictTypeTestCase(unittest.TestCase):
         self.assertTrue('foo' in out)
 
 
-class BaseClassTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class BaseClassTestCase(PyjionTestCase):
 
     def test_resolve_bases(self):
         import types

@@ -4,17 +4,10 @@ import pyjion
 import io
 import pyjion.dis
 import contextlib
-import gc
+from base import PyjionTestCase
 
 
-class InternIntegerTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class InternIntegerTestCase(PyjionTestCase):
 
     def assertNotOptimized(self, func) -> None:
         self.assertFalse(func())
@@ -90,13 +83,7 @@ class InternIntegerTestCase(unittest.TestCase):
         self.assertOptimized(test_f)
 
 
-class InternIntegerSubscrTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
+class InternIntegerSubscrTestCase(PyjionTestCase):
 
     def test_dict_key(self):
         def test_f():

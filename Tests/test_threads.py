@@ -1,20 +1,12 @@
-import pyjion
-import unittest
-import gc
 import threading
 import time
 import random
 import _testcapi
 import test.support as support
+from base import PyjionTestCase
 
 
-class TestPendingCalls(unittest.TestCase):
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class TestPendingCalls(PyjionTestCase):
 
     def pendingcalls_submit(self, l, n):
         def callback():

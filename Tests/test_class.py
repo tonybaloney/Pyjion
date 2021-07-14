@@ -1,17 +1,7 @@
-import gc
-import unittest
-
-import pyjion
+from test_base import PyjionTestCase
 
 
-class MagicMethodsTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class MagicMethodsTestCase(PyjionTestCase):
 
     def test_add(self):
         class number:

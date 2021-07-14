@@ -1,16 +1,8 @@
-import pyjion
 import unittest
-import gc
+from base import PyjionTestCase
 
 
-class MathTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class MathTestCase(PyjionTestCase):
 
     def test_floats(self):
         a = 2.0

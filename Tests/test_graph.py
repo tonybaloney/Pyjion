@@ -1,18 +1,8 @@
 import pyjion
-import unittest
-import gc
+from base import GraphPyjionTestCase
 
 
-class GraphTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.enable_graphs()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        pyjion.disable_graphs()
-        gc.collect()
+class GraphTestCase(GraphPyjionTestCase):
 
     def test_graph_dump(self) -> None:
         def f():

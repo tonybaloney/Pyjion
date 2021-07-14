@@ -1,16 +1,9 @@
 import pyjion
 import unittest
-import gc
+from base import PyjionTestCase
 
 
-class JitInfoModuleTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class JitInfoModuleTestCase(PyjionTestCase):
 
     def test_once(self):
         def test_f():

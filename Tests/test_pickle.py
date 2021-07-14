@@ -1,17 +1,8 @@
-import pyjion
-import unittest
-import gc
 import io
+from base import PyjionTestCase
 
 
-class PickleTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class PickleTestCase(PyjionTestCase):
 
     def test_simple_pickle(self):
         import pickle

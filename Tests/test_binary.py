@@ -1,18 +1,7 @@
-import gc
-import unittest
-
-import pyjion
+from base import NoPgcPyjionTestCase, PyjionTestCase
 
 
-class BinaryOperationTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class BinaryOperationTestCase(PyjionTestCase):
 
     def test_addition(self):
         a = 987654
@@ -62,15 +51,3 @@ class BinaryOperationTestCase(unittest.TestCase):
         c = a & b
         self.assertEqual(c, 903)
 
-
-class CPythonComparison(unittest.TestCase):
-
-    def tearDown(self) -> None:
-        gc.collect()
-
-    def test_floor_division(self):
-        a = 7777777
-        b = 55555
-        c = 10040
-        c = a // b
-        self.assertEqual(c, 140)

@@ -1,18 +1,9 @@
 import pyjion
 import pyjion.dis
-import unittest
-import gc
+from base import PyjionTestCase
 
 
-class UnpackSequenceTest(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.enable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class UnpackSequenceTest(PyjionTestCase):
 
     def test_static_sequence(self):
         def f(x):

@@ -1,18 +1,9 @@
 import sys
-import pyjion
 import unittest
-import gc
+from base import NoPgcPyjionTestCase, PyjionTestCase
 
 
-class StringFormattingTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class StringFormattingTestCase(NoPgcPyjionTestCase):
 
     def test_perc_format(self):
         a = "Hello %s"
@@ -26,10 +17,10 @@ class StringFormattingTestCase(unittest.TestCase):
         c += a % (b,)
         self.assertEqual(sys.getrefcount(a), before_ref, "a leak")
         self.assertEqual(sys.getrefcount(b), before_ref_b, "b leak")
-        #self.assertEqual(sys.getrefcount(c), before_ref_c, "c leak")
+        self.assertEqual(sys.getrefcount(c), before_ref_c, "c leak")
         self.assertEqual(c, "Hello worldHello w0rld", "output fail")
         c += a % ("x", )
-        #self.assertEqual(sys.getrefcount(c), before_ref_c, "c leak")
+        self.assertEqual(sys.getrefcount(c), before_ref_c, "c leak")
 
     def test_add_inplace(self):
         c = "..."
@@ -39,21 +30,13 @@ class StringFormattingTestCase(unittest.TestCase):
         before_ref_b = sys.getrefcount(b)
         before_ref_c = sys.getrefcount(c)
         c += a + b
-        self.assertEqual(sys.getrefcount(a), before_ref) # plus PGC marker
-        self.assertEqual(sys.getrefcount(b), before_ref_b) # plus PGC marker
+        self.assertEqual(sys.getrefcount(a), before_ref)
+        self.assertEqual(sys.getrefcount(b), before_ref_b)
         self.assertEqual(sys.getrefcount(c), before_ref_c - 1)
         self.assertEqual(c, "...Hello world!")
 
 
-class FStringFormattingTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class FStringFormattingTestCase(NoPgcPyjionTestCase):
 
     def test_perc_format(self):
         place = "world"
@@ -76,15 +59,8 @@ def _is_sunder(name):
             name[1:2] != '_' and
             name[-2:-1] != '_')
 
-class StringIfsTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.enable_pgc()
 
-    def tearDown(self) -> None:
-        pyjion.disable()
-        pyjion.disable_pgc()
-        gc.collect()
+class StringIfsTestCase(PyjionTestCase):
 
     def test_sunder(self):
         self.assertTrue(_is_sunder("_hello_"))

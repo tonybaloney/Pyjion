@@ -1,23 +1,16 @@
-import gc
 import pyjion
 import pyjion.dis
 import unittest
 import io
 import contextlib
 import sys
+from base import PyjionTestCase, NoPgcPyjionTestCase
 
 
-class KnownMethodsBuiltins(unittest.TestCase):
+class KnownMethodsBuiltins(PyjionTestCase):
     """
     Test that methods of known, builtin types will resolve into cached variables and bypass PyJit_LoadMethod
     """
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
 
     def assertOptimized(self, func) -> None:
         self.assertTrue(pyjion.info(func)['compiled'])
@@ -35,15 +28,7 @@ class KnownMethodsBuiltins(unittest.TestCase):
         self.assertOptimized(test_f)
 
 
-class RefCountTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class RefCountTestCase(NoPgcPyjionTestCase):
 
     def test_append_tuples_to_list(self):
         l = list()

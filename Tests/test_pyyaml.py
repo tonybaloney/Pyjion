@@ -1,15 +1,7 @@
-import pyjion
-import unittest
-import gc
+from base import PyjionTestCase
 
-class PyyamlTestCase(unittest.TestCase):
 
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class PyyamlTestCase(PyjionTestCase):
 
     def test_load(self):
         content = """

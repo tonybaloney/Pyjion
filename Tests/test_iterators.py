@@ -1,16 +1,7 @@
-import pyjion
-import unittest
-import gc
+from base import PyjionTestCase
 
 
-class IteratorTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class IteratorTestCase(PyjionTestCase):
 
     def test_nested_tuple(self):
         l = (1,2,3)
