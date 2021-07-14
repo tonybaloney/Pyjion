@@ -1,4 +1,4 @@
-from test_base import PyjionTestCase
+from base import PyjionTestCase
 
 
 class MagicMethodsTestCase(PyjionTestCase):

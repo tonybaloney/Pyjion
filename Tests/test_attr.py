@@ -1,6 +1,6 @@
 import unittest
 import sys
-from test_base import NoPgcPyjionTestCase
+from base import NoPgcPyjionTestCase
 
 
 # A class with a few attributes for testing the `getattr` and `setattr` builtins.
