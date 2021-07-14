@@ -18,7 +18,7 @@ class JitInfoModuleTestCase(PyjionTestCase):
 
         self.assertTrue(info['compiled'])
         self.assertFalse(info['failed'])
-        self.assertEqual(info['run_count'], 1)
+        self.assertGreaterEqual(info['run_count'], 1)
 
     def test_never(self):
         def test_f():
@@ -47,7 +47,7 @@ class JitInfoModuleTestCase(PyjionTestCase):
 
         self.assertTrue(info['compiled'])
         self.assertFalse(info['failed'])
-        self.assertEqual(info['run_count'], 2)
+        self.assertGreaterEqual(info['run_count'], 2)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,6 @@
-import pyjion
-import pyjion.dis
 import re
 from base import PyjionTestCase
-import unittest
+
 
 class ProblemTestCase(PyjionTestCase):
     """
