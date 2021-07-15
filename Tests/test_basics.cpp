@@ -583,7 +583,6 @@ TEST_CASE("Sequence binary operations") {
     }
 }
 
-
 TEST_CASE("Test builtins") {
     SECTION("call print()") {
         auto t = EmissionTest("def f(): return print('hello world')");
@@ -616,5 +615,9 @@ TEST_CASE("Test builtins") {
     SECTION("call max() and map()") {
         auto t = EmissionTest("def f(): args=('a', 'aaa', 'aaaaa'); return max(map(len, args))");
         CHECK(t.returns() == "5");
+    }
+    SECTION("call chr()"){
+        auto t = EmissionTest("def f(): return chr(32) * 10");
+        CHECK(t.returns() == "'          '");
     }
 }
