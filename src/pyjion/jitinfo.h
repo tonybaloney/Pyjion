@@ -1876,7 +1876,8 @@ public:
             PgoInstrumentationSchema **pSchema,                    // OUT: pointer to the schema table (array) which describes the instrumentation results
             // (pointer will not remain valid after jit completes).
             uint32_t *                 pCountSchemaItems,          // OUT: pointer to the count of schema items in `pSchema` array.
-            uint8_t **                 pInstrumentationData        // OUT: `*pInstrumentationData` is set to the address of the instrumentation data
+            uint8_t **                 pInstrumentationData,       // OUT: `*pInstrumentationData` is set to the address of the instrumentation data
+            PgoSource *                pPgoSource                  // OUT: value describing source of pgo data
             // (pointer will not remain valid after jit completes).
     ) override {
         return E_NOTIMPL;
