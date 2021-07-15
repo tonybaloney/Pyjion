@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.0.0 (master)
+
+* Fixed a bug where `ord()` builtin would return the wrong type (#315)
+
 ## 1.0.0 (beta5)
 
 * Fixed a bug on large dictionary literals (>100 keys)
