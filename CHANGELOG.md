@@ -1,6 +1,6 @@
 # Release notes
 
-## 1.0.0 (master)
+## 1.0.0 (beta6)
 
 * Updated to .NET 6 preview 6
 * Fixed a bug where `ord()` builtin would return the wrong type (#315)
