@@ -34,9 +34,9 @@ int main(int argc, char* const argv[]) {
     PySys_AddXOption(L"tracemalloc");
     Py_Initialize();
 #ifdef WINDOWS
-    JitInit("clrjit.dll");
+    JitInit(L"clrjit.dll");
 #else
-    JitInit("libclrjit.so");
+    JitInit(L"libclrjit.so");
 #endif
     g_pyjionSettings.graph = true;
     g_pyjionSettings.debug = true;

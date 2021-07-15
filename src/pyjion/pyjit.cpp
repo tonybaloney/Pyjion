@@ -172,11 +172,11 @@ static Py_tss_t* g_extraSlot;
 
 #ifdef WINDOWS
 HMODULE GetClrJit() {
-    return LoadLibrary(TEXT(g_pyjionSettings.clrjitpath));
+    return LoadLibrary(g_pyjionSettings.clrjitpath);
 }
 #endif
 
-bool JitInit(const char* path) {
+bool JitInit(const wchar_t * path) {
     g_pyjionSettings = {false, false};
     g_pyjionSettings.recursionLimit = Py_GetRecursionLimit();
     g_pyjionSettings.clrjitpath = path;
@@ -556,6 +556,7 @@ static PyObject* pyjion_status(PyObject *self, PyObject* args) {
 		return nullptr;
 	}
 
+	PyDict_SetItemString(res, "clrjitpath", PyUnicode_FromWideChar(g_pyjionSettings.clrjitpath, -1));
 	PyDict_SetItemString(res, "tracing", g_pyjionSettings.tracing ? Py_True : Py_False);
 	PyDict_SetItemString(res, "profiling", g_pyjionSettings.profiling ? Py_True : Py_False);
 	PyDict_SetItemString(res, "pgc", g_pyjionSettings.pgc ? Py_True : Py_False);
@@ -605,7 +606,7 @@ static PyObject* pyjion_init(PyObject *self, PyObject* args) {
         return nullptr;
     }
 
-    auto path = PyUnicode_AsUTF8(args);
+    auto path = PyUnicode_AsWideCharString(args, nullptr);
     if (JitInit(path)) {
         Py_RETURN_NONE;
     } else{

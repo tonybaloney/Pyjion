@@ -11,8 +11,11 @@ def _no_dotnet(path):
                       "provide the DOTNET_ROOT environment variable "
                       "if its installed somewhere unusual")
 
-# try and locate .NET
-def _which_dotnet():
+
+def _which_dotnet() -> str:
+    """
+    Locate the clrjit library path
+    """
     _dotnet_root = None
     if 'DOTNET_ROOT' in os.environ:
         _dotnet_root = pathlib.Path(os.environ['DOTNET_ROOT'])
@@ -51,17 +54,8 @@ def _which_dotnet():
         else:
             _no_dotnet(_dotnet_root)
     elif platform.system() == "Windows":
-        if not _dotnet_root:
-            _dotnet_root = pathlib.WindowsPath(os.path.expandvars(r'%ProgramFiles%\dotnet'))
-            if not _dotnet_root.exists():
-                _no_dotnet(_dotnet_root)
-        lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/6.0.*/clrjit.dll'))
-        if len(lib_path) > 0:
-            clrjitlib = str(lib_path[0])
-            ctypes.cdll.LoadLibrary(clrjitlib)
-            return clrjitlib
-        else:
-            _no_dotnet(_dotnet_root)
+        # Use the bundled clrjit.dll
+        return "clrjit.dll"
     else:
         raise ValueError("Operating System not Supported")
 
