@@ -2,6 +2,7 @@
 
 ## 1.0.0 (master)
 
+* Updated to .NET 6 preview 6
 * Fixed a bug where `ord()` builtin would return the wrong type (#315)
 * `pyjion.dis.dis()` and `pyjion.dis.dis_native()` will show sequence points as comments
 * The BINARY_POWER and INPLACE_POWER opcodes will always return a native python long instead of an escaped integer, to avoid overflows

@@ -19,7 +19,7 @@ Prerequisites:
 
 - CPython 3.9.0
 - CMake 3.2 + 
-- .NET 6 Preview 5
+- .NET 6 Preview 6
 
 ```console
  $ git clone git@github.com:tonybaloney/pyjion --recurse-submodules
