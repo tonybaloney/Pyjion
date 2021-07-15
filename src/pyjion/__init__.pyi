@@ -51,3 +51,9 @@ def disable_graphs() -> None:
 
 def get_graph(f: callable) -> str:
     ...
+
+def init(clrjitpath: str) -> None:
+    ...
+
+def status() -> dict:
+    ...
