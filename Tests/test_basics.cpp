@@ -620,4 +620,12 @@ TEST_CASE("Test builtins") {
         auto t = EmissionTest("def f(): return chr(32) * 10");
         CHECK(t.returns() == "'          '");
     }
+    SECTION("call bin()"){
+        auto t = EmissionTest("def f(): return bin(2**6)");
+        CHECK(t.returns() == "'0b1000000'");
+    }
+    SECTION("call bin() with a big number!"){
+        auto t = EmissionTest("def f(): return bin(2**65)");
+        CHECK(t.returns() == "'0b100000000000000000000000000000000000000000000000000000000000000000'");
+    }
 }

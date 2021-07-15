@@ -556,6 +556,9 @@ AbstractValue* IntegerValue::binary(int op, AbstractValueWithSources& other) {
             {
                 return &Float;
             }
+            case BINARY_POWER:
+            case INPLACE_POWER:
+                return &BigInteger;
             case BINARY_ADD:
             case BINARY_AND:
             case BINARY_FLOOR_DIVIDE:
@@ -563,7 +566,6 @@ AbstractValue* IntegerValue::binary(int op, AbstractValueWithSources& other) {
             case BINARY_MODULO:
             case BINARY_MULTIPLY:
             case BINARY_OR:
-            case BINARY_POWER:
             case BINARY_RSHIFT:
             case BINARY_SUBTRACT:
             case BINARY_XOR:
@@ -574,7 +576,6 @@ AbstractValue* IntegerValue::binary(int op, AbstractValueWithSources& other) {
             case INPLACE_MODULO:
             case INPLACE_MULTIPLY:
             case INPLACE_OR:
-            case INPLACE_POWER:
             case INPLACE_RSHIFT:
             case INPLACE_SUBTRACT:
             case INPLACE_XOR:
