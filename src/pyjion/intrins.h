@@ -247,6 +247,8 @@ PyObject* PyJit_PyTuple_New(int32_t len);
 
 PyObject* PyJit_BuildClass(PyFrameObject *f);
 
+PyObject* PyJit_WrapAsyncGenerator(PyObject *val);
+
 PyObject* PyJit_LoadAttr(PyObject* owner, PyObject* name);
 PyObject* PyJit_LoadAttrHash(PyObject* owner, PyObject* key, Py_hash_t name_hash);
 

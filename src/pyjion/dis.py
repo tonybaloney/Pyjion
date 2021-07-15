@@ -141,8 +141,7 @@ class MethodTokens (Enum):
     METHOD_ISNOT                             = 0x0000004A
     METHOD_IS_BOOL                           = 0x0000004B
     METHOD_ISNOT_BOOL                        = 0x0000004C
-    METHOD_GETITER_OPTIMIZED_TOKEN           = 0x0000004D
-    METHOD_COMPARE_EXCEPTIONS_INT            = 0x0000004E
+    METHOD_WRAP_ASYNC_GENERATOR              = 0x0000004D
 
     METHOD_UNARY_NOT_INT                     = 0x00000051
     METHOD_FLOAT_FROM_DOUBLE                 = 0x00000053
