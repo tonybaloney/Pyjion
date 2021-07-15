@@ -3,6 +3,7 @@
 ## 1.0.0 (master)
 
 * Fixed a bug where `ord()` builtin would return the wrong type (#315)
+* `pyjion.dis.dis()` and `pyjion.dis.dis_native()` will show sequence points as comments
 
 ## 1.0.0 (beta5)
 

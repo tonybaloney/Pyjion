@@ -590,7 +590,7 @@ def print_il(il, offsets=None, bytecodes=None):
                 for py_offset, il_offset, native_offset in offsets:
                     if il_offset == pc:
                         try:
-                            print(bytecodes[py_offset])
+                            print('; ', bytecodes[py_offset])
                         except KeyError:
                             warn("Invalid offset {0}".format(offsets))
             first = next(i)
@@ -736,7 +736,7 @@ def dis_native(f, include_offsets=False):
             for py_offset, il_offset, native_offset in jit_offsets:
                 if (position + native_offset) == offset:
                     try:
-                        print(python_instructions[py_offset])
+                        print('; ', python_instructions[py_offset])
                     except KeyError:
                         warn("Invalid offset {0}".format(offsets))
 
