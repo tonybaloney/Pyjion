@@ -41,35 +41,6 @@ using namespace std;
 
 
 CCorJitHost g_jitHost;
-
-void CeeInit() {
-#ifdef WINDOWS
-    auto clrJitHandle = GetClrJit();
-    if (clrJitHandle == nullptr) {
-        printf("Failed to load clrjit.dll");
-        exit(40);
-    }
-    auto jitStartup = (JITSTARTUP)GetProcAddress(GetModuleHandle(TEXT("clrjit.dll")), "jitStartup");
-    if (jitStartup != nullptr)
-        jitStartup(&g_jitHost);
-    else {
-        printf("Failed to load jitStartup() from clrjit.dll");
-        exit(41);
-    }
-#else
-	jitStartup(&g_jitHost);
-#endif
-}
-
-class InitHolder {
-public:
-    InitHolder() {
-        CeeInit();
-    }
-};
-
-InitHolder g_initHolder;
-
 BaseModule g_module;
 ICorJitCompiler* g_jit;
 

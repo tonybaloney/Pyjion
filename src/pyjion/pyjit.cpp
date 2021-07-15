@@ -188,12 +188,24 @@ bool JitInit(const wchar_t * path) {
 	    PyErr_SetString(PyExc_RuntimeError, "Failed to load clrjit.dll, check that .NET is installed.");
         return false;
 	}
+    auto jitStartup = (JITSTARTUP)GetProcAddress(GetModuleHandle(TEXT("clrjit.dll")), "jitStartup");
+
+	if (jitStartup != nullptr)
+        jitStartup(&g_jitHost);
+    else {
+        printf("Failed to load jitStartup() from clrjit.dll");
+        exit(41);
+    }
+
 	auto getJit = (GETJIT)GetProcAddress(clrJitHandle, "getJit");
 	if (getJit == nullptr) {
 		PyErr_SetString(PyExc_RuntimeError, "Failed to load clrjit.dll::getJit(), check that the correct version of .NET is installed.");
         return false;
 	}
+#else
+    jitStartup(&g_jitHost);
 #endif
+
 	g_jit = getJit();
 
     if (PyType_Ready(&PyJitMethodLocation_Type) < 0)
