@@ -32,6 +32,7 @@
 #include <libloaderapi.h>
 #include <processenv.h>
 typedef ICorJitCompiler* (__cdecl* GETJIT)();
+typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #endif
 
 PyjionSettings g_pyjionSettings;

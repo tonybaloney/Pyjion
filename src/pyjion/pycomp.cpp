@@ -27,11 +27,6 @@
 #include <windows.h>
 #include <corjit.h>
 
-#ifdef WINDOWS
-#include <libloaderapi.h>
-typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
-#endif
-
 #include <Python.h>
 #include "pycomp.h"
 #include "pyjit.h"
