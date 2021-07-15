@@ -53,7 +53,7 @@ class DisassemblerModuleTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             dis(test_f, True)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("Instruction(", f.getvalue())
+        self.assertIn("; 0 LOAD_CONST - 1 (1)", f.getvalue())
         dis(test_f, True)
 
     def test_fat_static(self):
@@ -111,7 +111,7 @@ class DisassemblerModuleTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             dis_native(test_f, True)
         self.assertIn("PUSH RBP", f.getvalue())
-        self.assertIn("Instruction(", f.getvalue())
+        self.assertIn("; 0 LOAD_CONST - 1 (1)", f.getvalue())
         dis_native(test_f, True)
 
 
