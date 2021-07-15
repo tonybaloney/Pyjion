@@ -7,6 +7,7 @@ class JitInfoModuleTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pyjion.enable()
+        print(pyjion.status())
 
     def tearDown(self) -> None:
         pyjion.disable()

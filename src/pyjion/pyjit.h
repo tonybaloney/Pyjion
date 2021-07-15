@@ -62,7 +62,7 @@ public:
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, size_t stackPosition);
 class PyjionJittedCode;
 
-bool JitInit();
+bool JitInit(const char* jitpath);
 PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate, PyjionCodeProfile* profile);
 static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile);
 PyObject* PyJit_EvalFrame(PyThreadState *, PyFrameObject *, int);
@@ -83,6 +83,7 @@ typedef struct PyjionSettings {
 #else
     bool debug = false;
 #endif
+    const char* clrjitpath = "";
 
     // Optimizations
     bool opt_inlineIs = OPTIMIZE_IS; // OPT-1

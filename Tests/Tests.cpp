@@ -33,7 +33,11 @@ int main(int argc, char* const argv[]) {
     PyMem_SetupDebugHooks();
     PySys_AddXOption(L"tracemalloc");
     Py_Initialize();
-    JitInit();
+#ifdef WINDOWS
+    JitInit("clrjit.dll");
+#else
+    JitInit("libclrjit.so");
+#endif
     g_pyjionSettings.graph = true;
     g_pyjionSettings.debug = true;
     g_pyjionSettings.tracing = true;

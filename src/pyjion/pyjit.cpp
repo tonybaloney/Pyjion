@@ -172,13 +172,14 @@ static Py_tss_t* g_extraSlot;
 
 #ifdef WINDOWS
 HMODULE GetClrJit() {
-    return LoadLibrary(TEXT("clrjit.dll"));
+    return LoadLibrary(TEXT(g_pyjionSettings.clrjitpath));
 }
 #endif
 
-bool JitInit() {
+bool JitInit(const char* path) {
     g_pyjionSettings = {false, false};
     g_pyjionSettings.recursionLimit = Py_GetRecursionLimit();
+    g_pyjionSettings.clrjitpath = path;
 	g_extraSlot = PyThread_tss_alloc();
 	PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS
@@ -342,14 +343,6 @@ static PyObject *pyjion_enable(PyObject *self, PyObject* args) {
 static PyObject *pyjion_disable(PyObject *self, PyObject* args) {
 	auto prev = _PyInterpreterState_GetEvalFrameFunc(inter());
     _PyInterpreterState_SetEvalFrameFunc(inter(), _PyEval_EvalFrameDefault);
-    if (prev == PyJit_EvalFrame) {
-        Py_RETURN_TRUE;
-    }
-    Py_RETURN_FALSE;
-}
-
-static PyObject *pyjion_status(PyObject *self, PyObject* args) {
-	auto prev = _PyInterpreterState_GetEvalFrameFunc(inter());
     if (prev == PyJit_EvalFrame) {
         Py_RETURN_TRUE;
     }
@@ -557,6 +550,21 @@ static PyObject* pyjion_disable_graphs(PyObject *self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* pyjion_status(PyObject *self, PyObject* args) {
+    auto res = PyDict_New();
+	if (res == nullptr) {
+		return nullptr;
+	}
+
+	PyDict_SetItemString(res, "tracing", g_pyjionSettings.tracing ? Py_True : Py_False);
+	PyDict_SetItemString(res, "profiling", g_pyjionSettings.profiling ? Py_True : Py_False);
+	PyDict_SetItemString(res, "pgc", g_pyjionSettings.pgc ? Py_True : Py_False);
+	PyDict_SetItemString(res, "graph", g_pyjionSettings.graph ? Py_True : Py_False);
+ 	PyDict_SetItemString(res, "debug", g_pyjionSettings.debug ? Py_True : Py_False);
+
+	return res;
+}
+
 static PyObject *pyjion_get_graph(PyObject *self, PyObject* func) {
     PyObject* code;
     if (PyFunction_Check(func)) {
@@ -591,6 +599,20 @@ static PyObject* pyjion_set_optimization_level(PyObject *self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* pyjion_init(PyObject *self, PyObject* args) {
+    if (!PyUnicode_Check(args)) {
+        PyErr_SetString(PyExc_TypeError, "Expected str for new clrjit");
+        return nullptr;
+    }
+
+    auto path = PyUnicode_AsUTF8(args);
+    if (JitInit(path)) {
+        Py_RETURN_NONE;
+    } else{
+        return nullptr;
+    }
+}
+
 static PyMethodDef PyjionMethods[] = {
 	{ 
 		"enable",  
@@ -603,12 +625,6 @@ static PyMethodDef PyjionMethods[] = {
 		pyjion_disable, 
 		METH_NOARGS, 
 		"Disable the JIT.  Returns True if the JIT was disabled, False if it was already disabled." 
-	},
-	{
-		"status",
-		pyjion_status,
-		METH_NOARGS,
-		"Gets the current status of the JIT.  Returns True if it is enabled or False if it is disabled."
 	},
 	{
 		"info",
@@ -718,6 +734,18 @@ static PyMethodDef PyjionMethods[] = {
         METH_O,
         "Fetch instruction graph for code object."
     },
+    {
+        "init",
+        pyjion_init,
+        METH_O,
+        "Initialize JIT."
+    },
+    {
+        "status",
+        pyjion_status,
+        METH_NOARGS,
+        "JIT Status."
+    },
 	{nullptr, nullptr, 0, nullptr}        /* Sentinel */
 };
 
@@ -733,9 +761,5 @@ static struct PyModuleDef pyjionmodule = {
 PyMODINIT_FUNC PyInit__pyjion(void)
 {
 	// Install our frame evaluation function
-	if (JitInit()) {
-        return PyModule_Create(&pyjionmodule);
-    } else {
-        return nullptr;
-    }
+	return PyModule_Create(&pyjionmodule);
 }
