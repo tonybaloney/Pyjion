@@ -140,7 +140,7 @@ public:
         m_params = params;
         m_module = module;
         m_addr = addr;
-        m_module->RegisterSymbol((size_t)m_addr, label);
+        m_module->RegisterSymbol((size_t)&m_addr, label);
         m_label = label;
     }
 
