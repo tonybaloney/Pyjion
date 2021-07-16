@@ -691,11 +691,11 @@ public:
         return methodInfo;
     }
 
-    JITMethod compile(CorJitInfo* jitInfo, ICorJitCompiler* jit, size_t stackSize) {
+    JITMethod compile(CorJitInfo* jitInfo, ICorJitCompiler* jit, size_t stackSize, const char* name) {
         uint8_t* nativeEntry;
         uint32_t nativeSizeOfCode;
         jitInfo->assignIL(m_il);
-        auto res = JITMethod(m_module, m_retType, m_params, nullptr, m_sequencePoints);
+        auto res = JITMethod(m_module, m_retType, m_params, nullptr, m_sequencePoints, name);
         CORINFO_METHOD_INFO methodInfo = to_method(&res, stackSize);
         CorJitResult result = jit->compileMethod(
                 jitInfo,

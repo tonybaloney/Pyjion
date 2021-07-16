@@ -139,6 +139,7 @@ public:
     SequencePoint* j_sequencePoints;
     unsigned int j_sequencePointsLen;
     PyObject* j_graph;
+    SymbolTable j_symbols;
 
 	explicit PyjionJittedCode(PyObject* code) {
         j_compile_result = 0;

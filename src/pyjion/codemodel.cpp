@@ -29,9 +29,17 @@
 int BaseModule::AddMethod(CorInfoType returnType, std::vector<Parameter> params, void *addr) {
     if (existingSlots.find(addr) == existingSlots.end()) {
         int token = METHOD_SLOT_SPACE + ++slotCursor;
-        m_methods[token] = new JITMethod(this, returnType, params, addr);
+        m_methods[token] = new JITMethod(this, returnType, params, addr, "typeslot");
         return token;
     } else {
         return existingSlots[addr];
     }
+}
+
+void BaseModule::RegisterSymbol(size_t location, const char *label) {
+    symbolTable[location] = label;
+}
+
+SymbolTable BaseModule::GetSymbolTable() {
+    return symbolTable;
 }

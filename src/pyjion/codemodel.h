@@ -51,6 +51,7 @@
 #define METHOD_SLOT_SPACE 0x00100000
 
 using namespace std;
+typedef std::unordered_map<size_t, const char*> SymbolTable;
 
 class Method;
 class BaseMethod;
@@ -65,10 +66,13 @@ public:
 };
 
 class BaseModule {
-public:
-    unordered_map<int, BaseMethod*> m_methods;
     unordered_map<void*, int> existingSlots;
+    SymbolTable symbolTable;
     int slotCursor = 0;
+
+public:
+    unordered_map<unsigned int, BaseMethod*> m_methods;
+
     BaseModule() = default;
 
     virtual BaseMethod* ResolveMethod(unsigned int tokenId) {
@@ -76,6 +80,9 @@ public:
     }
 
     virtual int AddMethod(CorInfoType returnType, std::vector<Parameter> params, void* addr);
+
+    virtual void RegisterSymbol(size_t location, const char* label);
+    virtual SymbolTable GetSymbolTable();
 };
 
 class UserModule : public BaseModule {
@@ -92,6 +99,10 @@ public:
         }
 
         return res->second;
+    }
+
+    SymbolTable GetSymbolTable() override {
+        return m_parent.GetSymbolTable();
     }
 };
 
@@ -124,17 +135,20 @@ public:
     CorInfoType m_retType;
     void* m_addr;
     vector<SequencePoint> m_sequencePoints;
+    const char * m_label;
 
-    JITMethod(BaseModule* module, CorInfoType returnType, std::vector<Parameter> params, void* addr) {
+    JITMethod(BaseModule* module, CorInfoType returnType, std::vector<Parameter> params, void* addr, const char* label) {
         m_retType = returnType;
         m_params = params;
         m_module = module;
         m_addr = addr;
+        m_module->RegisterSymbol((size_t)m_addr, label);
+        m_label = label;
     }
 
     JITMethod(BaseModule *module, CorInfoType returnType, vector<struct Parameter> params, void* addr,
-              vector<pair<size_t, uint32_t>> sequencePoints) :
-            JITMethod(module, returnType, params, addr){
+              vector<pair<size_t, uint32_t>> sequencePoints, const char* label) :
+            JITMethod(module, returnType, params, addr, label){
         for (auto & point: sequencePoints){
             m_sequencePoints.push_back({
                 static_cast<uint32_t>(point.first),

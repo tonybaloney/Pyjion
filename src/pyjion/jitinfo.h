@@ -193,6 +193,10 @@ public:
         return m_sequencePoints.size();
     }
 
+    SymbolTable get_symbol_table() override {
+        return m_module->GetSymbolTable();
+    }
+
     void freeMem(PVOID code) {
         // TODO: Validate memory free for CorJitInfo
         PyMem_Free(code);

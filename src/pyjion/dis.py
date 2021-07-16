@@ -1,9 +1,11 @@
 from enum import Enum
 from dis import get_instructions
-from pyjion import dump_il, dump_native, get_offsets
+from pyjion import dump_il, dump_native, get_offsets, symbols
 from collections import namedtuple
 from warnings import warn
 import struct
+import re
+
 # Pre stack effect
 Pop0 = 0
 Pop1 = 1
@@ -732,7 +734,7 @@ def dis_native(f, include_offsets=False, print_pc=True) -> None:
     if not native:
         print("No native code for this function, it may not have compiled correctly")
         return
-
+    symbol_table = symbols(f)
     if include_offsets:
         python_instructions = {i.offset: i for i in get_instructions(f)}
         jit_offsets = get_offsets(f)
@@ -743,7 +745,7 @@ def dis_native(f, include_offsets=False, print_pc=True) -> None:
     disassembled = [(offset, instruction) for (offset, size, instruction, hexdump) in iterable]
 
     console = Console()
-
+    hex_reg = re.compile("0[xX][0-9a-fA-F]+")
     offsets = [offset for (offset, instruction) in disassembled]
     instructions = [instruction for (offset, instruction) in disassembled]
 
@@ -763,3 +765,9 @@ def dis_native(f, include_offsets=False, print_pc=True) -> None:
         if print_pc:
             console.print("[grey]%.8x" % offset, style="dim", end=" ")
         console.print(line)
+        hex_match = hex_reg.search(str(line))
+        if hex_match:
+            if int(hex_match[0], 0) in symbol_table:
+                console.print("[grey]; %s" % symbol_table[int(hex_match[0], 0)], style="dim", end="")
+            else:
+                print("Cant find %s" % hex_match[0])

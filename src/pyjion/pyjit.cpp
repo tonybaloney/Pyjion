@@ -35,7 +35,7 @@ typedef ICorJitCompiler* (__cdecl* GETJIT)();
 #endif
 
 PyjionSettings g_pyjionSettings;
-
+extern BaseModule g_module;
 #define SET_OPT(opt, actualLevel, minLevel) \
     g_pyjionSettings.opt_ ## opt = (actualLevel) >= (minLevel) ? true : false;
 
@@ -240,6 +240,7 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_ilLen = res.compiledCode->get_il_len();
     state->j_nativeSize = res.compiledCode->get_native_size();
     state->j_profile = profile;
+    state->j_symbols = res.compiledCode->get_symbol_table();
     state->j_sequencePoints = res.compiledCode->get_sequence_points();
     state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
 
@@ -575,6 +576,30 @@ static PyObject *pyjion_get_graph(PyObject *self, PyObject* func) {
     return jitted->j_graph;
 }
 
+static PyObject *pyjion_symbols(PyObject *self, PyObject* func) {
+    PyObject* code;
+    if (PyFunction_Check(func)) {
+        code = ((PyFunctionObject*)func)->func_code;
+    }
+    else if (PyCode_Check(func)) {
+        code = func;
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Expected function or code");
+        return nullptr;
+    }
+
+    PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
+
+    auto table = PyDict_New();
+    if (table == nullptr)
+        return nullptr;
+    for(auto & entry: jitted->j_symbols) {
+        PyDict_SetItem(table, PyLong_FromSize_t(entry.first), PyUnicode_FromString(entry.second));
+    }
+    return table;
+}
+
 static PyObject* pyjion_set_optimization_level(PyObject *self, PyObject* args) {
     if (!PyLong_Check(args)) {
         PyErr_SetString(PyExc_TypeError, "Expected int for new threshold");
@@ -717,6 +742,12 @@ static PyMethodDef PyjionMethods[] = {
         pyjion_get_graph,
         METH_O,
         "Fetch instruction graph for code object."
+    },
+    {
+        "symbols",
+        pyjion_symbols,
+        METH_O,
+        "Return a list of global symbols."
     },
 	{nullptr, nullptr, 0, nullptr}        /* Sentinel */
 };
