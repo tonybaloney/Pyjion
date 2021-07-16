@@ -96,7 +96,6 @@ class DisassemblerModuleTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             dis_native(test_f)
         self.assertIn("PUSH RBP", f.getvalue())
-        dis_native(test_f)
 
     @unittest.skipIf(sys.platform.startswith("win"), "no windows support yet")
     def test_dis_native_with_offsets(self):
@@ -110,7 +109,7 @@ class DisassemblerModuleTestCase(unittest.TestCase):
             dis_native(test_f, True)
         self.assertIn("PUSH RBP", f.getvalue())
         self.assertIn("; 0 LOAD_CONST - 1 ((1, 2, 3, 4))", f.getvalue())
-        dis_native(test_f, True)
+        self.assertIn("; &PyJit_PyTuple_New", f.getvalue())
 
     def test_symbols(self):
         def test_f():

@@ -769,5 +769,3 @@ def dis_native(f, include_offsets=False, print_pc=True) -> None:
         if hex_match:
             if int(hex_match[0], 0) in symbol_table:
                 console.print("[grey]; %s" % symbol_table[int(hex_match[0], 0)], style="dim", end="")
-            else:
-                print("Cant find %s" % hex_match[0])

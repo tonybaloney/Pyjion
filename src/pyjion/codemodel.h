@@ -67,12 +67,10 @@ public:
 
 class BaseModule {
     unordered_map<void*, int> existingSlots;
-    SymbolTable symbolTable;
     int slotCursor = 0;
-
 public:
     unordered_map<unsigned int, BaseMethod*> m_methods;
-
+    SymbolTable symbolTable;
     BaseModule() = default;
 
     virtual BaseMethod* ResolveMethod(unsigned int tokenId) {
