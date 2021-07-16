@@ -51,7 +51,7 @@
 #define METHOD_SLOT_SPACE 0x00100000
 
 using namespace std;
-typedef std::unordered_map<size_t, const char*> SymbolTable;
+typedef std::unordered_map<intptr_t, const char*> SymbolTable;
 
 class Method;
 class BaseMethod;
@@ -79,7 +79,7 @@ public:
 
     virtual int AddMethod(CorInfoType returnType, std::vector<Parameter> params, void* addr);
 
-    virtual void RegisterSymbol(size_t location, const char* label);
+    virtual void RegisterSymbol(void* location, const char* label);
     virtual SymbolTable GetSymbolTable();
 };
 
@@ -140,7 +140,7 @@ public:
         m_params = params;
         m_module = module;
         m_addr = addr;
-        m_module->RegisterSymbol((size_t)&m_addr, label);
+        m_module->RegisterSymbol(m_addr, label);
         m_label = label;
     }
 
