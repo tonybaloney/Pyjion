@@ -579,7 +579,15 @@ for opcode in opcodes:
         opcode_map[opcode.first_byte + opcode.second_byte] = opcode
 
 
-def print_il(il, offsets=None, bytecodes=None):
+def print_il(il: bytearray, offsets=None, bytecodes=None, print_pc=True) -> None:
+    """
+    Print the CIL sequence
+
+    :param il: A bytearray of ECMA 335 CIL
+    :param offsets: A dictionary of Python bytecode offsets
+    :param bytecodes: The dictionary of Python bytecode instructions
+    :param print_pc: Flag to include the PC offsets in the print
+    """
     i = iter(il)
     try:
         pc = 0
@@ -591,7 +599,7 @@ def print_il(il, offsets=None, bytecodes=None):
                     if il_offset == pc:
                         try:
                             instruction = bytecodes[py_offset]
-                            print(f'; {instruction.offset} {instruction.opname} - {instruction.arg} ({instruction.argval})', )
+                            print(f'// {instruction.offset} {instruction.opname} - {instruction.arg} ({instruction.argval})', )
                         except KeyError:
                             warn("Invalid offset {0}".format(offsets))
             first = next(i)
@@ -599,53 +607,54 @@ def print_il(il, offsets=None, bytecodes=None):
                 raise NotImplementedError(f"CorILMethod_FatFormat not yet supported")
 
             op = opcode_map[first]
+            pc_label = f"IL_{pc:04x}: " if print_pc else ""
             if op.size == InlineNone:
-                print(f"[IL_{pc:04x}] - {op.name:15}")
+                print(f"{pc_label}{op.name}")
                 pc += 1
                 continue
             elif op.size == ShortInlineBrTarget:
                 target = int.from_bytes((next(i),), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] SB {op.name:15} -> {target}")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 2
                 continue
             elif op.size == ShortInlineVar:
                 target = int.from_bytes((next(i),), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] SV {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 2
                 continue
             elif op.size == ShortInlineI:
                 target = int.from_bytes((next(i),), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] SI {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 2
                 continue
             elif op.size == ShortInlineR:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] SR {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineBrTarget:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] B {op.name:15} -> {target}")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineField:
                 field = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] F {op.name:15} ({field})")
+                print(f"{pc_label}{op.name} {field}")
                 pc += 5
                 continue
             elif op.size == InlineR:
                 [target] = struct.unpack('f', bytes((next(i), next(i), next(i), next(i))))
-                print(f"[IL_{pc:04x}] IR {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineI:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] I {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineI8:
                 target = int.from_bytes((next(i), next(i), next(i), next(i), next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] I8 {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 9
                 continue
             elif op.size == InlineMethod:
@@ -654,27 +663,27 @@ def print_il(il, offsets=None, bytecodes=None):
                     meth = MethodTokens(target)
                 except ValueError:
                     meth = f"METHOD_SLOT_SPACE ({target})"
-                print(f"[IL_{pc:04x}] M {op.name:15} ({target} : {meth})")
+                print(f"{pc_label}{op.name} {meth}")
                 pc += 5
                 continue
             elif op.size == InlineSig:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] S {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineTok:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] T {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineString:
                 target = bytearray((next(i), next(i), next(i), next(i))).decode('utf-8')
-                print(f"[IL_{pc:04x}] X {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineVar:
                 target = int.from_bytes((next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] V {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 3
                 continue
             else:
@@ -684,9 +693,13 @@ def print_il(il, offsets=None, bytecodes=None):
         pass
 
 
-def dis(f, include_offsets=False):
+def dis(f, include_offsets=False, print_pc=True):
     """
-    Disassemble a code object into IL
+    Disassemble a code object into IL.
+
+    :param f: The compiled function or code object
+    :param include_offsets: Flag to print python bytecode offsets as comments
+    :param print_pc: Flag to print the memory address of each instruction
     """
     il = dump_il(f)
     if not il:
@@ -695,12 +708,18 @@ def dis(f, include_offsets=False):
     if include_offsets:
         python_instructions = {i.offset: i for i in get_instructions(f)}
         offsets = get_offsets(f)
-        print_il(il, offsets, python_instructions)
+        print_il(il, offsets=offsets, bytecodes=python_instructions, print_pc=print_pc)
     else:
-        print_il(il)
+        print_il(il, print_pc=print_pc)
 
 
-def dis_native(f, include_offsets=False):
+def dis_native(f, include_offsets=False, print_pc=True) -> None:
+    """
+    Disassemble and print the JITed code object's native machine code
+    :param f: The compiled function or code object
+    :param include_offsets: Flag to print python bytecode offsets as comments
+    :param print_pc: Flag to print the memory address of each instruction
+    """
 
     try:
         import distorm3
@@ -741,6 +760,6 @@ def dis_native(f, include_offsets=False):
                         print(f'; {instruction.offset} {instruction.opname} - {instruction.arg} ({instruction.argval})', )
                     except KeyError:
                         warn("Invalid offset {0}".format(offsets))
-
-        console.print("[grey]%.8x" % offset, style="dim", end=" ")
+        if print_pc:
+            console.print("[grey]%.8x" % offset, style="dim", end=" ")
         console.print(line)
