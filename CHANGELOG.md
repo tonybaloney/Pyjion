@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.0.0 (master)
+
+* Fixed a bug where `in` (CONTAINS_OP) result wasn't being checked for exceptions and the next operation would segfault if the `in` operation returned an error result.
+
 ## 1.0.0 (beta6)
 
 * Updated to .NET 6 preview 6

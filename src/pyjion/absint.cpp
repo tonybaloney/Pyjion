@@ -2445,6 +2445,7 @@ AbstactInterpreterCompileResult AbstractInterpreter::compileWorker(PgcStatus pgc
                 else
                     m_comp->emit_not_in();
                 decStack(2); // in/not in takes two
+                errorCheck("in failed", curByte);
                 incStack(); // pushes result
                 break;
             }
