@@ -26,12 +26,23 @@
 
 #include "codemodel.h"
 
+#include <utility>
+
 int BaseModule::AddMethod(CorInfoType returnType, std::vector<Parameter> params, void *addr) {
     if (existingSlots.find(addr) == existingSlots.end()) {
         int token = METHOD_SLOT_SPACE + ++slotCursor;
-        m_methods[token] = new JITMethod(this, returnType, params, addr);
+        m_methods[token] = new JITMethod(this, returnType, std::move(params), addr);
+        RegisterSymbol(token, "typeslot"); // TODO : Get the name of the type at least..
         return token;
     } else {
         return existingSlots[addr];
     }
+}
+
+void BaseModule::RegisterSymbol(int32_t token, const char *label) {
+    symbolTable[token] = label;
+}
+
+SymbolTable BaseModule::GetSymbolTable() {
+    return symbolTable;
 }

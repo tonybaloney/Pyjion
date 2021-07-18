@@ -74,6 +74,7 @@ class ILGenerator {
     BaseModule* m_module;
     unordered_map<CorInfoType, vector<Local>, CorInfoTypeHash> m_freedLocals;
     vector<pair<size_t, uint32_t>> m_sequencePoints;
+    vector<pair<size_t, int32_t>> m_callPoints;
 public:
     vector<BYTE> m_il;
     uint16_t m_localCount;
@@ -537,7 +538,9 @@ public:
 #endif
     }
 
-    void emit_call(int token) {
+    void emit_call(int32_t token) {
+        m_callPoints.emplace_back(make_pair(m_il.size(), token));
+
         m_il.push_back(CEE_CALL); // VarPop, VarPush
         emit_int(token);
     }
@@ -665,7 +668,7 @@ public:
 
     void mark_sequence_point(size_t idx) {
 #ifdef DUMP_SEQUENCE_POINTS
-        printf("Sequence Point: IL_%04lX <> %zu\n", m_il.size(), idx);
+        printf("Sequence Point: IL_%04lX: %zu\n", m_il.size(), idx);
 #endif
         m_sequencePoints.emplace_back(make_pair(m_il.size(), idx));
     }
@@ -695,7 +698,7 @@ public:
         uint8_t* nativeEntry;
         uint32_t nativeSizeOfCode;
         jitInfo->assignIL(m_il);
-        auto res = JITMethod(m_module, m_retType, m_params, nullptr, m_sequencePoints);
+        auto res = JITMethod(m_module, m_retType, m_params, nullptr, m_sequencePoints, m_callPoints);
         CORINFO_METHOD_INFO methodInfo = to_method(&res, stackSize);
         CorJitResult result = jit->compileMethod(
                 jitInfo,

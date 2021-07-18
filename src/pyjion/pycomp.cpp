@@ -2416,14 +2416,15 @@ void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
 class GlobalMethod {
     JITMethod m_method;
 public:
-    GlobalMethod(int token, JITMethod method) : m_method(method) {
+    GlobalMethod(int token, JITMethod method, const char* label) : m_method(method) {
         m_method = method;
         g_module.m_methods[token] = &m_method;
+        g_module.RegisterSymbol(token, label);
     }
 };
 
 #define GLOBAL_METHOD(token, addr, returnType, ...) \
-    GlobalMethod g ## token(token, JITMethod(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr));
+    GlobalMethod g ## token(token, JITMethod(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr), #token );
 
 GLOBAL_METHOD(METHOD_ADD_TOKEN, &PyJit_Add, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 

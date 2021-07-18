@@ -51,3 +51,8 @@ def disable_graphs() -> None:
 
 def get_graph(f: callable) -> str:
     ...
+
+def symbols(f: callable) -> dict:
+    ...
+
+__version__: str
