@@ -2167,7 +2167,7 @@ void PythonCompiler::emit_call_function_inline(py_oparg n_args, AbstractValueWit
 
 JittedCode* PythonCompiler::emit_compile() {
     auto* jitInfo = new CorJitInfo(PyUnicode_AsUTF8(m_code->co_filename), PyUnicode_AsUTF8(m_code->co_name), m_module, m_compileDebug);
-    auto addr = m_il.compile(jitInfo, g_jit, m_code->co_stacksize + 100, PyUnicode_AsUTF8(m_code->co_name)).m_addr;
+    auto addr = m_il.compile(jitInfo, g_jit, m_code->co_stacksize + 100).m_addr;
     if (addr == nullptr) {
 #ifdef DEBUG
         printf("Compiling failed %s from %s line %d\r\n",
@@ -2416,14 +2416,15 @@ void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
 class GlobalMethod {
     JITMethod m_method;
 public:
-    GlobalMethod(int token, JITMethod method) : m_method(method) {
+    GlobalMethod(int token, JITMethod method, const char* label) : m_method(method) {
         m_method = method;
         g_module.m_methods[token] = &m_method;
+        g_module.RegisterSymbol(token, label);
     }
 };
 
 #define GLOBAL_METHOD(token, addr, returnType, ...) \
-    GlobalMethod g ## token(token, JITMethod(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr, #addr ));
+    GlobalMethod g ## token(token, JITMethod(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr), #token );
 
 GLOBAL_METHOD(METHOD_ADD_TOKEN, &PyJit_Add, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 

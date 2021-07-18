@@ -138,6 +138,8 @@ public:
     PgcStatus j_pgc_status;
     SequencePoint* j_sequencePoints;
     unsigned int j_sequencePointsLen;
+    CallPoint* j_callPoints;
+    unsigned int j_callPointsLen;
     PyObject* j_graph;
     SymbolTable j_symbols;
 

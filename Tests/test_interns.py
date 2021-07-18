@@ -23,7 +23,7 @@ class InternIntegerTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(func)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_RICHCMP_TOKEN", f.getvalue())
+        self.assertIn("METHOD_RICHCMP_TOKEN", f.getvalue())
 
     def assertOptimized(self, func) -> None:
         self.assertFalse(func())
@@ -110,7 +110,7 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_DICT", f.getvalue())
+        self.assertIn("METHOD_STORE_SUBSCR_DICT", f.getvalue())
 
     def test_dict_key_invalid_index(self):
         def test_f_subscr():
@@ -124,7 +124,7 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f_subscr)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_SUBSCR_DICT_HASH", f.getvalue())
+        self.assertIn("METHOD_SUBSCR_DICT_HASH", f.getvalue())
 
     def test_list_key(self):
         def test_f():
@@ -138,7 +138,7 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
+        self.assertIn("METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
 
     def test_list_key_builtin(self):
         def test_f():
@@ -152,7 +152,7 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
+        self.assertIn("METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
 
     def test_list_key_non_const(self):
         def test_f(b):
@@ -166,8 +166,8 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertNotIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST", f.getvalue())
+        self.assertNotIn("METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
+        self.assertIn("METHOD_STORE_SUBSCR_LIST", f.getvalue())
 
     def test_list_from_builtin_key_non_const(self):
         def test_f(b):
@@ -181,8 +181,8 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertNotIn("MethodTokens.METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_LIST", f.getvalue())
+        self.assertNotIn("METHOD_STORE_SUBSCR_LIST_I", f.getvalue())
+        self.assertIn("METHOD_STORE_SUBSCR_LIST", f.getvalue())
 
     def test_list_key_invalid_index(self):
         def test_f_subscr():
@@ -196,7 +196,7 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f_subscr)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_SUBSCR_LIST_I", f.getvalue())
+        self.assertIn("METHOD_SUBSCR_LIST_I", f.getvalue())
 
     def test_unknown_key_string_const(self):
         def test_f(x):
@@ -209,7 +209,7 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_STORE_SUBSCR_DICT_HASH", f.getvalue())
+        self.assertIn("METHOD_STORE_SUBSCR_DICT_HASH", f.getvalue())
 
     def test_unknown_int_string_const(self):
         def test_f(x):
@@ -222,7 +222,7 @@ class InternIntegerSubscrTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_SUBSCR_DICT_HASH", f.getvalue())
+        self.assertIn("METHOD_SUBSCR_DICT_HASH", f.getvalue())
 
 
 if __name__ == "__main__":

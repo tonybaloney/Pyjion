@@ -38,9 +38,9 @@ class TracingTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_TRACE_FRAME_ENTRY", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_TRACE_LINE", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_TRACE_FRAME_EXIT", f.getvalue())
+        self.assertIn("METHOD_TRACE_FRAME_ENTRY", f.getvalue())
+        self.assertIn("METHOD_TRACE_LINE", f.getvalue())
+        self.assertIn("METHOD_TRACE_FRAME_EXIT", f.getvalue())
 
     @unittest.skip("Known issue, see #217")
     def test_custom_tracer(self):
@@ -131,8 +131,8 @@ class ProfilingTestCase(unittest.TestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(test_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_PROFILE_FRAME_ENTRY", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_PROFILE_FRAME_EXIT", f.getvalue())
+        self.assertIn("METHOD_PROFILE_FRAME_ENTRY", f.getvalue())
+        self.assertIn("METHOD_PROFILE_FRAME_EXIT", f.getvalue())
 
     def test_custom_tracer(self):
         def custom_trace(frame, event, args):
