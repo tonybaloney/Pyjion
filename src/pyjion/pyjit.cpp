@@ -36,7 +36,7 @@ typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #endif
 
 PyjionSettings g_pyjionSettings;
-
+extern BaseModule g_module;
 #define SET_OPT(opt, actualLevel, minLevel) \
     g_pyjionSettings.opt_ ## opt = (actualLevel) >= (minLevel) ? true : false;
 
@@ -254,8 +254,11 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_ilLen = res.compiledCode->get_il_len();
     state->j_nativeSize = res.compiledCode->get_native_size();
     state->j_profile = profile;
+    state->j_symbols = res.compiledCode->get_symbol_table();
     state->j_sequencePoints = res.compiledCode->get_sequence_points();
     state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
+    state->j_callPoints = res.compiledCode->get_call_points();
+    state->j_callPointsLen = res.compiledCode->get_call_points_length();
 
 #ifdef DUMP_SEQUENCE_POINTS
     printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
@@ -477,15 +480,27 @@ static PyObject* pyjion_get_offsets(PyObject* self, PyObject* func ){
     if (jitted->j_failed || jitted->j_addr == nullptr)
         Py_RETURN_NONE;
 
-    auto offsets = PyTuple_New(jitted->j_sequencePointsLen);
+    auto offsets = PyTuple_New(jitted->j_sequencePointsLen + jitted->j_callPointsLen);
     if (offsets == nullptr)
         return nullptr;
-    for (size_t i = 0; i < jitted->j_sequencePointsLen; i++){
-        auto offset = PyTuple_New(3);
+    size_t idx = 0;
+    for (size_t i = 0; i < jitted->j_sequencePointsLen; i++, idx++){
+        auto offset = PyTuple_New(4);
         PyTuple_SET_ITEM(offset, 0, PyLong_FromSize_t(jitted->j_sequencePoints[i].pythonOpcodeIndex));
         PyTuple_SET_ITEM(offset, 1, PyLong_FromSize_t(jitted->j_sequencePoints[i].ilOffset));
         PyTuple_SET_ITEM(offset, 2, PyLong_FromSize_t(jitted->j_sequencePoints[i].nativeOffset));
-        PyTuple_SET_ITEM(offsets, i, offset);
+        PyTuple_SET_ITEM(offset, 3, PyUnicode_FromString("instruction"));
+        PyTuple_SET_ITEM(offsets, idx, offset);
+        Py_INCREF(offset);
+    }
+
+    for (size_t i = 0; i < jitted->j_callPointsLen; i++, idx++){
+        auto offset = PyTuple_New(4);
+        PyTuple_SET_ITEM(offset, 0, PyLong_FromLong(jitted->j_callPoints[i].tokenId));
+        PyTuple_SET_ITEM(offset, 1, PyLong_FromSize_t(jitted->j_callPoints[i].ilOffset));
+        PyTuple_SET_ITEM(offset, 2, PyLong_FromSize_t(jitted->j_callPoints[i].nativeOffset));
+        PyTuple_SET_ITEM(offset, 3, PyUnicode_FromString("call"));
+        PyTuple_SET_ITEM(offsets, idx, offset);
         Py_INCREF(offset);
     }
 
@@ -595,6 +610,30 @@ static PyObject *pyjion_get_graph(PyObject *self, PyObject* func) {
     PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
     Py_INCREF(jitted->j_graph);
     return jitted->j_graph;
+}
+
+static PyObject *pyjion_symbols(PyObject *self, PyObject* func) {
+    PyObject* code;
+    if (PyFunction_Check(func)) {
+        code = ((PyFunctionObject*)func)->func_code;
+    }
+    else if (PyCode_Check(func)) {
+        code = func;
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Expected function or code");
+        return nullptr;
+    }
+
+    PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
+
+    auto table = PyDict_New();
+    if (table == nullptr)
+        return nullptr;
+    for(auto & entry: jitted->j_symbols) {
+        PyDict_SetItem(table, PyLong_FromUnsignedLong(entry.first), PyUnicode_FromString(entry.second));
+    }
+    return table;
 }
 
 static PyObject* pyjion_set_optimization_level(PyObject *self, PyObject* args) {
@@ -759,6 +798,13 @@ static PyMethodDef PyjionMethods[] = {
         pyjion_status,
         METH_NOARGS,
         "JIT Status."
+      },
+  {
+        "symbols",
+        pyjion_symbols,
+        METH_O,
+        "Return a list of global symbols."
+
     },
 	{nullptr, nullptr, 0, nullptr}        /* Sentinel */
 };

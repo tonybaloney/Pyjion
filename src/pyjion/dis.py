@@ -1,9 +1,9 @@
-from enum import Enum
 from dis import get_instructions
-from pyjion import dump_il, dump_native, get_offsets
+from pyjion import dump_il, dump_native, get_offsets, symbols
 from collections import namedtuple
 from warnings import warn
 import struct
+
 # Pre stack effect
 Pop0 = 0
 Pop1 = 1
@@ -65,214 +65,6 @@ META = 8
 MOOT = None
 
 OPDEF = namedtuple("OPDEF", "cee_code name es_effect_pre es_effect_post size type n_bytes first_byte second_byte flow_arg")
-
-
-# From pycomp.h
-class MethodTokens (Enum):
-    METHOD_ADD_TOKEN                         = 0x00000000
-    METHOD_MULTIPLY_TOKEN                    = 0x00000001
-    METHOD_SUBTRACT_TOKEN                    = 0x00000002
-    METHOD_DIVIDE_TOKEN                      = 0x00000003
-    METHOD_FLOORDIVIDE_TOKEN                 = 0x00000004
-    METHOD_POWER_TOKEN                       = 0x00000005
-    METHOD_MODULO_TOKEN                      = 0x00000006
-    METHOD_SUBSCR_TOKEN                      = 0x00000007
-    METHOD_STOREMAP_TOKEN                    = 0x00000008
-    METHOD_RICHCMP_TOKEN                     = 0x00000009
-    METHOD_CONTAINS_TOKEN                    = 0x0000000A
-    METHOD_NOTCONTAINS_TOKEN                 = 0x0000000B
-    METHOD_STORESUBSCR_TOKEN                 = 0x0000000C
-    METHOD_DELETESUBSCR_TOKEN                = 0x0000000D
-    METHOD_NEWFUNCTION_TOKEN                 = 0x0000000E
-    METHOD_GETITER_TOKEN                     = 0x0000000F
-    METHOD_DECREF_TOKEN                      = 0x00000010
-    METHOD_GETBUILDCLASS_TOKEN               = 0x00000011
-    METHOD_LOADNAME_TOKEN                    = 0x00000012
-    METHOD_STORENAME_TOKEN                   = 0x00000013
-    METHOD_UNPACK_SEQUENCE_TOKEN             = 0x00000014
-    METHOD_SEQUENCE_AS_LIST                  = 0x00000015
-    METHOD_DELETENAME_TOKEN                  = 0x00000016
-    METHOD_PYCELL_SET_TOKEN                  = 0x00000017
-    METHOD_SET_CLOSURE                       = 0x00000018
-    METHOD_BUILD_SLICE                       = 0x00000019
-    METHOD_UNARY_POSITIVE                    = 0x0000001A
-    METHOD_UNARY_NEGATIVE                    = 0x0000001B
-    METHOD_UNARY_NOT                         = 0x0000001C
-    METHOD_UNARY_INVERT                      = 0x0000001D
-    METHOD_MATRIX_MULTIPLY_TOKEN             = 0x0000001E
-    METHOD_BINARY_LSHIFT_TOKEN               = 0x0000001F
-    METHOD_BINARY_RSHIFT_TOKEN               = 0x00000020
-    METHOD_BINARY_AND_TOKEN                  = 0x00000021
-    METHOD_BINARY_XOR_TOKEN                  = 0x00000022
-    METHOD_BINARY_OR_TOKEN                   = 0x00000023
-    METHOD_LIST_APPEND_TOKEN                 = 0x00000024
-    METHOD_SET_ADD_TOKEN                     = 0x00000025
-    METHOD_INPLACE_POWER_TOKEN               = 0x00000026
-    METHOD_INPLACE_MULTIPLY_TOKEN            = 0x00000027
-    METHOD_INPLACE_MATRIX_MULTIPLY_TOKEN     = 0x00000028
-    METHOD_INPLACE_TRUE_DIVIDE_TOKEN         = 0x00000029
-    METHOD_INPLACE_FLOOR_DIVIDE_TOKEN        = 0x0000002A
-    METHOD_INPLACE_MODULO_TOKEN              = 0x0000002B
-    METHOD_INPLACE_ADD_TOKEN                 = 0x0000002C
-    METHOD_INPLACE_SUBTRACT_TOKEN            = 0x0000002D
-    METHOD_INPLACE_LSHIFT_TOKEN              = 0x0000002E
-    METHOD_INPLACE_RSHIFT_TOKEN              = 0x0000002F
-    METHOD_INPLACE_AND_TOKEN                 = 0x00000030
-    METHOD_INPLACE_XOR_TOKEN                 = 0x00000031
-    METHOD_INPLACE_OR_TOKEN                  = 0x00000032
-    METHOD_MAP_ADD_TOKEN                     = 0x00000033
-    METHOD_PRINT_EXPR_TOKEN                  = 0x00000034
-    METHOD_LOAD_CLASSDEREF_TOKEN             = 0x00000035
-    METHOD_PREPARE_EXCEPTION                 = 0x00000036
-    METHOD_DO_RAISE                          = 0x00000037
-    METHOD_EH_TRACE                          = 0x00000038
-    METHOD_COMPARE_EXCEPTIONS                = 0x00000039
-    METHOD_UNBOUND_LOCAL                     = 0x0000003A
-    METHOD_DEBUG_TRACE                       = 0x0000003B
-    METHOD_DEBUG_DUMP_FRAME                  = 0x0000003E
-    METHOD_UNWIND_EH                         = 0x0000003F
-    METHOD_PY_PUSHFRAME                      = 0x00000041
-    METHOD_PY_POPFRAME                       = 0x00000042
-    METHOD_PY_IMPORTNAME                     = 0x00000043
-
-    METHOD_PY_IMPORTFROM                     = 0x00000045
-    METHOD_PY_IMPORTSTAR                     = 0x00000046
-    METHOD_IS                                = 0x00000049
-    METHOD_ISNOT                             = 0x0000004A
-    METHOD_IS_BOOL                           = 0x0000004B
-    METHOD_ISNOT_BOOL                        = 0x0000004C
-    METHOD_GETITER_OPTIMIZED_TOKEN           = 0x0000004D
-    METHOD_COMPARE_EXCEPTIONS_INT            = 0x0000004E
-
-    METHOD_UNARY_NOT_INT                     = 0x00000051
-    METHOD_FLOAT_FROM_DOUBLE                 = 0x00000053
-    METHOD_BOOL_FROM_LONG                    = 0x00000054
-    METHOD_PYERR_SETSTRING                   = 0x00000055
-    METHOD_NUMBER_AS_SSIZET                  = 0x00000056
-
-    METHOD_EQUALS_INT_TOKEN                  = 0x00000065
-    METHOD_LESS_THAN_INT_TOKEN               = 0x00000066
-    METHOD_LESS_THAN_EQUALS_INT_TOKEN        = 0x00000067
-    METHOD_NOT_EQUALS_INT_TOKEN              = 0x00000068
-    METHOD_GREATER_THAN_INT_TOKEN            = 0x00000069
-    METHOD_GREATER_THAN_EQUALS_INT_TOKEN     = 0x0000006A
-
-    METHOD_EXTENDLIST_TOKEN                  = 0x0000006C
-    METHOD_LISTTOTUPLE_TOKEN                 = 0x0000006D
-    METHOD_SETUPDATE_TOKEN                   = 0x0000006E
-    METHOD_DICTUPDATE_TOKEN                  = 0x0000006F
-    METHOD_UNBOX_LONG_TAGGED                 = 0x00000070
-
-    METHOD_INT_TO_FLOAT                      = 0x00000072
-
-    METHOD_STOREMAP_NO_DECREF_TOKEN          = 0x00000073
-    METHOD_FORMAT_VALUE                      = 0x00000074
-    METHOD_FORMAT_OBJECT                     = 0x00000075
-    METHOD_BUILD_DICT_FROM_TUPLES            = 0x00000076
-    METHOD_DICT_MERGE                        = 0x00000077
-    METHOD_SETUP_ANNOTATIONS                 = 0x00000078
-    METHOD_DEALLOC_OBJECT                    = 0x00000079
-    METHOD_LOAD_CLOSURE                      = 0x0000007A
-    METHOD_TRIPLE_BINARY_OP                  = 0x0000007B
-    METHOD_DEBUG_PYOBJECT                    = 0x0000007C
-    METHOD_LOADNAME_HASH                     = 0x0000007D
-    METHOD_LOADGLOBAL_HASH                   = 0x0000007E
-    METHOD_PENDING_CALLS                     = 0x0000007F
-    METHOD_CALL_0_TOKEN        = 0x00010000
-    METHOD_CALL_1_TOKEN        = 0x00010001
-    METHOD_CALL_2_TOKEN        = 0x00010002
-    METHOD_CALL_3_TOKEN        = 0x00010003
-    METHOD_CALL_4_TOKEN        = 0x00010004
-    METHOD_CALL_5_TOKEN        = 0x00010005
-    METHOD_CALL_6_TOKEN        = 0x00010006
-    METHOD_CALL_7_TOKEN        = 0x00010007
-    METHOD_CALL_8_TOKEN        = 0x00010008
-    METHOD_CALL_9_TOKEN        = 0x00010009
-    METHOD_CALL_10_TOKEN       = 0x0001000A
-    METHOD_CALLN_TOKEN         = 0x000100FF
-    METHOD_VECTORCALL          = 0x00010100
-    METHOD_OBJECTCALL          = 0x00010101
-
-    METHOD_METHCALL_0_TOKEN    = 0x00011000
-    METHOD_METHCALL_1_TOKEN    = 0x00011001
-    METHOD_METHCALL_2_TOKEN    = 0x00011002
-    METHOD_METHCALL_3_TOKEN    = 0x00011003
-    METHOD_METHCALL_4_TOKEN    = 0x00011004
-    METHOD_METHCALL_5_TOKEN    = 0x00011005
-    METHOD_METHCALL_6_TOKEN    = 0x00011006
-    METHOD_METHCALL_7_TOKEN    = 0x00011007
-    METHOD_METHCALL_8_TOKEN    = 0x00011008
-    METHOD_METHCALL_9_TOKEN    = 0x00011009
-    METHOD_METHCALL_10_TOKEN   = 0x0001100A
-    METHOD_METHCALLN_TOKEN     = 0x000110FF
-
-    METHOD_CALL_ARGS             = 0x00012001
-    METHOD_CALL_KWARGS           = 0x00012002
-    METHOD_KWCALLN_TOKEN         = 0x00012003
-
-    METHOD_LOAD_METHOD           = 0x00013000
-
-    METHOD_GIL_ENSURE            = 0x00014000
-    METHOD_GIL_RELEASE           = 0x00014001
-
-    METHOD_PYTUPLE_NEW           = 0x00020000
-    METHOD_PYLIST_NEW            = 0x00020001
-    METHOD_PYDICT_NEWPRESIZED    = 0x00020002
-    METHOD_PYSET_NEW             = 0x00020003
-    METHOD_PYSET_ADD             = 0x00020004
-    METHOD_PYOBJECT_ISTRUE       = 0x00020005
-    METHOD_PYITER_NEXT           = 0x00020006
-    METHOD_PYCELL_GET            = 0x00020007
-    METHOD_PYERR_RESTORE         = 0x00020008
-    METHOD_PYOBJECT_STR          = 0x00020009
-    METHOD_PYOBJECT_REPR         = 0x0002000A
-    METHOD_PYOBJECT_ASCII        = 0x0002000B
-    METHOD_PYUNICODE_JOINARRAY   = 0x0002000C
-
-    METHOD_LOADGLOBAL_TOKEN     = 0x00030000
-    METHOD_LOADATTR_TOKEN       = 0x00030001
-    METHOD_STOREATTR_TOKEN      = 0x00030002
-    METHOD_DELETEATTR_TOKEN     = 0x00030003
-    METHOD_STOREGLOBAL_TOKEN    = 0x00030004
-    METHOD_DELETEGLOBAL_TOKEN   = 0x00030005
-    METHOD_LOAD_ASSERTION_ERROR = 0x00030006
-    METHOD_GENERIC_GETATTR      = 0x00030007
-    METHOD_GENERIC_LOADATTR_HASH = 0x00030008
-
-    METHOD_TRACE_LINE           = 0x00030010
-    METHOD_TRACE_FRAME_ENTRY    = 0x00030011
-    METHOD_TRACE_FRAME_EXIT     = 0x00030012
-    METHOD_TRACE_EXCEPTION      = 0x00030013
-    METHOD_PROFILE_FRAME_ENTRY  = 0x00030014
-    METHOD_PROFILE_FRAME_EXIT   = 0x00030015
-    METHOD_PGC_PROBE             = 0x00030016
-
-    METHOD_ITERNEXT_TOKEN        = 0x00040000
-
-    METHOD_FLOAT_POWER_TOKEN     = 0x00050000
-    METHOD_FLOAT_FLOOR_TOKEN     = 0x00050001
-    METHOD_FLOAT_MODULUS_TOKEN   = 0x00050002
-
-    METHOD_STORE_SUBSCR_OBJ      = 0x00060000
-    METHOD_STORE_SUBSCR_OBJ_I    = 0x00060001
-    METHOD_STORE_SUBSCR_OBJ_I_HASH   = 0x00060002
-    METHOD_STORE_SUBSCR_DICT     = 0x00060003
-    METHOD_STORE_SUBSCR_DICT_HASH= 0x00060004
-    METHOD_STORE_SUBSCR_LIST     = 0x00060005
-    METHOD_STORE_SUBSCR_LIST_I   = 0x00060006
-
-    METHOD_SUBSCR_OBJ          = 0x00070000
-    METHOD_SUBSCR_OBJ_I        = 0x00070001
-    METHOD_SUBSCR_OBJ_I_HASH   = 0x00070002
-    METHOD_SUBSCR_DICT         = 0x00070003
-    METHOD_SUBSCR_DICT_HASH    = 0x00070004
-    METHOD_SUBSCR_LIST         = 0x00070005
-    METHOD_SUBSCR_LIST_I       = 0x00070006
-    METHOD_SUBSCR_TUPLE        = 0x00070007
-    METHOD_SUBSCR_TUPLE_I      = 0x00070008
-    METHOD_SUBSCR_LIST_SLICE   = 0x00070009
-    METHOD_SUBSCR_LIST_SLICE_STEPPED    = 0x0007000A
-    METHOD_SUBSCR_LIST_SLICE_REVERSED   = 0x0007000B
 
 # Copy + Paste these from opcode.def and wrap the CEE codes in quotes.
 
@@ -579,18 +371,26 @@ for opcode in opcodes:
         opcode_map[opcode.first_byte + opcode.second_byte] = opcode
 
 
-def print_il(il, offsets=None, bytecodes=None):
+def print_il(il: bytearray, symbols, offsets=None, bytecodes=None, print_pc=True) -> None:
+    """
+    Print the CIL sequence
+
+    :param il: A bytearray of ECMA 335 CIL
+    :param offsets: A dictionary of Python bytecode offsets
+    :param bytecodes: The dictionary of Python bytecode instructions
+    :param print_pc: Flag to include the PC offsets in the print
+    """
     i = iter(il)
     try:
         pc = 0
-
         while True:
             # See if this is the offset of a matching Python instruction
             if offsets and bytecodes:
-                for py_offset, il_offset, native_offset in offsets:
-                    if il_offset == pc:
+                for py_offset, il_offset, native_offset, offset_type in offsets:
+                    if il_offset == pc and offset_type == 'instruction':
                         try:
-                            print('; ', bytecodes[py_offset])
+                            instruction = bytecodes[py_offset]
+                            print(f'// {instruction.offset} {instruction.opname} - {instruction.arg} ({instruction.argval})', )
                         except KeyError:
                             warn("Invalid offset {0}".format(offsets))
             first = next(i)
@@ -598,82 +398,80 @@ def print_il(il, offsets=None, bytecodes=None):
                 raise NotImplementedError(f"CorILMethod_FatFormat not yet supported")
 
             op = opcode_map[first]
+            pc_label = f"IL_{pc:04x}: " if print_pc else ""
             if op.size == InlineNone:
-                print(f"[IL_{pc:04x}] - {op.name:15}")
+                print(f"{pc_label}{op.name}")
                 pc += 1
                 continue
             elif op.size == ShortInlineBrTarget:
                 target = int.from_bytes((next(i),), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] SB {op.name:15} -> {target}")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 2
                 continue
             elif op.size == ShortInlineVar:
                 target = int.from_bytes((next(i),), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] SV {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 2
                 continue
             elif op.size == ShortInlineI:
                 target = int.from_bytes((next(i),), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] SI {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 2
                 continue
             elif op.size == ShortInlineR:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] SR {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineBrTarget:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] B {op.name:15} -> {target}")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineField:
                 field = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] F {op.name:15} ({field})")
+                print(f"{pc_label}{op.name} {field}")
                 pc += 5
                 continue
             elif op.size == InlineR:
                 [target] = struct.unpack('f', bytes((next(i), next(i), next(i), next(i))))
-                print(f"[IL_{pc:04x}] IR {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineI:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] I {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineI8:
                 target = int.from_bytes((next(i), next(i), next(i), next(i), next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] I8 {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 9
                 continue
             elif op.size == InlineMethod:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                try:
-                    meth = MethodTokens(target)
-                except ValueError:
-                    meth = f"METHOD_SLOT_SPACE ({target})"
-                print(f"[IL_{pc:04x}] M {op.name:15} ({target} : {meth})")
+                meth = symbols.get(target, target)
+                print(f"{pc_label}{op.name} {meth}")
                 pc += 5
                 continue
             elif op.size == InlineSig:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] S {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineTok:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] T {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineString:
                 target = bytearray((next(i), next(i), next(i), next(i))).decode('utf-8')
-                print(f"[IL_{pc:04x}] X {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 5
                 continue
             elif op.size == InlineVar:
                 target = int.from_bytes((next(i), next(i)), byteorder='little', signed=True)
-                print(f"[IL_{pc:04x}] V {op.name:15} ({target})")
+                print(f"{pc_label}{op.name} {target}")
                 pc += 3
                 continue
             else:
@@ -683,9 +481,13 @@ def print_il(il, offsets=None, bytecodes=None):
         pass
 
 
-def dis(f, include_offsets=False):
+def dis(f, include_offsets=False, print_pc=True):
     """
-    Disassemble a code object into IL
+    Disassemble a code object into IL.
+
+    :param f: The compiled function or code object
+    :param include_offsets: Flag to print python bytecode offsets as comments
+    :param print_pc: Flag to print the memory address of each instruction
     """
     il = dump_il(f)
     if not il:
@@ -694,12 +496,18 @@ def dis(f, include_offsets=False):
     if include_offsets:
         python_instructions = {i.offset: i for i in get_instructions(f)}
         offsets = get_offsets(f)
-        print_il(il, offsets, python_instructions)
+        print_il(il, offsets=offsets, bytecodes=python_instructions, print_pc=print_pc, symbols=symbols(f))
     else:
-        print_il(il)
+        print_il(il, print_pc=print_pc, symbols=symbols(f))
 
 
-def dis_native(f, include_offsets=False):
+def dis_native(f, include_offsets=False, print_pc=True) -> None:
+    """
+    Disassemble and print the JITed code object's native machine code
+    :param f: The compiled function or code object
+    :param include_offsets: Flag to print python bytecode offsets as comments
+    :param print_pc: Flag to print the memory address of each instruction
+    """
 
     try:
         import distorm3
@@ -712,10 +520,13 @@ def dis_native(f, include_offsets=False):
     if not native:
         print("No native code for this function, it may not have compiled correctly")
         return
-
+    symbol_table = symbols(f)
     if include_offsets:
         python_instructions = {i.offset: i for i in get_instructions(f)}
         jit_offsets = get_offsets(f)
+    else:
+        python_instructions = {}
+        jit_offsets = []
 
     code, code_length, position = native
     iterable = distorm3.DecodeGenerator(position, bytes(code), distorm3.Decode64Bits)
@@ -723,7 +534,6 @@ def dis_native(f, include_offsets=False):
     disassembled = [(offset, instruction) for (offset, size, instruction, hexdump) in iterable]
 
     console = Console()
-
     offsets = [offset for (offset, instruction) in disassembled]
     instructions = [instruction for (offset, instruction) in disassembled]
 
@@ -733,12 +543,23 @@ def dis_native(f, include_offsets=False):
     for (offset, line) in zip(offsets, highlighted_lines):
         # See if this is the offset of a matching Python instruction
         if include_offsets:
-            for py_offset, il_offset, native_offset in jit_offsets:
-                if (position + native_offset) == offset:
+            for py_offset, il_offset, native_offset, offset_type in jit_offsets:
+                if native_offset > 0 and (position + native_offset) == offset and offset_type == "instruction":
                     try:
-                        print('; ', python_instructions[py_offset])
+                        instruction = python_instructions[py_offset]
+                        console.print(f'; {instruction.offset} {instruction.opname} - {instruction.arg} ({instruction.argval})', style="dim")
                     except KeyError:
                         warn("Invalid offset {0}".format(offsets))
+        if print_pc:
+            console.print("[grey]%.8x" % offset, style="dim", end=" ")
+        console.print(line, end=" ")
+        if include_offsets:
+            for py_offset, il_offset, native_offset, offset_type in jit_offsets:
+                if native_offset > 0 and (position + native_offset) == offset and offset_type == "call":
+                    try:
+                        console.print("[grey]; %s" % symbol_table[py_offset], style="dim")
+                        console.print('; ', end=" ")
+                    except KeyError:
+                        warn("Invalid offset {0}".format(offsets))
+        console.print('')  # force line-sep
 
-        console.print("[grey]%.8x" % offset, style="dim", end=" ")
-        console.print(line)

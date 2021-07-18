@@ -39,6 +39,7 @@
 #include <cstdlib>
 #include <intrin.h>
 
+#include <utility>
 #include <vector>
 #include <unordered_map>
 
@@ -51,6 +52,7 @@
 #define METHOD_SLOT_SPACE 0x00100000
 
 using namespace std;
+typedef std::unordered_map<int32_t, const char*> SymbolTable;
 
 class Method;
 class BaseMethod;
@@ -65,17 +67,21 @@ public:
 };
 
 class BaseModule {
-public:
-    unordered_map<int, BaseMethod*> m_methods;
     unordered_map<void*, int> existingSlots;
     int slotCursor = 0;
+public:
+    unordered_map<int32_t, BaseMethod*> m_methods;
+    SymbolTable symbolTable;
     BaseModule() = default;
 
-    virtual BaseMethod* ResolveMethod(unsigned int tokenId) {
+    virtual BaseMethod* ResolveMethod(int32_t tokenId) {
         return m_methods[tokenId];
     }
 
     virtual int AddMethod(CorInfoType returnType, std::vector<Parameter> params, void* addr);
+
+    virtual void RegisterSymbol(int32_t tokenId, const char* label);
+    virtual SymbolTable GetSymbolTable();
 };
 
 class UserModule : public BaseModule {
@@ -85,7 +91,7 @@ public:
 
     }
 
-    BaseMethod* ResolveMethod(unsigned int tokenId) override {
+    BaseMethod* ResolveMethod(int32_t tokenId) override {
         auto res = m_methods.find(tokenId);
         if (res == m_methods.end()) {
             return m_parent.ResolveMethod(tokenId);
@@ -93,12 +99,22 @@ public:
 
         return res->second;
     }
+
+    SymbolTable GetSymbolTable() override {
+        return m_parent.GetSymbolTable();
+    }
 };
 
 struct SequencePoint {
     uint32_t ilOffset;
     uint32_t nativeOffset;
     uint32_t pythonOpcodeIndex;
+};
+
+struct CallPoint {
+    uint32_t ilOffset;
+    uint32_t nativeOffset;
+    int32_t tokenId;
 };
 
 class BaseMethod {
@@ -114,7 +130,9 @@ public:
     virtual unsigned int getSequencePointCount() = 0;
     virtual uint32_t* getSequencePointOffsets() = 0;
     virtual void recordSequencePointOffsetPosition(uint32_t ilOffset, uint32_t nativeOffset) = 0;
+    virtual void recordCallPointOffsetPosition(uint32_t ilOffset, uint32_t nativeOffset) = 0;
     virtual vector<SequencePoint> getSequencePoints() = 0;
+    virtual vector<CallPoint> getCallPoints() = 0;
 };
 
 class JITMethod : public BaseMethod {
@@ -124,23 +142,33 @@ public:
     CorInfoType m_retType;
     void* m_addr;
     vector<SequencePoint> m_sequencePoints;
+    vector<CallPoint> m_callPoints;
 
     JITMethod(BaseModule* module, CorInfoType returnType, std::vector<Parameter> params, void* addr) {
         m_retType = returnType;
-        m_params = params;
+        m_params = std::move(params);
         m_module = module;
         m_addr = addr;
     }
 
     JITMethod(BaseModule *module, CorInfoType returnType, vector<struct Parameter> params, void* addr,
-              vector<pair<size_t, uint32_t>> sequencePoints) :
-            JITMethod(module, returnType, params, addr){
+              const vector<pair<size_t, uint32_t>>& sequencePoints,
+              const vector<pair<size_t, int32_t>>& callPoints) :
+            JITMethod(module, returnType, std::move(params), addr){
         for (auto & point: sequencePoints){
             m_sequencePoints.push_back({
                 static_cast<uint32_t>(point.first),
                 0,
                 point.second
             });
+        }
+
+        for (auto & point: callPoints){
+            m_callPoints.push_back({
+               static_cast<uint32_t>(point.first),
+               0,
+               point.second
+           });
         }
     }
 
@@ -175,7 +203,7 @@ public:
     }
 
     uint32_t * getSequencePointOffsets() override {
-        uint32_t * pts = static_cast<uint32_t *>(PyMem_RawMalloc(sizeof(uint32_t) * m_sequencePoints.size()));
+        auto * pts = static_cast<uint32_t *>(PyMem_RawMalloc(sizeof(uint32_t) * m_sequencePoints.size()));
         if (pts == nullptr){
             throw OutOfMemoryException();
         }
@@ -195,8 +223,20 @@ public:
         }
     }
 
+    void recordCallPointOffsetPosition(uint32_t ilOffset, uint32_t nativeOffset) override {
+        for (auto & pt: m_callPoints){
+            if (pt.ilOffset == ilOffset){
+                pt.nativeOffset = nativeOffset;
+            }
+        }
+    }
+
     vector<SequencePoint> getSequencePoints() override {
         return m_sequencePoints;
+    }
+
+    vector<CallPoint> getCallPoints() override {
+        return m_callPoints;
     }
 };
 

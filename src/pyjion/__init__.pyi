@@ -57,3 +57,8 @@ def init(clrjitpath: str) -> None:
 
 def status() -> dict:
     ...
+
+def symbols(f: callable) -> dict:
+    ...
+
+__version__: str

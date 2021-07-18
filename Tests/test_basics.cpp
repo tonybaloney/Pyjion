@@ -298,6 +298,15 @@ TEST_CASE("General contains comparison") {
         auto t = EmissionTest("def f(): return 'i' not in 'team'");
         CHECK(t.returns() == "True");
     }
+    SECTION("not in fault case") {
+        auto t = EmissionTest("def f():\n"
+                              " x = [0, 1, 2]\n"
+                              " if x not in 'team':\n"
+                              "   return True\n"
+                              " else:\n"
+                              "   return False\n");
+        CHECK(t.raises() == PyExc_TypeError);
+    }
 }
 
 TEST_CASE("Assertions") {
