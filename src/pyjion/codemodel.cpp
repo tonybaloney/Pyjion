@@ -36,8 +36,9 @@ int BaseModule::AddMethod(CorInfoType returnType, std::vector<Parameter> params,
     }
 }
 
-void BaseModule::RegisterSymbol(size_t location, const char *label) {
-    symbolTable[location] = label;
+void BaseModule::RegisterSymbol(void* location, const char *label) {
+    intptr_t loc = reinterpret_cast<intptr_t>(location);
+    symbolTable[loc] = label;
 }
 
 SymbolTable BaseModule::GetSymbolTable() {
