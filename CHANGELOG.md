@@ -1,8 +1,13 @@
 # Release notes
 
-## 1.0.0 (master)
+## 1.0.0 (beta7)
 
+* Added `pyjion.symbols(callable)` API to fetch the dictionary of external call tokens
+* Extended the `dis()` and `dis_native()` methods with a flag to not print the program counter (`print_pc=False`)
+* Improved the `dis_native()` method to print the name of the method call after the `call` instructions as a line comment
+* Fixed a bug in `dis_native()` which showed unresolved sequence points at the top of the printout  
 * Fixed a bug where `in` (CONTAINS_OP) result wasn't being checked for exceptions and the next operation would segfault if the `in` operation returned an error result.
+* The IL in `dis()` is closer in syntax to ILDasm and easier to read
 
 ## 1.0.0 (beta6)
 
