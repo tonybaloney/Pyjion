@@ -73,7 +73,7 @@ lib_path = _which_dotnet()
 
 try:
     from ._pyjion import *  # NOQA
-    _init(lib_path)
+    init(lib_path)
 except ImportError:
     raise ImportError(
 """
