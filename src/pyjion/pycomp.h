@@ -253,6 +253,7 @@
 #define LD_FIELDI(type, field) if(offsetof(type, field)>0) {m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();} m_il.ld_ind_i();
 #define LD_FIELDR8(type, field) if(offsetof(type, field)>0) {m_il.ld_i((int32_t)offsetof(type, field)); m_il.add();} m_il.ld_ind_r8();
 
+extern CCorJitHost g_jitHost;
 extern ICorJitCompiler* g_jit;
 class PythonCompiler : public IPythonCompiler {
     PyCodeObject *m_code;
