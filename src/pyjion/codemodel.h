@@ -151,7 +151,7 @@ public:
         m_addr = addr;
     }
 
-    JITMethod(BaseModule *module, CorInfoType returnType, vector<struct Parameter> params, void* addr,
+    JITMethod(BaseModule *module, CorInfoType returnType, vector<Parameter> params, void* addr,
               const vector<pair<size_t, uint32_t>>& sequencePoints,
               const vector<pair<size_t, int32_t>>& callPoints) :
             JITMethod(module, returnType, std::move(params), addr){

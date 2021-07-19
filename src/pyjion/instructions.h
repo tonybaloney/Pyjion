@@ -33,11 +33,11 @@
 
 using namespace std;
 
+class InterpreterStack;
+
 #define SIZEOF_CODEUNIT sizeof(_Py_CODEUNIT)
 #define GET_OPARG(index)  (py_oparg)_Py_OPARG(mByteCode[(index)/SIZEOF_CODEUNIT])
 #define GET_OPCODE(index) (py_opcode)_Py_OPCODE(mByteCode[(index)/SIZEOF_CODEUNIT])
-
-struct InterpreterStack; // forward decl
 
 enum EscapeTransition {
     // Boxed -> Boxed = NoEscape
