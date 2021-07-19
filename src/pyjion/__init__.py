@@ -54,8 +54,17 @@ def _which_dotnet() -> str:
         else:
             _no_dotnet(_dotnet_root)
     elif platform.system() == "Windows":
-        # Use the bundled clrjit.dll
-        return "clrjit.dll"
+        if not _dotnet_root:
+            _dotnet_root = pathlib.WindowsPath(os.path.expandvars(r'%ProgramFiles%\dotnet'))
+            if not _dotnet_root.exists():
+                _no_dotnet(_dotnet_root)
+        lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/6.0.*/clrjit.dll'))
+        if len(lib_path) > 0:
+            clrjitlib = str(lib_path[0])
+            ctypes.cdll.LoadLibrary(clrjitlib)
+            return clrjitlib
+        else:
+            _no_dotnet(_dotnet_root)
     else:
         raise ValueError("Operating System not Supported")
 
