@@ -788,7 +788,7 @@ static PyMethodDef PyjionMethods[] = {
         "Fetch instruction graph for code object."
     },
     {
-        "init",
+        "_init",
         pyjion_init,
         METH_O,
         "Initialize JIT."
