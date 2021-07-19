@@ -186,15 +186,15 @@ bool JitInit(const wchar_t * path) {
 #ifdef WINDOWS
     auto clrJitHandle = GetClrJit();
 	if (clrJitHandle == nullptr) {
-	    PyErr_Format(PyExc_RuntimeError, "Failed to load .NET CLR JIT %s.", path);
+	    PyErr_SetString(PyExc_RuntimeError, "Failed to load .NET CLR JIT.");
         return false;
 	}
-    auto jitStartup = (JITSTARTUP)GetProcAddress(GetModuleHandle(TEXT("clrjit.dll")), "jitStartup");
+    auto jitStartup = (JITSTARTUP)GetProcAddress(clrJitHandle, "jitStartup");
 
 	if (jitStartup != nullptr)
         jitStartup(&g_jitHost);
     else {
-        PyErr_Format(PyExc_RuntimeError, "Failed to load jitStartup() from %s.", path);
+        PyErr_SetString(PyExc_RuntimeError, "Failed to load jitStartup().");
         return false;
     }
 
