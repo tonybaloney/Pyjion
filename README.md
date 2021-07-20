@@ -5,6 +5,8 @@ Pyjion, a JIT extension for CPython that compiles your Python code into native C
 [![Documentation Status](https://readthedocs.org/projects/pyjion/badge/?version=latest)](https://pyjion.readthedocs.io/en/latest/?badge=latest)
 [![PyPI](https://img.shields.io/pypi/v/pyjion?label=pypi%20package)](https://pypi.org/p/pyjion)
 
+You can test out Pyjion now at [www.trypyjion.com](https://www.trypyjion.com).
+
 ## Installing 
 
 ```console
@@ -17,7 +19,7 @@ Prerequisites:
 
 - CPython 3.9.0
 - CMake 3.2 + 
-- .NET 6 Preview 5
+- .NET 6 Preview 6
 
 ```console
  $ git clone git@github.com:tonybaloney/pyjion --recurse-submodules

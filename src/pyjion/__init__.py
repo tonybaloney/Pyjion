@@ -3,7 +3,7 @@ import pathlib
 import os
 import platform
 
-__version__ = '1.0.0b4'
+__version__ = '1.0.0b7'
 
 
 def _no_dotnet(path):
@@ -11,8 +11,11 @@ def _no_dotnet(path):
                       "provide the DOTNET_ROOT environment variable "
                       "if its installed somewhere unusual")
 
-# try and locate .NET
-def _which_dotnet():
+
+def _which_dotnet() -> str:
+    """
+    Locate the clrjit library path
+    """
     _dotnet_root = None
     if 'DOTNET_ROOT' in os.environ:
         _dotnet_root = pathlib.Path(os.environ['DOTNET_ROOT'])
@@ -20,7 +23,7 @@ def _which_dotnet():
             _no_dotnet(_dotnet_root)
     if 'DOTNET_LIB_PATH' in os.environ:
         ctypes.cdll.LoadLibrary(os.environ['DOTNET_LIB_PATH'])
-        return
+        return os.environ['DOTNET_LIB_PATH']
     if platform.system() == "Darwin":
         if not _dotnet_root:
             _dotnet_root = pathlib.Path('/usr/local/share/dotnet/')
@@ -30,6 +33,7 @@ def _which_dotnet():
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
+            return clrjitlib
         else:
             _no_dotnet(_dotnet_root)
     elif platform.system() == "Linux":
@@ -46,6 +50,7 @@ def _which_dotnet():
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
+            return clrjitlib
         else:
             _no_dotnet(_dotnet_root)
     elif platform.system() == "Windows":
@@ -57,16 +62,18 @@ def _which_dotnet():
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
+            return clrjitlib
         else:
             _no_dotnet(_dotnet_root)
     else:
         raise ValueError("Operating System not Supported")
 
 
-_which_dotnet()
+lib_path = _which_dotnet()
 
 try:
     from ._pyjion import *  # NOQA
+    init(lib_path)
 except ImportError:
     raise ImportError(
 """

@@ -70,6 +70,7 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     vector<uint8_t> m_il;
     uint32_t m_nativeSize;
     vector<SequencePoint> m_sequencePoints;
+    vector<CallPoint> m_callPoints;
     bool m_compileDebug;
 
     volatile const GSCookie s_gsCookie = 0x1234;
@@ -189,8 +190,23 @@ public:
             return nullptr;
     }
 
+    CallPoint* get_call_points() override {
+        if (!m_callPoints.empty())
+            return &m_callPoints[0];
+        else
+            return nullptr;
+    }
+
     size_t get_sequence_points_length() override {
         return m_sequencePoints.size();
+    }
+
+    size_t get_call_points_length() override {
+        return m_callPoints.size();
+    }
+
+    SymbolTable get_symbol_table() override {
+        return m_module->GetSymbolTable();
     }
 
     void freeMem(PVOID code) {
@@ -1306,13 +1322,20 @@ public:
         ICorDebugInfo::OffsetMapping *pMap      // [IN] map including all points of interest.
         //      jit allocated with allocateArray, EE frees
         ) override {
-        BaseMethod* meth = reinterpret_cast<BaseMethod*>(ftn);
+        auto* meth = reinterpret_cast<BaseMethod*>(ftn);
         for (size_t i = 0; i< cMap; i++){
-            if (pMap[i].source == ICorDebugInfo::SOURCE_TYPE_INVALID) {
-                meth->recordSequencePointOffsetPosition(pMap[i].ilOffset, pMap[i].nativeOffset);
+            switch(pMap[i].source){
+                case ICorDebugInfo::SOURCE_TYPE_INVALID:
+                    // Requested boundaries are under this invalid enum. Known bug in .net 6, see https://github.com/dotnet/runtime/issues/52624
+                    meth->recordSequencePointOffsetPosition(pMap[i].ilOffset, pMap[i].nativeOffset);
+                    break;
+                case ICorDebugInfo::CALL_INSTRUCTION:
+                    meth->recordCallPointOffsetPosition(pMap[i].ilOffset, pMap[i].nativeOffset);
+                    break;
             }
         }
         m_sequencePoints = meth->getSequencePoints();
+        m_callPoints = meth->getCallPoints();
     }
 
     // Query the EE to find out the scope of local varables.
@@ -1876,7 +1899,8 @@ public:
             PgoInstrumentationSchema **pSchema,                    // OUT: pointer to the schema table (array) which describes the instrumentation results
             // (pointer will not remain valid after jit completes).
             uint32_t *                 pCountSchemaItems,          // OUT: pointer to the count of schema items in `pSchema` array.
-            uint8_t **                 pInstrumentationData        // OUT: `*pInstrumentationData` is set to the address of the instrumentation data
+            uint8_t **                 pInstrumentationData,       // OUT: `*pInstrumentationData` is set to the address of the instrumentation data
+            PgoSource *                pPgoSource                  // OUT: value describing source of pgo data
             // (pointer will not remain valid after jit completes).
     ) override {
         return E_NOTIMPL;

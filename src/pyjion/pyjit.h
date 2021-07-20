@@ -62,7 +62,7 @@ public:
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, size_t stackPosition);
 class PyjionJittedCode;
 
-bool JitInit();
+bool JitInit(const wchar_t * jitpath);
 PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *frame, PyThreadState* tstate, PyjionCodeProfile* profile);
 static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject*frame, PyThreadState* tstate, PyjionCodeProfile* profile);
 PyObject* PyJit_EvalFrame(PyThreadState *, PyFrameObject *, int);
@@ -83,6 +83,7 @@ typedef struct PyjionSettings {
 #else
     bool debug = false;
 #endif
+    const wchar_t * clrjitpath = L"";
 
     // Optimizations
     bool opt_inlineIs = OPTIMIZE_IS; // OPT-1
@@ -138,7 +139,10 @@ public:
     PgcStatus j_pgc_status;
     SequencePoint* j_sequencePoints;
     unsigned int j_sequencePointsLen;
+    CallPoint* j_callPoints;
+    unsigned int j_callPointsLen;
     PyObject* j_graph;
+    SymbolTable j_symbols;
 
 	explicit PyjionJittedCode(PyObject* code) {
         j_compile_result = 0;

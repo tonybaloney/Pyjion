@@ -22,7 +22,7 @@ class GlobalOptimizationTestCase(PyjionTestCase):
         with contextlib.redirect_stdout(f):
             pyjion.dis.dis(_f)
         self.assertIn("ldarg.1", f.getvalue())
-        self.assertIn("MethodTokens.METHOD_LOADGLOBAL_HASH", f.getvalue())
+        self.assertIn("METHOD_LOADGLOBAL_HASH", f.getvalue())
 
 
 if __name__ == "__main__":

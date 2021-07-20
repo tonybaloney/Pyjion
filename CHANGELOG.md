@@ -1,9 +1,28 @@
 # Release notes
 
+## 1.0.0 (beta7)
+
+* Added `pyjion.symbols(callable)` API to fetch the dictionary of external call tokens
+* Extended the `dis()` and `dis_native()` methods with a flag to not print the program counter (`print_pc=False`)
+* Improved the `dis_native()` method to print the name of the method call after the `call` instructions as a line comment
+* Fixed a bug in `dis_native()` which showed unresolved sequence points at the top of the printout  
+* Fixed a bug where `in` (CONTAINS_OP) result wasn't being checked for exceptions and the next operation would segfault if the `in` operation returned an error result.
+* The IL in `dis()` is closer in syntax to ILDasm and easier to read
+* Added a `pyjion.status()` method to get runtime data on the JIT
+* Windows will now observe the `DOTNET_ROOT` and `DOTNET_LIB_PATH` environment variables
+
+## 1.0.0 (beta6)
+
+* Updated to .NET 6 preview 6
+* Fixed a bug where `ord()` builtin would return the wrong type (#315)
+* `pyjion.dis.dis()` and `pyjion.dis.dis_native()` will show sequence points as comments
+* The BINARY_POWER and INPLACE_POWER opcodes will always return a native python long instead of an escaped integer, to avoid overflows
+
 ## 1.0.0 (beta5)
 
 * Fixed a bug on large dictionary literals (>100 keys)
 * Improved the efficiency of the BUILD_TUPLE, BUILD_LIST, BUILD_CONST_KEY_MAP, and BUILD_SET opcodes
+* Fixed a bug with comparison of numpy arrays being unboxed into a boolean instead of staying as an array (#310)
 
 ## 1.0.0 (beta4)
 

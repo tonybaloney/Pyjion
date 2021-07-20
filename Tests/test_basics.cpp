@@ -298,6 +298,15 @@ TEST_CASE("General contains comparison") {
         auto t = EmissionTest("def f(): return 'i' not in 'team'");
         CHECK(t.returns() == "True");
     }
+    SECTION("not in fault case") {
+        auto t = EmissionTest("def f():\n"
+                              " x = [0, 1, 2]\n"
+                              " if x not in 'team':\n"
+                              "   return True\n"
+                              " else:\n"
+                              "   return False\n");
+        CHECK(t.raises() == PyExc_TypeError);
+    }
 }
 
 TEST_CASE("Assertions") {
@@ -583,7 +592,6 @@ TEST_CASE("Sequence binary operations") {
     }
 }
 
-
 TEST_CASE("Test builtins") {
     SECTION("call print()") {
         auto t = EmissionTest("def f(): return print('hello world')");
@@ -616,5 +624,17 @@ TEST_CASE("Test builtins") {
     SECTION("call max() and map()") {
         auto t = EmissionTest("def f(): args=('a', 'aaa', 'aaaaa'); return max(map(len, args))");
         CHECK(t.returns() == "5");
+    }
+    SECTION("call chr()"){
+        auto t = EmissionTest("def f(): return chr(32) * 10");
+        CHECK(t.returns() == "'          '");
+    }
+    SECTION("call bin()"){
+        auto t = EmissionTest("def f(): return bin(2**6)");
+        CHECK(t.returns() == "'0b1000000'");
+    }
+    SECTION("call bin() with a big number!"){
+        auto t = EmissionTest("def f(): return bin(2**65)");
+        CHECK(t.returns() == "'0b100000000000000000000000000000000000000000000000000000000000000000'");
     }
 }

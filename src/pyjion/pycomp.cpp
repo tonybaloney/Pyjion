@@ -27,11 +27,6 @@
 #include <windows.h>
 #include <corjit.h>
 
-#ifdef WINDOWS
-#include <libloaderapi.h>
-typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
-#endif
-
 #include <Python.h>
 #include "pycomp.h"
 #include "pyjit.h"
@@ -41,35 +36,6 @@ using namespace std;
 
 
 CCorJitHost g_jitHost;
-
-void CeeInit() {
-#ifdef WINDOWS
-    auto clrJitHandle = GetClrJit();
-    if (clrJitHandle == nullptr) {
-        printf("Failed to load clrjit.dll");
-        exit(40);
-    }
-    auto jitStartup = (JITSTARTUP)GetProcAddress(GetModuleHandle(TEXT("clrjit.dll")), "jitStartup");
-    if (jitStartup != nullptr)
-        jitStartup(&g_jitHost);
-    else {
-        printf("Failed to load jitStartup() from clrjit.dll");
-        exit(41);
-    }
-#else
-	jitStartup(&g_jitHost);
-#endif
-}
-
-class InitHolder {
-public:
-    InitHolder() {
-        CeeInit();
-    }
-};
-
-InitHolder g_initHolder;
-
 BaseModule g_module;
 ICorJitCompiler* g_jit;
 
@@ -2416,14 +2382,15 @@ void PythonCompiler::emit_escape_edges(vector<Edge> edges, Local success){
 class GlobalMethod {
     JITMethod m_method;
 public:
-    GlobalMethod(int token, JITMethod method) : m_method(method) {
+    GlobalMethod(int token, JITMethod method, const char* label) : m_method(method) {
         m_method = method;
         g_module.m_methods[token] = &m_method;
+        g_module.RegisterSymbol(token, label);
     }
 };
 
 #define GLOBAL_METHOD(token, addr, returnType, ...) \
-    GlobalMethod g ## token(token, JITMethod(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr));
+    GlobalMethod g ## token(token, JITMethod(&g_module, returnType, std::vector<Parameter>{__VA_ARGS__}, (void*)addr), #token );
 
 GLOBAL_METHOD(METHOD_ADD_TOKEN, &PyJit_Add, CORINFO_TYPE_NATIVEINT, Parameter(CORINFO_TYPE_NATIVEINT), Parameter(CORINFO_TYPE_NATIVEINT));
 

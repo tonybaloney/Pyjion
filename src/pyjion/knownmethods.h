@@ -14,7 +14,7 @@ unordered_map<const char*, AbstractValueKind> builtinReturnTypes = {
         {"callable",    AVK_Function},
         {"classmethod", AVK_Any},
         {"compile",     AVK_Code},
-        {"chr",         AVK_Integer},
+        {"chr",         AVK_String},
         {"complex",     AVK_Complex},
         {"delattr",     AVK_None},
         {"dict",        AVK_Dict},

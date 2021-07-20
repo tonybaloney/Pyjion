@@ -32,10 +32,11 @@
 #include <libloaderapi.h>
 #include <processenv.h>
 typedef ICorJitCompiler* (__cdecl* GETJIT)();
+typedef void(__cdecl* JITSTARTUP)(ICorJitHost*);
 #endif
 
 PyjionSettings g_pyjionSettings;
-
+extern BaseModule g_module;
 #define SET_OPT(opt, actualLevel, minLevel) \
     g_pyjionSettings.opt_ ## opt = (actualLevel) >= (minLevel) ? true : false;
 
@@ -172,27 +173,40 @@ static Py_tss_t* g_extraSlot;
 
 #ifdef WINDOWS
 HMODULE GetClrJit() {
-    return LoadLibrary(TEXT("clrjit.dll"));
+    return LoadLibrary(g_pyjionSettings.clrjitpath);
 }
 #endif
 
-bool JitInit() {
+bool JitInit(const wchar_t * path) {
     g_pyjionSettings = {false, false};
     g_pyjionSettings.recursionLimit = Py_GetRecursionLimit();
+    g_pyjionSettings.clrjitpath = path;
 	g_extraSlot = PyThread_tss_alloc();
 	PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS
     auto clrJitHandle = GetClrJit();
 	if (clrJitHandle == nullptr) {
-	    PyErr_SetString(PyExc_RuntimeError, "Failed to load clrjit.dll, check that .NET is installed.");
+	    PyErr_SetString(PyExc_RuntimeError, "Failed to load .NET CLR JIT.");
         return false;
 	}
+    auto jitStartup = (JITSTARTUP)GetProcAddress(clrJitHandle, "jitStartup");
+
+	if (jitStartup != nullptr)
+        jitStartup(&g_jitHost);
+    else {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to load jitStartup().");
+        return false;
+    }
+
 	auto getJit = (GETJIT)GetProcAddress(clrJitHandle, "getJit");
 	if (getJit == nullptr) {
 		PyErr_SetString(PyExc_RuntimeError, "Failed to load clrjit.dll::getJit(), check that the correct version of .NET is installed.");
         return false;
 	}
+#else
+    jitStartup(&g_jitHost);
 #endif
+
 	g_jit = getJit();
 
     if (PyType_Ready(&PyJitMethodLocation_Type) < 0)
@@ -240,8 +254,11 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_ilLen = res.compiledCode->get_il_len();
     state->j_nativeSize = res.compiledCode->get_native_size();
     state->j_profile = profile;
+    state->j_symbols = res.compiledCode->get_symbol_table();
     state->j_sequencePoints = res.compiledCode->get_sequence_points();
     state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
+    state->j_callPoints = res.compiledCode->get_call_points();
+    state->j_callPointsLen = res.compiledCode->get_call_points_length();
 
 #ifdef DUMP_SEQUENCE_POINTS
     printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
@@ -342,14 +359,6 @@ static PyObject *pyjion_enable(PyObject *self, PyObject* args) {
 static PyObject *pyjion_disable(PyObject *self, PyObject* args) {
 	auto prev = _PyInterpreterState_GetEvalFrameFunc(inter());
     _PyInterpreterState_SetEvalFrameFunc(inter(), _PyEval_EvalFrameDefault);
-    if (prev == PyJit_EvalFrame) {
-        Py_RETURN_TRUE;
-    }
-    Py_RETURN_FALSE;
-}
-
-static PyObject *pyjion_status(PyObject *self, PyObject* args) {
-	auto prev = _PyInterpreterState_GetEvalFrameFunc(inter());
     if (prev == PyJit_EvalFrame) {
         Py_RETURN_TRUE;
     }
@@ -471,15 +480,27 @@ static PyObject* pyjion_get_offsets(PyObject* self, PyObject* func ){
     if (jitted->j_failed || jitted->j_addr == nullptr)
         Py_RETURN_NONE;
 
-    auto offsets = PyTuple_New(jitted->j_sequencePointsLen);
+    auto offsets = PyTuple_New(jitted->j_sequencePointsLen + jitted->j_callPointsLen);
     if (offsets == nullptr)
         return nullptr;
-    for (size_t i = 0; i < jitted->j_sequencePointsLen; i++){
-        auto offset = PyTuple_New(3);
+    size_t idx = 0;
+    for (size_t i = 0; i < jitted->j_sequencePointsLen; i++, idx++){
+        auto offset = PyTuple_New(4);
         PyTuple_SET_ITEM(offset, 0, PyLong_FromSize_t(jitted->j_sequencePoints[i].pythonOpcodeIndex));
         PyTuple_SET_ITEM(offset, 1, PyLong_FromSize_t(jitted->j_sequencePoints[i].ilOffset));
         PyTuple_SET_ITEM(offset, 2, PyLong_FromSize_t(jitted->j_sequencePoints[i].nativeOffset));
-        PyTuple_SET_ITEM(offsets, i, offset);
+        PyTuple_SET_ITEM(offset, 3, PyUnicode_FromString("instruction"));
+        PyTuple_SET_ITEM(offsets, idx, offset);
+        Py_INCREF(offset);
+    }
+
+    for (size_t i = 0; i < jitted->j_callPointsLen; i++, idx++){
+        auto offset = PyTuple_New(4);
+        PyTuple_SET_ITEM(offset, 0, PyLong_FromLong(jitted->j_callPoints[i].tokenId));
+        PyTuple_SET_ITEM(offset, 1, PyLong_FromSize_t(jitted->j_callPoints[i].ilOffset));
+        PyTuple_SET_ITEM(offset, 2, PyLong_FromSize_t(jitted->j_callPoints[i].nativeOffset));
+        PyTuple_SET_ITEM(offset, 3, PyUnicode_FromString("call"));
+        PyTuple_SET_ITEM(offsets, idx, offset);
         Py_INCREF(offset);
     }
 
@@ -557,6 +578,22 @@ static PyObject* pyjion_disable_graphs(PyObject *self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* pyjion_status(PyObject *self, PyObject* args) {
+    auto res = PyDict_New();
+	if (res == nullptr) {
+		return nullptr;
+	}
+
+	PyDict_SetItemString(res, "clrjitpath", PyUnicode_FromWideChar(g_pyjionSettings.clrjitpath, -1));
+	PyDict_SetItemString(res, "tracing", g_pyjionSettings.tracing ? Py_True : Py_False);
+	PyDict_SetItemString(res, "profiling", g_pyjionSettings.profiling ? Py_True : Py_False);
+	PyDict_SetItemString(res, "pgc", g_pyjionSettings.pgc ? Py_True : Py_False);
+	PyDict_SetItemString(res, "graph", g_pyjionSettings.graph ? Py_True : Py_False);
+ 	PyDict_SetItemString(res, "debug", g_pyjionSettings.debug ? Py_True : Py_False);
+
+	return res;
+}
+
 static PyObject *pyjion_get_graph(PyObject *self, PyObject* func) {
     PyObject* code;
     if (PyFunction_Check(func)) {
@@ -575,6 +612,30 @@ static PyObject *pyjion_get_graph(PyObject *self, PyObject* func) {
     return jitted->j_graph;
 }
 
+static PyObject *pyjion_symbols(PyObject *self, PyObject* func) {
+    PyObject* code;
+    if (PyFunction_Check(func)) {
+        code = ((PyFunctionObject*)func)->func_code;
+    }
+    else if (PyCode_Check(func)) {
+        code = func;
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Expected function or code");
+        return nullptr;
+    }
+
+    PyjionJittedCode* jitted = PyJit_EnsureExtra(code);
+
+    auto table = PyDict_New();
+    if (table == nullptr)
+        return nullptr;
+    for(auto & entry: jitted->j_symbols) {
+        PyDict_SetItem(table, PyLong_FromUnsignedLong(entry.first), PyUnicode_FromString(entry.second));
+    }
+    return table;
+}
+
 static PyObject* pyjion_set_optimization_level(PyObject *self, PyObject* args) {
     if (!PyLong_Check(args)) {
         PyErr_SetString(PyExc_TypeError, "Expected int for new threshold");
@@ -591,6 +652,20 @@ static PyObject* pyjion_set_optimization_level(PyObject *self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* pyjion_init(PyObject *self, PyObject* args) {
+    if (!PyUnicode_Check(args)) {
+        PyErr_SetString(PyExc_TypeError, "Expected str for new clrjit");
+        return nullptr;
+    }
+
+    auto path = PyUnicode_AsWideCharString(args, nullptr);
+    if (JitInit(path)) {
+        Py_RETURN_NONE;
+    } else{
+        return nullptr;
+    }
+}
+
 static PyMethodDef PyjionMethods[] = {
 	{ 
 		"enable",  
@@ -603,12 +678,6 @@ static PyMethodDef PyjionMethods[] = {
 		pyjion_disable, 
 		METH_NOARGS, 
 		"Disable the JIT.  Returns True if the JIT was disabled, False if it was already disabled." 
-	},
-	{
-		"status",
-		pyjion_status,
-		METH_NOARGS,
-		"Gets the current status of the JIT.  Returns True if it is enabled or False if it is disabled."
 	},
 	{
 		"info",
@@ -718,6 +787,25 @@ static PyMethodDef PyjionMethods[] = {
         METH_O,
         "Fetch instruction graph for code object."
     },
+    {
+        "init",
+        pyjion_init,
+        METH_O,
+        "Initialize JIT."
+    },
+    {
+        "status",
+        pyjion_status,
+        METH_NOARGS,
+        "JIT Status."
+      },
+  {
+        "symbols",
+        pyjion_symbols,
+        METH_O,
+        "Return a list of global symbols."
+
+    },
 	{nullptr, nullptr, 0, nullptr}        /* Sentinel */
 };
 
@@ -733,9 +821,5 @@ static struct PyModuleDef pyjionmodule = {
 PyMODINIT_FUNC PyInit__pyjion(void)
 {
 	// Install our frame evaluation function
-	if (JitInit()) {
-        return PyModule_Create(&pyjionmodule);
-    } else {
-        return nullptr;
-    }
+	return PyModule_Create(&pyjionmodule);
 }

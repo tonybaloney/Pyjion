@@ -35,6 +35,7 @@
 #include <codemodel.h>
 #include <jitinfo.h>
 #include <ilgen.h>
+#include <pycomp.h>
 
 extern BaseModule g_module;
 extern ICorJitCompiler* g_jit;
@@ -135,5 +136,33 @@ TEST_CASE("Test locals") {
         REQUIRE(method.m_addr != nullptr);
         int32_t result = ((Returns_int32) method.getAddr())();
         CHECK(result == value);
+    }
+}
+
+TEST_CASE("Test call") {
+    SECTION("test call method emitter") {
+        auto test_module = new UserModule(g_module);
+        auto gen = new ILGenerator(
+                test_module,
+                CORINFO_TYPE_DOUBLE,
+                std::vector<Parameter>{
+                });
+        gen->ld_i8(10);
+        gen->ld_i8(5);
+        gen->emit_call(METHOD_INT_TRUE_DIVIDE);
+        gen->ret();
+        auto *jitInfo = new CorJitInfo("test_module", "test_call", test_module, true);
+        JITMethod method = gen->compile(jitInfo, g_jit, 100);
+        REQUIRE(method.m_addr != nullptr);
+        double result = ((Returns_double) method.getAddr())();
+        CHECK(result == 2.0);
+        auto symbols = jitInfo->get_symbol_table();
+        CHECK(!symbols.empty());
+
+        auto callPointsLength = jitInfo->get_call_points_length();
+        REQUIRE(callPointsLength > 0);
+        CHECK(jitInfo->get_call_points()[0].tokenId == METHOD_INT_TRUE_DIVIDE);
+        CHECK(jitInfo->get_call_points()[0].nativeOffset > 0);
+        CHECK(jitInfo->get_call_points()[0].ilOffset == 18);
     }
 }
