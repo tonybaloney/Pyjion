@@ -1,6 +1,7 @@
 import pyjion
 import unittest
 import gc
+import statistics
 
 
 class MathTestCase(unittest.TestCase):
@@ -123,6 +124,31 @@ class MathTestCase(unittest.TestCase):
         c = "boo %s"
         x = c % (a + b)
         self.assertEqual(x, "boo 3")
+
+
+class StatisticsTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        pyjion.enable()
+        pyjion.enable_pgc()
+
+    def tearDown(self) -> None:
+        pyjion.disable()
+        gc.collect()
+
+    def test_mean(self):
+        answer = statistics.mean([1, 2, 3, 4, 4])
+        self.assertEqual(answer, 2.8)
+
+    def test_variance(self):
+        data = [0, 0, 1]
+        result = statistics.variance(data)
+        self.assertEqual(result, 0.33333333333333337)
+
+    def test_variance2(self):
+        data = [0, 1]
+        result = statistics.variance(data)
+        self.assertEqual(result, 0.5)
 
 
 if __name__ == "__main__":
