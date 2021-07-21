@@ -2,6 +2,7 @@ import pyjion
 import unittest
 import gc
 import statistics
+from fractions import Fraction
 
 
 class MathTestCase(unittest.TestCase):
@@ -152,6 +153,24 @@ class StatisticsTestCase(unittest.TestCase):
         data = [0, 1]
         result = statistics.variance(data)
         self.assertEqual(result, 0.5)
+
+    def test_variance_slow(self):
+        data = [0, 0, 1]
+        c = statistics.mean(data)
+        self.assertEqual(c, 0.3333333333333333)
+        T, total, count = statistics._sum((x-c)**2 for x in data)
+        self.assertEqual(T, float)
+        self.assertEqual(total, Fraction(3002399751580331, 4503599627370496))
+
+    def test_fraction_operations(self):
+        result1 = Fraction(2, 3) + Fraction(7, 5)
+        self.assertEqual(result1, Fraction(31, 15))
+        result2 = Fraction(2, 3) - Fraction(7, 5)
+        self.assertEqual(result2, Fraction(-11, 15))
+        result3 = Fraction(2, 3) * Fraction(7, 5)
+        self.assertEqual(result3, Fraction(14, 15))
+        result4 = Fraction(2, 3) ** Fraction(7, 5)
+        self.assertEqual(result4, 0.5668553336114626)
 
 
 if __name__ == "__main__":

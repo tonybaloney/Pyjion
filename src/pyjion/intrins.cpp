@@ -2765,6 +2765,14 @@ double PyJit_DoublePow(double iv, double iw)
     return ix;
 }
 
+long long PyJit_LongAsLongLong(PyObject* vv){
+    long long result = PyLong_AsLongLong(vv);
+    if (result == -1 && PyErr_Occurred()){
+        return MAXLONG;
+    }
+    return result;
+}
+
 void PyJit_PgcGuardException(PyObject* obj, const char* expected) {
     PyErr_Format(PyExc_ValueError,
                  "Pyjion PGC expected %s, but %s is a %s.",
