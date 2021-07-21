@@ -131,12 +131,15 @@ class StatisticsTestCase(unittest.TestCase):
     def setUp(self) -> None:
         pyjion.enable()
         pyjion.enable_pgc()
+        pyjion.enable_graphs()
 
     def tearDown(self) -> None:
         pyjion.disable()
         gc.collect()
 
     def test_mean(self):
+        answer = statistics.mean([1, 2, 3, 4, 4])
+        self.assertEqual(answer, 2.8)
         answer = statistics.mean([1, 2, 3, 4, 4])
         self.assertEqual(answer, 2.8)
 

@@ -1314,12 +1314,24 @@ TEST_CASE("Test negatives") {
         auto t = EmissionTest(
                 "def f():\n    x = -2\n    y = 2\n    return x ** y"
         );
-        CHECK(t.returns() == "-4");
+        CHECK(t.returns() == "4");
     };
     SECTION("test negative number power float") {
         auto t = EmissionTest(
                 "def f():\n    x = -2.\n    y = 2.\n    return x ** y"
         );
-        CHECK(t.returns() == "-4.0");
+        CHECK(t.returns() == "4.0");
+    };
+    SECTION("test negative number power odd") {
+        auto t = EmissionTest(
+                "def f():\n    x = -3\n    y = 3\n    return x ** y"
+        );
+        CHECK(t.returns() == "-27");
+    };
+    SECTION("test negative number power float odd") {
+        auto t = EmissionTest(
+                "def f():\n    x = -3.\n    y = 3.\n    return x ** y"
+        );
+        CHECK(t.returns() == "-27.0");
     };
 }

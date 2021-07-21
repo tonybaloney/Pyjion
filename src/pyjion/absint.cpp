@@ -1603,6 +1603,8 @@ bool canReturnInfinity(py_opcode opcode){
         case INPLACE_FLOOR_DIVIDE:
         case BINARY_MODULO:
         case INPLACE_MODULO:
+        case BINARY_POWER:
+        case INPLACE_POWER:
             return true;
     }
     return false;
