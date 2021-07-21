@@ -1845,7 +1845,7 @@ PyObject* PyJit_LoadName(PyFrameObject* f, PyObject* name) {
     }
     else {
         v = PyObject_GetItem(locals, name);
-        if (v == nullptr && _PyErr_OCCURRED()) {
+        if (v == nullptr && PyErr_Occurred()) {
             if (!PyErr_ExceptionMatches(PyExc_KeyError))
                 return nullptr;
             PyErr_Clear();
@@ -1894,7 +1894,7 @@ PyObject* PyJit_LoadNameHash(PyFrameObject* f, PyObject* name, Py_hash_t name_ha
     }
     else {
         v = PyObject_GetItem(locals, name);
-        if (v == nullptr && _PyErr_OCCURRED()) {
+        if (v == nullptr && PyErr_Occurred()) {
             if (!PyErr_ExceptionMatches(PyExc_KeyError))
                 return nullptr;
             PyErr_Clear();
@@ -2768,6 +2768,11 @@ double PyJit_DoublePow(double iv, double iw)
 long long PyJit_LongAsLongLong(PyObject* vv){
     long long result = PyLong_AsLongLong(vv);
     if (result == -1 && PyErr_Occurred()){
+        PyErr_Clear();
+        PyErr_Format(PyExc_OverflowError,
+                     "Pyjion failed to unbox the integer %s because it is too large.",
+                     PyUnicode_AsUTF8(PyObject_Repr(vv)));
+
         return MAXLONG;
     }
     return result;
