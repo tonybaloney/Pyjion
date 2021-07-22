@@ -1,17 +1,9 @@
 """Test the optimization of frame locals"""
 import unittest
-import pyjion
-import pyjion.dis
-import gc
+from base import PyjionTestCase
 
 
-class LocalsTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class LocalsTestCase(PyjionTestCase):
 
     def test_simple_compare(self):
         def test_f():

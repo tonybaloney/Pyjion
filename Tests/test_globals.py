@@ -4,16 +4,11 @@ import io
 import pyjion
 import pyjion.dis
 import unittest
-import gc
 
-class GlobalOptimizationTestCase(unittest.TestCase):
+from base import PyjionTestCase
 
-    def setUp(self) -> None:
-        pyjion.enable()
 
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class GlobalOptimizationTestCase(PyjionTestCase):
 
     def test_import(self):
         def _f():
@@ -28,6 +23,7 @@ class GlobalOptimizationTestCase(unittest.TestCase):
             pyjion.dis.dis(_f)
         self.assertIn("ldarg.1", f.getvalue())
         self.assertIn("METHOD_LOADGLOBAL_HASH", f.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,18 +1,7 @@
-import gc
-import pyjion
-import pyjion.dis
-import unittest
+from base import NoPgcPyjionTestCase
 
 
-class GeneratorsTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class GeneratorsTestCase(NoPgcPyjionTestCase):
 
     def test_single_yield(self):
         def gen():

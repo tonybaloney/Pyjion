@@ -147,7 +147,17 @@ TEST_CASE("Test methods"){
         );
         CHECK(t.returns() == "'ham + eggs'");
     }
-
+    SECTION("test simple method raising exception") {
+        auto t = EmissionTest(
+                "def f():\n"
+                "       class B:\n"
+                "            def ham(self, _with):\n"
+                "                raise ValueError\n"
+                "       b = B()\n"
+                "       return b.ham('eggs')\n"
+        );
+        CHECK(t.raises() == PyExc_ValueError);
+    }
     SECTION("test simple classmethod + argument") {
         auto t = EmissionTest(
                 "def f():\n"

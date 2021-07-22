@@ -1,21 +1,13 @@
-import gc
 import sys
 import pyjion
 import pyjion.dis
 import unittest
 import math
 import time
+from base import NoPgcPyjionTestCase
 
 
-class ScopeLeaksTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class ScopeLeaksTestCase(NoPgcPyjionTestCase):
 
     def test_slice(self):
         a = "12345"
@@ -36,15 +28,7 @@ class ScopeLeaksTestCase(unittest.TestCase):
         self.assertEqual(before, sys.getrefcount(a))
 
 
-class FunctionCallsTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class FunctionCallsTestCase(NoPgcPyjionTestCase):
 
     def test_arg0(self):
         def arg0() -> int:
@@ -323,14 +307,7 @@ class FunctionCallsTestCase(unittest.TestCase):
         self.assertTrue(info['compiled'], info['compile_result'])
 
 
-class ClassMethodCallsTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
+class ClassMethodCallsTestCase(NoPgcPyjionTestCase):
 
     def test_arg0(self):
         class F:
@@ -611,15 +588,7 @@ class ClassMethodCallsTestCase(unittest.TestCase):
         self.assertTrue(info['compiled'], info['compile_result'])
 
 
-class FunctionKwCallsTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class FunctionKwCallsTestCase(NoPgcPyjionTestCase):
 
     def test_arg1(self):
         def arg1(e):
@@ -806,14 +775,7 @@ class FunctionKwCallsTestCase(unittest.TestCase):
         self.assertTrue(info['compiled'], info['compile_result'])
 
 
-class ObjectMethodCallsTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
+class ObjectMethodCallsTestCase(NoPgcPyjionTestCase):
 
     def test_arg0(self):
         class F:

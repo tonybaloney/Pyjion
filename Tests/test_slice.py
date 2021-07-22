@@ -1,20 +1,11 @@
 import pyjion
 import pyjion.dis
 import unittest
-import gc
+from base import NoPgcPyjionTestCase
 import sys
-import io
-import contextlib
 
 
-class SliceTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class SliceTestCase(NoPgcPyjionTestCase):
 
     def test_list_slicing(self):
         l = [0, 1, 2, 3]

@@ -5,17 +5,10 @@ import sys
 import pyjion
 import pyjion.dis
 import unittest
-import gc
+from base import PyjionTestCase
 
 
-class ListTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class ListTestCase(PyjionTestCase):
 
     def test_list_init(self):
         l = []
@@ -32,14 +25,7 @@ class ListTestCase(unittest.TestCase):
         self.assertEqual(l[1:3], [1, 2])
 
 
-class ListIteratorsTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class ListIteratorsTestCase(PyjionTestCase):
 
     def assertOptimized(self, func) -> None:
         self.assertTrue(pyjion.info(func)['compiled'])

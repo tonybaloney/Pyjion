@@ -1,17 +1,9 @@
-import pyjion
 import unittest
-import gc
 import sys
+from base import PyjionTestCase
 
 
-class DictTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class DictTestCase(PyjionTestCase):
 
     def test_bad_key(self):
         # Dictionary lookups should fail if __eq__() raises an exception.

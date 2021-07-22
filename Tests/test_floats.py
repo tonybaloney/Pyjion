@@ -1,21 +1,10 @@
 import sys
-import gc
-import pyjion
-import pyjion.dis
-import unittest
-
+from base import PyjionTestCase, NoPgcPyjionTestCase
 INF = float("inf")
 NAN = float("nan")
 
 
-class FloatArithmeticTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class FloatArithmeticTestCase(PyjionTestCase):
 
     def test_binary_add(self):
         a = 4.0
@@ -63,15 +52,8 @@ class FloatArithmeticTestCase(unittest.TestCase):
         self.assertEqual(b % a, 2.5)
 
 
-class FloatFormattingTestCase(unittest.TestCase):
+class FloatFormattingTestCase(NoPgcPyjionTestCase):
 
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.disable_pgc()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
     def test_format_specials(self):
         # Test formatting of nans and infs.
         initial_ref = sys.getrefcount(INF)

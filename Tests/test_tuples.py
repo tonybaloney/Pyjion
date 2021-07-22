@@ -1,16 +1,9 @@
 import unittest
-import pyjion
-import gc
+from base import NoPgcPyjionTestCase
 import sys
 
 
-class TupleTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class TupleTestCase(NoPgcPyjionTestCase):
 
     def test_identical_tuples(self):
         l = ('0', '1')
@@ -18,7 +11,6 @@ class TupleTestCase(unittest.TestCase):
         self.assertEqual(sys.getrefcount(l), 4)
         self.assertEqual(sys.getrefcount(m), 4)
 
-    @unittest.skip("Known issue, see #216")
     def test_tuple_prepopulated(self):
         l = ('0', '1', '2', '3', '4')
         r = sys.getrefcount(l)
@@ -60,7 +52,6 @@ class TupleTestCase(unittest.TestCase):
         self.assertEqual(res[2], 2)
         self.assertEqual(sys.getrefcount(res), r)
 
-    @unittest.skip("Known issue, see #216")
     def test_tuple_non_const(self):
         zero = str(0)
         r_zero = sys.getrefcount(zero)

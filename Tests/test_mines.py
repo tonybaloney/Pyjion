@@ -1,27 +1,20 @@
-import pyjion
-import pyjion.dis
-import unittest
-import gc
 import re
+from base import PyjionTestCase
+import unittest
 
 
-class ProblemTestCase(unittest.TestCase):
+class ProblemTestCase(PyjionTestCase):
     """
     Test problematic and complex functions
     """
 
-    def setUp(self) -> None:
-        pyjion.enable()
+    @unittest.skip("crashes on linux (loadhash, frame error)")
+    def test_regexps(self):
+        # TODO : Fix crash on dis.
+        # print(pyjion.dis.dis(re.sre_compile.compile, True))
+        # print(pyjion.dis.dis_native(re.sre_compile.compile, True))
 
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
-
-    # def test_regexps(self):
-    #     print(pyjion.dis.dis(re.sre_compile.compile, True))
-    #     print(pyjion.dis.dis_native(re.sre_compile.compile, True))
-
-    #     def by(s):
-    #         return bytearray(map(ord, s))
-    #     b = by("Hello, world")
-    #     self.assertEqual(re.findall(br"\w+", b), [by("Hello"), by("world")])
+        def by(s):
+            return bytearray(map(ord, s))
+        b = by("Hello, world")
+        self.assertEqual(re.findall(br"\w+", b), [by("Hello"), by("world")])

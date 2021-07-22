@@ -1,15 +1,9 @@
 import pyjion
 import unittest
-import gc
+from base import PyjionTestCase
 
-class RecursionTestCase(unittest.TestCase):
 
-    def setUp(self) -> None:
-        pyjion.enable()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class RecursionTestCase(PyjionTestCase):
 
     def test_import(self):
         def _f():
@@ -37,6 +31,7 @@ class RecursionTestCase(unittest.TestCase):
         self.assertEqual(_f(), 2)
         info = pyjion.info(_f)
         self.assertTrue(info['compiled'])
+
 
 if __name__ == "__main__":
     unittest.main()

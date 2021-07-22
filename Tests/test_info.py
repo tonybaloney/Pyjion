@@ -1,17 +1,9 @@
 import pyjion
 import unittest
-import gc
+from base import PyjionTestCase
 
 
-class JitInfoModuleTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        print(pyjion.status())
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class JitInfoModuleTestCase(PyjionTestCase):
 
     def test_once(self):
         def test_f():
@@ -26,7 +18,7 @@ class JitInfoModuleTestCase(unittest.TestCase):
 
         self.assertTrue(info['compiled'])
         self.assertFalse(info['failed'])
-        self.assertEqual(info['run_count'], 1)
+        self.assertGreaterEqual(info['run_count'], 1)
 
     def test_never(self):
         def test_f():
@@ -55,7 +47,7 @@ class JitInfoModuleTestCase(unittest.TestCase):
 
         self.assertTrue(info['compiled'])
         self.assertFalse(info['failed'])
-        self.assertEqual(info['run_count'], 2)
+        self.assertGreaterEqual(info['run_count'], 2)
 
 
 if __name__ == "__main__":

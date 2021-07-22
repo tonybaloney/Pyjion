@@ -5,7 +5,6 @@ import gc
 
 
 class UnpackSequenceTest(unittest.TestCase):
-
     def setUp(self) -> None:
         pyjion.enable()
         pyjion.enable_pgc()

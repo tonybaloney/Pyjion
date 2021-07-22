@@ -3,19 +3,11 @@ import pyjion
 import unittest
 import io
 import contextlib
-import gc
 import sys
+from base import DebugPyjionTestCase
 
 
-class DisassemblerModuleTestCase(unittest.TestCase):
-
-    def setUp(self) -> None:
-        pyjion.enable()
-        pyjion.enable_debug()
-
-    def tearDown(self) -> None:
-        pyjion.disable()
-        gc.collect()
+class DisassemblerModuleTestCase(DebugPyjionTestCase):
 
     def test_offsets(self):
         def test_f(x):
