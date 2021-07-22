@@ -1270,7 +1270,7 @@ AbstractValueKind GetAbstractType(PyTypeObject* type, PyObject* value) {
         return AVK_Any;
     } else if (type == &PyLong_Type) {
         if (value == nullptr)
-            return AVK_Integer;
+            return AVK_BigInteger;
         int overflow = 0;
         long long result = PyLong_AsLongLongAndOverflow(value, &overflow);
         if (overflow != 0) {
