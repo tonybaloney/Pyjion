@@ -571,10 +571,12 @@ class FileValue : public AbstractValue {
 class VolatileValue: public AbstractValue{
     PyTypeObject* _type;
     PyObject* _object;
+    AbstractValueKind _kind;
 public:
-    VolatileValue(PyTypeObject* type, PyObject* object){
+    VolatileValue(PyTypeObject* type, PyObject* object, AbstractValueKind kind){
         _type = type;
         _object = object;
+        _kind = kind;
     }
 
     AbstractValueKind kind() override;
@@ -602,12 +604,12 @@ public:
 
 class PgcValue : public VolatileValue {
 public:
-    PgcValue(PyTypeObject* type, PyObject* object) : VolatileValue(type, object){}
+    PgcValue(PyTypeObject* type, AbstractValueKind kind) : VolatileValue(type, nullptr, kind){}
 };
 
 class ArgumentValue: public VolatileValue {
 public:
-    ArgumentValue(PyTypeObject* type, PyObject* object) : VolatileValue(type, object){}
+    ArgumentValue(PyTypeObject* type, PyObject* object, AbstractValueKind kind) : VolatileValue(type, object, kind){}
 };
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);

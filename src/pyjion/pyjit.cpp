@@ -77,11 +77,6 @@ PyjionCodeProfile::~PyjionCodeProfile() {
             Py_XDECREF(observed.second);
         }
     }
-    for (auto &pos: this->stackValues) {
-        for(auto &observed: pos.second){
-            Py_XDECREF(observed.second);
-        }
-    }
 }
 
 void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyObject* value){
@@ -91,18 +86,15 @@ void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyOb
         this->stackTypes[opcodePosition][stackPosition] = Py_TYPE(value);
         Py_INCREF(Py_TYPE(value));
     }
-    if (this->stackValues[opcodePosition][stackPosition] == nullptr) {
-        this->stackValues[opcodePosition][stackPosition] = value;
-        Py_INCREF(value);
-    }
+    this->stackKinds[opcodePosition][stackPosition] = GetAbstractType(Py_TYPE(value), value);
 }
 
 PyTypeObject* PyjionCodeProfile::getType(size_t opcodePosition, size_t stackPosition) {
     return this->stackTypes[opcodePosition][stackPosition];
 }
 
-PyObject* PyjionCodeProfile::getValue(size_t opcodePosition, size_t stackPosition) {
-    return this->stackValues[opcodePosition][stackPosition];
+AbstractValueKind PyjionCodeProfile::getKind(size_t opcodePosition, size_t stackPosition){
+    return this->stackKinds[opcodePosition][stackPosition];
 }
 
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, size_t stackPosition){

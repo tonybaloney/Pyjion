@@ -44,7 +44,7 @@
                              lastState.fromPgc(                             \
                                 pos,                                        \
                                 profile->getType(curByte, pos),             \
-                                profile->getValue(curByte, pos)));          \
+                                profile->getKind(curByte, pos)));          \
         mStartStates[curByte] = lastState; \
     }
 
@@ -188,7 +188,7 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
 void AbstractInterpreter::setLocalType(size_t index, PyObject* val) {
     auto& lastState = mStartStates[0];
     if (val != nullptr) {
-        auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val));
+        auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val, GetAbstractType(Py_TYPE(val), val)));
         localInfo.ValueInfo.Sources = newSource(new LocalSource(index));
         lastState.replaceLocal(index, localInfo);
     }
