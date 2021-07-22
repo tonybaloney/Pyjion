@@ -56,7 +56,7 @@ bool supportsUnboxing(py_opcode opcode){
 
 bool supportsEscaping(AbstractValueKind kind){
     switch (kind){
-        case AVK_Float:
+        case AVK_Float: // NOLINT(bugprone-branch-clone)
             return true;
         case AVK_Integer:
             return true;

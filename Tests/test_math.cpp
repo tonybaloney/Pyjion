@@ -1284,3 +1284,54 @@ TEST_CASE("Test bool arithmetic") {
         CHECK(t.returns() == "False");
     };
 }
+
+TEST_CASE("Test negatives") {
+    SECTION("test zero subtraction") {
+        auto t = EmissionTest(
+                "def f():\n    x = 0.\n    y = 0.\n    return x - y"
+        );
+        CHECK(t.returns() == "0.0");
+    };
+    SECTION("test zero power negative float") {
+        auto t = EmissionTest(
+                "def f():\n    x = 0.\n    return x ** -2."
+        );
+        CHECK(t.raises() == PyExc_ZeroDivisionError);
+    };
+    SECTION("test zero power negative") {
+        auto t = EmissionTest(
+                "def f():\n    x = 0\n    return x ** -2"
+        );
+        CHECK(t.raises() == PyExc_ZeroDivisionError);
+    };
+    SECTION("test number power negative") {
+        auto t = EmissionTest(
+                "def f():\n    x = 2\n    y = -2\n    return x ** y"
+        );
+        CHECK(t.returns() == "0.25");
+    };
+    SECTION("test negative number power") {
+        auto t = EmissionTest(
+                "def f():\n    x = -2\n    y = 2\n    return x ** y"
+        );
+        CHECK(t.returns() == "4");
+    };
+    SECTION("test negative number power float") {
+        auto t = EmissionTest(
+                "def f():\n    x = -2.\n    y = 2.\n    return x ** y"
+        );
+        CHECK(t.returns() == "4.0");
+    };
+    SECTION("test negative number power odd") {
+        auto t = EmissionTest(
+                "def f():\n    x = -3\n    y = 3\n    return x ** y"
+        );
+        CHECK(t.returns() == "-27");
+    };
+    SECTION("test negative number power float odd") {
+        auto t = EmissionTest(
+                "def f():\n    x = -3.\n    y = 3.\n    return x ** y"
+        );
+        CHECK(t.returns() == "-27.0");
+    };
+}

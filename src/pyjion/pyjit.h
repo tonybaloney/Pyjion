@@ -46,16 +46,17 @@
 #include <frameobject.h>
 #include <Python.h>
 #include "codemodel.h"
+#include "absvalue.h"
 
 using namespace std;
 
 class PyjionCodeProfile{
     unordered_map<size_t, unordered_map<size_t, PyTypeObject *>> stackTypes;
-    unordered_map<size_t, unordered_map<size_t, PyObject *>> stackValues;
+    unordered_map<size_t, unordered_map<size_t, AbstractValueKind>> stackKinds;
 public:
     void record(size_t opcodePosition, size_t stackPosition, PyObject* obj);
     PyTypeObject* getType(size_t opcodePosition, size_t stackPosition);
-    PyObject* getValue(size_t opcodePosition, size_t stackPosition);
+    AbstractValueKind getKind(size_t opcodePosition, size_t stackPosition);
     ~PyjionCodeProfile();
 };
 

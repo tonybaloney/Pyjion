@@ -208,6 +208,37 @@ TEST_CASE("test CALL_FUNCTION PGC") {
         CHECK(t.returns() == "(5, 1000.0)");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     };
+
+    SECTION("test large integers") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  def two_x_squared(x):\n"
+                "     return x + x * x\n"
+                "  return two_x_squared(9_000_000_000_000_000_000)\n"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "81000000000000000009000000000000000000");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.returns() == "81000000000000000009000000000000000000");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+        CHECK(t.returns() == "81000000000000000009000000000000000000");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
+
+    SECTION("test large integers") {
+        auto t = PgcProfilingTest(
+                "def f():\n"
+                "  x = 9_000_000_000_000_000_000\n"
+                "  return x * x\n"
+        );
+        CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
+        CHECK(t.returns() == "81000000000000000000000000000000000000");
+        CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
+        CHECK(t.returns() == "81000000000000000000000000000000000000");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+        CHECK(t.returns() == "81000000000000000000000000000000000000");
+        CHECK(t.pgcStatus() == PgcStatus::Optimized);
+    };
 }
 
 TEST_CASE("test STORE_SUBSCR PGC") {

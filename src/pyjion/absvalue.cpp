@@ -1265,10 +1265,20 @@ AbstractValue* avkToAbstractValue(AbstractValueKind kind){
     }
 }
 
-AbstractValueKind GetAbstractType(PyTypeObject* type) {
+AbstractValueKind GetAbstractType(PyTypeObject* type, PyObject* value) {
     if (type == nullptr) {
         return AVK_Any;
     } else if (type == &PyLong_Type) {
+        if (value == nullptr)
+            return AVK_BigInteger;
+        int overflow = 0;
+        long long result = PyLong_AsLongLongAndOverflow(value, &overflow);
+        if (overflow != 0) {
+            return AVK_BigInteger;
+        }
+        if (result > BIG_INTEGER) {
+            return AVK_BigInteger;
+        }
         return AVK_Integer;
     }
     else if (type == &PyFloat_Type) {
@@ -1360,11 +1370,11 @@ PyTypeObject* VolatileValue::pythonType() {
 }
 
 AbstractValueKind VolatileValue::kind() {
-    return GetAbstractType(this->_type);
+    return GetAbstractType(this->_type, this->lastValue());
 }
 
 AbstractValue* VolatileValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
-    auto my_kind = GetAbstractType(_type);
+    auto my_kind = GetAbstractType(_type, lastValue());
 
     switch(my_kind){
         case AVK_Float:

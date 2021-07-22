@@ -44,7 +44,7 @@
                              lastState.fromPgc(                             \
                                 pos,                                        \
                                 profile->getType(curByte, pos),             \
-                                profile->getValue(curByte, pos)));          \
+                                profile->getKind(curByte, pos)));          \
         mStartStates[curByte] = lastState; \
     }
 
@@ -188,7 +188,7 @@ AbstractInterpreterResult AbstractInterpreter::preprocess() {
 void AbstractInterpreter::setLocalType(size_t index, PyObject* val) {
     auto& lastState = mStartStates[0];
     if (val != nullptr) {
-        auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val));
+        auto localInfo = AbstractLocalInfo(new ArgumentValue(Py_TYPE(val), val, GetAbstractType(Py_TYPE(val), val)));
         localInfo.ValueInfo.Sources = newSource(new LocalSource(index));
         lastState.replaceLocal(index, localInfo);
     }
@@ -1603,6 +1603,8 @@ bool canReturnInfinity(py_opcode opcode){
         case INPLACE_FLOOR_DIVIDE:
         case BINARY_MODULO:
         case INPLACE_MODULO:
+        case BINARY_POWER:
+        case INPLACE_POWER:
             return true;
     }
     return false;
@@ -2620,7 +2622,7 @@ void AbstractInterpreter::loadConst(py_oparg constIndex, py_opindex opcodeIndex)
 
 void AbstractInterpreter::loadUnboxedConst(py_oparg constIndex, py_opindex opcodeIndex) {
     auto constValue = PyTuple_GetItem(mCode->co_consts, constIndex);
-    auto abstractT = GetAbstractType(constValue->ob_type);
+    auto abstractT = GetAbstractType(constValue->ob_type, constValue);
     switch(abstractT){
         case AVK_Float:
             m_comp->emit_float(PyFloat_AS_DOUBLE(constValue));
