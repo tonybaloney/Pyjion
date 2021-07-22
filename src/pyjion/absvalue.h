@@ -26,6 +26,8 @@
 #ifndef PYJION_ABSVALUE_H
 #define PYJION_ABSVALUE_H
 
+#define BIG_INTEGER 1000000000
+
 #include <Python.h>
 #include <opcode.h>
 #include <unordered_map>
@@ -639,7 +641,7 @@ extern EnumeratorValue Enumerator;
 extern FileValue File;
 
 AbstractValue* avkToAbstractValue(AbstractValueKind);
-AbstractValueKind GetAbstractType(PyTypeObject* type);
+AbstractValueKind GetAbstractType(PyTypeObject* type, PyObject* value = nullptr);
 PyTypeObject* GetPyType(AbstractValueKind type);
 #endif
 

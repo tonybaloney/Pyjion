@@ -2622,7 +2622,7 @@ void AbstractInterpreter::loadConst(py_oparg constIndex, py_opindex opcodeIndex)
 
 void AbstractInterpreter::loadUnboxedConst(py_oparg constIndex, py_opindex opcodeIndex) {
     auto constValue = PyTuple_GetItem(mCode->co_consts, constIndex);
-    auto abstractT = GetAbstractType(constValue->ob_type);
+    auto abstractT = GetAbstractType(constValue->ob_type, constValue);
     switch(abstractT){
         case AVK_Float:
             m_comp->emit_float(PyFloat_AS_DOUBLE(constValue));
