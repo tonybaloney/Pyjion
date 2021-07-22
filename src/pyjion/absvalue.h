@@ -26,6 +26,8 @@
 #ifndef PYJION_ABSVALUE_H
 #define PYJION_ABSVALUE_H
 
+#define BIG_INTEGER 1000000000
+
 #include <Python.h>
 #include <opcode.h>
 #include <unordered_map>
@@ -569,10 +571,12 @@ class FileValue : public AbstractValue {
 class VolatileValue: public AbstractValue{
     PyTypeObject* _type;
     PyObject* _object;
+    AbstractValueKind _kind;
 public:
-    VolatileValue(PyTypeObject* type, PyObject* object){
+    VolatileValue(PyTypeObject* type, PyObject* object, AbstractValueKind kind){
         _type = type;
         _object = object;
+        _kind = kind;
     }
 
     AbstractValueKind kind() override;
@@ -600,12 +604,12 @@ public:
 
 class PgcValue : public VolatileValue {
 public:
-    PgcValue(PyTypeObject* type, PyObject* object) : VolatileValue(type, object){}
+    PgcValue(PyTypeObject* type, AbstractValueKind kind) : VolatileValue(type, nullptr, kind){}
 };
 
 class ArgumentValue: public VolatileValue {
 public:
-    ArgumentValue(PyTypeObject* type, PyObject* object) : VolatileValue(type, object){}
+    ArgumentValue(PyTypeObject* type, PyObject* object, AbstractValueKind kind) : VolatileValue(type, object, kind){}
 };
 
 AbstractValueKind knownFunctionReturnType(AbstractValueWithSources source);
@@ -639,7 +643,7 @@ extern EnumeratorValue Enumerator;
 extern FileValue File;
 
 AbstractValue* avkToAbstractValue(AbstractValueKind);
-AbstractValueKind GetAbstractType(PyTypeObject* type);
+AbstractValueKind GetAbstractType(PyTypeObject* type, PyObject* value = nullptr);
 PyTypeObject* GetPyType(AbstractValueKind type);
 #endif
 

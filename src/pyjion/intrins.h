@@ -319,5 +319,6 @@ double PyJit_LongTrueDivide(long long x, long long y);
 long long PyJit_LongFloorDivide(long long x, long long y);
 long long PyJit_LongMod(long long x, long long y);
 long long PyJit_LongPow(long long x, long long y);
-
+double PyJit_DoublePow(double iv, double iw);
+long long PyJit_LongAsLongLong(PyObject*);
 #endif

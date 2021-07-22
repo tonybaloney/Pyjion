@@ -179,7 +179,7 @@ public:
         return res;
     }
 
-    AbstractValueWithSources fromPgc(size_t stackPosition, PyTypeObject* pyTypeObject, PyObject* pyObject) {
+    AbstractValueWithSources fromPgc(size_t stackPosition, PyTypeObject* pyTypeObject, AbstractValueKind kind) {
         if (mStack.empty())
             throw StackUnderflowException();
         auto existing = mStack[mStack.size() - 1 - stackPosition];
@@ -189,7 +189,7 @@ public:
             return existing;
         else {
             return AbstractValueWithSources(
-                    new PgcValue(pyTypeObject, pyObject),
+                    new PgcValue(pyTypeObject, kind),
                     existing.Sources
             );
         }
