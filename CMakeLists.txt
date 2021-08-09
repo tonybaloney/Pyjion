@@ -34,7 +34,7 @@ if (SKBUILD)
 endif (SKBUILD)
 
 if (NOT PYTHON_LIBRARIES)
-    find_package (Python3 3.9 EXACT COMPONENTS Interpreter Development)
+    find_package (Python3 3.10 EXACT COMPONENTS Interpreter Development)
 else()
     set(Python3_LIBRARIES ${PYTHON_LIBRARIES})
     set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
