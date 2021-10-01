@@ -6,7 +6,6 @@ import sys
 import pytest
 
 
-@pytest.mark.tracing
 def test_traces_in_code(capsys):
     def _f():
         a = 1
@@ -19,12 +18,11 @@ def test_traces_in_code(capsys):
     pyjion.dis.dis(_f)
     captured = capsys.readouterr()
     assert "ldarg.1" in captured.out
-    assert "METHOD_TRACE_FRAME_ENTRY" in captured.out
-    assert "METHOD_TRACE_LINE" in captured.out
-    assert "METHOD_TRACE_FRAME_EXIT" in captured.out
+    assert "METHOD_TRACE_FRAME_ENTRY" not in captured.out
+    assert "METHOD_TRACE_LINE" not in captured.out
+    assert "METHOD_TRACE_FRAME_EXIT" not in captured.out
 
 
-@pytest.mark.tracing
 def test_custom_tracer(capsys):
     def custom_trace(frame, event, args):
         frame.f_trace_opcodes = True
@@ -61,7 +59,6 @@ def test_custom_tracer(capsys):
     assert "STORE_FAST" in captured.out
 
 
-@pytest.mark.tracing
 def test_eh_tracer(capsys):
     def custom_trace(frame, event, args):
         frame.f_trace_opcodes = True
@@ -81,7 +78,6 @@ def test_eh_tracer(capsys):
     assert "Hit exception" in captured.out
 
 
-@pytest.mark.profile
 def test_profile_hooks_in_code(capsys):
     def _f():
         a = 1
@@ -94,12 +90,11 @@ def test_profile_hooks_in_code(capsys):
     pyjion.dis.dis(_f)
     captured = capsys.readouterr()
     assert "ldarg.1" in captured.out
-    assert "METHOD_PROFILE_FRAME_ENTRY" in captured.out
-    assert "METHOD_PROFILE_FRAME_EXIT" in captured.out
+    assert "METHOD_PROFILE_FRAME_ENTRY" not in captured.out
+    assert "METHOD_PROFILE_FRAME_EXIT" not in captured.out
 
 
-@pytest.mark.profile
-def test_custom_tracer(capsys):
+def test_custom_profiler(capsys):
     def custom_trace(frame, event, args):
         frame.f_trace_opcodes = True
         if event == 'opcode':

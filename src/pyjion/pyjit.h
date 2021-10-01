@@ -101,8 +101,6 @@ inline OptimizationFlags operator&(OptimizationFlags a, OptimizationFlags b)
 }
 
 typedef struct PyjionSettings {
-    bool tracing = false;
-    bool profiling = false;
     bool pgc = true; // Profile-guided-compilation
     bool graph = false; // Generate instruction graphs
     uint8_t optimizationLevel = 1;
@@ -161,6 +159,8 @@ public:
     unsigned int j_callPointsLen;
     PyObject* j_graph;
     SymbolTable j_symbols;
+	bool j_tracingHooks;
+	bool j_profilingHooks;
 
 	explicit PyjionJittedCode(PyObject* code) {
         j_compile_result = 0;
@@ -180,6 +180,8 @@ public:
 		j_sequencePointsLen = 0;
 		j_callPoints = nullptr;
 		j_callPointsLen = 0;
+		j_profilingHooks = false;
+		j_tracingHooks = false;
 		Py_INCREF(code);
 	}
 

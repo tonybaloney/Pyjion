@@ -181,7 +181,7 @@ HMODULE GetClrJit() {
 #endif
 
 bool JitInit(const wchar_t * path) {
-    g_pyjionSettings = {false, false};
+    g_pyjionSettings = PyjionSettings();
     g_pyjionSettings.recursionLimit = Py_GetRecursionLimit();
     g_pyjionSettings.clrjitpath = path;
 	g_extraSlot = PyThread_tss_alloc();
@@ -228,16 +228,19 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     for (int i = 0; i < argCount; i++) {
         interp.setLocalType(i, frame->f_localsplus[i]);
     }
-
-    if (g_pyjionSettings.tracing){
+    if (tstate->c_tracefunc != nullptr && !tstate->tracing){
         interp.enableTracing();
+        state->j_tracingHooks = true;
     } else {
         interp.disableTracing();
+        state->j_tracingHooks = true;
     }
-    if (g_pyjionSettings.profiling){
+    if (tstate->c_profilefunc != nullptr && !tstate->tracing){
         interp.enableProfiling();
+        state->j_profilingHooks = true;
     } else {
         interp.disableProfiling();
+        state->j_profilingHooks = true;
     }
 
     auto res = interp.compile(frame->f_builtins, frame->f_globals, profile, state->j_pgc_status);
@@ -394,6 +397,8 @@ static PyObject *pyjion_info(PyObject *self, PyObject* func) {
     PyDict_SetItemString(res, "compiled", jitted->j_addr != nullptr ? Py_True : Py_False);
     PyDict_SetItemString(res, "optimizations", PyLong_FromLong(jitted->j_optimizations));
     PyDict_SetItemString(res, "pgc", PyLong_FromLong(jitted->j_pgc_status));
+    PyDict_SetItemString(res, "tracing", jitted->j_tracingHooks ? Py_True : Py_False);
+    PyDict_SetItemString(res, "profiling", jitted->j_profilingHooks ? Py_True : Py_False);
 
     auto runCount = PyLong_FromUnsignedLongLong(jitted->j_run_count);
 	PyDict_SetItemString(res, "run_count", runCount);
