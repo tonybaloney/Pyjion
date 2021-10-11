@@ -57,7 +57,6 @@ public:
     void record(size_t opcodePosition, size_t stackPosition, PyObject* obj);
     PyTypeObject* getType(size_t opcodePosition, size_t stackPosition);
     AbstractValueKind getKind(size_t opcodePosition, size_t stackPosition);
-    ~PyjionCodeProfile();
 };
 
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, size_t stackPosition);
@@ -168,6 +167,7 @@ public:
     SymbolTable j_symbols;
     bool j_tracingHooks;
     bool j_profilingHooks;
+    uint8_t j_optLevel;
 
 	explicit PyjionJittedCode(PyObject* code) {
         j_compile_result = 0;
@@ -189,10 +189,13 @@ public:
 		j_callPointsLen = 0;
         j_tracingHooks = false;
         j_profilingHooks = false;
+        j_optLevel = g_pyjionSettings.optimizationLevel;
 		Py_INCREF(code);
 	}
 
 	~PyjionJittedCode();
+
+    void reset();
 };
 
 void setOptimizationLevel(unsigned short level);

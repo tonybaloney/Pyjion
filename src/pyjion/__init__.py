@@ -137,6 +137,7 @@ class JitInfo:
     run_count: int
     tracing: bool
     profiling: bool
+    level: int
 
 
 def info(f) -> JitInfo:
@@ -148,4 +149,5 @@ def info(f) -> JitInfo:
                    PgcStatus(d['pgc']),
                    d['run_count'],
                    d['tracing'],
-                   d['profiling'])
+                   d['profiling'],
+                   d['level'])

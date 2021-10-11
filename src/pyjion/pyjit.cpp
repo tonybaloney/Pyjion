@@ -77,16 +77,15 @@ PgcStatus nextPgcStatus(PgcStatus status){
 }
 
 PyjionJittedCode::~PyjionJittedCode() {
-	delete j_profile;
+    this->reset();
+    Py_XDECREF(this->j_code);
 }
 
-PyjionCodeProfile::~PyjionCodeProfile() {
-    // Don't decref types so that comparisons can be made to jumps
-//    for (auto &pos: this->stackTypes) {
-//        for(auto &observed: pos.second){
-//            Py_XDECREF(observed.second);
-//        }
-//    }
+void PyjionJittedCode::reset() {
+    free(this->j_il);
+    this->j_il = nullptr;
+    this->j_ilLen = 0;
+    Py_XDECREF(this->j_graph);
 }
 
 void PyjionCodeProfile::record(size_t opcodePosition, size_t stackPosition, PyObject* value){
@@ -116,7 +115,7 @@ void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t op
 int
 Pyjit_CheckRecursiveCall(PyThreadState *tstate, const char *where)
 {
-    int recursion_limit = g_pyjionSettings.recursionLimit;
+    uint32_t recursion_limit = g_pyjionSettings.recursionLimit;
 
     if (tstate->recursion_headroom) {
         if (tstate->recursion_depth > recursion_limit + 50) {
@@ -288,6 +287,7 @@ PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject *f
     state->j_sequencePointsLen = res.compiledCode->get_sequence_points_length();
     state->j_callPoints = res.compiledCode->get_call_points();
     state->j_callPointsLen = res.compiledCode->get_call_points_length();
+    state->j_optLevel = g_pyjionSettings.optimizationLevel;
 
 #ifdef DUMP_SEQUENCE_POINTS
     printf("Method disassembly for %s\n", PyUnicode_AsUTF8(frame->f_code->co_name));
@@ -341,18 +341,35 @@ PyjionJittedCode* PyJit_EnsureExtra(PyObject* codeObject) {
 	return jitted;
 }
 
+inline bool needsRecompile(PyjionJittedCode* jitted, PyThreadState* tstate){
+    if (jitted->j_optLevel != g_pyjionSettings.optimizationLevel){
+        return true;
+    }
+    if (tstate->cframe->use_tracing && tstate->c_profilefunc && !jitted->j_profilingHooks){
+        return true;
+    }
+    if (tstate->cframe->use_tracing && tstate->c_tracefunc && !jitted->j_profilingHooks){
+        return true;
+    }
+    return false;
+}
+
 // This is our replacement evaluation function.  We lookup our corresponding jitted code
 // and dispatch to it if it's already compiled.  If it hasn't yet been compiled we'll
 // eventually compile it and invoke it.  If it's not time to compile it yet then we'll
 // invoke the default evaluation function.
 PyObject* PyJit_EvalFrame(PyThreadState *ts, PyFrameObject *f, int throwflag) {
-	auto jitted = PyJit_EnsureExtra((PyObject*)f->f_code);
+	auto jitted = PyJit_EnsureExtra(reinterpret_cast<PyObject *>(f->f_code));
 	if (jitted != nullptr && !throwflag) {
-		if (jitted->j_addr != nullptr && (!g_pyjionSettings.pgc || jitted->j_pgc_status == Optimized)) {
+        if (jitted->j_addr != nullptr && needsRecompile(jitted, ts)){
+            jitted->reset();
+            jitted = new PyjionJittedCode(reinterpret_cast<PyObject *>(f->f_code));
+            return PyJit_ExecuteAndCompileFrame(jitted, f, ts, jitted->j_profile);
+        } else if (jitted->j_addr != nullptr && (!g_pyjionSettings.pgc || jitted->j_pgc_status == Optimized)) {
             jitted->j_run_count++;
 			return PyJit_ExecuteJittedFrame((void*)jitted->j_addr, f, ts, jitted->j_profile);
-		}
-		else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {
+		} else if (!jitted->j_failed && jitted->j_run_count++ >= jitted->j_specialization_threshold) {
+            jitted->reset();
 			auto result = PyJit_ExecuteAndCompileFrame(jitted, f, ts, jitted->j_profile);
             jitted->j_pgc_status = nextPgcStatus(jitted->j_pgc_status);
 			return result;
@@ -421,6 +438,7 @@ static PyObject *pyjion_info(PyObject *self, PyObject* func) {
     PyDict_SetItemString(res, "compiled", jitted->j_addr != nullptr ? Py_True : Py_False);
     PyDict_SetItemString(res, "optimizations", PyLong_FromLong(jitted->j_optimizations));
     PyDict_SetItemString(res, "pgc", PyLong_FromLong(jitted->j_pgc_status));
+    PyDict_SetItemString(res, "level", PyLong_FromLong(jitted->j_optLevel));
 
     auto runCount = PyLong_FromUnsignedLongLong(jitted->j_run_count);
 	PyDict_SetItemString(res, "run_count", runCount);
