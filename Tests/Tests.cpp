@@ -32,11 +32,13 @@
 int main(int argc, char* const argv[]) {
     Py_Initialize();
     PyjionUnboxingError = PyErr_NewException("pyjion.PyjionUnboxingError", PyExc_ValueError, nullptr);
-#ifdef WINDOWS
-    JitInit(L"clrjit.dll");
-#else
-    JitInit(L"libclrjit.so");
-#endif
+    auto dotnetroot = getenv("DOTNET_ROOT");
+    auto version = getenv("DOTNET_VERSION");
+    if (dotnetroot == nullptr || version == nullptr){
+        printf("Test suite requires both DOTNET_ROOT and DOTNET_VERSION environment variables to be set");
+        exit(1);
+    }
+    JitInit(dotnetroot, version);
     g_pyjionSettings.graph = true;
     g_pyjionSettings.debug = true;
     g_pyjionSettings.codeObjectSizeLimit = 1000000;

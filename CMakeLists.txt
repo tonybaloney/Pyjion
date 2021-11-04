@@ -82,6 +82,7 @@ if(REPORT_CLR_FAULTS)
     add_definitions(-DREPORT_CLR_FAULTS)
 endif()
 if(ASAN)
+    message(STATUS "Enabling Address Sanitizer")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g")
 endif()
 if(NOT WIN32)
@@ -152,7 +153,7 @@ else()
     message(STATUS "Enabling x86")
 endif()
 
-include_directories(CoreCLR/src/coreclr/inc CoreCLR/src/coreclr/jit)
+include_directories(CoreCLR/src/coreclr/inc CoreCLR/src/coreclr/jit CoreCLR/src/coreclr/vm CoreCLR/src/native/corehost CoreCLR/src/native/corehost/nethost pe-parse/pe-parser-library/include)
 
 if (UNIX)
     if(DEFINED ENV{DOTNET_ROOT})
@@ -195,6 +196,8 @@ if (UNIX AND NOT APPLE)
     set(CLR_JIT_LIB "libclrjit.so")
     set(CLR_CMAKE_HOST_UNIX 1)
     add_compile_options(-fPIC)
+    add_definitions(-DHOST_UNIX)
+    add_definitions(-DHOST_LINUX)
     add_definitions(-DINDIRECT_HELPERS)
 endif()
 
@@ -212,6 +215,8 @@ if (APPLE)
     add_definitions(-D_XOPEN_SOURCE)
     add_definitions(-DTARGET_OSX)
     add_definitions(-DHOST_OSX)
+    add_definitions(-DHOST_DARWIN)
+    add_definitions(-DHOST_UNIX)
     add_compile_options(-fdeclspec)
 endif()
 
@@ -221,7 +226,7 @@ if(NET_SRC_LIB)  # use the libraries compiled from source
     message(STATUS "Using .NET builds " ${DOTNETPATH})
 endif()
 
-set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/codemodel.cpp src/pyjion/binarycomp.cpp src/pyjion/instructions.cpp src/pyjion/unboxing.cpp src/pyjion/frame.h src/pyjion/pgc.cpp src/pyjion/base.cpp src/pyjion/objects/unboxedrangeobject.cpp)
+set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/codemodel.cpp src/pyjion/binarycomp.cpp src/pyjion/instructions.cpp src/pyjion/unboxing.cpp src/pyjion/frame.h src/pyjion/pgc.cpp src/pyjion/base.cpp src/pyjion/objects/unboxedrangeobject.cpp src/pyjion/peloader.cpp src/pyjion/objects/assemblyobject.cpp src/pyjion/corehost.cpp)
 
 if (WIN32)
     enable_language(ASM_MASM)
@@ -248,6 +253,23 @@ else()
     endif()
 endif()
 
+list(APPEND PEPARSERLIB_SOURCEFILES
+        pe-parse/pe-parser-library/include/pe-parse/parse.h
+        pe-parse/pe-parser-library/include/pe-parse/nt-headers.h
+        pe-parse/pe-parser-library/include/pe-parse/to_string.h
+
+        pe-parse/pe-parser-library/src/buffer.cpp
+        pe-parse/pe-parser-library/src/parse.cpp
+        )
+
+if(MSVC)
+    list(APPEND PEPARSERLIB_SOURCEFILES pe-parse/pe-parser-library/src/unicode_winapi.cpp)
+else()
+    list(APPEND PEPARSERLIB_SOURCEFILES pe-parse/pe-parser-library/src/unicode_codecvt.cpp)
+endif()
+
+set(SOURCES ${SOURCES} ${PEPARSERLIB_SOURCEFILES})
+message(STATUS "Building " ${SOURCES})
 add_library(pyjionlib OBJECT ${SOURCES})
 add_library(_pyjion MODULE $<TARGET_OBJECTS:pyjionlib>)
 
@@ -259,6 +281,13 @@ if (WIN32)
         ${CMAKE_CURRENT_BINARY_DIR}/
     )
 endif(WIN32)
+
+add_custom_command(
+        TARGET _pyjion POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/pyjion.runtimeconfig.json
+        ${CMAKE_CURRENT_BINARY_DIR}/
+)
 
 set_target_properties(
         _pyjion
@@ -275,7 +304,7 @@ endif()
 if (BUILD_TESTS)
     # Testing
     add_subdirectory(Tests/Catch)
-    set(TEST_SOURCES Tests/testing_util.cpp Tests/test_basics.cpp Tests/test_compiler.cpp Tests/Tests.cpp Tests/test_wrappers.cpp Tests/test_exceptions.cpp Tests/test_scopes.cpp Tests/test_tracing.cpp Tests/test_inference.cpp Tests/test_math.cpp Tests/test_pgc.cpp Tests/test_unpack.cpp Tests/test_class.cpp Tests/test_coro.cpp Tests/test_graph.cpp Tests/test_big_build.cpp Tests/test_ilgen.cpp Tests/test_with.cpp Tests/test_containers.cpp Tests/test_bigint.cpp Tests/test_globals.cpp)
+    set(TEST_SOURCES Tests/testing_util.cpp Tests/test_basics.cpp Tests/test_compiler.cpp Tests/Tests.cpp Tests/test_wrappers.cpp Tests/test_exceptions.cpp Tests/test_scopes.cpp Tests/test_tracing.cpp Tests/test_inference.cpp Tests/test_math.cpp Tests/test_pgc.cpp Tests/test_unpack.cpp Tests/test_class.cpp Tests/test_coro.cpp Tests/test_graph.cpp Tests/test_big_build.cpp Tests/test_ilgen.cpp Tests/test_with.cpp Tests/test_containers.cpp Tests/test_bigint.cpp Tests/test_globals.cpp Tests/test_loader.cpp)
 
     add_executable(unit_tests ${TEST_SOURCES} $<TARGET_OBJECTS:pyjionlib>)
     if (NOT WIN32)
@@ -285,7 +314,6 @@ if (BUILD_TESTS)
     target_include_directories(unit_tests PRIVATE src/pyjion)
     target_link_libraries(unit_tests Catch2::Catch2)
     target_link_libraries(unit_tests ${Python3_LIBRARIES})
-
     if (NOT WIN32)
         target_link_libraries(unit_tests ${DOTNETPATH}/${CLR_JIT_LIB})
     endif()

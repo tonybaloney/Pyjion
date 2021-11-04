@@ -42,6 +42,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <filesystem>
 
 #include <frameobject.h>
 #include <Python.h>
@@ -83,7 +84,7 @@ public:
 void capturePgcStackValue(PyjionCodeProfile* profile, PyObject* value, size_t opcodePosition, size_t stackPosition);
 class PyjionJittedCode;
 
-bool JitInit(const wchar_t* jitpath);
+bool JitInit(const char* dotnetroot, const char* version);
 PyObject* PyJit_ExecuteAndCompileFrame(PyjionJittedCode* state, PyFrameObject* frame, PyThreadState* tstate, PyjionCodeProfile* profile);
 static inline PyObject* PyJit_CheckFunctionResult(PyThreadState* tstate, PyObject* result, PyFrameObject* frame);
 static inline PyObject* PyJit_ExecuteJittedFrame(void* state, PyFrameObject* frame, PyThreadState* tstate, PyjionJittedCode*);
@@ -120,7 +121,9 @@ typedef struct PyjionSettings {
     bool debug = false;
 #endif
     bool exceptionHandling = false;
-    const wchar_t* clrjitpath = L"";
+    std::filesystem::path clrjitpath = "";
+    std::filesystem::path hostfxrpath = "";
+    std::filesystem::path runtimeconfigpath = "";
 
     // Optimizations
     OptimizationFlags optimizations = OptimizationFlags();

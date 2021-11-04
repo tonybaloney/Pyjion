@@ -5,3 +5,6 @@
 [submodule "Tests/Catch"]
 	path = Tests/Catch
 	url = https://github.com/philsquared/Catch.git
+[submodule "pe-parse"]
+	path = pe-parse
+	url = git@github.com:trailofbits/pe-parse.git

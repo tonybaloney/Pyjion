@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 __version__ = '1.0.0rc4'
 
+DOTNET_VERSION = "6.0.0-rc.2.21480.5"
 
 def _no_dotnet(path):
     raise ImportError(f"Can't find a .NET 6 installation in {path}, "
@@ -25,17 +26,17 @@ def _which_dotnet() -> str:
             _no_dotnet(_dotnet_root)
     if 'DOTNET_LIB_PATH' in os.environ:
         ctypes.cdll.LoadLibrary(os.environ['DOTNET_LIB_PATH'])
-        return os.environ['DOTNET_LIB_PATH']
+        return str(_dotnet_root)
     if platform.system() == "Darwin":
         if not _dotnet_root:
             _dotnet_root = pathlib.Path('/usr/local/share/dotnet/')
             if not _dotnet_root.exists():
                 _no_dotnet(_dotnet_root)
-        lib_path = list(_dotnet_root.glob('shared/Microsoft.NETCore.App*/6.0.*/libclrjit.dylib'))
+        lib_path = list(_dotnet_root.glob(f'shared/Microsoft.NETCore.App*/{DOTNET_VERSION}/libclrjit.dylib'))
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
-            return clrjitlib
+            return str(_dotnet_root)
         else:
             _no_dotnet(_dotnet_root)
     elif platform.system() == "Linux":
@@ -52,7 +53,7 @@ def _which_dotnet() -> str:
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
-            return clrjitlib
+            return str(_dotnet_root)
         else:
             _no_dotnet(_dotnet_root)
     elif platform.system() == "Windows":
@@ -64,7 +65,7 @@ def _which_dotnet() -> str:
         if len(lib_path) > 0:
             clrjitlib = str(lib_path[0])
             ctypes.cdll.LoadLibrary(clrjitlib)
-            return clrjitlib
+            return str(_dotnet_root)
         else:
             _no_dotnet(_dotnet_root)
     else:
@@ -75,9 +76,9 @@ lib_path = _which_dotnet()
 
 try:
     from ._pyjion import enable, disable, info as _info, il, native, offsets, \
-        graph, init as _init, symbols, config, PyjionUnboxingError
+        graph, init as _init, symbols, config, PyjionUnboxingError, Assembly
 
-    _init(lib_path)
+    _init((lib_path, DOTNET_VERSION))
 except ImportError:
     raise ImportError(
         """

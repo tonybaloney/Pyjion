@@ -22,10 +22,12 @@
 * OTHER DEALINGS IN THE SOFTWARE.
 *
 */
-
+#include <filesystem>
 #include <Python.h>
 #include "pyjit.h"
 #include "pycomp.h"
+
+#include "objects/assemblyobject.h"
 
 #ifdef WINDOWS
 #define BUFSIZE 65535
@@ -164,10 +166,27 @@ HMODULE GetClrJit() {
 }
 #endif
 
-bool JitInit(const wchar_t* path) {
+bool JitInit(const char* dotnetroot, const char* version) {
     g_pyjionSettings = PyjionSettings();
     g_pyjionSettings.recursionLimit = Py_GetRecursionLimit();
-    g_pyjionSettings.clrjitpath = path;
+
+    filesystem::path dir (dotnetroot);
+#ifdef LINUX
+    filesystem::path jitname ("clrjit.dll");
+    filesystem::path fxrname ("hostfxr.dll");
+#else
+#ifdef WINDOWS
+    filesystem::path jitname ("libclrjit.so");
+    filesystem::path fxrname ("libhostfxr.so");
+#else
+    filesystem::path jitname ("libclrjit.dylib");
+    filesystem::path fxrname ("libhostfxr.dylib");
+#endif
+#endif
+    g_pyjionSettings.clrjitpath = (dir / std::filesystem::path("shared/Microsoft.NETCore.App/") / std::filesystem::path(version) / jitname);
+    g_pyjionSettings.hostfxrpath = (dir / std::filesystem::path("host/fxr/") / std::filesystem::path(version) / fxrname);
+    g_pyjionSettings.runtimeconfigpath = std::filesystem::path("pyjion.runtimeconfig.json");
+
     g_extraSlot = PyThread_tss_alloc();
     PyThread_tss_create(g_extraSlot);
 #ifdef WINDOWS
@@ -193,7 +212,6 @@ bool JitInit(const wchar_t* path) {
 #else
     jitStartup(&g_jitHost);
 #endif
-
     g_jit = getJit();
 
     if (PyType_Ready(&PyJitMethodLocation_Type) < 0)
@@ -540,13 +558,14 @@ static PyObject* pyjion_symbols(PyObject* self, PyObject* func) {
 }
 
 static PyObject* pyjion_init(PyObject* self, PyObject* args) {
-    if (!PyUnicode_Check(args)) {
+    if (!PyTuple_Check(args) && PyTuple_Size(args) != 2) {
         PyErr_SetString(PyExc_TypeError, "Expected str for new clrjit");
         return nullptr;
     }
 
-    auto path = PyUnicode_AsWideCharString(args, nullptr);
-    if (JitInit(path)) {
+    auto path = PyUnicode_AsUTF8(PyTuple_GetItem(args, 0));
+    auto ver = PyUnicode_AsUTF8(PyTuple_GetItem(args, 1));
+    if (JitInit(path, ver)) {
         Py_RETURN_NONE;
     } else {
         return nullptr;
@@ -624,7 +643,7 @@ return_result:
         return nullptr;
     }
 
-    PyDict_SetItemString(res, "clrjitpath", PyUnicode_FromWideChar(g_pyjionSettings.clrjitpath, -1));
+    PyDict_SetItemString(res, "clrjitpath", PyUnicode_FromString(g_pyjionSettings.clrjitpath.c_str()));
     PyDict_SetItemString(res, "pgc", g_pyjionSettings.pgc ? Py_True : Py_False);
     PyDict_SetItemString(res, "graph", g_pyjionSettings.graph ? Py_True : Py_False);
     PyDict_SetItemString(res, "debug", g_pyjionSettings.debug ? Py_True : Py_False);
@@ -687,6 +706,8 @@ static struct PyModuleDef pyjionmodule = {
         -1,                                             /* size of per-interpreter state of the module,
 			  or -1 if the module keeps state in global variables. */
         PyjionMethods};
+
+
 PyObject* PyjionUnboxingError;
 PyMODINIT_FUNC PyInit__pyjion(void) {
     // Install our frame evaluation function
@@ -697,5 +718,20 @@ PyMODINIT_FUNC PyInit__pyjion(void) {
     int ret = PyModule_AddObject(mod, "PyjionUnboxingError", PyjionUnboxingError);
     if (ret != 0)
         return nullptr;
+
+    Py_INCREF(&PyjionAssembly_Type);
+    if (PyModule_AddObject(mod, "Assembly", (PyObject *) &PyjionAssembly_Type) < 0) {
+        Py_DECREF(&PyjionAssembly_Type);
+        Py_DECREF(mod);
+        return nullptr;
+    }
+
+    Py_INCREF(&PyjionAssemblyType_Type);
+    if (PyModule_AddObject(mod, "AssemblyType", (PyObject *) &PyjionAssemblyType_Type) < 0) {
+        Py_DECREF(&PyjionAssemblyType_Type);
+        Py_DECREF(mod);
+        return nullptr;
+    }
+
     return mod;
 }
