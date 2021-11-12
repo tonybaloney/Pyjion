@@ -29,7 +29,7 @@
 #include <Python.h>
 #include <structmember.h>
 #include <frameobject.h>
-#include "dict-common.h"
+#include "objects/dict-common.h"
 #include <vector>
 #include "types.h"
 #include "pyjit.h"
