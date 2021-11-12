@@ -2364,12 +2364,6 @@ void PythonCompiler::emit_box(AbstractValueKind kind) {
         case AVK_Integer:
             m_il.emit_call(METHOD_PYLONG_FROM_LONGLONG);
             break;
-        case AVK_Range:
-        case AVK_UnboxedRangeIterator:
-        case AVK_Bytearray:
-            m_il.dup();
-            emit_incref();
-            break;
         default:
             throw UnexpectedValueException();
     }
@@ -2476,10 +2470,6 @@ void PythonCompiler::emit_unbox(AbstractValueKind kind, bool guard, Local succes
             }
             break;
         }
-        case AVK_UnboxedRangeIterator:
-        case AVK_Range:
-        case AVK_Bytearray:
-            break;
         default:
             throw UnexpectedValueException();
     }

@@ -86,17 +86,19 @@ void InstructionGraph::fixEdges() {
     for (auto& edge : this->edges) {
         if (!this->instructions[edge.from].escape) {
             // From non-escaped operation
-            if (this->instructions[edge.to].escape) {
+            if (this->instructions[edge.to].escape && supportsEscaping(edge.kind)) {
                 edge.escaped = Unbox;
             } else {
                 edge.escaped = NoEscape;
             }
         } else {
             // From escaped operation
-            if (this->instructions[edge.to].escape) {
+            if (this->instructions[edge.to].escape && supportsEscaping(edge.kind)) {
                 edge.escaped = Unboxed;
-            } else {
+            } else if (supportsEscaping(edge.kind)) {
                 edge.escaped = Box;
+            } else {
+                edge.escaped = NoEscape;
             }
         }
     }
@@ -115,7 +117,7 @@ void InstructionGraph::fixInstructions() {
         vector<AbstractValueKind> typesIn;
         for (auto& edgeIn : edgesIn) {
             typesIn.emplace_back(edgeIn.kind);
-            if (!supportsEscaping(edgeIn.kind))
+            if (!supportsEscaping(edgeIn.kind) && !unboxedArgument(edgeIn.kind))
                 allEdgesEscapable = false;
         }
         if (!allEdgesEscapable)

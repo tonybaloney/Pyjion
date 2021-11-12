@@ -107,11 +107,19 @@ bool supportsUnboxing(py_opcode opcode, vector<AbstractValueKind> edgesIn) {
     }
 }
 
-bool supportsEscaping(AbstractValueKind kind) {// TODO: Allow filter for the specific opcode.
+bool supportsEscaping(AbstractValueKind kind) {
     switch (kind) {
-        case AVK_Float:// NOLINT(bugprone-branch-clone)
+        case AVK_Float:
         case AVK_Integer:
         case AVK_Bool:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool unboxedArgument(AbstractValueKind kind) {
+    switch (kind){
         case AVK_UnboxedRangeIterator:
         case AVK_Range:
         case AVK_Bytearray:

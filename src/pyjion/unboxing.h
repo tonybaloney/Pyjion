@@ -34,5 +34,5 @@ bool supportsUnboxing(py_opcode opcode);
 bool supportsUnboxing(py_opcode opcode, vector<AbstractValueKind> edgesIn);
 
 bool supportsEscaping(AbstractValueKind kind);
-
+bool unboxedArgument(AbstractValueKind kind);
 #endif//PYJION_UNBOXING_H
