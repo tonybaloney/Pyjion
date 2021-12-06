@@ -21,7 +21,7 @@ jobs:
           CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_ARCHS_LINUX: auto aarch64
           CIBW_BEFORE_BUILD_LINUX: "bash eng/install-dotnet.sh"
-          CIBW_ENVIRONMENT_LINUX: DOTNET_ROOT="/tmp/dotnet" DOTNET_VERSION="6.0.100"
+          CIBW_ENVIRONMENT_LINUX: DOTNET_ROOT="/tmp/dotnet" DOTNET_VERSION="6.0.100" LD_LIBRARY_PATH="/tmp/dotnet/shared/Microsoft.NETCore.App/6.0.0"
 
       - uses: actions/upload-artifact@v2
         with:
