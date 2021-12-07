@@ -70,6 +70,29 @@ Or, for an existing Python module:
 pyjion -m calendar
 ```
 
+## Optimization levels
+
+Pyjion has 3 optimization levels, 0 is the lowest and 2 is the highest. By default, Pyjion will compile at level 1.
+
+The level can be changed using the `config()` function:
+
+```python
+pyjion.config(level=2)
+```
+
+Once you've run your code and tests on level 1, try level 2 to compare performance. 
+If you have problems, try lowering the level.
+
+## Troubleshooting
+
+### PGC Unboxing error
+
+If you get a `pyjion.PyjionUnboxingError` when running the code, this means that Pyjion optimized a function which had floats, ints or boolean values, but those types have changed in subsequent calls.
+To avoid this, you can disable PGC (`pyjion.config(pgc=False)`) or lower the optimization level.
+Both options will hurt the overall performance, so if you can, refactor the function to not have general operations for a mixture of types. 
+
+## Disassembly
+
 You can see the machine code for the compiled function by disassembling it in the Python REPL.
 Pyjion has essentially compiled your small Python function into a small, standalone application.
 Install `distorm3` and `rich` first to disassemble x86-64 assembly and run `pyjion.dis.dis_native(f)`:

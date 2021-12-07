@@ -119,6 +119,9 @@ AbstractValue* AbstractValue::mergeWith(AbstractValue* other) {
     if (this == other) {
         return this;
     }
+    if (this->kind() == other->kind()){
+        return this;
+    }
     return &Any;
 }
 
@@ -1203,6 +1206,17 @@ AbstractValueKind DictValue::resolveMethod(const char* name) {
     return AVK_Any;
 }
 
+AbstractValue* DictValue::binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) {
+    auto other_kind = other.Value->kind();
+    if (other_kind == AVK_Dict) {
+        switch (op) {
+            case BINARY_OR:
+            case INPLACE_OR:
+                return this;
+        }
+    }
+    return AbstractValue::binary(selfSources, op, other);
+}
 
 // SetValue methods
 AbstractValueKind SetValue::kind() {

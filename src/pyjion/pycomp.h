@@ -535,7 +535,8 @@ public:
     void emit_load_from_frame_value_stack(uint32_t idx) override;
     void emit_dec_frame_stackdepth(uint32_t by) override;
     void emit_set_frame_stackdepth(uint32_t to) override;
-
+    void emit_return_value(Local, Label) override;
+    void emit_yield_value(Local retValue, Label retLabel, py_opindex index, size_t stackSize, offsetLabels& yieldOffsets) override;
 private:
     void load_frame();
     void load_tstate();

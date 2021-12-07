@@ -64,22 +64,17 @@ public:
     void inc(size_t by, StackEntryKind kind);
     void dec(size_t by);
 
-    size_t size() const {
-        return std::vector<StackEntryKind>::size();
-    }
+    using std::vector<StackEntryKind>::size;
+    using std::vector<StackEntryKind>::rbegin;
+    using std::vector<StackEntryKind>::begin;
+    using std::vector<StackEntryKind>::rend;
+    using std::vector<StackEntryKind>::end;
+    using std::vector<StackEntryKind>::clear;
 
     void dup_top() {
         if (empty())
             throw StackUnderflowException();
         push_back(back());// does inc_stack
-    }
-
-    reverse_iterator rbegin() {
-        return std::vector<StackEntryKind>::rbegin();
-    }
-
-    reverse_iterator rend() {
-        return std::vector<StackEntryKind>::rend();
     }
 
     StackEntryKind peek(size_t n) {
@@ -98,22 +93,17 @@ public:
         }
     }
 
-    bool empty() {
-        return vector<BlockInfo>::empty();
-    }
+    using vector<BlockInfo>::empty;
+    using vector<BlockInfo>::push_back;
+    using vector<BlockInfo>::emplace_back;
+    using vector<BlockInfo>::size;
+    using vector<BlockInfo>::rbegin;
+    using vector<BlockInfo>::rend;
 
     void pop_back() {
         if (empty())
             throw StackUnderflowException();
         return vector<BlockInfo>::pop_back();
-    }
-
-    void push_back(BlockInfo block) {
-        return vector<BlockInfo>::push_back(block);
-    }
-
-    void emplace_back(BlockInfo block) {
-        vector<BlockInfo>::emplace_back(block);
     }
 
     bool beyond(py_opindex curByte) {
@@ -122,22 +112,10 @@ public:
                 !back().Root);
     }
 
-    size_t size() const {
-        return vector<BlockInfo>::size();
-    }
-
     BlockInfo back() {
         if (empty())
             throw StackUnderflowException();
         return vector<BlockInfo>::back();
-    }
-
-    reverse_iterator rbegin() {
-        return std::vector<BlockInfo>::rbegin();
-    }
-
-    reverse_iterator rend() {
-        return std::vector<BlockInfo>::rend();
     }
 
     BlockInfo get(size_t i) {

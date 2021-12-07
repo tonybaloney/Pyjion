@@ -11,9 +11,12 @@
 ##   u is a unit,   e.g. ['A1','B1','C1','D1','E1','F1','G1','H1','I1']
 ##   grid is a grid,e.g. 81 non-blank chars, e.g. starting with '.18...7...
 ##   values is a dict of possible values, e.g. {'A1':'12349', 'A2':'8', ...}
+import time
+import random
+
 
 def cross(A, B):
-    "Cross product of elements in A and elements in B."
+    """Cross product of elements in A and elements in B."""
     return [a + b for a in A for b in B]
 
 
@@ -51,16 +54,16 @@ def test():
 def parse_grid(grid):
     """Convert grid to a dict of possible values, {square: digits}, or
     return False if a contradiction is detected."""
-    ## To start, every square can be any digit; then assign values from the grid.
+    # To start, every square can be any digit; then assign values from the grid.
     values = dict((s, digits) for s in squares)
     for s, d in grid_values(grid).items():
         if d in digits and not assign(values, s, d):
-            return False  ## (Fail if we can't assign d to square s.)
+            return False  # (Fail if we can't assign d to square s.)
     return values
 
 
 def grid_values(grid):
-    "Convert grid into a dict of {square: char} with '0' or '.' for empties."
+    """Convert grid into a dict of {square: char} with '0' or '.' for empties."""
     chars = [c for c in grid if c in digits or c in '0.']
     assert len(chars) == 81
     return dict(zip(squares, chars))
@@ -82,20 +85,20 @@ def eliminate(values, s, d):
     """Eliminate d from values[s]; propagate when values or places <= 2.
     Return values, except return False if a contradiction is detected."""
     if d not in values[s]:
-        return values  ## Already eliminated
+        return values  # Already eliminated
     values[s] = values[s].replace(d, '')
-    ## (1) If a square s is reduced to one value d2, then eliminate d2 from the peers.
+    # (1) If a square s is reduced to one value d2, then eliminate d2 from the peers.
     if len(values[s]) == 0:
-        return False  ## Contradiction: removed last value
+        return False  # Contradiction: removed last value
     elif len(values[s]) == 1:
         d2 = values[s]
         if not all(eliminate(values, s2, d2) for s2 in peers[s]):
             return False
-    ## (2) If a unit u is reduced to only one place for a value d, then put it there.
+    # (2) If a unit u is reduced to only one place for a value d, then put it there.
     for u in units[s]:
         dplaces = [s for s in u if d in values[s]]
         if len(dplaces) == 0:
-            return False  ## Contradiction: no place for this value
+            return False  # Contradiction: no place for this value
         elif len(dplaces) == 1:
             # d can only be in one place in unit; assign it there
             if not assign(values, dplaces[0], d):
@@ -106,28 +109,30 @@ def eliminate(values, s, d):
 ################ Display as 2-D grid ################
 
 def display(values):
-    "Display these values as a 2-D grid."
+    """Display these values as a 2-D grid."""
     width = 1 + max(len(values[s]) for s in squares)
     line = '+'.join(['-' * (width * 3)] * 3)
     for r in rows:
         print(''.join((''.join(values[r + c].center(width) + ('|' if c in '36' else ''))
                        for c in cols)))
-        if r in 'CF': print(line)
+        if r in 'CF':
+            print(line)
     print()
 
 
 ################ Search ################
 
-def solve(grid): return search(parse_grid(grid))
+def solve(grid):
+    return search(parse_grid(grid))
 
 
 def search(values):
-    "Using depth-first search and propagation, try all possible values."
+    """Using depth-first search and propagation, try all possible values."""
     if values is False:
-        return False  ## Failed earlier
+        return False  # Failed earlier
     if all(len(values[s]) == 1 for s in squares):
-        return values  ## Solved!
-    ## Chose the unfilled square s with the fewest possibilities
+        return values  # Solved!
+    # Chose the unfilled square s with the fewest possibilities
     n, s = min((len(values[s]), s) for s in squares if len(values[s]) > 1)
     return some(search(assign(values.copy(), s, d))
                 for d in values[s])
@@ -136,27 +141,26 @@ def search(values):
 ################ Utilities ################
 
 def some(seq):
-    "Return some element of seq that is true."
+    """Return some element of seq that is true."""
     for e in seq:
-        if e: return e
+        if e:
+            return e
     return False
 
 
 def from_file(filename, sep='\n'):
-    "Parse a file into a list of strings, separated by sep."
+    """Parse a file into a list of strings, separated by sep."""
     return file(filename).read().strip().split(sep)
 
 
 def shuffled(seq):
-    "Return a randomly shuffled copy of the input sequence."
+    """Return a randomly shuffled copy of the input sequence."""
     seq = list(seq)
     random.shuffle(seq)
     return seq
 
 
 ################ System test ################
-
-import time, random
 
 
 def solve_all(grids, name='', showif=0.0):
@@ -172,12 +176,13 @@ def solve_all(grids, name='', showif=0.0):
         start = time_clock()
         values = solve(grid)
         t = time_clock() - start
-        ## Display puzzles that take long enough
+        # Display puzzles that take long enough
         if showif is not None and t > showif:
             display(grid_values(grid))
-            if values: display(values)
+            if values:
+                display(values)
             print('(%.2f seconds)\n' % t)
-        return (t, solved(values))
+        return t, solved(values)
 
     times, results = zip(*[time_solve(grid) for grid in grids])
     N = len(grids)
@@ -187,7 +192,7 @@ def solve_all(grids, name='', showif=0.0):
 
 
 def solved(values):
-    "A puzzle is solved if each unit is a permutation of the digits 1 to 9."
+    """A puzzle is solved if each unit is a permutation of the digits 1 to 9."""
 
     def unitsolved(unit): return set(values[s] for s in unit) == set(digits)
 
@@ -205,7 +210,7 @@ def random_puzzle(N=17):
         ds = [values[s] for s in squares if len(values[s]) == 1]
         if len(ds) >= N and len(set(ds)) >= 8:
             return ''.join(values[s] if len(values[s]) == 1 else '.' for s in squares)
-    return random_puzzle(N)  ## Give up and make a new puzzle
+    return random_puzzle(N)  # Give up and make a new puzzle
 
 
 grid1 = '003020600900305001001806400008102900700000008006708200002609500800203009005010300'
@@ -219,7 +224,7 @@ def bench_sudoku():
     solve(hard1)
 
 
-__benchmarks__ = [(bench_sudoku, "sudoku", {"level": 2, "pgc": True}, 2)]
+__benchmarks__ = [(bench_sudoku, "sudoku", {"level": 1, "pgc": True}, 2)]
 
 ## References used:
 ## http://www.scanraid.com/BasicStrategies.htm

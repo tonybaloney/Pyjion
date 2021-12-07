@@ -12,7 +12,6 @@ test_builtin
 # https://bugs.python.org/issue40754
 ##test_exceptions
 test_types
-test_unittest
 test_doctest
 test_doctest2
 test_support
@@ -124,7 +123,6 @@ test_defaultdict
 ## test_deque
 test_descr
 test_descrtut
-test_devpoll
 test_dict_version
 test_dictcomps
 test_dictviews
@@ -142,7 +140,6 @@ test_ensurepip
 test_enum
 test_enumerate
 test_eof
-test_epoll
 test_errno
 test_exception_hierarchy
 test_exception_variations
@@ -415,6 +412,7 @@ test_unicode_file
 test_unicode_file_functions
 test_unicode_identifiers
 test_unicodedata
+test_unittest
 test_univnewlines
 test_unpack
 test_unpack_ex

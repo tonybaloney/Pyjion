@@ -162,38 +162,41 @@ public:
         return m_codeAddr;
     }
 
-    unsigned char* get_il() override {
-        return (unsigned char*) m_il.data();
-    }
-
-    size_t get_il_len() override {
-        return m_il.size();
+    void get_il(unsigned char** out, unsigned int * outLen) override {
+        if (m_il.size() == 0) {
+            *out = nullptr;
+            *outLen = 0;
+        } else {
+            *out = new unsigned char[m_il.size()];
+            std::copy(m_il.begin(), m_il.end(), *out);
+            *outLen = m_il.size();
+        }
     }
 
     size_t get_native_size() override {
         return m_nativeSize;
     }
 
-    SequencePoint* get_sequence_points() override {
-        if (!m_sequencePoints.empty())
-            return &m_sequencePoints[0];
-        else
-            return nullptr;
+    void get_sequence_points(SequencePoint** out, unsigned int* outLen) override {
+        if (m_sequencePoints.size() == 0) {
+            *out = nullptr;
+            *outLen = 0;
+        } else {
+            *out = new SequencePoint[m_sequencePoints.size()];
+            std::copy(m_sequencePoints.begin(), m_sequencePoints.end(), *out);
+            *outLen = m_sequencePoints.size();
+        }
     }
 
-    CallPoint* get_call_points() override {
-        if (!m_callPoints.empty())
-            return &m_callPoints[0];
-        else
-            return nullptr;
-    }
-
-    size_t get_sequence_points_length() override {
-        return m_sequencePoints.size();
-    }
-
-    size_t get_call_points_length() override {
-        return m_callPoints.size();
+    void get_call_points(CallPoint** out, unsigned int* outLen) override {
+        if (m_callPoints.size() == 0) {
+            *out = nullptr;
+            *outLen = 0;
+        } else {
+            *out = new CallPoint[m_callPoints.size()];
+            std::copy(m_callPoints.begin(), m_callPoints.end(), *out);
+            *outLen = m_callPoints.size();
+        }
     }
 
     SymbolTable get_symbol_table() override {

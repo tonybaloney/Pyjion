@@ -55,53 +55,6 @@ typedef SSIZE_T ssize_t;
 #define SIG_STOP_ITER  0x7fffffff
 #define SIG_ITER_ERROR 0xbeef
 
-typedef struct {
-    PyObject_HEAD
-            PyObject* object;
-    PyObject* method;
-} PyJitMethodLocation;
-
-static PyTypeObject PyJitMethodLocation_Type = {
-        PyObject_HEAD_INIT(nullptr) "pyjion.method_location",
-        sizeof(PyJitMethodLocation),
-        0, /*tp_itemsize*/
-        /* methods */
-        (destructor) PyObject_Del, /*tp_dealloc*/
-        0,                         /*tp_vectorcall_offset*/
-        0,                         /*tp_getattr*/
-        0,                         /*tp_setattr*/
-        0,                         /*tp_as_async*/
-        0,                         /*tp_repr*/
-        0,                         /*tp_as_number*/
-        0,                         /*tp_as_sequence*/
-        0,                         /*tp_as_mapping*/
-        0,                         /*tp_hash*/
-        0,                         /*tp_call*/
-        0,                         /*tp_str*/
-        0,                         /*tp_getattro*/
-        0,                         /*tp_setattro*/
-        0,                         /*tp_as_buffer*/
-        Py_TPFLAGS_DEFAULT,        /*tp_flags*/
-        0,                         /*tp_doc*/
-        0,                         /*tp_traverse*/
-        0,                         /*tp_clear*/
-        0,                         /*tp_richcompare*/
-        0,                         /*tp_weaklistoffset*/
-        0,                         /*tp_iter*/
-        0,                         /*tp_iternext*/
-        0,                         /*tp_methods*/
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        PyType_GenericNew /* tp_new */
-};
-
 static void
 format_exc_check_arg(PyObject* exc, const char* format_str, PyObject* obj);
 
@@ -313,20 +266,20 @@ PyObject* PyJit_UnicodeJoinArray(PyObject* items, ssize_t count);
 PyObject* PyJit_FormatObject(PyObject* item, PyObject* fmtSpec);
 PyObject* PyJit_FormatValue(PyObject* item);
 
-PyJitMethodLocation* PyJit_LoadMethod(PyObject* object, PyObject* name, PyJitMethodLocation* method_info);
+int PyJit_LoadMethod(PyObject* obj, PyObject* name, PyObject** method, PyObject** self);
 
-PyObject* MethCall0(PyObject* self, PyJitMethodLocation* method_info, PyTraceInfo* trace_info);
-PyObject* MethCall1(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyTraceInfo* trace_info);
-PyObject* MethCall2(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyTraceInfo* trace_info);
-PyObject* MethCall3(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyTraceInfo* trace_info);
-PyObject* MethCall4(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyTraceInfo* trace_info);
-PyObject* MethCall5(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyTraceInfo* trace_info);
-PyObject* MethCall6(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyTraceInfo* trace_info);
-PyObject* MethCall7(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyTraceInfo* trace_info);
-PyObject* MethCall8(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyTraceInfo* trace_info);
-PyObject* MethCall9(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyTraceInfo* trace_info);
-PyObject* MethCall10(PyObject* self, PyJitMethodLocation* method_info, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyObject* arg10, PyTraceInfo* trace_info);
-PyObject* MethCallN(PyObject* self, PyJitMethodLocation* method_info, PyObject* args, PyTraceInfo* trace_info);
+PyObject* MethCall0(PyObject* self, PyObject* method, PyTraceInfo* trace_info);
+PyObject* MethCall1(PyObject* self, PyObject* method, PyObject* arg1, PyTraceInfo* trace_info);
+PyObject* MethCall2(PyObject* self, PyObject* method, PyObject* arg1, PyObject* arg2, PyTraceInfo* trace_info);
+PyObject* MethCall3(PyObject* self, PyObject* method, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyTraceInfo* trace_info);
+PyObject* MethCall4(PyObject* self, PyObject* method, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyTraceInfo* trace_info);
+PyObject* MethCall5(PyObject* self, PyObject* method, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyTraceInfo* trace_info);
+PyObject* MethCall6(PyObject* self, PyObject* method, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyTraceInfo* trace_info);
+PyObject* MethCall7(PyObject* self, PyObject* method, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyTraceInfo* trace_info);
+PyObject* MethCall8(PyObject* self, PyObject* method, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyTraceInfo* trace_info);
+PyObject* MethCall9(PyObject* self, PyObject* method, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyTraceInfo* trace_info);
+PyObject* MethCall10(PyObject* self, PyObject* method, PyObject* arg1, PyObject* arg2, PyObject* arg3, PyObject* arg4, PyObject* arg5, PyObject* arg6, PyObject* arg7, PyObject* arg8, PyObject* arg9, PyObject* arg10, PyTraceInfo* trace_info);
+PyObject* MethCallN(PyObject* self, PyObject* method, PyObject* args, PyTraceInfo* trace_info);
 
 int PyJit_SetupAnnotations(PyFrameObject* frame);
 

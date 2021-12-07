@@ -279,9 +279,6 @@ void InstructionGraph::fixLocals(py_oparg startIdx, py_oparg endIdx) {
 
 PyObject* InstructionGraph::makeGraph(const char* name) {
     if (PyErr_Occurred()) {
-#ifdef DEBUG_VERBOSE
-        PyErr_Print();
-#endif
         PyErr_Clear();
     }
 
@@ -322,15 +319,23 @@ PyObject* InstructionGraph::makeGraph(const char* name) {
                 op = PyUnicode_FromFormat("\tOP%u [label=\"%u %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
                                           PyUnicode_AsUTF8(PyTuple_GetItem(this->code->co_names, node.second.oparg)), blockColor);
                 break;
-            case LOAD_CONST:
-                op = PyUnicode_FromFormat("\tOP%u [label=\"%u %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
-                                          PyUnicode_AsUTF8(PyUnicode_Substring(PyObject_Repr(PyTuple_GetItem(this->code->co_consts, node.second.oparg)), 0, 40)), blockColor);
+            case LOAD_CONST: {
+                auto ob_repr = PyObject_Repr(PyTuple_GetItem(this->code->co_consts, node.second.oparg));
+                if (ob_repr == nullptr) {
+                    PyErr_Clear();
+                    op = PyUnicode_FromFormat("\tOP%u [label=\"%u %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
+                                              "?", blockColor);
+                } else {
+                    op = PyUnicode_FromFormat("\tOP%u [label=\"%u %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
+                                              PyUnicode_AsUTF8(PyUnicode_Substring(ob_repr, 0, 40)), blockColor);
+                }
+            }
                 break;
             case LOAD_FAST:
             case STORE_FAST:
             case DELETE_FAST:
                 op = PyUnicode_FromFormat("\tOP%u [label=\"%u %s (%s)\" color=\"%s\"];\n", node.first, node.first, opcodeName(node.second.opcode),
-                                          PyUnicode_AsUTF8(PyObject_Repr(PyTuple_GetItem(this->code->co_varnames, node.second.oparg))), blockColor);
+                                          PyUnicode_AsUTF8(PyTuple_GetItem(this->code->co_varnames, node.second.oparg)), blockColor);
                 break;
             case POP_EXCEPT:
             case POP_BLOCK:

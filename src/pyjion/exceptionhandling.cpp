@@ -48,7 +48,6 @@ ExceptionHandler* ExceptionHandlerManager::AddSetupFinallyHandler(Label handlerL
             EhfTryFinally,
             currentHandler);
     m_handlerIndexes[handlerIndex] = newHandler;
-
     m_exceptionHandlers.emplace_back(
             newHandler);
     return newHandler;

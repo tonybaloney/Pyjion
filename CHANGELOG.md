@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.2.0
+
+* PGC unboxing errors are avoided when functions are called with different argument types to those it was optimized with. 
+* PGC types will now be inferred across jump statements, for loops and other small scopes, improving performance
+* LOAD_METHOD will use cached pointers for builtin types like `dict`, `list`, etc. meaning LOAD_METHOD is faster in many cases
+* Dictionary merge operators, `|` and `|=` will assert the return type as dict
+* Fixes a crash on Windows when referencing call points or sequence points for a free'd module
+* Fixes an issue running `pyjion -m module` with arguments
+
+## 1.1.1
+
+* Fixed a critical bug where recursive functions that use a mutable container type (e.g. list) causes a decref to the wrong object and subsequent crash.
+* Fixes a bug on graph generation for recursive functions causing a crash in some situations
+* Fixes a bug on method calls, which called the wrong method when the class was copied using `copy.copy()`
+* Reduced memory consumption for method calls
+
 ## 1.1.0
 
 * Added unboxed integer operations for BINARY_LSHIFT, BINARY_RSHIFT, BINARY_AND, BINARY_OR, BINARY_XOR

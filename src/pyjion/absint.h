@@ -187,14 +187,9 @@ public:
             return existing;
         if (existing.hasValue() && !existing.Value->needsGuard() && existing.Value->known())
             return existing;
-        if (pyTypeObject == nullptr)
+        if (pyTypeObject == nullptr) {
             return existing;
-#ifdef DEBUG_VERBOSE
-        if (existing.Value->kind() == AVK_Integer && kind == AVK_BigInteger){
-            printf("Warning: downcast to big integer;\n");
-        }
-#endif
-        else {
+        } else {
             return {
                     new PgcValue(pyTypeObject, kind),
                     existing.Sources};
@@ -244,10 +239,22 @@ enum AbstractInterpreterResult {
     IncompatibleFrameGlobal = 120,
 };
 
-struct AbstactInterpreterCompileResult {
+struct AbstractInterpreterPreprocessResult {
+    AbstractInterpreterResult result = NoResult;
+};
+
+struct AbstactInterpreterCompileWorkerResult {
     JittedCode* compiledCode = nullptr;
     AbstractInterpreterResult result = NoResult;
+    OptimizationFlags optimizations = OptimizationFlags();
+};
+
+struct AbstactInterpreterCompileResult {
+    JittedCode* compiledCode = nullptr;
+    JittedCode* genericCompiledCode = nullptr;
+    AbstractInterpreterResult result = NoResult;
     PyObject* instructionGraph = nullptr;
+    PyObject* genericGraph = nullptr;
     OptimizationFlags optimizations = OptimizationFlags();
 };
 
@@ -265,6 +272,18 @@ public:
     const char* what() const noexcept override {
         return "Invalid stack effect";
     }
+};
+
+class OffsetMap {
+    IPythonCompiler* m_comp;
+    offsetLabels m_offsetLabels;
+
+public:
+    explicit OffsetMap(IPythonCompiler* comp){
+        m_comp = comp;
+    }
+    Label get(py_opindex);
+    void mark(py_opindex);
 };
 
 #ifdef _WIN32
@@ -295,26 +314,14 @@ class AbstractInterpreter : public PyjionBase {
     // all values produced during abstract interpretation, need to be freed
     vector<AbstractValue*> m_values;
     vector<AbstractSource*> m_sources;
-    vector<Local> m_raiseAndFreeLocals;
     unordered_map<py_oparg, Local> m_fastNativeLocals;
     unordered_map<py_oparg, StackEntryKind> m_fastNativeLocalKinds;
     IPythonCompiler* m_comp;
-    // m_blockStack is like Python's f_blockstack which lives on the frame object, except we only maintain
-    // it at compile time.  Blocks are pushed onto the stack when we enter a loop, the start of a try block,
-    // or into a finally or exception handler.  Blocks are popped as we leave those protected regions.
-    // When we pop a block associated with a try body we transform it into the correct block for the handler
-    BlockStack m_blockStack;
 
-    ExceptionHandlerManager m_exceptionHandler;
-    // Labels that map from a Python byte code offset to an ilgen label.  This allows us to branch to any
-    // byte code offset.
-    unordered_map<py_opindex, Label> m_offsetLabels;
     // Tracks the current depth of the stack,  as well as if we have an object reference that needs to be freed.
     // True (STACK_KIND_OBJECT) if we have an object, false (STACK_KIND_VALUE) if we don't
     ValueStack m_stack;
-    // Tracks the state of the stack when we perform a branch.  We copy the existing state to the map and
-    // reload it when we begin processing at the stack.
-    unordered_map<py_opindex, ValueStack> m_offsetStack;
+
     unordered_map<py_oparg, Py_ssize_t> nameHashes;
     unordered_map<py_oparg, PyObject*> lastResolvedGlobal;
 
@@ -326,16 +333,14 @@ class AbstractInterpreter : public PyjionBase {
     //      raise logic.
     //  This was so we don't need to have decref/frees spread all over the code
     vector<vector<Label>> m_raiseAndFree;
-    unordered_set<py_opindex> m_jumpsTo;
-    Label m_retLabel;
-    Local m_retValue;
+    vector<Local> m_raiseAndFreeLocals;
+
     unordered_map<py_opindex, bool> m_assignmentState;
-    unordered_map<py_opindex, Label> m_yieldOffsets;
 
 #pragma warning(default : 4251)
 
 public:
-    AbstractInterpreter(PyCodeObject* code, IPythonCompiler* compiler);
+    explicit AbstractInterpreter(PyCodeObject* code);
     ~AbstractInterpreter();
 
     AbstactInterpreterCompileResult compile(PyObject* builtins, PyObject* globals, PyjionCodeProfile* profile, PgcStatus pgc_status);
@@ -363,7 +368,7 @@ private:
     static bool mergeStates(InterpreterState& newState, InterpreterState& mergeTo);
     bool updateStartState(InterpreterState& newState, py_opindex index);
     void initStartingState();
-    AbstractInterpreterResult preprocess();
+    AbstractInterpreterPreprocessResult preprocess();
     AbstractSource* newSource(AbstractSource* source) {
         m_sources.emplace_back(source);
         return source;
@@ -374,56 +379,30 @@ private:
     AbstractSource* addGlobalSource(py_opindex opcodeIndex, py_oparg constIndex, const char* name, PyObject* value);
     AbstractSource* addBuiltinSource(py_opindex opcodeIndex, py_oparg constIndex, const char* name, PyObject* value);
 
-    void makeFunction(py_oparg oparg);
     bool canSkipLastiUpdate(py_opcode opcode);
-    void buildTuple(py_oparg argCnt);
-    void buildList(py_oparg argCnt);
-    void extendListRecursively(Local list, py_oparg argCnt);
-    void extendList(py_oparg argCnt);
-    void buildSet(py_oparg argCnt);
-    void buildMap(py_oparg argCnt);
+    void buildTuple(ExceptionHandler*, py_oparg argCnt);
     void emitPgcProbes(py_opindex pos, size_t size, const vector<Edge>& edges);
-
-    Label getOffsetLabel(py_opindex jumpTo);
-    void forIter(py_opindex loopIndex);
-    void forIterUnboxed(py_opindex loopIndex);
-
-    void yieldValue(py_opindex idx, size_t stackSize, InstructionGraph* graph);
 
     // Checks to see if we have a null value as the last value on our stack
     // indicating an error, and if so, branches to our current error handler.
-    void errorCheck(const char* reason = nullptr, const char* context = "", py_opindex curByte = 0);
-    void invalidFloatErrorCheck(const char* reason = nullptr, py_opindex curByte = 0, py_opcode opcode = 0);
-    void invalidIntErrorCheck(const char* reason = nullptr, py_opindex curByte = 0, py_opcode opcode = 0, void* exc = PyExc_ZeroDivisionError, const char* message = "zero division error");
-    void intErrorCheck(const char* reason = nullptr, const char* context = "", py_opindex curByte = 0);
-    vector<Label>& getRaiseAndFreeLabels(size_t blockId);
-    void ensureRaiseAndFreeLocals(size_t localCount);
-    void ensureLabels(vector<Label>& labels, size_t count);
-    void branchRaise(const char* reason = nullptr, const char* context = "", py_opindex curByte = 0, bool force = false, bool trace = true);
-    void raiseOnNegativeOne(py_opindex curByte);
+    void errorCheck(ExceptionHandler* handler, const char* reason = nullptr, const char* context = "", py_opindex curByte = 0);
+    void invalidFloatErrorCheck(ExceptionHandler* handler, const char* reason = nullptr, py_opindex curByte = 0, py_opcode opcode = 0);
+    void invalidIntErrorCheck(ExceptionHandler* handler, const char* reason = nullptr, py_opindex curByte = 0, py_opcode opcode = 0, void* exc = PyExc_ZeroDivisionError, const char* message = "zero division error");
+    void intErrorCheck(ExceptionHandler* handler, const char* reason = nullptr, const char* context = "", py_opindex curByte = 0);
+    void branchRaise(ExceptionHandler* handler, const char* reason = nullptr, const char* context = "", py_opindex curByte = 0, bool force = false, bool trace = true);
+    void raiseOnNegativeOne(ExceptionHandler* handler, py_opindex curByte);
     void unwindEh(ExceptionHandler* fromHandler, ExceptionHandler* toHandler = nullptr);
-    ExceptionHandler* currentHandler();
-    void markOffsetLabel(py_opindex index);
-    void jumpAbsolute(py_opindex index, py_opindex from);
     void decStack(size_t size = 1);
     void incStack(size_t size = 1, StackEntryKind kind = STACK_KIND_OBJECT);
     void incStack(size_t size, LocalKind kind);
-    AbstactInterpreterCompileResult compileWorker(PgcStatus status, InstructionGraph* graph);
+    AbstactInterpreterCompileWorkerResult compileWorker(PgcStatus status, InstructionGraph* graph, IPythonCompiler* comp);
     void loadConst(py_oparg constIndex, py_opindex opcodeIndex);
     void loadUnboxedConst(py_oparg constIndex, py_opindex opcodeIndex);
-    void returnValue(py_opindex opcodeIndex);
     void storeFastUnboxed(py_oparg local);
-    void loadFast(py_oparg local, py_opindex opcodeIndex);
     void loadFastUnboxed(py_oparg local, py_opindex opcodeIndex);
-    void loadFastWorker(py_oparg local, bool checkUnbound, py_opindex curByte);
-    void popExcept();
-    void jumpIfOrPop(bool isTrue, py_opindex opcodeIndex, py_oparg offset);
-    void popJumpIf(bool isTrue, py_opindex opcodeIndex, py_oparg offset);
-    void unboxedPopJumpIf(bool isTrue, py_opindex opcodeIndex, py_oparg offset, AbstractValueWithSources sources);
-    void jumpIfNotExact(py_opindex opcodeIndex, py_oparg jumpTo);
+    void loadFastWorker(ExceptionHandler*, py_oparg local, bool checkUnbound, py_opindex curByte);
     void testBoolAndBranch(Local value, bool isTrue, Label target);
-    void escapeEdges(const vector<Edge>& edges, py_opindex curByte);
-    void yieldJumps();
+    void escapeEdges(ExceptionHandler*, const vector<Edge>& edges, py_opindex curByte);
 };
 bool canReturnInfinity(py_opcode opcode);
 

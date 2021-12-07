@@ -356,7 +356,6 @@ struct AbstractValueWithSources {
     }
 
     AbstractValueWithSources mergeWith(AbstractValueWithSources other) const {
-        // TODO: Is defining a new source at the merge point better?
         return {
                 Value->mergeWith(other.Value),
                 AbstractSource::combine(Sources, other.Sources)};
@@ -506,6 +505,7 @@ class ListValue : public AbstractValue {
 
 class DictValue : public AbstractValue {
     AbstractValueKind kind() override;
+    AbstractValue* binary(AbstractSource* selfSources, int op, AbstractValueWithSources& other) override;
     AbstractValue* unary(AbstractSource* selfSources, int op) override;
     const char* describe() override;
     AbstractValueKind resolveMethod(const char* name) override;
@@ -735,6 +735,8 @@ public:
     }
 
     const char* describe() override {
+        if (_type == nullptr)
+            return "volatile";
         return _PyType_Name(_type);
     }
 

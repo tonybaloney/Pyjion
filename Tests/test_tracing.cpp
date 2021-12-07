@@ -123,6 +123,7 @@ private:
         Py_DECREF(frame);
         size_t collected = PyGC_Collect();
         REQUIRE(!m_jittedcode->j_failed);
+        REQUIRE(m_jittedcode->j_genericAddr != nullptr);
         CHECK(m_jittedcode->j_tracingHooks);
         CHECK(m_jittedcode->j_profilingHooks);
         return res;

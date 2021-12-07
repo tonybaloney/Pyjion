@@ -150,53 +150,62 @@ PgcStatus nextPgcStatus(PgcStatus status);
 
 class PyjionJittedCode {
 public:
-    PY_UINT64_T j_run_count;
+    PY_UINT64_T j_runCount;
     bool j_failed;
-    short j_compile_result;
+    short j_compileResult;
     unsigned int j_optimizations;
     Py_EvalFunc j_addr;
-    uint8_t j_specialization_threshold;
+    Py_EvalFunc j_genericAddr;
+    uint8_t j_threshold;
     PyObject* j_code;
     PyjionCodeProfile* j_profile;
     unsigned char* j_il;
     unsigned int j_ilLen;
     unsigned long j_nativeSize;
-    PgcStatus j_pgc_status;
+    PgcStatus j_pgcStatus;
     SequencePoint* j_sequencePoints;
     unsigned int j_sequencePointsLen;
     CallPoint* j_callPoints;
     unsigned int j_callPointsLen;
     PyObject* j_graph;
+    PyObject* j_genericGraph;
     SymbolTable j_symbols;
     bool j_tracingHooks;
     bool j_profilingHooks;
+    AbstractValueKind* j_specializedKinds;
+    unsigned int j_specializedKindsLen;
 
     explicit PyjionJittedCode(PyObject* code) {
-        j_compile_result = 0;
+        j_compileResult = 0;
         j_optimizations = 0;
         j_code = code;
-        j_run_count = 0;
+        j_runCount = 0;
         j_failed = false;
         j_addr = nullptr;
-        j_specialization_threshold = g_pyjionSettings.threshold;
+        j_genericAddr = nullptr;
+        j_threshold = g_pyjionSettings.threshold;
         j_il = nullptr;
         j_ilLen = 0;
         j_nativeSize = 0;
         j_profile = new PyjionCodeProfile();
         j_graph = Py_None;
-        j_pgc_status = Uncompiled;
+        j_genericGraph = Py_None;
+        j_pgcStatus = Uncompiled;
         j_sequencePoints = nullptr;
         j_sequencePointsLen = 0;
         j_callPoints = nullptr;
         j_callPointsLen = 0;
         j_tracingHooks = false;
         j_profilingHooks = false;
+        j_specializedKinds = nullptr;
+        j_specializedKindsLen = 0;
         Py_INCREF(code);
     }
 
     ~PyjionJittedCode();
+    void reset();
 
-    void operator = (const PyjionJittedCode& code);
+    PyjionJittedCode& operator = (const PyjionJittedCode& code);
 };
 
 void setOptimizationLevel(unsigned short level);

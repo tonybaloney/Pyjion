@@ -52,6 +52,7 @@ private:
         Py_DECREF(frame);
         PyGC_Collect();
         REQUIRE(!m_jittedcode->j_failed);
+        REQUIRE(m_jittedcode->j_genericAddr != nullptr);
         return res;
     }
 

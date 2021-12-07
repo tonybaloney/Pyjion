@@ -217,12 +217,6 @@ TEST_CASE("Test call") {
         CHECK(result == 2.0);
         auto symbols = jitInfo->get_symbol_table();
         CHECK(!symbols.empty());
-
-        auto callPointsLength = jitInfo->get_call_points_length();
-        REQUIRE(callPointsLength > 0);
-        CHECK(jitInfo->get_call_points()[0].tokenId == METHOD_INT_TRUE_DIVIDE);
-        CHECK(jitInfo->get_call_points()[0].nativeOffset > 0);
-        CHECK(jitInfo->get_call_points()[0].ilOffset == 18);
     }
 }
 

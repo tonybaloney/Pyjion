@@ -15,10 +15,12 @@ def pytest_pyfunc_call(pyfuncitem):
 
 def pytest_runtest_call(item: pytest.Item) -> None:
     pyjion.enable()
-    pyjion.config(level=int(item.config.option.opt_level))
+    pyjion.config(level=int(item.config.option.opt_level), pgc=True)
     for mark in item.iter_markers():
         if mark.name == "graph":
             pyjion.config(graph=True)
+        if mark.name == "nopgc":
+            pyjion.config(pgc=False)
     pyjion.config(debug=True)
     item.runtest()
     pyjion.disable()

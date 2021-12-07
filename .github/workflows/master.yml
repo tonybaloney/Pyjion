@@ -7,7 +7,7 @@ on:
     branches: [ develop/main, develop/3.10 ]
 
 env:
-  BUILD_TYPE: Debug
+  BUILD_TYPE: Release
 
 jobs:
   build-linux:
@@ -42,7 +42,7 @@ jobs:
       - name: Configure CMake
         shell: bash
         working-directory: ${{runner.workspace}}/build
-        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_TESTS=ON
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
@@ -80,10 +80,10 @@ jobs:
       - name: Run smoke tests
         shell: bash
         run: |
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 0
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1 --pgc
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 0
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 1
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 1 --pgc
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
 
       - name: Test IPython REPL
@@ -92,12 +92,13 @@ jobs:
           pip install ipython
           python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
 
-      - name: Test mod
+      - name: Test module entry point
         shell: bash
         run: |
           python -m pyjion -m calendar
+          python -m pyjion -m calendar 1999
           python -m pyjion Tests/hello.py
-          pyjion -m calendar
+          pyjion -m calendar 1999
           pyjion Tests/hello.py
 
       - name: Install scikit-build for wheel
@@ -136,7 +137,7 @@ jobs:
           
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests.txt -v
+        run: python -X dev -q Tests/run_cpython_tests.py -f Tests/python_tests.txt  -o 1
         continue-on-error: true
         timeout-minutes: 30
 
@@ -165,7 +166,7 @@ jobs:
       - name: Configure CMake
         shell: bash
         working-directory: ${{runner.workspace}}/build
-        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCODE_COVERAGE=ON
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_TESTS=ON
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
@@ -180,16 +181,6 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         shell: bash
         run: ./unit_tests --out test.log -s --use-colour yes
-        
-      - name: Run gcov
-        shell: bash
-        run: gcov Tests/
-
-      - name: Codecov
-        uses: codecov/codecov-action@v1.0.15
-        with:
-          directory: Tests/
-
       - name: Setup Python tests
         shell: bash
         run: pip install -r Tests/requirements_test.txt
@@ -209,18 +200,22 @@ jobs:
         shell: bash
         run: python -X dev -m pytest Tests/ -v --opt-level 1 --external
 
-      - name: Test mod
+      - name: Test module entry point
         shell: bash
         run: |
-          pyjion -m calendar
+          python -m pyjion -m calendar
+          python -m pyjion -m calendar 1999
+          python -m pyjion Tests/hello.py
+          pyjion -m calendar 1999
+          pyjion Tests/hello.py
 
       - name: Run smoke tests
         shell: bash
         run: |
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 0
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1 --pgc
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 0
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 1
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 1 --pgc
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
 
       - name: Test IPython REPL
@@ -242,7 +237,7 @@ jobs:
           path: dist
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_macos11.txt -v
+        run: python -X dev -q Tests/run_cpython_tests.py -f Tests/python_tests_macos11.txt  -o 1
         continue-on-error: true
         timeout-minutes: 30
 
@@ -333,25 +328,33 @@ jobs:
         shell: bash
         run: python -X dev -m pytest Tests/ -v --opt-level 1 --external
 
-      - name: Test mod
+      - name: Test module entry point
         shell: bash
         run: |
-          pyjion -m calendar
+          python -m pyjion -m calendar
+          python -m pyjion -m calendar 1999
+          python -m pyjion Tests/hello.py
+          pyjion -m calendar 1999
+          pyjion Tests/hello.py
 
       - name: Run smoke tests
         shell: bash
         run: |
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 0
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 1 --pgc
-          python -X dev -q Tests/run_smoke_tests.py -f Tests/python_smoke_tests.txt -o 2
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 0
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 1
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 1 --pgc
+          python -X dev -q Tests/run_cpython_tests.py -f Tests/python_smoke_tests.txt -o 2
         continue-on-error: true
+        env:
+          PYTHONIOENCODING: utf-8
 
       - name: Run full test suite
         shell: bash
-        run: python -X dev -q Tests/run_libregr_tests.py -f Tests/python_tests_win.txt -v
+        run: python -X dev -q Tests/run_cpython_tests.py -f Tests/python_tests_win.txt  -o 1
         continue-on-error: true
         timeout-minutes: 30
+        env:
+          PYTHONIOENCODING: utf-8
 
       - name: Test IPython REPL
         shell: bash

@@ -27,3 +27,19 @@ def test_recursive_listcomp():
     assert _f([[0, 2], 2, 3]) == [[0, 2], 2, 3]
     info = pyjion.info(_f)
     assert info.compiled
+
+
+def test_recursive_container():
+    def f():
+        def flatten(word):
+            k = []
+            for item in word:
+                if isinstance(item, tuple):
+                    k.extend(flatten(item))
+                else:
+                    k.append(item)
+            return k
+        return flatten(((1245, 4324), 31235, ((123454,), 31234)))
+
+    assert f() == [1245, 4324, 31235, 123454, 31234]
+    assert pyjion.info(f).compiled

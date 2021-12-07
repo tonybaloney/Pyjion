@@ -1,0 +1,10 @@
+---------------------------------------------------------------
+Test case test_refleaks_in___init__ (test.test_bz2.BZ2DecompressorTest) failed:
+Traceback (most recent call last):
+  File "/Users/anthonyshaw/projects/cpython-3.10/Lib/test/support/__init__.py", line 955, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/anthonyshaw/projects/cpython-3.10/Lib/test/test_bz2.py", line 844, in test_refleaks_in___init__
+    self.assertAlmostEqual(gettotalrefcount() - refs_before, 0, delta=10)
+AssertionError: 105 != 0 within 10 delta (105 difference)
+
+---------------------------------------------------------------

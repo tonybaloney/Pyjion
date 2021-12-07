@@ -127,6 +127,7 @@ private:
         Py_DECREF(frame);
         PyGC_Collect();
         REQUIRE(!m_jittedcode->j_failed);
+        REQUIRE(m_jittedcode->j_genericAddr != nullptr);
         delete profile;
         return res;
     }
@@ -151,7 +152,6 @@ public:
         if (res.get() == nullptr || PyErr_Occurred()) {
             PyErr_PrintEx(-1);
             FAIL("Error on Python execution");
-            return nullptr;
         }
 
         auto repr = PyUnicode_AsUTF8(PyObject_Repr(res.get()));
@@ -240,6 +240,7 @@ private:
         Py_DECREF(frame);
         size_t collected = PyGC_Collect();
         REQUIRE(!m_jittedcode->j_failed);
+        REQUIRE(m_jittedcode->j_genericAddr != nullptr);
         return res;
     }
 
@@ -260,7 +261,6 @@ public:
         if (PyErr_Occurred()) {
             PyErr_PrintEx(-1);
             FAIL("Error on Python execution");
-            return nullptr;
         }
         REQUIRE(res.get() != nullptr);
         PyObject* v = res.get();
@@ -292,7 +292,7 @@ public:
     }
 
     PgcStatus pgcStatus() {
-        return m_jittedcode->j_pgc_status;
+        return m_jittedcode->j_pgcStatus;
     }
 };
 
@@ -304,7 +304,7 @@ private:
 public:
     explicit InstructionGraphTest(const char* code, const char* name) {
         auto pyCode = CompileCode(code);
-        m_absint = std::make_unique<AbstractInterpreter>(pyCode, nullptr);
+        m_absint = std::make_unique<AbstractInterpreter>(pyCode);
         auto builtins = PyEval_GetBuiltins();
         auto globals_dict = PyObject_ptr(PyDict_New());
         auto profile = new PyjionCodeProfile();

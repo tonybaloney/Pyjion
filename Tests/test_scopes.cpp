@@ -61,6 +61,7 @@ private:
         Py_DECREF(frame);
         size_t collected = PyGC_Collect();
         REQUIRE(!m_jittedcode->j_failed);
+        REQUIRE(m_jittedcode->j_genericAddr != nullptr);
         return res;
     }
 
@@ -81,7 +82,6 @@ public:
         if (PyErr_Occurred()) {
             PyErr_PrintEx(-1);
             FAIL("Error on Python execution");
-            return nullptr;
         }
 
         auto repr = PyUnicode_AsUTF8(PyObject_Repr(res.get()));

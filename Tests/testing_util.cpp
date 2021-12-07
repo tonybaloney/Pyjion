@@ -100,7 +100,7 @@ void VerifyOldTest(AITestCase testCase) {
     PyErr_Clear();
     auto codeObj = CompileCode(testCase.m_code);
 
-    AbstractInterpreter interpreter(codeObj, nullptr);
+    AbstractInterpreter interpreter(codeObj);
     auto builtins = PyEval_GetBuiltins();
     auto globals_dict = PyObject_ptr(PyDict_New());
     auto profile = new PyjionCodeProfile();

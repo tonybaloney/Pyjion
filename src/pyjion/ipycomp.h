@@ -78,6 +78,8 @@ public:
     }
 };
 
+typedef unordered_map<py_opindex, Label> offsetLabels;
+
 enum LocalKind {
     LK_Pointer,
     LK_Float,
@@ -108,14 +110,11 @@ class JittedCode {
 public:
     virtual ~JittedCode() = default;
     virtual void* get_code_addr() = 0;
-    virtual unsigned char* get_il() = 0;
-    virtual size_t get_il_len() = 0;
     virtual size_t get_native_size() = 0;
     virtual SymbolTable get_symbol_table() = 0;
-    virtual SequencePoint* get_sequence_points() = 0;
-    virtual size_t get_sequence_points_length() = 0;
-    virtual CallPoint* get_call_points() = 0;
-    virtual size_t get_call_points_length() = 0;
+    virtual void get_il(unsigned char** out, unsigned int * outLen) = 0;
+    virtual void get_sequence_points(SequencePoint**, unsigned int*) = 0;
+    virtual void get_call_points(CallPoint**, unsigned int*) = 0;
 };
 
 // Defines the interface between the abstract compiler and code generator
@@ -495,6 +494,9 @@ public:
     virtual void emit_load_from_frame_value_stack(uint32_t idx) = 0;
     virtual void emit_dec_frame_stackdepth(uint32_t by) = 0;
     virtual void emit_set_frame_stackdepth(uint32_t to) = 0;
+
+    virtual void emit_return_value(Local, Label) = 0;
+    virtual void emit_yield_value(Local retValue, Label retLabel, py_opindex index, size_t stackSize, offsetLabels& yieldOffsets) = 0;
 };
 
 #endif

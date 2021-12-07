@@ -131,9 +131,9 @@ TEST_CASE("test UNPACK_SEQUENCE PGC") {
                 "    return int(a) + int(b)\n"
                 "  return x((1,2)) + x([3, 4]) + x('56')\n");
         CHECK(t.pgcStatus() == PgcStatus::Uncompiled);
-        CHECK(t.raises() == PyjionUnboxingError);
+        CHECK(t.returns() == "21");
         CHECK(t.pgcStatus() == PgcStatus::CompiledWithProbes);
-        CHECK(t.raises() == PyjionUnboxingError);
+        CHECK(t.returns() == "21");
         CHECK(t.pgcStatus() == PgcStatus::Optimized);
     }
 }

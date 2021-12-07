@@ -55,6 +55,7 @@ test_bz2
 test_c_locale_coercion
 test_calendar
 test_call
+# Hangs test suite
 test_capi
 test_cgi
 test_cgitb
@@ -118,7 +119,6 @@ test_defaultdict
 test_deque
 test_descr
 test_descrtut
-test_devpoll
 test_dict_version
 test_dictcomps
 test_dictviews
@@ -136,7 +136,6 @@ test_ensurepip
 test_enum
 test_enumerate
 test_eof
-test_epoll
 test_errno
 test_exception_hierarchy
 test_exception_variations

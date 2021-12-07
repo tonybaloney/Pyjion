@@ -114,14 +114,12 @@ public:
         } else {
             localList = &(existing->second);
         }
-#ifdef DEBUG
         for (auto& i : *localList) {
             if (i.m_index == local.m_index) {
                 // locals shouldn't be double freed...
                 throw UnexpectedValueException();
             }
         }
-#endif
         localList->emplace_back(local);
     }
 
