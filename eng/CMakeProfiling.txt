@@ -4,9 +4,9 @@ if(GENERATE_PROFILE)
             add_compile_options(
                 -O2
                 -g
-                -fprofile-instr-generate=${CMAKE_SOURCE_DIR}/eng/profiles/macos11-x64.profraw
+                -fprofile-instr-generate=${CMAKE_SOURCE_DIR}/eng/profiles/macos-${CMAKE_SYSTEM_PROCESSOR}-clang-${CMAKE_CXX_COMPILER_VERSION}.profraw
         )
-        add_link_options(-fprofile-instr-generate=${CMAKE_SOURCE_DIR}/eng/profiles/macos11-x64.profraw)
+        add_link_options(-fprofile-instr-generate=${CMAKE_SOURCE_DIR}/eng/profiles/macos-${CMAKE_SYSTEM_PROCESSOR}-clang-${CMAKE_CXX_COMPILER_VERSION}.profraw)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         add_compile_options(
                 /GL
@@ -26,10 +26,13 @@ if(GENERATE_PROFILE)
     endif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 else()
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-            add_compile_options(-fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11-x64.profdata)
-            add_link_options(-fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11-x64.profdata)
-            message(STATUS "Using profile " ${CMAKE_SOURCE_DIR}/eng/profiles/macos11-x64.profdata)
+        set(PROFPATH ${CMAKE_SOURCE_DIR}/eng/profiles/macos-${CMAKE_SYSTEM_PROCESSOR}-clang-${CMAKE_CXX_COMPILER_VERSION}.profdata)
+        if (EXISTS PROFPATH)
+            add_compile_options(-fprofile-instr-use=${PROFPATH})
+            add_link_options(-fprofile-instr-use=${PROFPATH})
+            message(STATUS "Using profile " ${PROFPATH})
+        else()
+            message(STATUS "Skipping profile, cannot locate " ${PROFPATH})
         endif()
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         if (EXISTS ${CMAKE_SOURCE_DIR}/eng/profiles/windows.pgd)
