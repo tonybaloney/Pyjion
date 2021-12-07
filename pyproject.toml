@@ -4,3 +4,5 @@ requires = ["setuptools", "wheel", "scikit-build", "cmake", "ninja"]
 [tool.cibuildwheel.macos]
 before-build = "bash eng/install-dotnet.sh --version 6.0.100"
 environment = {MACOSX_DEPLOYMENT_TARGET=11.0}
+repair-wheel-command = ""
+archs = ["x86_64", "universal2"]
