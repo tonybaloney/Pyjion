@@ -4,9 +4,9 @@ if(GENERATE_PROFILE)
             add_compile_options(
                 -O2
                 -g
-                -fprofile-instr-generate=${CMAKE_SOURCE_DIR}/eng/profiles/clang.profraw
+                -fprofile-instr-generate=${CMAKE_SOURCE_DIR}/eng/profiles/macos11-x64.profraw
         )
-        add_link_options(-fprofile-instr-generate=${CMAKE_SOURCE_DIR}/eng/profiles/clang.profraw)
+        add_link_options(-fprofile-instr-generate=${CMAKE_SOURCE_DIR}/eng/profiles/macos11-x64.profraw)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         add_compile_options(
                 /GL
@@ -26,9 +26,11 @@ if(GENERATE_PROFILE)
     endif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 else()
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options(-fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11.profdata)
-        add_link_options(-fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11.profdata)
-        message(STATUS "Using profile " ${CMAKE_SOURCE_DIR}/eng/profiles/macos11.profdata)
+        if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+            add_compile_options(-fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11-x64.profdata)
+            add_link_options(-fprofile-instr-use=${CMAKE_SOURCE_DIR}/eng/profiles/macos11-x64.profdata)
+            message(STATUS "Using profile " ${CMAKE_SOURCE_DIR}/eng/profiles/macos11-x64.profdata)
+        endif()
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         if (EXISTS ${CMAKE_SOURCE_DIR}/eng/profiles/windows.pgd)
             add_link_options(/LTCG /USEPROFILE:PGD=${CMAKE_SOURCE_DIR}/eng/profiles/windows.pgd)
