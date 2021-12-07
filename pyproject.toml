@@ -4,15 +4,3 @@ requires = ["setuptools", "wheel", "scikit-build", "cmake", "ninja"]
 [tool.cibuildwheel.macos]
 before-build = "bash eng/install-dotnet.sh --version 6.0.100"
 environment = {MACOSX_DEPLOYMENT_TARGET=11.0}
-
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = py39
-
-[testenv]
-deps = scikit-build
-
-commands =
-    python Tests/test_pyjion.py -f Tests/python_smoke_tests.txt -j4
-"""
