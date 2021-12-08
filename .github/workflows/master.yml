@@ -106,35 +106,6 @@ jobs:
         run: |
           python -m pip install -U scikit-build
 
-      - name: Build x64 Linux Docker image
-        run: |
-          rm -rf _skbuild
-          docker build -t pyjion_x64 -f Dockerfile.manylinux.x86_64 .
-
-      - name: Build x64 manylinux wheel
-        run: |
-          docker run \
-            --rm \
-            -v "$(pwd):/github/workspace" pyjion_x64
-
-      - name: Build arm64 Linux Docker image
-        run: |
-          rm -rf _skbuild
-          sudo apt-get install qemu binfmt-support qemu-user-static -y
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-          docker build -t pyjion_arm64 -f Dockerfile.manylinux.aarch64 .
-
-      - name: Build arm64 manylinux wheel
-        run: |
-          docker run \
-            --rm \
-            -v "$(pwd):/github/workspace" pyjion_arm64
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: dist
-          path: dist/*manylinux2014*.whl
-          
       - name: Run full test suite
         shell: bash
         run: python -X dev -q Tests/run_cpython_tests.py -f Tests/python_tests.txt  -o 1
@@ -224,17 +195,6 @@ jobs:
           pip install ipython
           python -X dev -m IPython -c="import pyjion;pyjion.enable();a=1+1;a"
 
-      - name: Build Python Wheel
-        shell: bash
-        run: |
-          python -m pip install -U scikit-build
-          rm -rf _skbuild
-          python setup.py bdist_wheel
-
-      - uses: actions/upload-artifact@v1
-        with:
-          name: dist
-          path: dist
       - name: Run full test suite
         shell: bash
         run: python -X dev -q Tests/run_cpython_tests.py -f Tests/python_tests_macos11.txt  -o 1
