@@ -57,12 +57,6 @@
 
 using namespace std;
 
-#ifdef HOST_ARM64
-void JIT_StackProbe();
-#else
-extern "C" void JIT_StackProbe();// Implemented in helpers.asm
-#endif
-
 const CORINFO_CLASS_HANDLE PYOBJECT_PTR_TYPE = (CORINFO_CLASS_HANDLE) 0x11;
 
 class CorJitInfo : public ICorJitInfo, public JittedCode {
@@ -115,6 +109,9 @@ public:
     /// Empty breakpoint function, put some bonus code in here if you want to debug anything between
     /// CPython opcodes.
     static void breakpointFtn(){};
+
+    static void stackProbeHelper(){};
+
 
     static void raiseOverflowExceptionHelper() {
         throw IntegerOverflowException();
@@ -1664,7 +1661,7 @@ public:
                 helper = (void*) &breakpointFtn;
                 break;
             case CORINFO_HELP_STACK_PROBE:
-                helper = (void*) &JIT_StackProbe;
+                helper = (void*) &stackProbeHelper;
                 break;
 
             /* Helpers that throw exceptions */
@@ -1706,11 +1703,11 @@ public:
             case CORINFO_HELP_USER_BREAKPOINT:
                 return (void*) breakpointFtn;
             case CORINFO_HELP_STACK_PROBE:
-                return (void*) JIT_StackProbe;
+                return (void*) stackProbeHelper;
             case CORINFO_HELP_OVERFLOW:
                 return (void*) raiseOverflowExceptionHelper;
             case CORINFO_HELP_FAIL_FAST:
-                failFastExceptionHelper();
+                failFastExceptionHelper(); // Die here instead of having to handle at runtime
                 break;
             case CORINFO_HELP_RNGCHKFAIL:
                 return (void*) rangeCheckExceptionHelper;
