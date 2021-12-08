@@ -21,6 +21,7 @@ jobs:
           CIBW_ARCHS_MACOS: "x86_64 universal2 arm64"
           CIBW_BEFORE_BUILD_MACOS: "bash eng/install-dotnet.sh --version 6.0.100"
           CIBW_BEFORE_BUILD_LINUX: "bash eng/install-dotnet.sh --version 6.0.100 --os linux"
+          CIBW_ENVIRONMENT_LINUX: DOTNET_ROOT=/root/.dotnet
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=11.0
 
       - uses: actions/upload-artifact@v2
