@@ -3,6 +3,7 @@ requires = ["setuptools", "wheel", "scikit-build", "cmake", "ninja"]
 
 [tool.cibuildwheel.linux]
 before-build = "bash eng/install-dotnet.sh --version 6.0.100 --os linux"
+manylinux-x86_64_image = "manylinux2014"
 
 [tool.cibuildwheel.macos]
 before-build = "bash eng/install-dotnet.sh --version 6.0.100"
