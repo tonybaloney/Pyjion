@@ -27,7 +27,6 @@
 #define PYJION_PYJIT_H
 
 #include <cstdint>
-#include <windows.h>
 #include <cwchar>
 #include <cstdio>
 #include <cstddef>
@@ -35,16 +34,13 @@
 #include <climits>
 #include <cstring>
 #include <cfloat>
-#include <share.h>
-#include <intrin.h>
-
-#include <Python.h>
 
 #include <vector>
 #include <unordered_map>
 
-#include <frameobject.h>
 #include <Python.h>
+#include <frameobject.h>
+
 #include "codemodel.h"
 #include "absvalue.h"
 #include "attrtable.h"

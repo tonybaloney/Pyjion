@@ -27,7 +27,6 @@
 #define PYJION_CODEMODEL_H
 
 #include <stdint.h>
-#include <windows.h>
 #include <wchar.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -35,14 +34,13 @@
 #include <limits.h>
 #include <string.h>
 #include <float.h>
-#include <share.h>
 #include <cstdlib>
-#include <intrin.h>
 
 #include <utility>
 #include <vector>
 #include <unordered_map>
 
+#include <windows.h>
 #include <corjit.h>
 
 #include <Python.h>
