@@ -1,6 +1,10 @@
 [build-system]
 requires = ["setuptools", "wheel", "scikit-build", "cmake", "ninja"]
 
+[tool.cibuildwheel]
+skip = ["*-musllinux*"]
+
+
 [tool.cibuildwheel.linux]
 before-build = "bash eng/install-dotnet.sh --version 6.0.100 --os linux"
 manylinux-x86_64-image = "manylinux2014"
