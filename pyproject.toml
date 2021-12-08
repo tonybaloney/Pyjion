@@ -7,7 +7,7 @@ test-requires = "pytest"
 test-command = "pytest {project}/Tests"
 
 [tool.cibuildwheel.windows]
-before-build = ".\eng\install-dotnet.ps1 --version 6.0.100"
+before-build = ".\\eng\\install-dotnet.ps1 --version 6.0.100"
 archs = ["AMD64"]
 
 [tool.cibuildwheel.linux]
