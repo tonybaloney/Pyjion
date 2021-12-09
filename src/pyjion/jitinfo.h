@@ -57,6 +57,10 @@
 
 using namespace std;
 
+#ifdef WINDOWS
+extern "C" void stackProbeHelper();// Implemented in helpers.asm
+#endif
+
 const CORINFO_CLASS_HANDLE PYOBJECT_PTR_TYPE = (CORINFO_CLASS_HANDLE) 0x11;
 
 class CorJitInfo : public ICorJitInfo, public JittedCode {
@@ -110,8 +114,9 @@ public:
     /// CPython opcodes.
     static void breakpointFtn(){};
 
+#ifndef WINDOWS
     static void stackProbeHelper(){};
-
+#endif
 
     static void raiseOverflowExceptionHelper() {
         throw IntegerOverflowException();

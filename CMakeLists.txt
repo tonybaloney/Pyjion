@@ -185,7 +185,6 @@ if (WIN32)
         message(FATAL_ERROR "Cant locate .NET 6")
     endif()
     message(STATUS "Found .NET 6 in " ${DOTNETPATH})
-    add_definitions(-DINDIRECT_HELPERS)
 endif()
 
 add_definitions(-DGIL)  # use Python GIL on sub function calls
@@ -222,12 +221,22 @@ if (APPLE)
 endif()
 
 
+
 if(NET_SRC_LIB)  # use the libraries compiled from source
     set(DOTNETPATH ${CMAKE_SOURCE_DIR}/CoreCLR/artifacts/bin/coreclr/${CLR_OS_BUILD})
     message(STATUS "Using .NET builds " ${DOTNETPATH})
 endif()
 
 set(SOURCES src/pyjion/absint.cpp src/pyjion/absvalue.cpp src/pyjion/intrins.cpp src/pyjion/jitinit.cpp src/pyjion/pycomp.cpp src/pyjion/pyjit.cpp src/pyjion/exceptionhandling.cpp src/pyjion/stack.cpp src/pyjion/codemodel.cpp src/pyjion/binarycomp.cpp src/pyjion/instructions.cpp src/pyjion/unboxing.cpp src/pyjion/frame.h src/pyjion/pgc.cpp src/pyjion/base.cpp src/pyjion/objects/unboxedrangeobject.cpp src/pyjion/attrtable.cpp)
+
+if (WIN32)
+    enable_language(ASM_MASM)
+    add_definitions(-DINDIRECT_HELPERS)
+    if (IS_X64)
+        set(HOST_ASM_MASM_X86_64 true)
+    endif()
+    set(SOURCES ${SOURCES} src/pyjion/helpers.asm)
+endif()
 
 add_library(pyjionlib OBJECT ${SOURCES})
 add_library(_pyjion MODULE $<TARGET_OBJECTS:pyjionlib>)

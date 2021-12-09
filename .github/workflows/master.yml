@@ -250,18 +250,11 @@ jobs:
         shell: bash
         run: python setup.py install --generator "Visual Studio 16 2019"
 
-      - name: Build Python Wheel
-        shell: bash
+      - name: Run C++ unit tests
+        working-directory: ${{runner.workspace}}/build/Release
         run: |
-          rm -rf _skbuild
-          python setup.py bdist_wheel --generator "Visual Studio 16 2019"
-          WHEEL=$(find ./dist -name "*.whl" -printf "%p")
-          echo "WHEEL=$WHEEL" >> $GITHUB_ENV
-
-      - uses: actions/upload-artifact@v1
-        with:
-          name: dist
-          path: ${{ env.WHEEL }}
+          cp c:\Users\runneradmin\AppData\Local\Microsoft\dotnet\shared\Microsoft.NETCore.App\6.0.0\clrjit.dll .
+          .\unit_tests.exe
 
       - name: Setup Python tests
         shell: bash
