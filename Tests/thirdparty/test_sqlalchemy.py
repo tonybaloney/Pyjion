@@ -8,6 +8,7 @@ except ImportError:
     has_lib = False
 
 
+@pytest.mark.graph
 @pytest.mark.skipif(not has_lib, reason="Missing library")
 @pytest.mark.external
 def test_base_type():
