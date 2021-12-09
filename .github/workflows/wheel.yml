@@ -1,6 +1,8 @@
 name: Build
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ develop/main, develop/3.10 ]
 
 jobs:
   build_wheels:
