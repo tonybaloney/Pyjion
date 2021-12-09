@@ -2151,6 +2151,11 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
         return;
     }
 
+    if (PyType_HasFeature(pyType, Py_TPFLAGS_TYPE_SUBCLASS)){
+        emit_load_method(name);// Can't inline this type of method
+        return;
+    }
+
     auto meth = _PyType_Lookup(pyType, name);
 
     if (meth == nullptr || !PyType_HasFeature(Py_TYPE(meth), Py_TPFLAGS_METHOD_DESCRIPTOR)) {
