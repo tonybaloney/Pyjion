@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.2.1
+
+* Fixes a bug in OPT-12 (method caching) where it would store the incorrect cache address for a global type of subclass. Bug seen in SQLalchemy.
+
 ## 1.2.0
 
 * PGC unboxing errors are avoided when functions are called with different argument types to those it was optimized with. 
