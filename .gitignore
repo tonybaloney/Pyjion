@@ -31,3 +31,12 @@ src/pyjion/*.so
 src/pyjion/*.pyd
 *.py[co]
 __pycache__
+
+Tests/logs/
+pyjion-lib/src/packages/
+pyjion-lib/bin/
+pyjion-lib/src/Pyjionlib/
+pyjion-lib/src/.vs/
+pyjion-lib/src/Pyjionlib.Test/
+Tests/benchmarks/profiles/
+wheelhouse/
