@@ -7,8 +7,9 @@ test-requires = "pytest"
 test-command = "pytest {project}/Tests"
 
 [tool.cibuildwheel.windows]
-before-build = "powershell eng\\install-dotnet.ps1 -Version 6.0.100"
+before-build = "powershell eng\\install-dotnet.ps1 -Version 6.0.100 -InstallDir c:\\cibw\\dotnet"
 archs = ["AMD64"]
+environment = {DOTNET_ROOT="c:\\cibw\\dotnet"}
 
 [tool.cibuildwheel.linux]
 before-build = "bash eng/install-dotnet.sh --version 6.0.100 --os linux"
