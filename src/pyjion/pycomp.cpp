@@ -2163,13 +2163,16 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
         return;
     }
     Label guard_pass = emit_define_label(), guard_fail = emit_define_label();
+    Local object = emit_define_local(LK_Pointer);
+    emit_store_local(object);
     if (typeValue->needsGuard()){
-        m_il.dup();
+        emit_load_local(object);
         LD_FIELDI(PyObject, ob_type);
         emit_ptr(pyType);
         emit_branch(BranchNotEqual, guard_fail);
     }
     // Use cached method
+    emit_load_local(object);
     emit_ptr(meth);
     emit_ptr(meth);
     emit_incref();
@@ -2177,9 +2180,11 @@ void PythonCompiler::emit_builtin_method(PyObject* name, AbstractValue* typeValu
     if (typeValue->needsGuard()){
         emit_branch(BranchAlways, guard_pass);
         emit_mark_label(guard_fail);
+        emit_load_local(object);
         emit_load_method(name);
         emit_mark_label(guard_pass);
     }
+    emit_free_local(object);
 }
 
 void PythonCompiler::emit_call_function_inline(py_oparg n_args, AbstractValueWithSources func) {

@@ -40,7 +40,6 @@ test_audit
 test_augassign
 test_base64
 test_baseexception
-test_bdb
 test_bigaddrspace
 ##test_bigmem
 test_binascii

@@ -19,6 +19,7 @@ option(DUMP_SEQUENCE_POINTS "Dump IL and native sequence points after compiling"
 option(DUMP_INSTRUCTION_GRAPHS "Dump graphviz instruction graphs during compilation" OFF)
 option(DEBUG_VERBOSE "Verbose messages during execution" OFF)
 option(ASAN "Compile with address sanitizer" OFF)
+option(NET_SRC_LIB "Use .NET source library" OFF)
 include(eng/CMakeOptimizations.txt)
 include(eng/CMakeProfiling.txt)
 
