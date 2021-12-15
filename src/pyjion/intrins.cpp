@@ -2420,11 +2420,15 @@ void PyJit_DecRef(PyObject* value) {
 
 PyObject* PyJit_UnicodeJoinArray(PyObject* items, ssize_t count) {
     auto empty = PyUnicode_New(0, 0);
-    auto items_vec = std::vector<PyObject*>(count);
+#ifdef DEBUG
     for (size_t i = 0; i < count; i++) {
-        items_vec[i] = PyTuple_GET_ITEM(items, i);
+        if (PyTuple_GET_ITEM(items, i) == nullptr){
+            PyErr_Format(PyExc_ValueError, "Invalid item at index %d", i);
+            return nullptr;
+        }
     }
-    auto res = _PyUnicode_JoinArray(empty, items_vec.data(), count);
+#endif
+    auto res = _PyUnicode_JoinArray(empty, ((PyTupleObject*)items)->ob_item, count);
     Py_DECREF(items);
     Py_DECREF(empty);
     return res;
