@@ -148,20 +148,21 @@ public:
         info->m_location = (ssize_t) m_il.size();
         for (size_t idx = 0; idx < info->m_branchOffsets.size(); idx++) {
             auto from = info->m_branchOffsets[idx];
-            auto i = info->m_location - (from + 4);// relative to the end of the instruction
-            if ((i & 0xFF) == i) {
+            auto short_i = info->m_location - (from + 1);// relative to the end of the instruction
+            if ((short_i & 0xFF) == short_i) {
                 m_il[from - 1] = shortBranchEquivalent.at(m_il[from - 1]);
-                m_il[from] = i & 0xFF;
+                m_il[from] = short_i;
                 m_il[from + 1] = CEE_NOP;
                 m_il[from + 2] = CEE_NOP;
                 m_il[from + 3] = CEE_NOP;
             } else {
-                m_il[from] = i & 0xFF;
-                m_il[from + 1] = (i >> 8) & 0xFF;
-                m_il[from + 2] = (i >> 16) & 0xFF;
-                m_il[from + 3] = (i >> 24) & 0xFF;
+                auto long_i = info->m_location - (from + 4);// relative to the end of the instruction
+
+                m_il[from] = long_i & 0xFF;
+                m_il[from + 1] = (long_i >> 8) & 0xFF;
+                m_il[from + 2] = (long_i >> 16) & 0xFF;
+                m_il[from + 3] = (long_i >> 24) & 0xFF;
             }
-            
         }
     }
 
