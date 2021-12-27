@@ -75,13 +75,28 @@ class ILGenerator : public PyjionBase {
     unordered_map<CorInfoType, vector<Local>, CorInfoTypeHash> m_freedLocals;
     vector<pair<size_t, uint32_t>> m_sequencePoints;
     vector<pair<size_t, int32_t>> m_callPoints;
+    const unordered_map<BYTE, BYTE> shortBranchEquivalent{ 
+        {CEE_BR, CEE_BR_S}, 
+        {CEE_BRTRUE, CEE_BRTRUE_S}, 
+        {CEE_BRFALSE, CEE_BRFALSE_S},
+        {CEE_BEQ, CEE_BEQ_S},
+        {CEE_BNE_UN, CEE_BNE_UN_S},
+        {CEE_LEAVE, CEE_LEAVE_S},
+        {CEE_BLE, CEE_BLE_S},
+        {CEE_BLE_UN, CEE_BLE_UN_S},
+        {CEE_BGT, CEE_BGT_S},
+        {CEE_BGT_UN, CEE_BGT_UN_S},
+        {CEE_BGE, CEE_BGE_S},
+        {CEE_BGE_UN, CEE_BGE_UN_S},
+        {CEE_BLT, CEE_BLT_S},
+        {CEE_BLT_UN, CEE_BLT_UN_S}
+    };
 
 public:
     vector<BYTE> m_il;
     uint16_t m_localCount;
     vector<LabelInfo> m_labels;
 
-public:
     ILGenerator(BaseModule* module, CorInfoType returnType, std::vector<Parameter> params) {
         m_module = module;
         m_retType = returnType;
@@ -131,13 +146,22 @@ public:
     void mark_label(Label label) {
         auto info = &m_labels[label.m_index];
         info->m_location = (ssize_t) m_il.size();
-        for (size_t i = 0; i < info->m_branchOffsets.size(); i++) {
-            auto from = info->m_branchOffsets[i];
-            auto offset = info->m_location - (from + 4);// relative to the end of the instruction
-            m_il[from] = offset & 0xFF;
-            m_il[from + 1] = (offset >> 8) & 0xFF;
-            m_il[from + 2] = (offset >> 16) & 0xFF;
-            m_il[from + 3] = (offset >> 24) & 0xFF;
+        for (size_t idx = 0; idx < info->m_branchOffsets.size(); idx++) {
+            auto from = info->m_branchOffsets[idx];
+            auto i = info->m_location - (from + 4);// relative to the end of the instruction
+            if ((i & 0xFF) == i) {
+                m_il[from - 1] = shortBranchEquivalent.at(m_il[from - 1]);
+                m_il[from] = i & 0xFF;
+                m_il[from + 1] = CEE_NOP;
+                m_il[from + 2] = CEE_NOP;
+                m_il[from + 3] = CEE_NOP;
+            } else {
+                m_il[from] = i & 0xFF;
+                m_il[from + 1] = (i >> 8) & 0xFF;
+                m_il[from + 2] = (i >> 16) & 0xFF;
+                m_il[from + 3] = (i >> 24) & 0xFF;
+            }
+            
         }
     }
 
@@ -320,6 +344,8 @@ public:
                 case BranchLessThanUnsigned:
                     push_back(CEE_BLT_UN_S);// Pop1+Pop1, Push0
                     break;
+                default:
+                    throw UnexpectedValueException();
             }
             push_back((BYTE) offset - 2);
         } else {
@@ -366,6 +392,8 @@ public:
                 case BranchLessThanUnsigned:
                     push_back(CEE_BLT_UN);// Pop1+Pop1, Push0
                     break;
+                default:
+                    throw UnexpectedValueException();
             }
             emit_int(offset - 5);
         }
