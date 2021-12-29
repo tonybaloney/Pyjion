@@ -147,21 +147,20 @@ public:
         auto info = &m_labels[label.m_index];
         info->m_location = (ssize_t) m_il.size();
         for (size_t idx = 0; idx < info->m_branchOffsets.size(); idx++) {
-            auto from = info->m_branchOffsets[idx];
-            auto short_i = info->m_location - (from + 1);// relative to the end of the instruction
-            if ((short_i & 0xFF) == short_i) {
-                m_il[from - 1] = shortBranchEquivalent.at(m_il[from - 1]);
-                m_il[from] = short_i;
-                m_il[from + 1] = CEE_NOP;
+            ssize_t from = info->m_branchOffsets[idx];
+            ssize_t short_i = info->m_location - (from + 2); // relative to the end of the instruction
+            if (short_i > -128 && short_i < 128) {
+                m_il[from] = shortBranchEquivalent.at(m_il[from]);
+                m_il[from + 1] = (BYTE)short_i;
                 m_il[from + 2] = CEE_NOP;
                 m_il[from + 3] = CEE_NOP;
+                m_il[from + 4] = CEE_NOP;
             } else {
-                auto long_i = info->m_location - (from + 4);// relative to the end of the instruction
-
-                m_il[from] = long_i & 0xFF;
-                m_il[from + 1] = (long_i >> 8) & 0xFF;
-                m_il[from + 2] = (long_i >> 16) & 0xFF;
-                m_il[from + 3] = (long_i >> 24) & 0xFF;
+                ssize_t long_i = info->m_location - (from + 5); // relative to the end of the instruction
+                m_il[from + 1] = long_i & 0xFF;
+                m_il[from + 2] = (long_i >> 8) & 0xFF;
+                m_il[from + 3] = (long_i >> 16) & 0xFF;
+                m_il[from + 4] = (long_i >> 24) & 0xFF;
             }
         }
     }
@@ -288,7 +287,7 @@ public:
     void branch(BranchType branchType, Label label) {
         auto info = &m_labels[label.m_index];
         if (info->m_location == -1) {
-            info->m_branchOffsets.push_back((int) m_il.size() + 1);
+            info->m_branchOffsets.push_back(m_il.size());
             branch(branchType, 0xFFFF);
         } else {
             branch(branchType, (int) (info->m_location - m_il.size()));

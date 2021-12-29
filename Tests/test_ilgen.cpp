@@ -131,6 +131,32 @@ TEST_CASE("Test locals") {
         int32_t result = ((Returns_int32) method.getAddr())();
         CHECK(result == value);
     }
+    SECTION("test simple loop") {
+        auto test_module = new UserModule(g_module);
+        auto gen = new ILGenerator(
+                test_module,
+                CORINFO_TYPE_INT,
+                std::vector<Parameter>{});
+        Label finished = gen->define_label(), another = gen->define_label();
+        gen->ld_i4(0);
+        auto l = gen->define_local(Parameter(CORINFO_TYPE_INT));
+        gen->st_loc(l);
+        gen->mark_label(another);
+        gen->ld_loc(l);
+        gen->ld_i4(1);
+        gen->add();
+        gen->st_loc(l);
+        gen->ld_loc(l);
+        gen->ld_i4(4);
+        gen->branch(BranchLessThan, another);
+        gen->ld_loc(l);
+        gen->ret();
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        JITMethod method = gen->compile(jitInfo, g_jit, 100);
+        REQUIRE(method.m_addr != nullptr);
+        int32_t result = ((Returns_int32) method.getAddr())();
+        CHECK(result == 4);
+    }
 }
 TEST_CASE("Test branch true of floats") {
     SECTION("test branch true emitter") {
