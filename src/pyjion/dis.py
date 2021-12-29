@@ -412,7 +412,8 @@ def print_il(il: bytearray, symbols, offsets=None, bytecodes=None, print_pc=True
                 continue
             elif op.size == ShortInlineBrTarget:
                 target = int.from_bytes((next(i),), byteorder='little', signed=True)
-                print(f"{pc_label}{op.name} {target}")
+                effective_target = (pc + 2) + target # What is the actual destination address
+                print(f"{pc_label}{op.name} {target} (IL_{effective_target:04x})")
                 pc += 2
                 continue
             elif op.size == ShortInlineVar:
@@ -432,7 +433,8 @@ def print_il(il: bytearray, symbols, offsets=None, bytecodes=None, print_pc=True
                 continue
             elif op.size == InlineBrTarget:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
-                print(f"{pc_label}{op.name} {target}")
+                effective_target = (pc + 5) + target # What is the actual destination address
+                print(f"{pc_label}{op.name} {target} (IL_{effective_target:04x})")
                 pc += 5
                 continue
             elif op.size == InlineField:
