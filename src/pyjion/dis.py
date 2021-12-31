@@ -393,7 +393,7 @@ def print_il(il: bytearray, symbols, offsets=None, bytecodes=None, print_pc=True
         while True:
             # See if this is the offset of a matching Python instruction
             if offsets and bytecodes:
-                for py_offset, il_offset, native_offset, offset_type in offsets:
+                for py_offset, il_offset, _, offset_type in offsets:
                     if il_offset == pc and offset_type == 'instruction':
                         try:
                             instruction = bytecodes[py_offset]
