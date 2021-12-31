@@ -1,4 +1,4 @@
-from pyjion.dis import print_il, dis, dis_native
+from pyjion.dis import print_il, dis, dis_native, flow_graph
 import pyjion
 import sys
 import pytest
@@ -25,6 +25,16 @@ def test_dis(capsys):
     captured = capsys.readouterr()
 
     assert "ldarg.1" in captured.out
+
+
+def test_flow_graph():
+    def test_f():
+        numbers = (1, 2, 3, 4)
+        return sum(numbers)
+
+    assert test_f() == 10
+    graph = flow_graph(test_f)
+    assert "digraph" in graph
 
 
 @pytest.mark.graph
