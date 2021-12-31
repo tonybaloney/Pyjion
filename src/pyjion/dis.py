@@ -379,6 +379,13 @@ class CILInstruction:
     argument: Optional[Any]
     jump_offset: Optional[int]
 
+    def __str__(self):
+        if self.jump_offset:
+            return f"{self.opcode.name} {self.argument} (IL_{self.jump_offset:04x})"
+        if self.argument:
+            return f"{self.opcode.name} {self.argument}"
+        return f"{self.opcode.name}"
+
 
 
 opcode_map: Dict[int, OPDEF] = {}
@@ -402,7 +409,8 @@ def cil_instructions(il, symbols) -> List[CILInstruction]:
 
             op = opcode_map[first]
             if op.size == InlineNone:
-                instructions.append(CILInstruction(pc, op, None, None))
+                if op.cee_code != "CEE_NOP":
+                    instructions.append(CILInstruction(pc, op, None, None))
                 pc += 1
                 continue
             elif op.size == ShortInlineBrTarget:
@@ -509,10 +517,7 @@ def print_il(il: bytearray, symbols, offsets=None, bytecodes=None, print_pc=True
                         warn("Invalid offset {0}".format(offsets))
 
         pc_label = f"IL_{instruction.offset:04x}: " if print_pc else ""
-        if instruction.jump_offset:
-            print(f"{pc_label}{instruction.opcode.name} {instruction.argument} (IL_{instruction.jump_offset:04x})")
-        else:
-            print(f"{pc_label}{instruction.opcode.name} {instruction.argument}")
+        print(f"{pc_label}{instruction}")
 
 
 def flow_graph(f):
@@ -529,38 +534,64 @@ def flow_graph(f):
         print("No IL for this function, it may not have compiled correctly.")
         return
     instructions = cil_instructions(_il, symbols(f))
-    result += "digraph g {\n"
+    result += """
+digraph g {
+graph [
+rankdir = "LR"
+];
+node [
+fontsize = "16"
+shape = "ellipse"
+];
+edge [
+];\n
+"""
     block_starts: Set[int] = {0}
     block_jumps = []  # list of tuples (from, to)
+    jump_to_block = {}
 
     # Compile a list of basic block starts
     for idx, instruction in enumerate(instructions):
         if instruction.jump_offset:
-            if instruction.opcode.cee_code == "CEE_BR" or instruction.opcode.cee_code == "CEE_BR_S":
-                block_starts.add(instruction.jump_offset)
-                block_jumps.append((instruction.offset, instruction.jump_offset))
-            else:  # Conditional branches
-                block_starts.add(instruction.jump_offset)
-                block_jumps.append((instruction.offset, instruction.jump_offset))
-                block_starts.add(instructions[idx+1].jump_offset)
+            block_starts.add(instruction.jump_offset)
+            block_jumps.append((instruction.offset, instruction.jump_offset))
+            if instruction.opcode.cee_code not in ["CEE_BR", "CEE_BR_S"]:
+                block_starts.add(instructions[idx+1].offset)
                 block_jumps.append((instruction.offset, instructions[idx+1].offset))
 
     in_block = False
+    cur_block = None
+    labels = []
     for idx, instruction in enumerate(instructions):
         if instruction.offset in block_starts:
             if in_block:
-                result += '"\nshape = "record"\n];\n'
-            result += f'"block_{instruction.offset:04x}" [\nlabel="'
-            in_block = True
+                result += "label = \"" + ' | '.join(labels) + "\"\n"
+                labels.clear()
+                result += 'shape = "record"\n];\n'
+                # Add fall-through jumps
+                if instructions[idx-1].opcode.size not in [InlineBrTarget, ShortInlineBrTarget]:
+                    if (instructions[idx-1].offset, instruction.offset) not in block_jumps:
+                        block_jumps.append((instructions[idx-1].offset, instruction.offset))
+                        jump_to_block[instructions[idx-1].offset] = cur_block
 
-        result += f"<IL{instruction.offset:04x}> {instruction.offset:04x}{instruction.opcode.name} {instruction.argument} | "
+            result += f'"block_{instruction.offset:04x}" [\n'
+            in_block = True
+            cur_block = f"block_{instruction.offset:04x}"
+        if instruction.jump_offset:
+            jump_to_block[instruction.offset] = cur_block
+
+        labels.append(f"<IL{instruction.offset:04x}> {instruction.offset:04x} : {instruction}")
 
     if in_block:
-        result += '"\nshape = "record"\n];\n'
+        result += "label = \"" + ' | '.join(labels) + "\"\n"
+        labels.clear()
+        result += 'shape = "record"\n];\n'
 
     for from_, to in block_jumps:
-        result += f':IL{from_:04x} -> "block_{to:04x}":IL{to:04x};\n'
+        resolved_block = jump_to_block[from_]
+        result += f'{resolved_block}:IL{from_:04x} -> "block_{to:04x}":IL{to:04x};\n'
 
+    result += "\n}\n"
     return result
 
 
