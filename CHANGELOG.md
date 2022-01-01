@@ -2,10 +2,10 @@
 
 ## 1.2.2
 
-* enable ASAN for Windows
-* Map short branch equivalent and patch out 3 bytes to a nop
-* Fix offset calculation
-* Create a simple loop test and check for 1 byte signed size
+* Added `pyjion.dis.flow_graph()` function to get a DOT control flow-graph of CIL basic blocks
+* Added `pyjion.dis.cil_instructions()` function to get a list of CIL instructions from a compiled function
+* Enable ASAN for Windows (compile-time option)
+* CIL compiles to short branch opcodes when target is within 1 byte
 * Show effective branch target on CIL disassembly output
 
 ## 1.2.1

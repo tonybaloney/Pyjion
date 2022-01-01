@@ -522,7 +522,7 @@ def print_il(il: bytearray, symbols, offsets=None, bytecodes=None, print_pc=True
 
 def flow_graph(f):
     """
-    Return a flow-graph in DOT syntax for the CIL instructions for f
+    Return a control flow-graph in DOT syntax for the CIL instructions for f
 
     :param f: The compiled function or code object
     :returns: The Graph in DOT format
