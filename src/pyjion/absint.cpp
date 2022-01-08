@@ -1503,7 +1503,7 @@ AbstactInterpreterCompileWorkerResult AbstractInterpreter::compileWorker(PgcStat
         }
 
         if (!canSkipLastiUpdate(op.opcode, (CAN_UNBOX() && op.escape))) {
-            m_comp->emit_lasti_update(op.index);
+            m_comp->emit_lasti_update(op.index); // TODO: See if it makes more sense to put this in branchRaise()
             if (mTracingEnabled)
                 m_comp->emit_trace_line(mTracingLastInstr);
         }
