@@ -1969,7 +1969,7 @@ AbstactInterpreterCompileWorkerResult AbstractInterpreter::compileWorker(PgcStat
                     // And if the last one failed, then all of the values have been
                     // decref'd
                     m_comp->emit_mark_label(frees[op.oparg - 1]);
-                    branchRaise(CUR_HANDLER, "build set failed");
+                    branchRaise(CUR_HANDLER, "build set failed", "", op.index);
 
                     m_comp->emit_mark_label(noErr);
                     delete[] frees;
@@ -2225,7 +2225,7 @@ AbstactInterpreterCompileWorkerResult AbstractInterpreter::compileWorker(PgcStat
                     m_comp->emit_ptr((void*) SIG_ITER_ERROR);
                     m_comp->emit_branch(BranchNotEqual, noErr);
 
-                    branchRaise(CUR_HANDLER, "failed to fetch iter", "", 0);
+                    branchRaise(CUR_HANDLER, "failed to fetch iter", "", op.index);
                     m_comp->emit_mark_label(noErr);
                     m_comp->emit_load_local(mErrorCheckLocal);
 
@@ -2721,9 +2721,6 @@ bool AbstractInterpreter::canSkipLastiUpdate(py_opcode opcode, bool unboxed) {
         case STORE_FAST:
         case LOAD_FAST:
         case DELETE_FAST:
-        case GET_ITER:
-        case FOR_ITER:
-        case BINARY_SUBSCR:
         case BINARY_LSHIFT:
         case BINARY_RSHIFT:
         case BINARY_AND:
@@ -2733,7 +2730,6 @@ bool AbstractInterpreter::canSkipLastiUpdate(py_opcode opcode, bool unboxed) {
         case UNARY_POSITIVE:
         case UNARY_NEGATIVE:
         case UNARY_INVERT:
-        case STORE_SUBSCR:
             return unboxed;
 
         case DUP_TOP:
