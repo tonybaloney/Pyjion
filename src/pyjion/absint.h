@@ -379,7 +379,7 @@ private:
     AbstractSource* addGlobalSource(py_opindex opcodeIndex, py_oparg constIndex, const char* name, PyObject* value);
     AbstractSource* addBuiltinSource(py_opindex opcodeIndex, py_oparg constIndex, const char* name, PyObject* value);
 
-    bool canSkipLastiUpdate(py_opcode opcode);
+    bool canSkipLastiUpdate(py_opcode opcode, bool unboxed);
     void buildTuple(ExceptionHandler*, py_oparg argCnt);
     void emitPgcProbes(py_opindex pos, size_t size, const vector<Edge>& edges);
 

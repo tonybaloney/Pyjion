@@ -1502,11 +1502,10 @@ AbstactInterpreterCompileWorkerResult AbstractInterpreter::compileWorker(PgcStat
             m_comp->emit_fetch_err();
         }
 
-        if (!canSkipLastiUpdate(op.opcode) && !(CAN_UNBOX() && op.escape)) {
+        if (!canSkipLastiUpdate(op.opcode, (CAN_UNBOX() && op.escape))) {
             m_comp->emit_lasti_update(op.index);
-        }
-        if (!canSkipLastiUpdate(op.opcode ) && mTracingEnabled) {
-            m_comp->emit_trace_line(mTracingLastInstr);
+            if (mTracingEnabled)
+                m_comp->emit_trace_line(mTracingLastInstr);
         }
         auto stackInfo = getStackInfo(curByte);
 
@@ -2077,6 +2076,7 @@ AbstactInterpreterCompileWorkerResult AbstractInterpreter::compileWorker(PgcStat
                         auto retKind = m_comp->emit_unboxed_binary_object(byte, stackInfo.second(), stackInfo.top());
                         decStack(2);
                         if (canReturnInfinity(byte)) {
+                            m_comp->emit_lasti_update(op.index);
                             switch (retKind) {
                                 case LK_Float:
                                     invalidFloatErrorCheck(CUR_HANDLER, "unboxed binary op failed", op.index, byte);
@@ -2700,8 +2700,42 @@ AbstactInterpreterCompileResult AbstractInterpreter::compile(PyObject* builtins,
     }
 }
 
-bool AbstractInterpreter::canSkipLastiUpdate(py_opcode opcode) {
+bool AbstractInterpreter::canSkipLastiUpdate(py_opcode opcode, bool unboxed) {
     switch (opcode) {
+        case COMPARE_OP:
+        case BINARY_POWER:
+        case INPLACE_POWER:
+        case INPLACE_MULTIPLY:
+        case BINARY_MULTIPLY:
+        case INPLACE_MODULO:
+        case BINARY_MODULO:
+        case INPLACE_ADD:
+        case BINARY_ADD:
+        case BINARY_FLOOR_DIVIDE:
+        case INPLACE_FLOOR_DIVIDE:
+        case INPLACE_TRUE_DIVIDE:
+        case BINARY_TRUE_DIVIDE:
+        case INPLACE_SUBTRACT:
+        case BINARY_SUBTRACT:
+        case LOAD_CONST:
+        case STORE_FAST:
+        case LOAD_FAST:
+        case DELETE_FAST:
+        case GET_ITER:
+        case FOR_ITER:
+        case BINARY_SUBSCR:
+        case BINARY_LSHIFT:
+        case BINARY_RSHIFT:
+        case BINARY_AND:
+        case BINARY_OR:
+        case BINARY_XOR:
+        case UNARY_NOT:
+        case UNARY_POSITIVE:
+        case UNARY_NEGATIVE:
+        case UNARY_INVERT:
+        case STORE_SUBSCR:
+            return unboxed;
+
         case DUP_TOP:
         case DUP_TOP_TWO:
         case NOP:

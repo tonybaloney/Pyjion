@@ -42,7 +42,7 @@ void incref(T v, Args... args) {
 }
 
 TEST_CASE("Test math errors") {
-    SECTION("test2") {
+    SECTION("test float divide by zero") {
         auto t = EmissionTest(
                 "def f(): 1.0 / 0");
         CHECK(t.raises() == PyExc_ZeroDivisionError);
