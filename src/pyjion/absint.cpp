@@ -1505,7 +1505,7 @@ AbstactInterpreterCompileWorkerResult AbstractInterpreter::compileWorker(PgcStat
         if (!canSkipLastiUpdate(op.opcode) && !(CAN_UNBOX() && op.escape)) {
             m_comp->emit_lasti_update(op.index);
         }
-        if (!canSkipLastiUpdate(op.opcode ) && mTracingEnabled) {{ 
+        if (!canSkipLastiUpdate(op.opcode ) && mTracingEnabled) {
             m_comp->emit_trace_line(mTracingLastInstr);
         }
         auto stackInfo = getStackInfo(curByte);
