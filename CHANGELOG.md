@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.2.3
+
+* Unboxed operations won't update frame last instruction since they're unable to raise exceptions (making them faster)
+
 ## 1.2.2
 
 * Added `pyjion.dis.flow_graph()` function to get a DOT control flow-graph of CIL basic blocks
