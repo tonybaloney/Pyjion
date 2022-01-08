@@ -1502,11 +1502,11 @@ AbstactInterpreterCompileWorkerResult AbstractInterpreter::compileWorker(PgcStat
             m_comp->emit_fetch_err();
         }
 
-        if (!canSkipLastiUpdate(op.opcode)) {
+        if (!canSkipLastiUpdate(op.opcode) && !(CAN_UNBOX() && op.escape)) {
             m_comp->emit_lasti_update(op.index);
-            if (mTracingEnabled) {
-                m_comp->emit_trace_line(mTracingLastInstr);
-            }
+        }
+        if (!canSkipLastiUpdate(op.opcode ) && mTracingEnabled) {{ 
+            m_comp->emit_trace_line(mTracingLastInstr);
         }
         auto stackInfo = getStackInfo(curByte);
 

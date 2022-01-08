@@ -72,6 +72,17 @@ if __name__ == "__main__":
                                 if g:
                                     dot.write(g)
                                     dot.write('')
+                with open(graphs_out / f'{f.stem}_cfg.dot', 'w') as dot:
+                    for k, attrib in i.__dict__.items():
+                        if hasattr(attrib, "__code__"):
+                            if pyjion.info(attrib.__code__).failed:
+                                warnings.warn(
+                                    f"Failed to compile {attrib.__code__} with result {pyjion.info(attrib.__code__).compile_result}")
+                            else:
+                                g = pyjion.dis.flow_graph(attrib.__code__)
+                                if g:
+                                    dot.write(g)
+                                    dot.write('')
 
                 delta_mean = (abs(fmean(with_result) - fmean(without_result)) / fmean(without_result)) * 100.0
                 delta_min = (abs(min(with_result) - min(without_result)) / min(without_result)) * 100.0
