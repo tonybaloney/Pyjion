@@ -654,7 +654,7 @@ def dis_native(f, include_offsets=False, print_pc=True) -> None:
     offsets = [offset for (offset, _) in disassembled]
     instructions = [instruction for (_, instruction) in disassembled]
 
-    syntax = Syntax("", lexer_name="nasm", theme="ansi_dark")
+    syntax = Syntax("", lexer="nasm", theme="ansi_dark")
     highlighted_lines = syntax.highlight("\n".join(instructions)).split("\n")
 
     for (offset, line) in zip(offsets, highlighted_lines):
