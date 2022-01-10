@@ -1,4 +1,4 @@
-from pyjion.dis import print_il, dis, dis_native, flow_graph
+from pyjion.dis import print_il, dis, dis_native, flow_graph, cil_instructions
 import pyjion
 import sys
 import pytest
@@ -28,13 +28,28 @@ def test_dis(capsys):
 
 
 def test_flow_graph():
-    def test_f():
+    def f():
         numbers = (1, 2, 3, 4)
         return sum(numbers)
 
-    assert test_f() == 10
-    graph = flow_graph(test_f)
+    assert f() == 10
+    graph = flow_graph(f)
     assert "digraph" in graph
+
+
+def test_jump_offsets():
+    def f():
+        a = 2
+        b = 3.0
+        c = 4.0
+        c += a * b
+        return c
+    assert f() == 10.0
+    instructions = cil_instructions(pyjion.il(f), pyjion.symbols(f))
+    for i in instructions:
+        if i.jump_offset:
+            assert i.jump_offset < instructions[-1].offset
+
 
 
 @pytest.mark.graph
