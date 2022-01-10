@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.2.4
+
+* Updated to rich 11.0
+* Fix a bug in the CIL disassembler for constant double (LDC_R8) opcodes
+
 ## 1.2.3
 
 * Unboxed operations won't update frame last instruction since they're unable to raise exceptions (making them faster)
