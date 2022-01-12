@@ -446,9 +446,9 @@ def cil_instructions(il, symbols) -> List[CILInstruction]:
                 pc += 5
                 continue
             elif op.size == InlineR:
-                [target] = struct.unpack('f', bytes((next(i), next(i), next(i), next(i))))
+                target = struct.unpack('d', bytes((next(i), next(i), next(i), next(i), next(i), next(i), next(i), next(i))))
                 instructions.append(CILInstruction(pc, op, target, None))
-                pc += 5
+                pc += 9
                 continue
             elif op.size == InlineI:
                 target = int.from_bytes((next(i), next(i), next(i), next(i)), byteorder='little', signed=True)
