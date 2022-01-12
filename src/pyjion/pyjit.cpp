@@ -711,7 +711,17 @@ return_result:
     PyDict_SetItemString(res, "clrjitpath", PyUnicode_FromWideChar(g_pyjionSettings.clrjitpath, -1));
     PyDict_SetItemString(res, "pgc", g_pyjionSettings.pgc ? Py_True : Py_False);
     PyDict_SetItemString(res, "graph", g_pyjionSettings.graph ? Py_True : Py_False);
-    PyDict_SetItemString(res, "debug", g_pyjionSettings.debug ? Py_True : Py_False);
+    switch (g_pyjionSettings.debug){
+        case DebugMode::Release:
+            PyDict_SetItemString(res, "debug", PyLong_FromLong(0));
+            break;
+        case DebugMode::Debug:
+            PyDict_SetItemString(res, "debug", PyLong_FromLong(1));
+            break;
+        case DebugMode::ReleaseWithDebugInfo:
+            PyDict_SetItemString(res, "debug", PyLong_FromLong(2));
+            break;
+    }
     PyDict_SetItemString(res, "level", PyLong_FromLong(g_pyjionSettings.optimizationLevel));
     PyDict_SetItemString(res, "threshold", PyLong_FromLong(g_pyjionSettings.threshold));
 

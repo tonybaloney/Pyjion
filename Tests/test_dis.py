@@ -15,6 +15,31 @@ def test_offsets():
     assert len(offsets) > 7
 
 
+def test_offsets_in_release():
+    def _f(x):
+        return x / 2
+
+    pyjion.config(debug=0)
+
+    assert _f(4) == 2.0
+
+    offsets = pyjion.offsets(_f)
+    assert len(offsets) == 0
+    pyjion.config(debug=1)
+
+
+def test_offsets_in_release_with_debinfo():
+    def _f(x):
+        return x / 2
+
+    pyjion.config(debug=2)
+    assert _f(4) == 2.0
+
+    offsets = pyjion.offsets(_f)
+    assert len(offsets) > 7
+    pyjion.config(debug=1)
+
+
 def test_dis(capsys):
     def test_f():
         numbers = (1, 2, 3, 4)
