@@ -152,6 +152,12 @@ class PgcStatus(IntEnum):
     Optimized = 2
 
 
+class CompileMode(IntEnum):
+    Release = 0
+    Debug = 1
+    ReleaseWithDebugInfo = 2
+
+
 @dataclass()
 class JitInfo:
     failed: bool

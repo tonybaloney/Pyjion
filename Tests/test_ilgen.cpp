@@ -55,7 +55,7 @@ TEST_CASE("Test numerics") {
                 std::vector<Parameter>{});
         gen->ld_i4(value);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         int32_t result = ((Returns_int32) method.getAddr())();
@@ -71,7 +71,7 @@ TEST_CASE("Test numerics") {
                 std::vector<Parameter>{});
         gen->ld_u4(value);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         uint32_t result = ((Returns_uint32) method.getAddr())();
@@ -87,7 +87,7 @@ TEST_CASE("Test numerics") {
                 std::vector<Parameter>{});
         gen->ld_i8(value);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         int64_t result = ((Returns_int64) method.getAddr())();
@@ -103,7 +103,7 @@ TEST_CASE("Test numerics") {
                 std::vector<Parameter>{});
         gen->ld_r8(value);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         double result = ((Returns_double) method.getAddr())();
@@ -125,7 +125,7 @@ TEST_CASE("Test locals") {
         gen->st_loc(l);
         gen->ld_loc(l);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         int32_t result = ((Returns_int32) method.getAddr())();
@@ -151,7 +151,7 @@ TEST_CASE("Test locals") {
         gen->branch(BranchLessThan, another);
         gen->ld_loc(l);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         int32_t result = ((Returns_int32) method.getAddr())();
@@ -174,7 +174,7 @@ TEST_CASE("Test branch true of floats") {
         gen->ld_i4(3);
         gen->mark_label(end);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         int32_t result = ((Returns_int32) method.getAddr())();
@@ -195,7 +195,7 @@ TEST_CASE("Test branch true of floats") {
         gen->ld_i4(3);
         gen->mark_label(end);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         int32_t result = ((Returns_int32) method.getAddr())();
@@ -217,7 +217,7 @@ TEST_CASE("Test branch true of floats") {
         gen->ld_i4(3);
         gen->mark_label(end);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         int32_t result = ((Returns_int32) method.getAddr())();
@@ -236,7 +236,7 @@ TEST_CASE("Test call") {
         gen->ld_i8(5);
         gen->emit_call(METHOD_INT_TRUE_DIVIDE);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_call", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_call", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         double result = ((Returns_double) method.getAddr())();
@@ -257,7 +257,7 @@ TEST_CASE("Test intrinsics") {
         gen->ld_i8(5);
         gen->emit_call(INTRINSIC_TEST);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_call", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_call", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         double result = ((Returns_double) method.getAddr())();
@@ -277,7 +277,7 @@ TEST_CASE("Test valuetype"){
         gen->define_local(Parameter(CORINFO_TYPE_VALUECLASS));
         gen->ld_r8(2.0);
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_call", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_call", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         double result = ((Returns_double) method.getAddr())();
@@ -299,7 +299,7 @@ TEST_CASE("Test binary operations") {
         gen->ld_i4(value2);
         gen->lshift();
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         int32_t result = ((Returns_int32) method.getAddr())();
@@ -317,7 +317,7 @@ TEST_CASE("Test binary operations") {
         gen->ld_i4(value2);
         gen->rshift();
         gen->ret();
-        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, true);
+        auto* jitInfo = new CorJitInfo("test_module", "test_32_int", test_module, DebugMode::Debug);
         JITMethod method = gen->compile(jitInfo, g_jit, 100);
         REQUIRE(method.m_addr != nullptr);
         int32_t result = ((Returns_int32) method.getAddr())();

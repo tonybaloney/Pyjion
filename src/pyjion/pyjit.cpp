@@ -659,11 +659,23 @@ pyjion_config(PyObject* self, PyObject* args, PyObject* kwargs) {
     debug = PyDict_GetItemString(kwargs, "debug");
     if (debug != nullptr) {
         // debug
-        if (!PyBool_Check(debug)) {
-            PyErr_SetString(PyExc_TypeError, "Expected bool for debug flag");
+        if (PyBool_Check(debug)) {
+            g_pyjionSettings.debug = debug == Py_True ? DebugMode::Debug : DebugMode::Release;
+        }
+        else if (PyLong_Check(debug)){
+            auto debugEnum = PyLong_AsLong(debug);
+            switch (debugEnum){
+                case 0: g_pyjionSettings.debug = DebugMode::Release; break;
+                case 1: g_pyjionSettings.debug = DebugMode::Debug; break;
+                case 2: g_pyjionSettings.debug = DebugMode::ReleaseWithDebugInfo; break;
+                default:
+                    PyErr_SetString(PyExc_ValueError, "Debug mode not in range of 0-2");
+                    return nullptr;
+            }
+        } else {
+            PyErr_SetString(PyExc_TypeError, "Expected bool or int for debug flag");
             return nullptr;
         }
-        g_pyjionSettings.debug = debug == Py_True ? true : false;
     }
     graph = PyDict_GetItemString(kwargs, "graph");
     if (graph) {

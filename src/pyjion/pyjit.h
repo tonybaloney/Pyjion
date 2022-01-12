@@ -40,6 +40,7 @@
 
 #include <Python.h>
 #include <frameobject.h>
+#include "ipycomp.h"
 
 #include "codemodel.h"
 #include "absvalue.h"
@@ -112,9 +113,9 @@ typedef struct PyjionSettings {
     uint32_t recursionLimit = DEFAULT_RECURSION_LIMIT;
     uint32_t codeObjectSizeLimit = DEFAULT_CODEOBJECT_SIZE_LIMIT;
 #ifdef DEBUG
-    bool debug = true;
+    DebugMode debug = DebugMode::Debug;
 #else
-    bool debug = false;
+    DebugMode debug = DebugMode::Release;
 #endif
     bool exceptionHandling = false;
     const wchar_t* clrjitpath = L"";

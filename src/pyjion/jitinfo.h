@@ -73,7 +73,7 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
     uint32_t m_nativeSize;
     vector<SequencePoint> m_sequencePoints;
     vector<CallPoint> m_callPoints;
-    bool m_compileDebug;
+    DebugMode m_compileDebug;
 
     volatile const GSCookie s_gsCookie = 0x1234;
 
@@ -83,7 +83,7 @@ class CorJitInfo : public ICorJitInfo, public JittedCode {
 #endif
 
 public:
-    CorJitInfo(const char* moduleName, const char* methodName, UserModule* module, bool compileDebug) {
+    CorJitInfo(const char* moduleName, const char* methodName, UserModule* module, DebugMode compileDebug) {
         m_codeAddr = m_dataAddr = nullptr;
         m_methodName = methodName;
         m_moduleName = moduleName;
@@ -1514,13 +1514,20 @@ public:
 #ifdef FEATURE_SIMD
         flags->Add(flags->CORJIT_FLAG_FEATURE_SIMD);
 #endif
-        if (m_compileDebug) {
-            flags->Add(flags->CORJIT_FLAG_DEBUG_INFO);
-            flags->Add(flags->CORJIT_FLAG_DEBUG_CODE);
-            flags->Add(flags->CORJIT_FLAG_NO_INLINING);
-            flags->Add(flags->CORJIT_FLAG_MIN_OPT);
-        } else {
-            flags->Add(flags->CORJIT_FLAG_SPEED_OPT);
+        switch (m_compileDebug) {
+            case DebugMode::Debug:
+                flags->Add(flags->CORJIT_FLAG_DEBUG_CODE);
+                flags->Add(flags->CORJIT_FLAG_DEBUG_INFO);
+                flags->Add(flags->CORJIT_FLAG_NO_INLINING);
+                flags->Add(flags->CORJIT_FLAG_MIN_OPT);
+                break;
+            case DebugMode::ReleaseWithDebugInfo:
+                flags->Add(flags->CORJIT_FLAG_DEBUG_INFO);
+            case DebugMode::Release:
+                flags->Add(flags->CORJIT_FLAG_SPEED_OPT);
+                break;
+            default:
+                break;
         }
 
 #ifdef DOTNET_PGO

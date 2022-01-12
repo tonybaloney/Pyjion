@@ -26,7 +26,6 @@
 #ifndef PYJION_PYCOMP_H
 #define PYJION_PYCOMP_H
 
-
 #include <windows.h>
 
 #include <share.h>
@@ -281,7 +280,7 @@ class PythonCompiler : public IPythonCompiler {
     // This is the ADDRESS of the int f_lasti inside the PyFrameObject
     Local m_lasti;
     Local m_instrCount;
-    bool m_compileDebug;
+    DebugMode m_compileDebug;
 
 public:
     explicit PythonCompiler(PyCodeObject* code);

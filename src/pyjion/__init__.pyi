@@ -1,6 +1,6 @@
-from typing import Dict, Any, Callable, Optional
+from typing import Dict, Any, Callable, Optional, Union
 
-from pyjion import JitInfo
+from pyjion import JitInfo, CompileMode
 
 
 def enable() -> bool:
@@ -40,7 +40,7 @@ def info(f: Callable) -> JitInfo:
     """
     ...
 
-def config(pgc: Optional[bool], level: Optional[int], debug: Optional[bool], graph: Optional[bool], threshold: Optional[int], ) -> Dict[str, Any]:
+def config(pgc: Optional[bool], level: Optional[int], debug: Optional[Union[bool, CompileMode]], graph: Optional[bool], threshold: Optional[int], ) -> Dict[str, Any]:
     ...
 
 def offsets(f: Callable) -> tuple[tuple[int, int, int, int]]:
