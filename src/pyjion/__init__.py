@@ -5,7 +5,7 @@ import platform
 from enum import IntFlag, IntEnum
 from dataclasses import dataclass
 
-__version__ = '1.2.4'
+__version__ = '1.2.5'
 
 
 def _no_dotnet(path):

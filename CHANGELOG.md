@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.2.5
+
+* Changed the `pyjion.config(debug=)` setting to allow True or False (as before), or 0 (Release), 1 (Debug), 2 (ReleaseWithDebugInfo)
+
 ## 1.2.4
 
 * Updated to rich 11.0
