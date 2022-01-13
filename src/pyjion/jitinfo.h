@@ -1341,8 +1341,8 @@ public:
             //       of unmentioned vars is entire method
             ) override {
         *cVars = 0;
-        *vars = {};// Explore how/where these could be used?
-        *extendOthers = false;
+        *vars = {}; // Explore how/where these could be used?
+        *extendOthers = true;
     }
 
     // Report back to the EE the location of every variable.
