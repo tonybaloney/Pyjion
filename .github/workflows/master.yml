@@ -253,7 +253,7 @@ jobs:
       - name: Run C++ unit tests
         working-directory: ${{runner.workspace}}/build/Release
         run: |
-          cp c:\Users\runneradmin\AppData\Local\Microsoft\dotnet\shared\Microsoft.NETCore.App\6.0.0\clrjit.dll .
+          cp c:\Users\runneradmin\AppData\Local\Microsoft\dotnet\shared\Microsoft.NETCore.App\6.0.1\clrjit.dll .
           .\unit_tests.exe
 
       - name: Setup Python tests
