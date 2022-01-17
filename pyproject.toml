@@ -7,18 +7,18 @@ test-requires = "pytest"
 test-command = "pytest {project}/Tests"
 
 [tool.cibuildwheel.windows]
-before-build = "powershell eng\\install-dotnet.ps1 -Version 6.0.100 -InstallDir c:\\cibw\\dotnet"
+before-build = "powershell eng\\install-dotnet.ps1 -Version 6.0.101 -InstallDir c:\\cibw\\dotnet"
 archs = ["AMD64"]
 environment = {DOTNET_ROOT="c:/cibw/dotnet"}
 
 [tool.cibuildwheel.linux]
-before-build = "bash eng/install-dotnet.sh --version 6.0.100 --os linux"
+before-build = "bash eng/install-dotnet.sh --version 6.0.101 --os linux"
 manylinux-x86_64-image = "manylinux2014"
 archs = ["x86_64"]
 environment = {DOTNET_ROOT="/root/.dotnet", LD_LIBRARY_PATH="/root/.dotnet/shared/Microsoft.NETCore.App/6.0.0"}
 
 [tool.cibuildwheel.macos]
-before-build = "bash eng/install-dotnet.sh --version 6.0.100"
+before-build = "bash eng/install-dotnet.sh --version 6.0.101"
 environment = {MACOSX_DEPLOYMENT_TARGET=11.0}
 repair-wheel-command = ""
 archs = ["x86_64", "universal2", "arm64"]
