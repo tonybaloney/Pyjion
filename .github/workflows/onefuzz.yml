@@ -1,0 +1,50 @@
+# Example Github Actions pipeline
+#
+# This uses an AAD Service Principal to authenticate to Onefuzz.
+# See https://docs.microsoft.com/en-us/azure/active-directory/develop/app-objects-and-service-principals
+#
+# This uses a Microsoft Teams Incoming Webhook to create Teams messages upon finding crashes.
+# See https://github.com/microsoft/onefuzz/blob/main/docs/notifications/teams.md
+#
+# This uses the following variables, defined in the variable group 'onefuzz-config':
+# * endpoint: The Onefuzz Instance
+# * client_id: The Client ID for the service principal
+#
+# This uses the following secret variables, defined in the variable group 'onefuzz-config':
+# * client_secret: The Client Secret for the service principal
+# * teams_url: The Incoming Webhook for Teams
+
+name: Onefuzz Sample Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: build
+        run: |
+          set -ex
+          cd examples/simple-libfuzzer
+          make
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7 
+      - name: submit onefuzz job
+        env:
+          ONEFUZZ_ENDPOINT: ${{ secrets.onefuzz_endpoint }}
+          ONEFUZZ_CLIENT_ID: ${{ secrets.onefuzz_client_id }}
+          ONEFUZZ_CLIENT_SECRET: ${{ secrets.onefuzz_client_secret }}
+          ONEFUZZ_TEAMS_URL: ${{ secrets.teams_url }}
+        run: |
+          set -ex
+          pip install onefuzz
+          onefuzz config --endpoint $ONEFUZZ_ENDPOINT --client_id $ONEFUZZ_CLIENT_ID --client_secret $ONEFUZZ_CLIENT_SECRET
+          sed -i s/INSERT_TEAMS_WEBHOOK_URL_HERE/${ONEFUZZ_TEAMS_URL}/ notifications/teams-message.json
+          cd examples/simple-libfuzzer
+          onefuzz template libfuzzer basic samples sample-1 $GITHUB_SHA --target_exe fuzz.exe --notification_config @../../notifications/teams-message.json
