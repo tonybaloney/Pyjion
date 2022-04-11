@@ -621,9 +621,9 @@ def dis_native(f, include_offsets=False, print_pc=True) -> None:
     :param include_offsets: Flag to print python bytecode offsets as comments
     :param print_pc: Flag to print the memory address of each instruction
     """
-    if machine() != 'x86_64':
-        print("disassembly only supported on x86_64")
-        return
+    if machine() not in ['x86_64', 'AMD64']:
+        raise NotImplementedError("Disassembly only supported on Intel 64-bit CPUs")
+
     try:
         import distorm3
         from rich.console import Console
