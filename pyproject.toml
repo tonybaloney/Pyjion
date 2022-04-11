@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "scikit-build", "cmake", "ninja"]
+requires = ["setuptools", "wheel", "scikit-build>=0.13.0", "cmake", "ninja"]
 
 [tool.cibuildwheel]
 skip = ["*-musllinux*"]

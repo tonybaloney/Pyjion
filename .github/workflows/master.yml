@@ -244,11 +244,11 @@ jobs:
 
       - name: Build Python Package
         shell: bash
-        run: python setup.py build --generator "Visual Studio 16 2019"
+        run: python setup.py build
 
       - name: Install Python Package
         shell: bash
-        run: python setup.py install --generator "Visual Studio 16 2019"
+        run: python setup.py install
 
       - name: Run C++ unit tests
         working-directory: ${{runner.workspace}}/build/Release
