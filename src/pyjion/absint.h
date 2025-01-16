@@ -315,6 +315,7 @@ class AbstractInterpreter : public PyjionBase {
     vector<AbstractValue*> m_values;
     vector<AbstractSource*> m_sources;
     unordered_map<py_oparg, Local> m_fastNativeLocals;
+    unordered_map<py_oparg, Local> m_fastNativeLocalBoundFlags;
     unordered_map<py_oparg, StackEntryKind> m_fastNativeLocalKinds;
     IPythonCompiler* m_comp;
 
@@ -399,7 +400,7 @@ private:
     void loadConst(py_oparg constIndex, py_opindex opcodeIndex);
     void loadUnboxedConst(py_oparg constIndex, py_opindex opcodeIndex);
     void storeFastUnboxed(py_oparg local);
-    void loadFastUnboxed(py_oparg local, py_opindex opcodeIndex);
+    void loadFastUnboxed(ExceptionHandler*, py_oparg local, bool checkUnbound, py_opindex curByte);
     void loadFastWorker(ExceptionHandler*, py_oparg local, bool checkUnbound, py_opindex curByte);
     void testBoolAndBranch(Local value, bool isTrue, Label target);
     void escapeEdges(ExceptionHandler*, const vector<Edge>& edges, py_opindex curByte);

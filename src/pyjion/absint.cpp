@@ -1427,6 +1427,7 @@ AbstactInterpreterCompileWorkerResult AbstractInterpreter::compileWorker(PgcStat
     if (graph->isValid()) {
         for (auto& fastLocal : graph->getUnboxedFastLocals()) {
             m_fastNativeLocals[fastLocal.first] = m_comp->emit_define_local(fastLocal.second);
+            m_fastNativeLocalBoundFlags[fastLocal.first] = m_comp->emit_define_local(AVK_Bool);
             m_fastNativeLocalKinds[fastLocal.first] = avkAsStackEntryKind(fastLocal.second);
         }
     }
@@ -1789,15 +1790,17 @@ AbstactInterpreterCompileWorkerResult AbstractInterpreter::compileWorker(PgcStat
                 }
                 m_assignmentState[oparg] = true;
                 break;
-            case LOAD_FAST:
+            case LOAD_FAST: {
+                bool checkUnbound = m_assignmentState.find(op.oparg) == m_assignmentState.end() || !m_assignmentState.find(op.oparg)->second;
+
                 if (CAN_UNBOX() && op.escape) {
-                    loadFastUnboxed(oparg, opcodeIndex);
+                    loadFastUnboxed(CUR_HANDLER, op.oparg, checkUnbound, opcodeIndex);
                 } else {
-                    bool checkUnbound = m_assignmentState.find(op.oparg) == m_assignmentState.end() || !m_assignmentState.find(op.oparg)->second;
                     loadFastWorker(CUR_HANDLER, op.oparg, checkUnbound, opcodeIndex);
                     incStack();
                 }
                 break;
+            }
             case UNPACK_SEQUENCE:
                 m_comp->emit_unpack_sequence(oparg, stackInfo.top());
                 decStack();
@@ -2791,9 +2794,23 @@ void AbstractInterpreter::loadUnboxedConst(py_oparg constIndex, py_opindex opcod
     }
 }
 
-void AbstractInterpreter::loadFastUnboxed(py_oparg local, py_opindex opcodeIndex) {
-    bool checkUnbound = m_assignmentState.find(local) == m_assignmentState.end() || !m_assignmentState.find(local)->second;
-    assert(!checkUnbound);
+void AbstractInterpreter::loadFastUnboxed(ExceptionHandler* handler, py_oparg local, bool checkUnbound, py_opindex curByte) {
+    
+    // Check if arg is unbound, raises UnboundLocalError
+    if (checkUnbound) {
+        Label success = m_comp->emit_define_label();
+
+        m_comp->emit_load_local(m_fastNativeLocalBoundFlags[local]);
+        m_comp->emit_branch(BranchTrue, success);
+
+        m_comp->emit_ptr(PyTuple_GetItem(mCode->co_varnames, local));
+
+        m_comp->emit_unbound_local_check();
+
+        branchRaise(handler, "unbound local", PyUnicode_AsUTF8(PyTuple_GetItem(mCode->co_varnames, local)), curByte);
+
+        m_comp->emit_mark_label(success);
+    }
     m_comp->emit_load_local(m_fastNativeLocals[local]);
     incStack(1, m_fastNativeLocalKinds[local]);
 }
@@ -2801,6 +2818,8 @@ void AbstractInterpreter::loadFastUnboxed(py_oparg local, py_opindex opcodeIndex
 void AbstractInterpreter::storeFastUnboxed(py_oparg local) {
     m_comp->emit_store_local(m_fastNativeLocals[local]);
     decStack();
+    m_comp->emit_int(1);
+    m_comp->emit_store_local(m_fastNativeLocalBoundFlags[local]);
 }
 
 void AbstractInterpreter::loadFastWorker(ExceptionHandler* handler, py_oparg local, bool checkUnbound, py_opindex curByte) {

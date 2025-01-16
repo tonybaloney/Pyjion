@@ -1,5 +1,5 @@
 import pyjion
-
+import pytest
 
 def test_static_sequence():
     def f(x):
@@ -46,3 +46,14 @@ def test_recursive_sequence():
     r = f((3, 4))
     assert r == (3, 4)
     assert pyjion.info(f).pgc == 2
+
+
+def test_unboxed_conditional_branch():
+    def f(flag):
+        if flag:
+            x = 3
+        return x
+    assert f(True) == 3
+    assert f(True) == 3
+    with pytest.raises(UnboundLocalError):
+        f(False)
