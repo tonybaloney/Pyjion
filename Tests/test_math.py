@@ -174,3 +174,43 @@ def test_strides_from_shape():
         for i in range(1, ndim):
             strides[i] *= strides[i-1]
     assert strides == [10, 5, 1]
+
+
+@pytest.mark.optimization(1)
+def test_ema():
+    class EMA:
+        """
+        From the tqdm library
+
+        Exponential moving average: smoothing to give progressively lower
+        weights to older values.
+        Parameters
+        ----------
+        smoothing  : float, optional
+            Smoothing factor in range [0, 1], [default: 0.3].
+            Increase to give more weight to recent values.
+            Ranges from 0 (yields old value) to 1 (yields new value).
+        """
+        def __init__(self, smoothing=0.3):
+            self.alpha = smoothing
+            self.last = 0
+            self.calls = 0
+
+        def __call__(self, x=None):
+            """
+            Parameters
+            ----------
+            x  : float
+                New value to include in EMA.
+            """
+            beta = 1 - self.alpha
+            if x is not None:
+                self.last = self.alpha * x + beta * self.last
+                self.calls += 1
+            return self.last / (1 - beta ** self.calls) if self.calls else self.last
+
+    ema = EMA()
+    assert ema() == 0
+    assert round(ema(1)) == 1
+    assert round(ema()) == 1
+    assert round(ema(2), 1) == 1.6

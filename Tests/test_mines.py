@@ -13,3 +13,10 @@ def test_regexps():
         return bytearray(map(ord, s))
     b = by("Hello, world")
     assert re.findall(br"\w+", b) == [by("Hello"), by("world")]
+
+
+import tqdm
+
+def test_tqdm():
+    for _ in tqdm.tqdm(range(10)):
+        pass
