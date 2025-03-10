@@ -64,7 +64,7 @@ jobs:
         libtool build-essential python curl git lldb-6.0 liblldb-6.0-dev \
         libunwind8 libunwind8-dev gettext libicu-dev liblttng-ust-dev \
         libssl-dev libnuma-dev libkrb5-dev zlib1g-dev
-    - uses: actions/setup-dotnet@v3
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ matrix.dot-net-version }}
 
