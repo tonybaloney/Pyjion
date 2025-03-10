@@ -98,7 +98,7 @@ jobs:
           dotnet-version: ${{ matrix.dot-net-version }}
 
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.3.1
+        uses: microsoft/setup-msbuild@v2.0.0
 
       - name: Create Build Environment
         run: cmake -E make_directory ${{runner.workspace}}/build
